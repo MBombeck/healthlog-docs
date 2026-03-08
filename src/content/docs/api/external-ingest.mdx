@@ -23,7 +23,7 @@ curl -s -X POST https://your-instance.example.com/api/ingest/medication \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer hlk_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2" \
   -d '{
-    "medicationId": "clx...",
+    "medicationName": "Metoprolol",
     "takenAt": "2026-03-08T07:15:00.000Z",
     "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000"
   }'
@@ -43,7 +43,7 @@ curl -s -X POST https://your-instance.example.com/api/ingest/medication \
 }
 ```
 
-The `idempotencyKey` is optional but recommended. Duplicate requests with the same key within 60 seconds are deduplicated.
+The `medicationName` is matched case-insensitively against active medications. The `idempotencyKey` is required and prevents duplicate entries. Requests with the same key are deduplicated.
 
 ---
 

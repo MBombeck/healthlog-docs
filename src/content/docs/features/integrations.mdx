@@ -63,7 +63,7 @@ Tokens are created per medication and use the `hlk_` prefix.
 curl -X POST https://healthlog.example.com/api/ingest/medication \
   -H "Authorization: Bearer hlk_abc123..." \
   -H "Content-Type: application/json" \
-  -d '{"medicationId": "...", "scheduleId": "..."}'
+  -d '{"medicationName": "Metoprolol", "idempotencyKey": "unique-key-123"}'
 ```
 
 **Properties:**

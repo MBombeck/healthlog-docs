@@ -53,17 +53,17 @@ POST /api/auth/login
 
 ```json
 {
-  "identifier": "marc",
+  "email": "marc",
   "password": "secure-password"
 }
 ```
 
-The `identifier` field accepts either a username or an email address.
+The `email` field accepts either a username or an email address.
 
 ```bash
 curl -s -c cookies.txt https://your-instance.example.com/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"identifier": "marc", "password": "secure-password"}'
+  -d '{"email": "marc", "password": "secure-password"}'
 ```
 
 ---
