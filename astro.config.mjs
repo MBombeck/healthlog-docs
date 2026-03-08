@@ -46,6 +46,7 @@ export default defineConfig({
 						{ slug: 'features/notifications' },
 						{ slug: 'features/ai-insights' },
 						{ slug: 'features/integrations' },
+						{ slug: 'features/mood-tracking' },
 						{ slug: 'features/gamification' },
 						{ slug: 'features/export-import' },
 					],
