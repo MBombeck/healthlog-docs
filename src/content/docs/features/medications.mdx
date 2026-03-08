@@ -1,93 +1,93 @@
 ---
-title: Medikamenten-Management
-description: Medikamente verwalten, zeitfensterbasierte Einnahmeplaene erstellen und Compliance analysieren.
+title: Medication Management
+description: Manage medications, create time-window-based schedules, and analyze compliance rates.
 sidebar:
   order: 2
 ---
 
-Das Medikamenten-Management ist das Kernstueck von HealthLog. Es umfasst Medikamentenverwaltung, zeitfensterbasierte Einnahmeplaene, Erinnerungen mit Phasensystem und Compliance-Analysen.
+Medication management is the core of HealthLog. It covers medication tracking, time-window-based schedules, a phased reminder system, and compliance analytics.
 
-## Medikamente anlegen
+## Adding Medications
 
-Jedes Medikament wird mit folgenden Attributen erfasst:
+Each medication is defined with the following attributes:
 
-- **Name** -- Freitextfeld
-- **Dosis** -- Standarddosis (z.B. "10mg")
-- **Kategorie** -- Frei definierbare Kategorien zur Gruppierung
-- **Aktiv/Inaktiv** -- Nur aktive Medikamente erzeugen Erinnerungen
+- **Name** -- Free-text field
+- **Dose** -- Default dose (e.g., "10mg")
+- **Category** -- User-defined categories for grouping
+- **Active/Inactive** -- Only active medications generate reminders
 
-## Einnahmeplaene (Schedules)
+## Schedules
 
-Einnahmeplaene definieren, wann ein Medikament genommen werden soll.
+Schedules define when a medication should be taken.
 
 ```typescript
 interface MedicationSchedule {
-  windowStart: string;   // z.B. "08:00"
-  windowEnd: string;     // z.B. "10:00"
-  label?: string;        // z.B. "Morgens", "Abends"
-  daysOfWeek?: string;   // Komma-separierte Tagnummern (0=So..6=Sa), null = taeglich
-  dose?: string;         // Optional: ueberschreibt die Standarddosis
+  windowStart: string;   // e.g. "08:00"
+  windowEnd: string;     // e.g. "10:00"
+  label?: string;        // e.g. "Morning", "Evening"
+  daysOfWeek?: string;   // Comma-separated day numbers (0=Sun..6=Sat), null = daily
+  dose?: string;         // Optional: overrides the default dose
 }
 ```
 
-- **Zeitfenster**: Definiert durch `windowStart` und `windowEnd`
-- **Wochentage**: Einnahme nur an ausgewaehlten Tagen
-- **Dosis-Override**: Pro Schedule kann eine abweichende Dosis hinterlegt werden
+- **Time window**: Defined by `windowStart` and `windowEnd`
+- **Days of week**: Restrict intake to specific days
+- **Dose override**: Each schedule can specify a different dose
 
 :::tip
-Fuer Medikamente mit unterschiedlichen Dosen an verschiedenen Tagen (z.B. Methotrexat) einfach mehrere Schedules mit verschiedenen Wochentagen und Dosen anlegen.
+For medications with varying doses on different days (e.g., Methotrexate), simply create multiple schedules with different days and doses.
 :::
 
-## Einnahme-Tracking
+## Intake Tracking
 
-Einnahmen werden mit Idempotenz-Schutz erfasst: Innerhalb von 60 Sekunden wird eine doppelte Buchung auf dasselbe Schedule automatisch verhindert.
+Intakes are recorded with idempotency protection: duplicate entries for the same schedule within 60 seconds are automatically prevented.
 
-### Einnahme-Quellen
+### Intake Sources
 
-| Quelle | Beschreibung |
-|--------|-------------|
-| `WEB` | Manuell ueber die Weboberflaeche |
-| `API` | Ueber die externe API (Bearer Token) |
-| `REMINDER` | Ueber Inline-Buttons in Benachrichtigungen |
-| `IMPORT` | Aus einem JSON-Import |
+| Source | Description |
+|--------|------------|
+| `WEB` | Manually via the web interface |
+| `API` | Via the external API (Bearer token) |
+| `REMINDER` | Via inline buttons in notifications |
+| `IMPORT` | From a JSON import |
 
-## Phasenbasierte Erinnerungen
+## Phase-Based Reminders
 
-Das Erinnerungssystem arbeitet mit vier Phasen, die visuell und per Benachrichtigung signalisiert werden:
+The reminder system uses four phases, signaled both visually and via notifications:
 
-| Phase | Farbe | Bedeutung |
-|-------|-------|-----------|
-| GREEN | Gruen | Zeitfenster beginnt -- Einnahme jetzt moeglich |
-| YELLOW | Gelb | Zeitfenster endet bald -- Erinnerung |
-| ORANGE | Orange | Zeitfenster ueberschritten -- ueberfaellig |
-| RED | Rot | Einnahme verpasst -- als verpasst markiert |
+| Phase | Color | Meaning |
+|-------|-------|---------|
+| GREEN | Green | Time window has started -- intake now possible |
+| YELLOW | Yellow | Time window ending soon -- reminder |
+| ORANGE | Orange | Time window exceeded -- overdue |
+| RED | Red | Intake missed -- marked as missed |
 
-### Phasen-Konfiguration
+### Phase Configuration
 
-Die Uebergaenge zwischen den Phasen sind **pro Medikament** konfigurierbar:
+Phase transitions are configurable **per medication**:
 
-- **Minuten** -- Fester Zeitwert (z.B. 15 Minuten vor Ende)
-- **Prozent** -- Anteil des Zeitfensters (z.B. 80% des Fensters abgelaufen)
+- **Minutes** -- Fixed time value (e.g., 15 minutes before the window ends)
+- **Percent** -- Percentage of the time window (e.g., 80% of the window elapsed)
 
 :::note
-Die Standard-Konfiguration ist fuer die meisten Faelle sinnvoll. Individuelle Anpassungen sind besonders bei sehr kurzen oder sehr langen Zeitfenstern hilfreich.
+The default configuration works well for most cases. Custom adjustments are particularly useful for very short or very long time windows.
 :::
 
-## Compliance-Analysen
+## Compliance Analytics
 
-HealthLog berechnet Compliance-Raten auf drei Ebenen:
+HealthLog calculates compliance rates at three levels:
 
-- **7-Tage-Rate** -- Kurzfristige Einnahmetreue
-- **30-Tage-Rate** -- Monatliche Compliance
-- **90-Tage-Heatmap** -- Visuelle Darstellung der Einnahmetreue ueber drei Monate
+- **7-day rate** -- Short-term adherence
+- **30-day rate** -- Monthly compliance
+- **90-day heatmap** -- Visual overview of adherence over three months
 
-Die Heatmap zeigt farbkodiert fuer jeden Tag, ob alle Einnahmen erfolgt sind, teilweise oder gar nicht.
+The heatmap uses color coding to show whether all doses were taken, partially taken, or missed for each day.
 
 ## Pause / Snooze
 
-- **Pause**: Setzt alle Erinnerungen fuer ein Medikament aus (z.B. bei Arztruecksprache)
-- **Snooze**: Verschiebt eine einzelne Erinnerung um einen konfigurierbaren Zeitraum
+- **Pause**: Suspends all reminders for a medication (e.g., while consulting a doctor)
+- **Snooze**: Postpones a single reminder by a configurable duration
 
-## Kategorien
+## Categories
 
-Medikamente koennen in frei definierbare Kategorien eingeordnet werden. Die Kategorien dienen der Uebersicht im Dashboard und als Filter in den Compliance-Analysen.
+Medications can be organized into user-defined categories. Categories help keep the dashboard organized and serve as filters in the compliance analytics.

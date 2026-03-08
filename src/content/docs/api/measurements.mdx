@@ -1,41 +1,41 @@
 ---
-title: "Messwerte"
-description: "Messwerte erfassen, abfragen und verwalten."
+title: "Measurements"
+description: "Record, query, and manage health measurements."
 sidebar:
   order: 3
 ---
 
-## Messwert-Typen
+## Measurement Types
 
-| Typ | Beschreibung | Einheit |
-|-----|-------------|---------|
-| `WEIGHT` | Koerpergewicht | kg |
-| `BLOOD_PRESSURE_SYS` | Systolischer Blutdruck | mmHg |
-| `BLOOD_PRESSURE_DIA` | Diastolischer Blutdruck | mmHg |
-| `PULSE` | Puls / Herzfrequenz | bpm |
-| `BODY_FAT` | Koerperfettanteil | % |
-| `SLEEP_DURATION` | Schlafdauer | Stunden |
-| `ACTIVITY_STEPS` | Schritte | Anzahl |
+| Type | Description | Unit |
+|------|-------------|------|
+| `WEIGHT` | Body weight | kg |
+| `BLOOD_PRESSURE_SYS` | Systolic blood pressure | mmHg |
+| `BLOOD_PRESSURE_DIA` | Diastolic blood pressure | mmHg |
+| `PULSE` | Pulse / heart rate | bpm |
+| `BODY_FAT` | Body fat percentage | % |
+| `SLEEP_DURATION` | Sleep duration | hours |
+| `ACTIVITY_STEPS` | Steps | count |
 
-## Messwerte auflisten
+## List Measurements
 
 ```
 GET /api/measurements
 ```
 
-**Auth:** Session Cookie oder Bearer Token
+**Auth:** Session Cookie or Bearer Token
 
-**Query-Parameter:**
+**Query Parameters:**
 
-| Parameter | Typ | Beschreibung |
-|-----------|-----|-------------|
-| `type` | string | Filtern nach Messwert-Typ |
-| `from` | ISO 8601 | Startdatum |
-| `to` | ISO 8601 | Enddatum |
-| `limit` | number | Max. Anzahl (Standard: 20) |
-| `offset` | number | Offset fuer Paginierung |
-| `sortBy` | string | Sortierfeld (z.B. `measuredAt`) |
-| `sortDir` | `asc` / `desc` | Sortierrichtung |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | string | Filter by measurement type |
+| `from` | ISO 8601 | Start date |
+| `to` | ISO 8601 | End date |
+| `limit` | number | Max results (default: 20) |
+| `offset` | number | Offset for pagination |
+| `sortBy` | string | Sort field (e.g. `measuredAt`) |
+| `sortDir` | `asc` / `desc` | Sort direction |
 
 ```bash
 curl -s "https://your-instance.example.com/api/measurements?type=WEIGHT&limit=5&sortDir=desc" \
@@ -63,17 +63,17 @@ curl -s "https://your-instance.example.com/api/measurements?type=WEIGHT&limit=5&
 
 ---
 
-## Messwert erstellen
+## Create Measurement
 
 ```
 POST /api/measurements
 ```
 
-**Auth:** Session Cookie oder Bearer Token
+**Auth:** Session Cookie or Bearer Token
 
-Unterstuetzt Einzelwerte und Batch-Erstellung (Array).
+Supports both single values and batch creation (array).
 
-### Einzelner Messwert
+### Single Measurement
 
 ```json
 {
@@ -84,9 +84,9 @@ Unterstuetzt Einzelwerte und Batch-Erstellung (Array).
 }
 ```
 
-### Blutdruck-Messung (Batch)
+### Blood Pressure (Batch)
 
-Blutdruck besteht aus zwei zusammengehoerenden Messwerten:
+A blood pressure reading consists of two related measurements:
 
 ```bash
 curl -s https://your-instance.example.com/api/measurements \
@@ -126,15 +126,15 @@ curl -s https://your-instance.example.com/api/measurements \
 
 ---
 
-## Einzelner Messwert
+## Single Measurement
 
-### Abrufen
+### Retrieve
 
 ```
 GET /api/measurements/[id]
 ```
 
-### Aktualisieren
+### Update
 
 ```
 PUT /api/measurements/[id]
@@ -147,10 +147,10 @@ PUT /api/measurements/[id]
 }
 ```
 
-### Loeschen
+### Delete
 
 ```
 DELETE /api/measurements/[id]
 ```
 
-**Auth:** Session Cookie oder Bearer Token. Benutzer koennen nur eigene Messwerte bearbeiten.
+**Auth:** Session Cookie or Bearer Token. Users can only modify their own measurements.

@@ -1,115 +1,115 @@
 ---
-title: "Self-Hosting Sicherheit"
+title: "Self-Hosting Security"
 sidebar:
   order: 2
 ---
 
-Sicherheitsrelevante Hinweise fuer den Betrieb einer eigenen HealthLog-Instanz.
+Security guidelines for running your own HealthLog instance.
 
-## 1. Kryptographische Schluessel generieren
+## 1. Generate Cryptographic Keys
 
-HealthLog benoetigt drei unabhaengige Secrets. Jedes muss ein 256-Bit Hex-String sein:
+HealthLog requires three independent secrets. Each must be a 256-bit hex string:
 
 ```bash
-# Session-Signierung
+# Session signing
 openssl rand -hex 32  # -> SESSION_SECRET
 
-# Verschluesselung sensibler DB-Felder (AES-256-GCM)
+# Encryption of sensitive DB fields (AES-256-GCM)
 openssl rand -hex 32  # -> ENCRYPTION_KEY
 
-# HMAC fuer API-Token-Hashing
+# HMAC for API token hashing
 openssl rand -hex 32  # -> API_TOKEN_HMAC_KEY
 ```
 
 :::danger
-Der `ENCRYPTION_KEY` darf **niemals** geaendert oder verloren gehen. Er verschluesselt OpenAI-Keys, Telegram-Tokens, Withings-Tokens, Notification-Config und VAPID-Keys. Bei Verlust oder Aenderung sind alle verschluesselten Daten unwiderruflich unlesbar. Sichere diesen Schluessel separat (z.B. in einem Passwort-Manager).
+The `ENCRYPTION_KEY` must **never** be changed or lost. It encrypts OpenAI keys, Telegram tokens, Withings tokens, notification config, and VAPID keys. If it is lost or changed, all encrypted data becomes permanently unreadable. Store this key separately (e.g. in a password manager).
 :::
 
-## 2. HTTPS ist Pflicht
+## 2. HTTPS Is Required
 
 :::caution
-HealthLog **erfordert HTTPS** in Produktion. Session-Cookies sind mit `secure: true` konfiguriert und werden ueber unverschluesselte Verbindungen nicht gesendet. Passkeys (WebAuthn) funktionieren ausschliesslich ueber HTTPS oder `localhost`.
+HealthLog **requires HTTPS** in production. Session cookies are configured with `secure: true` and will not be sent over unencrypted connections. Passkeys (WebAuthn) only work over HTTPS or `localhost`.
 :::
 
-Verwende einen Reverse Proxy fuer TLS-Terminierung. Siehe [Reverse Proxy](/self-hosting/reverse-proxy/) fuer Konfigurationsbeispiele.
+Use a reverse proxy for TLS termination. See [Reverse Proxy](/self-hosting/reverse-proxy/) for configuration examples.
 
-## 3. APP_URL korrekt setzen
+## 3. Set APP_URL Correctly
 
-Die Umgebungsvariable `APP_URL` wird fuer mehrere sicherheitskritische Funktionen verwendet:
+The `APP_URL` environment variable is used for several security-critical features:
 
-- **Passkey RP-ID** -- die Relying Party ID leitet sich aus der Domain ab
-- **OAuth Redirects** -- Withings OAuth Callback-URL
-- **Webhook-URLs** -- Withings Notification-Endpoint
+- **Passkey RP-ID** -- the Relying Party ID is derived from the domain
+- **OAuth redirects** -- Withings OAuth callback URL
+- **Webhook URLs** -- Withings notification endpoint
 
 ```bash
 APP_URL=https://health.example.com
 ```
 
-Ein falscher Wert fuehrt dazu, dass Passkeys nicht funktionieren und OAuth-Flows fehlschlagen.
+An incorrect value will cause passkey registration to fail and break OAuth flows.
 
-## 4. Registrierung einschraenken
+## 4. Restrict Registration
 
-Nach dem Erstellen des Admin-Accounts sollte die oeffentliche Registrierung deaktiviert werden:
+After creating the admin account, you should disable public registration:
 
-1. Als Admin anmelden
-2. **Einstellungen** -> **Administration** -> **Registrierung deaktivieren**
+1. Sign in as admin
+2. **Settings** -> **Administration** -> **Disable registration**
 
-So wird verhindert, dass Unbefugte Accounts auf der Instanz erstellen.
+This prevents unauthorized users from creating accounts on your instance.
 
-## 5. Datenbank-Passwort aendern
+## 5. Change the Database Password
 
-Die `docker-compose.yml` enthaelt ein Beispiel-Passwort. Ersetze es vor dem ersten Start:
+The `docker-compose.yml` ships with a placeholder password. Replace it before the first start:
 
 ```yaml
 environment:
-  POSTGRES_PASSWORD: ein-sicheres-zufaelliges-passwort
+  POSTGRES_PASSWORD: a-secure-randomly-generated-password
 ```
 
-Dasselbe Passwort muss in `DATABASE_URL` der App verwendet werden:
+The same password must be used in the app's `DATABASE_URL`:
 
 ```bash
-DATABASE_URL=postgresql://healthlog:ein-sicheres-zufaelliges-passwort@db:5432/healthlog
+DATABASE_URL=postgresql://healthlog:a-secure-randomly-generated-password@db:5432/healthlog
 ```
 
-## 6. Secrets nicht in Versionskontrolle
+## 6. Keep Secrets Out of Version Control
 
-Lege die `.env`-Datei niemals in ein Git-Repository. Stelle sicher, dass `.env` in `.gitignore` steht. Verwende fuer CI/CD-Pipelines Environment-Secrets des jeweiligen Providers.
+Never commit your `.env` file to a Git repository. Make sure `.env` is listed in `.gitignore`. For CI/CD pipelines, use your provider's environment secrets feature.
 
-## 7. Regelmaessig aktualisieren
+## 7. Update Regularly
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-Datenbankmigrationen werden beim Start automatisch ausgefuehrt. Ein manueller Eingriff ist nicht noetig. Siehe [Updates](/self-hosting/updates/) fuer Details.
+Database migrations run automatically on startup. No manual intervention is needed. See [Updates](/self-hosting/updates/) for details.
 
-## 8. Audit-Log pruefen
+## 8. Review the Audit Log
 
-Im Admin-Panel unter **Audit Log** sind alle sicherheitsrelevanten Ereignisse einsehbar:
+All security-relevant events are available in the admin panel under **Audit Log**:
 
-- Fehlgeschlagene Login-Versuche (mit IP und Geo-Location)
-- Token-Erstellung und -Widerruf
-- Administratoraktionen
-- Registrierungen
+- Failed login attempts (with IP and geo-location)
+- Token creation and revocation
+- Administrator actions
+- Registrations
 
-Pruefe das Audit-Log regelmaessig auf ungewoehnliche Aktivitaeten.
+Check the audit log regularly for unusual activity.
 
-## 9. Port 3000 nicht oeffentlich exponieren
+## 9. Do Not Expose Port 3000 Publicly
 
-Der HealthLog-Container lauscht auf Port 3000. Dieser Port sollte **nicht** direkt aus dem Internet erreichbar sein. Verwende stattdessen einen Reverse Proxy (siehe [Reverse Proxy](/self-hosting/reverse-proxy/)) und stelle sicher, dass eine Firewall den direkten Zugriff auf Port 3000 blockiert.
+The HealthLog container listens on port 3000. This port should **not** be directly reachable from the internet. Use a reverse proxy instead (see [Reverse Proxy](/self-hosting/reverse-proxy/)) and make sure a firewall blocks direct access to port 3000.
 
 :::caution
-Docker umgeht standardmaessig die `ufw`/`iptables`-Firewall auf Linux. Wenn du `ports: "3000:3000"` in der `docker-compose.yml` mappst, ist der Port moeglicherweise trotz Firewall von aussen erreichbar. Entferne das Port-Mapping und lasse den Reverse Proxy ueber das Docker-Netzwerk zugreifen, oder binde den Port nur an localhost: `ports: "127.0.0.1:3000:3000"`.
+Docker bypasses `ufw`/`iptables` firewall rules on Linux by default. If you map `ports: "3000:3000"` in your `docker-compose.yml`, the port may be publicly accessible despite your firewall. Either remove the port mapping and let the reverse proxy connect through the Docker network, or bind the port to localhost only: `ports: "127.0.0.1:3000:3000"`.
 :::
 
-## 10. Externes Datenbank-Backup einrichten
+## 10. Set Up External Database Backups
 
-Das automatische In-App-Backup (woechentlich, verschluesselt in der DB) ersetzt **kein** externes Backup. Richte zusaetzlich ein regelmaessiges PostgreSQL-Backup ein:
+The automatic in-app backup (weekly, encrypted, stored in the database) is **not** a substitute for an external backup. Set up a regular PostgreSQL backup as well:
 
 ```bash
-# Taeglich per Cronjob
+# Daily via cron
 docker compose exec db pg_dump -U healthlog healthlog | gzip > /backups/healthlog_$(date +\%Y\%m\%d).sql.gz
 ```
 
-Bei Verlust der gesamten Datenbank sind auch die In-App-Backups verloren, da sie in derselben Datenbank gespeichert werden.
+If the entire database is lost, the in-app backups are gone too, since they are stored in the same database.

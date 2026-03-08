@@ -1,66 +1,66 @@
 ---
 title: Installation
-description: Schritt-fuer-Schritt Anleitung zur Installation von HealthLog mit Docker Compose oder manuell.
+description: Step-by-step guide to installing HealthLog using Docker Compose or a manual setup.
 sidebar:
   order: 2
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-## Voraussetzungen
+## Prerequisites
 
-- Docker Engine 24+ und Docker Compose v2+
-- Reverse Proxy mit HTTPS (Nginx Proxy Manager, Traefik, Caddy o.ae.)
-- Domain mit gueltigem SSL-Zertifikat
-- Mindestens 512 MB RAM und 1 GB Speicherplatz
+- Docker Engine 24+ and Docker Compose v2+
+- Reverse proxy with HTTPS (Nginx Proxy Manager, Traefik, Caddy, etc.)
+- Domain with a valid SSL certificate
+- At least 512 MB RAM and 1 GB disk space
 
-## Schritt 1: Repository klonen
+## Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/MBombeck/healthlog.git
 cd healthlog
 ```
 
-## Schritt 2: Secrets generieren
+## Step 2: Generate Secrets
 
-Drei kryptografische Schluessel werden benoetigt. Generiere sie mit `openssl`:
+You need three cryptographic keys. Generate them with `openssl`:
 
 ```bash
-# Session-Secret (Cookie-Signierung)
+# Session secret (cookie signing)
 openssl rand -hex 32
 
-# Encryption Key (AES-256-GCM fuer sensitive Datenbankfelder)
+# Encryption key (AES-256-GCM for sensitive database fields)
 openssl rand -hex 32
 
-# HMAC Key (API Token Hashing)
+# HMAC key (API token hashing)
 openssl rand -hex 32
 ```
 
 :::danger
-Der `ENCRYPTION_KEY` verschluesselt sensitive Daten in der Datenbank (Tokens, API Keys). Wenn dieser Schluessel verloren geht oder geaendert wird, sind alle verschluesselten Daten unwiederbringlich verloren. Sichere ihn an einem sicheren Ort.
+The `ENCRYPTION_KEY` encrypts sensitive data in the database (tokens, API keys). If this key is lost or changed, all encrypted data becomes permanently unrecoverable. Store it in a safe place.
 :::
 
-## Schritt 3: Konfiguration
+## Step 3: Configuration
 
 <Tabs>
 <TabItem label="Docker Compose">
 
-Erstelle eine `.env`-Datei im Projektverzeichnis:
+Create a `.env` file in the project directory:
 
 ```bash title=".env"
-# Datenbank
-DATABASE_URL=postgresql://healthlog:DEIN_DB_PASSWORT@db:5432/healthlog
+# Database
+DATABASE_URL=postgresql://healthlog:YOUR_DB_PASSWORD@db:5432/healthlog
 
-# Sicherheit (Werte aus Schritt 2 einsetzen)
-SESSION_SECRET=dein_session_secret_hier
-ENCRYPTION_KEY=dein_encryption_key_hier
-API_TOKEN_HMAC_KEY=dein_hmac_key_hier
+# Security (use the values from Step 2)
+SESSION_SECRET=your_session_secret_here
+ENCRYPTION_KEY=your_encryption_key_here
+API_TOKEN_HMAC_KEY=your_hmac_key_here
 
-# App URL (muss HTTPS sein)
-NEXT_PUBLIC_APP_URL=https://health.deine-domain.de
+# App URL (must be HTTPS)
+NEXT_PUBLIC_APP_URL=https://health.your-domain.com
 ```
 
-Die mitgelieferte `docker-compose.yml` enthaelt bereits PostgreSQL 16 und die HealthLog-App:
+The bundled `docker-compose.yml` includes PostgreSQL 16 and the HealthLog app:
 
 ```yaml title="docker-compose.yml"
 services:
@@ -79,7 +79,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: healthlog
-      POSTGRES_PASSWORD: DEIN_SICHERES_DB_PASSWORT  # openssl rand -base64 24
+      POSTGRES_PASSWORD: YOUR_SECURE_DB_PASSWORD  # openssl rand -base64 24
       POSTGRES_DB: healthlog
     volumes:
       - healthlog_data:/var/lib/postgresql/data
@@ -94,81 +94,81 @@ volumes:
 ```
 
 </TabItem>
-<TabItem label="Manuelle Installation">
+<TabItem label="Manual Installation">
 
-Fuer eine manuelle Installation ohne Docker:
+To install manually without Docker:
 
 ```bash
-# Node.js 22+ und PostgreSQL 16 muessen installiert sein
-# pnpm 10+ muss installiert sein (corepack enable)
+# Node.js 22+ and PostgreSQL 16 must be installed
+# pnpm 10+ must be installed (corepack enable)
 
-# Abhaengigkeiten installieren
+# Install dependencies
 pnpm install
 
-# Prisma Client generieren
+# Generate Prisma Client
 pnpm db:generate
 
-# Datenbank migrieren
+# Run database migrations
 pnpm db:migrate:deploy
 
-# Production Build erstellen
+# Create production build
 pnpm build
 
-# Starten
+# Start the app
 pnpm start
 ```
 
-Setze die Umgebungsvariablen direkt oder ueber eine `.env`-Datei:
+Set the environment variables directly or via a `.env` file:
 
 ```bash title=".env"
-DATABASE_URL=postgresql://healthlog:passwort@localhost:5432/healthlog
-SESSION_SECRET=dein_session_secret_hier
-ENCRYPTION_KEY=dein_encryption_key_hier
-API_TOKEN_HMAC_KEY=dein_hmac_key_hier
-NEXT_PUBLIC_APP_URL=https://health.deine-domain.de
+DATABASE_URL=postgresql://healthlog:password@localhost:5432/healthlog
+SESSION_SECRET=your_session_secret_here
+ENCRYPTION_KEY=your_encryption_key_here
+API_TOKEN_HMAC_KEY=your_hmac_key_here
+NEXT_PUBLIC_APP_URL=https://health.your-domain.com
 ```
 
 </TabItem>
 </Tabs>
 
-## Schritt 4: Starten
+## Step 4: Start the Application
 
 ```bash
 docker compose up -d
 ```
 
-Pruefe die Logs auf erfolgreichen Start:
+Check the logs to confirm a successful startup:
 
 ```bash
 docker compose logs -f app
 ```
 
-Die Anwendung ist bereit, wenn folgende Meldung erscheint:
+The application is ready when you see:
 
 ```
 Ready on http://0.0.0.0:3000
 ```
 
-## Schritt 5: Reverse Proxy einrichten
+## Step 5: Set Up the Reverse Proxy
 
-Richte deinen Reverse Proxy so ein, dass er HTTPS-Traffic auf Port 3000 des HealthLog-Containers weiterleitet.
+Configure your reverse proxy to forward HTTPS traffic to port 3000 of the HealthLog container.
 
 :::caution
-HTTPS ist zwingend erforderlich. Passkeys (WebAuthn) funktionieren ausschliesslich in einem Secure Context. Ohne gueltiges SSL-Zertifikat ist keine Registrierung und kein Login moeglich.
+HTTPS is mandatory. Passkeys (WebAuthn) only work in a secure context. Without a valid SSL certificate, registration and login will not function.
 :::
 
-## Schritt 6: Ersten Benutzer registrieren
+## Step 6: Register the First User
 
-Oeffne `https://health.deine-domain.de` im Browser. Der erste registrierte Benutzer erhaelt automatisch Administratorrechte.
+Open `https://health.your-domain.com` in your browser. The first user to register is automatically granted administrator privileges.
 
 :::caution
-Registriere den Admin-Account **sofort** nach der Installation, bevor die URL oeffentlich erreichbar ist. Deaktiviere danach die Registrierung unter **Einstellungen > Administration**, um unbefugte Account-Erstellung zu verhindern.
+Register the admin account **immediately** after installation, before the URL is publicly accessible. Then disable registration under **Settings > Administration** to prevent unauthorized account creation.
 :::
 
 :::danger
-Lege die `.env`-Datei **niemals** in ein Git-Repository. Stelle sicher, dass `.env` in der `.gitignore` steht. Die Datei enthaelt kryptographische Schluessel und Datenbank-Zugangsdaten.
+**Never** commit the `.env` file to a Git repository. Make sure `.env` is listed in `.gitignore`. It contains cryptographic keys and database credentials.
 :::
 
-## Naechster Schritt
+## Next Step
 
-Folge dem [Schnellstart](/getting-started/quick-start/), um HealthLog einzurichten und die ersten Messwerte zu erfassen.
+Follow the [Quick Start](/getting-started/quick-start/) to configure HealthLog and log your first measurements.

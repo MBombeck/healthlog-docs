@@ -1,20 +1,20 @@
 ---
-title: "KI-Insights"
-description: "KI-gestuetzte Gesundheits-Insights und umfassende Analytik."
+title: "AI Insights"
+description: "AI-powered health insights and comprehensive analytics."
 sidebar:
   order: 6
 ---
 
-## KI-Insight generieren
+## Generate AI Insight
 
 ```
 POST /api/insights/generate
 ```
 
 **Auth:** Session Cookie
-**Rate Limit:** 2 Anfragen / Stunde / Benutzer
+**Rate Limit:** 2 requests / hour / user
 
-Generiert einen KI-gestuetzten Insight basierend auf den Gesundheitsdaten des Benutzers. Verwendet OpenAI `gpt-4o-mini` mit einem 24-Stunden-Cache.
+Generates an AI-powered insight based on the user's health data. Uses OpenAI `gpt-4o-mini` with a 24-hour cache.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/insights/generate \
@@ -36,7 +36,7 @@ curl -s -X POST https://your-instance.example.com/api/insights/generate \
 
 ---
 
-## Umfassende Analyse
+## Comprehensive Analysis
 
 ```
 GET /api/insights/comprehensive
@@ -44,7 +44,7 @@ GET /api/insights/comprehensive
 
 **Auth:** Session Cookie
 
-Gibt eine vollstaendige Analyse zurueck: Trends, Korrelationen, BMI, Blutdruck, Stimmung und Medikamenten-Compliance.
+Returns a full analysis covering trends, correlations, BMI, blood pressure, mood, and medication compliance.
 
 ```json
 {
@@ -63,9 +63,9 @@ Gibt eine vollstaendige Analyse zurueck: Trends, Korrelationen, BMI, Blutdruck, 
 
 ---
 
-## Kategorie-Status
+## Category Status
 
-Fuer jede Kategorie gibt es einen eigenen Status-Endpunkt:
+Each category has its own status endpoint:
 
 ```
 GET /api/insights/general-status
@@ -79,11 +79,11 @@ GET /api/insights/mood-status
 
 **Auth:** Session Cookie
 
-Jeder Endpunkt gibt kategoriespezifische Zusammenfassungen und Empfehlungen zurueck.
+Each endpoint returns category-specific summaries and recommendations.
 
 ---
 
-## Einstellungen
+## Settings
 
 ```
 GET /api/insights/settings
@@ -92,7 +92,7 @@ PUT /api/insights/settings
 
 **Auth:** Session Cookie
 
-Verwaltet Datenschutz-Modus und API-Key-Status fuer KI-Funktionen.
+Manages privacy mode and API key status for AI features.
 
 ```json
 {
@@ -106,7 +106,7 @@ Verwaltet Datenschutz-Modus und API-Key-Status fuer KI-Funktionen.
 
 ---
 
-## Blutdruck-Zielwerte
+## Blood Pressure Targets
 
 ```
 GET /api/insights/targets
@@ -114,7 +114,7 @@ GET /api/insights/targets
 
 **Auth:** Session Cookie
 
-Gibt altersabhaengige Blutdruck-Zielwerte zurueck.
+Returns age-adjusted blood pressure target values.
 
 ```json
 {

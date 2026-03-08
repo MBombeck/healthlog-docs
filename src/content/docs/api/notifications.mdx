@@ -1,11 +1,11 @@
 ---
-title: "Benachrichtigungen"
-description: "Web Push, Telegram und ntfy Benachrichtigungen konfigurieren."
+title: "Notifications"
+description: "Configure Web Push, Telegram, and ntfy notifications."
 sidebar:
   order: 7
 ---
 
-## Benachrichtigungs-Praeferenzen
+## Notification Preferences
 
 ```
 GET /api/notifications/preferences
@@ -14,7 +14,7 @@ PUT /api/notifications/preferences
 
 **Auth:** Session Cookie
 
-Verwaltet Kanal-Praeferenzen und Opt-out pro Ereignis und Kanal.
+Manages channel preferences and per-event opt-out settings for each channel.
 
 ```bash
 curl -s https://your-instance.example.com/api/notifications/preferences \
@@ -44,7 +44,7 @@ curl -s https://your-instance.example.com/api/notifications/preferences \
 
 ## Web Push
 
-### Abonnieren
+### Subscribe
 
 ```
 POST /api/notifications/web-push
@@ -52,7 +52,7 @@ POST /api/notifications/web-push
 
 **Auth:** Session Cookie
 
-Registriert ein Web-Push-Abonnement.
+Registers a Web Push subscription.
 
 ```json
 {
@@ -64,21 +64,21 @@ Registriert ein Web-Push-Abonnement.
 }
 ```
 
-### Abmelden
+### Unsubscribe
 
 ```
 DELETE /api/notifications/web-push
 ```
 
-### VAPID-Key
+### VAPID Key
 
 ```
 GET /api/notifications/vapid
 ```
 
-**Auth:** Keine
+**Auth:** None
 
-Gibt den oeffentlichen VAPID-Key zurueck, der fuer Web-Push-Abonnements benoetigt wird.
+Returns the public VAPID key required for Web Push subscriptions.
 
 ```json
 {
@@ -93,7 +93,7 @@ Gibt den oeffentlichen VAPID-Key zurueck, der fuer Web-Push-Abonnements benoetig
 
 ## Telegram
 
-### Konfiguration
+### Configuration
 
 ```
 GET /api/settings/telegram
@@ -110,7 +110,7 @@ PUT /api/settings/telegram
 }
 ```
 
-### Test-Nachricht
+### Test Message
 
 ```
 POST /api/settings/telegram/test
@@ -118,7 +118,7 @@ POST /api/settings/telegram/test
 
 **Auth:** Session Cookie
 
-Sendet eine Test-Nachricht ueber den konfigurierten Telegram-Bot.
+Sends a test message through the configured Telegram bot.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/settings/telegram/test \
@@ -129,7 +129,7 @@ curl -s -X POST https://your-instance.example.com/api/settings/telegram/test \
 
 ## ntfy
 
-### Konfiguration
+### Configuration
 
 ```
 GET /api/settings/ntfy
@@ -146,7 +146,7 @@ PUT /api/settings/ntfy
 }
 ```
 
-### Test-Nachricht
+### Test Message
 
 ```
 POST /api/settings/ntfy/test
@@ -154,4 +154,4 @@ POST /api/settings/ntfy/test
 
 **Auth:** Session Cookie
 
-Sendet eine Test-Nachricht an den konfigurierten ntfy-Kanal.
+Sends a test message to the configured ntfy channel.

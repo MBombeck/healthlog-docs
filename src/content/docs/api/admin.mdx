@@ -1,13 +1,13 @@
 ---
-title: "Admin-API"
-description: "Administrations-Endpunkte fuer Systemstatus, Benutzer und Einstellungen."
+title: "Admin API"
+description: "Administration endpoints for system status, users, and settings."
 sidebar:
   order: 9
 ---
 
-Alle Endpunkte auf dieser Seite erfordern die Rolle **Admin**.
+All endpoints on this page require the **Admin** role.
 
-## Systemstatus
+## System Status
 
 ```
 GET /api/admin/status
@@ -15,7 +15,7 @@ GET /api/admin/status
 
 **Auth:** Session Cookie (Admin)
 
-Gibt einen Ueberblick ueber das System zurueck: Anzahl Benutzer, Messwerte, Worker-Status, Integrations-Status und Version.
+Returns a system overview including user count, measurements, worker status, integration status, and version.
 
 ```bash
 curl -s https://your-instance.example.com/api/admin/status \
@@ -45,7 +45,7 @@ curl -s https://your-instance.example.com/api/admin/status \
 
 ---
 
-## App-Einstellungen
+## App Settings
 
 ```
 GET /api/admin/settings
@@ -54,37 +54,37 @@ PUT /api/admin/settings
 
 **Auth:** Session Cookie (Admin)
 
-Verwaltet globale Anwendungs-Einstellungen.
+Manages global application settings.
 
 ---
 
-## Benutzerverwaltung
+## User Management
 
-### Alle Benutzer
+### List All Users
 
 ```
 GET /api/admin/users
 ```
 
-### Einzelner Benutzer
+### Single User
 
 ```
 GET /api/admin/users/[id]
 ```
 
-### Benutzer loeschen
+### Delete User
 
 ```
 DELETE /api/admin/users/[id]
 ```
 
-### Passwort zuruecksetzen
+### Reset Password
 
 ```
 POST /api/admin/users/[id]/reset-password
 ```
 
-Generiert ein temporaeres Passwort fuer den Benutzer.
+Generates a temporary password for the user.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/admin/users/clx.../reset-password \
@@ -104,7 +104,7 @@ curl -s -X POST https://your-instance.example.com/api/admin/users/clx.../reset-p
 
 ---
 
-## API-Tokens
+## API Tokens
 
 ```
 GET /api/admin/tokens
@@ -112,11 +112,11 @@ GET /api/admin/tokens
 
 **Auth:** Session Cookie (Admin)
 
-Listet alle API-Tokens aller Benutzer auf.
+Lists all API tokens across all users.
 
 ---
 
-## Audit-Log
+## Audit Log
 
 ```
 GET /api/admin/audit-log
@@ -124,11 +124,11 @@ GET /api/admin/audit-log
 
 **Auth:** Session Cookie (Admin)
 
-Gibt das Audit-Log zurueck (Login-Versuche, Aenderungen, Admin-Aktionen).
+Returns the audit log (login attempts, changes, admin actions).
 
 ---
 
-## Datenbank-Statistiken
+## Database Statistics
 
 ```
 GET /api/admin/data
@@ -136,11 +136,11 @@ GET /api/admin/data
 
 **Auth:** Session Cookie (Admin)
 
-Gibt Statistiken zur Datenbanknutzung zurueck (Tabellengroessen, Eintraege pro Typ).
+Returns database usage statistics (table sizes, entries per type).
 
 ---
 
-## Benachrichtigungen testen
+## Test Notifications
 
 ```
 POST /api/admin/notifications/test
@@ -148,9 +148,9 @@ POST /api/admin/notifications/test
 
 **Auth:** Session Cookie (Admin)
 
-Sendet eine Test-Benachrichtigung ueber alle konfigurierten Kanaele.
+Sends a test notification through all configured channels.
 
-### Erinnerungs-Check
+### Reminder Check
 
 ```
 POST /api/admin/notifications/reminder-check
@@ -158,11 +158,11 @@ POST /api/admin/notifications/reminder-check
 
 **Auth:** Session Cookie (Admin)
 
-Loest eine manuelle Pruefung faelliger Medikamenten-Erinnerungen aus.
+Triggers a manual check for due medication reminders.
 
 ---
 
-## Monitoring testen
+## Test Monitoring
 
 ### GlitchTip
 
@@ -172,7 +172,7 @@ POST /api/admin/monitoring/glitchtip-test
 
 **Auth:** Session Cookie (Admin)
 
-Sendet einen Test-Event an GlitchTip (Sentry-kompatibel).
+Sends a test event to GlitchTip (Sentry-compatible).
 
 ### Umami
 
@@ -182,4 +182,4 @@ POST /api/admin/monitoring/umami-test
 
 **Auth:** Session Cookie (Admin)
 
-Sendet einen Test-Event an Umami Analytics.
+Sends a test event to Umami Analytics.

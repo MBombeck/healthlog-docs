@@ -1,35 +1,35 @@
 ---
-title: "Stimmung"
-description: "Stimmungseintraege erfassen, abfragen und analysieren."
+title: "Mood"
+description: "Record, query, and analyze mood entries."
 sidebar:
   order: 5
 ---
 
-## Stimmungswerte
+## Mood Values
 
-| Wert | Label | Score |
-|------|-------|-------|
+| Value | Label | Score |
+|-------|-------|-------|
 | `SUPER_GUT` | Super gut | 5 |
 | `GUT` | Gut | 4 |
 | `OKAY` | Okay | 3 |
 | `SCHLECHT` | Schlecht | 2 |
 | `LAUSIG` | Lausig | 1 |
 
-## Eintraege auflisten
+## List Entries
 
 ```
 GET /api/mood-entries
 ```
 
-**Auth:** Session Cookie oder Bearer Token
+**Auth:** Session Cookie or Bearer Token
 
-**Query-Parameter:**
+**Query Parameters:**
 
-| Parameter | Typ | Beschreibung |
-|-----------|-----|-------------|
-| `mood` | string | Filtern nach Stimmungswert |
-| `from` | ISO 8601 | Startdatum |
-| `to` | ISO 8601 | Enddatum |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `mood` | string | Filter by mood value |
+| `from` | ISO 8601 | Start date |
+| `to` | ISO 8601 | End date |
 
 ```bash
 curl -s "https://your-instance.example.com/api/mood-entries?from=2026-03-01&to=2026-03-08" \
@@ -56,7 +56,7 @@ curl -s "https://your-instance.example.com/api/mood-entries?from=2026-03-01&to=2
 
 ---
 
-## Eintrag erstellen
+## Create Entry
 
 ```
 POST /api/mood-entries
@@ -94,19 +94,19 @@ curl -s https://your-instance.example.com/api/mood-entries \
 
 ---
 
-## Einzelner Eintrag
+## Single Entry
 
 ```
-GET    /api/mood-entries/[id]     — Details abrufen
-PUT    /api/mood-entries/[id]     — Aktualisieren
-DELETE /api/mood-entries/[id]     — Loeschen
+GET    /api/mood-entries/[id]     — Retrieve details
+PUT    /api/mood-entries/[id]     — Update
+DELETE /api/mood-entries/[id]     — Delete
 ```
 
-**Auth:** Session Cookie. Benutzer koennen nur eigene Eintraege verwalten.
+**Auth:** Session Cookie. Users can only manage their own entries.
 
 ---
 
-## Stimmungs-Analytik
+## Mood Analytics
 
 ```
 GET /api/mood/analytics
@@ -114,7 +114,7 @@ GET /api/mood/analytics
 
 **Auth:** Session Cookie
 
-Gibt aggregierte Stimmungsdaten zurueck: Durchschnittswerte, Verteilung und Trends.
+Returns aggregated mood data including averages, distribution, and trends.
 
 ```json
 {

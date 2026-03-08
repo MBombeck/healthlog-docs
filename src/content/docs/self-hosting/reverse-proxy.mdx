@@ -1,20 +1,20 @@
 ---
 title: "Reverse Proxy"
-description: "Reverse Proxy Konfiguration fuer HealthLog — Traefik, Caddy und nginx Beispiele."
+description: "Reverse proxy configuration for HealthLog — Traefik, Caddy, and nginx examples."
 sidebar:
   order: 2
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-HealthLog sollte in Produktion hinter einem Reverse Proxy mit TLS-Terminierung betrieben werden. HTTPS ist Pflicht -- Session-Cookies sind `secure: true` und Passkeys erfordern eine sichere Verbindung.
+In production, HealthLog should run behind a reverse proxy with TLS termination. HTTPS is required -- session cookies are set to `secure: true` and passkeys need a secure connection.
 
-Nachfolgend Konfigurationsbeispiele fuer die gaengigsten Reverse Proxies.
+Below are configuration examples for the most common reverse proxies.
 
 <Tabs>
   <TabItem label="Traefik">
 
-Erweitere die `docker-compose.yml` um Traefik-Labels:
+Add Traefik labels to your `docker-compose.yml`:
 
 ```yaml
 services:
@@ -42,12 +42,12 @@ networks:
     external: true
 ```
 
-Der Port-Mapping (`ports: "3000:3000"`) entfaellt, da Traefik direkt ueber das Docker-Netzwerk zugreift.
+The port mapping (`ports: "3000:3000"`) is no longer needed since Traefik connects directly through the Docker network.
 
   </TabItem>
   <TabItem label="Caddy">
 
-Fuege folgenden Block in die `Caddyfile` ein:
+Add the following block to your `Caddyfile`:
 
 ```
 health.example.com {
@@ -61,12 +61,12 @@ health.example.com {
 }
 ```
 
-Caddy kuemmert sich automatisch um Let's Encrypt Zertifikate und HTTPS-Redirects.
+Caddy automatically handles Let's Encrypt certificates and HTTPS redirects.
 
   </TabItem>
   <TabItem label="nginx">
 
-Erstelle eine Server-Konfiguration unter `/etc/nginx/sites-available/healthlog`:
+Create a server configuration at `/etc/nginx/sites-available/healthlog`:
 
 ```nginx
 server {
@@ -80,11 +80,11 @@ server {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
 
-        # WebSocket-Unterstuetzung
+        # WebSocket support
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        # Header weiterleiten
+        # Forward headers
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -99,7 +99,7 @@ server {
 }
 ```
 
-Aktiviere die Konfiguration:
+Enable the configuration:
 
 ```bash
 ln -s /etc/nginx/sites-available/healthlog /etc/nginx/sites-enabled/
@@ -109,8 +109,8 @@ nginx -t && systemctl reload nginx
   </TabItem>
 </Tabs>
 
-## Wichtige Hinweise
+## Important Notes
 
-- **APP_URL** muss die oeffentliche Domain enthalten (z.B. `https://health.example.com`). Passkey-Registrierung und OAuth-Redirects haengen davon ab.
-- **WebSocket-Support** ist fuer kuenftige Features empfohlen. Die nginx-Konfiguration oben enthaelt die noetige `Upgrade`-Konfiguration bereits.
-- **Port 3000** sollte nicht direkt oeffentlich erreichbar sein. Exponiere nur den Reverse Proxy (443/80).
+- **APP_URL** must contain the public domain (e.g. `https://health.example.com`). Passkey registration and OAuth redirects depend on it.
+- **WebSocket support** is recommended for future features. The nginx configuration above already includes the necessary `Upgrade` directives.
+- **Port 3000** should not be directly exposed to the internet. Only expose the reverse proxy (443/80).

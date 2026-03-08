@@ -1,53 +1,53 @@
 ---
-title: Hintergrund-Jobs
-description: pg-boss Job-Queues, Cron-Schedules und Worker-Architektur.
+title: Background Jobs
+description: pg-boss job queues, cron schedules, and worker architecture.
 sidebar:
   order: 3
 ---
 
-HealthLog nutzt **pg-boss v12** fuer Hintergrund-Jobs. pg-boss speichert Jobs direkt in PostgreSQL — kein separater Message Broker noetig.
+HealthLog uses **pg-boss v12** for background jobs. pg-boss stores jobs directly in PostgreSQL — no separate message broker needed.
 
-## Worker-Start
+## Worker Startup
 
-Der Worker startet automatisch ueber die **Next.js Instrumentation API** (`register()`). Beim Serverstart wird `pg-boss` initialisiert und alle Cron-Jobs registriert. Ein manueller Start ist nicht erforderlich.
+The worker starts automatically via the **Next.js Instrumentation API** (`register()`). On server startup, pg-boss is initialized and all cron jobs are registered. No manual startup is required.
 
-Der Health-Check Endpoint `/api/health` gibt den aktuellen Worker-Status zurueck.
+The health check endpoint `/api/health` returns the current worker status.
 
-## Job-Uebersicht
+## Job Overview
 
-| Queue | Cron | Beschreibung |
+| Queue | Cron | Description |
 |---|---|---|
-| `medication-reminder-check` | `*/15 * * * *` | Phasenbasierte Medikamenten-Erinnerungen, Snooze-Cleanup, Telegram-Nachrichten-Cleanup |
-| `withings-fallback-sync` | `0 * * * *` | Fallback-Polling fuer Withings-Daten (ergaenzt Webhook-basierte Sync) |
-| `moodlog-sync` | `30 * * * *` | MoodLog-Fallback-Sync (Stimmungsdaten) |
-| `insights-general-status` | `0 2 * * *` | Allgemeine Gesundheits-Insights berechnen |
-| `insights-blood-pressure-status` | `5 2 * * *` | Blutdruck-Insights |
-| `insights-weight-status` | `10 2 * * *` | Gewichts-Insights |
-| `insights-pulse-status` | `15 2 * * *` | Puls-Insights |
-| `insights-bmi-status` | `20 2 * * *` | BMI-Insights |
-| `insights-medication-compliance-status` | `25 2 * * *` | Medikamenten-Compliance Insights |
-| `insights-mood-status` | `30 2 * * *` | Stimmungs-Insights (bei aktiver MoodLog-Integration) |
-| `data-backup` | `0 3 * * 0` | Woechentliches verschluesseltes Datenbank-Backup (Sonntag 03:00 UTC) |
-| `telegram-message-cleanup` | On-Demand | Loescht abgelaufene Telegram-Nachrichten (ausgeloest durch andere Jobs) |
+| `medication-reminder-check` | `*/15 * * * *` | Phase-based medication reminders, snooze cleanup, Telegram message cleanup |
+| `withings-fallback-sync` | `0 * * * *` | Fallback polling for Withings data (supplements webhook-based sync) |
+| `moodlog-sync` | `30 * * * *` | MoodLog fallback sync (mood data) |
+| `insights-general-status` | `0 2 * * *` | Calculate general health insights |
+| `insights-blood-pressure-status` | `5 2 * * *` | Blood pressure insights |
+| `insights-weight-status` | `10 2 * * *` | Weight insights |
+| `insights-pulse-status` | `15 2 * * *` | Pulse insights |
+| `insights-bmi-status` | `20 2 * * *` | BMI insights |
+| `insights-medication-compliance-status` | `25 2 * * *` | Medication compliance insights |
+| `insights-mood-status` | `30 2 * * *` | Mood insights (when MoodLog integration is active) |
+| `data-backup` | `0 3 * * 0` | Weekly encrypted database backup (Sunday 03:00 UTC) |
+| `telegram-message-cleanup` | On-demand | Deletes expired Telegram messages (triggered by other jobs) |
 
-## Medikamenten-Erinnerungen
+## Medication Reminders
 
-Der `medication-reminder-check`-Job laeuft alle 15 Minuten und prueft fuer jeden Benutzer:
+The `medication-reminder-check` job runs every 15 minutes and checks for each user:
 
-1. **Faellige Erinnerungen** — Geplante Einnahmen ohne Bestaetigung, Phasen-Eskalation (sanft, dringend, verpasst)
-2. **Snooze-Ablauf** — Abgelaufene Snooze-Timer reaktivieren die Erinnerung
-3. **Nachrichten-Cleanup** — Veraltete Telegram-Reminder-Nachrichten loeschen
+1. **Due reminders** — Scheduled intakes without confirmation, phase escalation (gentle, urgent, missed)
+2. **Snooze expiry** — Expired snooze timers reactivate the reminder
+3. **Message cleanup** — Deletes outdated Telegram reminder messages
 
-Die Eskalationsphasen und Schwellwerte werden ueber `ReminderPhaseConfig` (pro Medikament) und die Admin-Einstellungen (`reminderLateMinutes`, `reminderMissedMinutes`) gesteuert.
+Escalation phases and thresholds are controlled through `ReminderPhaseConfig` (per medication) and the admin settings (`reminderLateMinutes`, `reminderMissedMinutes`).
 
-## Insights-Jobs
+## Insights Jobs
 
-Die sieben Insights-Jobs laufen gestaffelt zwischen 02:00 und 02:30 UTC, um die Datenbank nicht gleichzeitig zu belasten. Jeder Job berechnet Trends, Durchschnitte und Auffaelligkeiten fuer den jeweiligen Messwerttyp.
+The seven insights jobs run staggered between 02:00 and 02:30 UTC to avoid overloading the database with concurrent queries. Each job calculates trends, averages, and anomalies for its respective measurement type.
 
 ## Data Backup
 
-Der woechentliche Backup-Job erstellt ein verschluesseltes Export aller Benutzerdaten. Metadaten werden im `DataBackup`-Modell gespeichert.
+The weekly backup job creates an encrypted export of all user data. Metadata is stored in the `DataBackup` model.
 
-## Fehlerbehandlung
+## Error Handling
 
-pg-boss bietet eingebautes Retry-Verhalten. Fehlgeschlagene Jobs werden mit exponentiellem Backoff wiederholt. Dauerhafte Fehler werden geloggt und im Audit-Log erfasst.
+pg-boss provides built-in retry behavior. Failed jobs are retried with exponential backoff. Persistent failures are logged and recorded in the audit log.

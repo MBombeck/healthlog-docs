@@ -1,22 +1,22 @@
 ---
-title: "Externe API"
-description: "Medikamenten-Einnahme von externen Quellen erfassen und API-Tokens verwalten."
+title: "External API"
+description: "Record medication intakes from external sources and manage API tokens."
 sidebar:
   order: 10
 ---
 
-## Einnahme erfassen (extern)
+## Record Intake (External)
 
 ```
 POST /api/ingest/medication
 ```
 
 **Auth:** Bearer Token (`hlk_...`)
-**Rate Limit:** 60 Anfragen / Minute / IP
+**Rate Limit:** 60 requests / minute / IP
 
-Erfasst eine Medikamenten-Einnahme von einer externen Quelle (z.B. Home Assistant, Shortcut, Webhook).
+Records a medication intake from an external source (e.g. Home Assistant, shortcut, webhook).
 
-### Vollstaendiges Beispiel
+### Full Example
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/ingest/medication \
@@ -43,13 +43,13 @@ curl -s -X POST https://your-instance.example.com/api/ingest/medication \
 }
 ```
 
-Der `idempotencyKey` ist optional, wird aber empfohlen. Doppelte Anfragen mit demselben Key innerhalb von 60 Sekunden werden dedupliziert.
+The `idempotencyKey` is optional but recommended. Duplicate requests with the same key within 60 seconds are deduplicated.
 
 ---
 
-## Token-Verwaltung
+## Token Management
 
-### Tokens auflisten
+### List Tokens
 
 ```
 GET /api/tokens
@@ -57,9 +57,9 @@ GET /api/tokens
 
 **Auth:** Session Cookie
 
-Gibt alle API-Tokens des aktuellen Benutzers zurueck. Token-Werte werden nicht erneut angezeigt.
+Returns all API tokens for the current user. Token values are not shown again.
 
-### Token erstellen
+### Create Token
 
 ```
 POST /api/tokens
@@ -91,9 +91,9 @@ POST /api/tokens
 }
 ```
 
-**Wichtig:** Der Token-Wert (`hlk_...`) wird nur einmalig bei der Erstellung angezeigt. Er kann danach nicht erneut abgerufen werden.
+**Important:** The token value (`hlk_...`) is only displayed once at creation time. It cannot be retrieved afterwards.
 
-### Token loeschen
+### Delete Token
 
 ```
 DELETE /api/tokens/[id]
@@ -103,29 +103,29 @@ DELETE /api/tokens/[id]
 
 ---
 
-## Token-Format
+## Token Format
 
-Tokens bestehen aus dem Praefix `hlk_` gefolgt von 32 zufaelligen Bytes in Hex-Darstellung:
+Tokens consist of the prefix `hlk_` followed by 32 random bytes in hexadecimal:
 
 ```
-hlk_ + 64 Hex-Zeichen = 68 Zeichen gesamt
+hlk_ + 64 hex characters = 68 characters total
 ```
 
-Tokens werden serverseitig als SHA-256-Hash gespeichert. Der Klartext-Token ist nur bei der Erstellung verfuegbar.
+Tokens are stored server-side as SHA-256 hashes. The plaintext token is only available at creation time.
 
 ---
 
-## Berechtigungen
+## Permissions
 
-| Permission | Beschreibung |
+| Permission | Description |
 |-----------|-------------|
-| `medication:ingest` | Einnahme fuer alle Medikamente erfassen |
-| `medication:{id}:ingest` | Einnahme nur fuer ein bestimmtes Medikament |
+| `medication:ingest` | Record intakes for all medications |
+| `medication:{id}:ingest` | Record intakes for a specific medication only |
 
-Es wird empfohlen, Tokens mit moeglichst eingeschraenkten Berechtigungen zu erstellen (Least Privilege).
+It is recommended to create tokens with the most restrictive permissions possible (least privilege).
 
 ---
 
-## Ablaufdatum
+## Expiration
 
-Tokens koennen mit einem Ablaufdatum erstellt werden (1 bis 365 Tage). Abgelaufene Tokens werden automatisch abgelehnt. Tokens ohne Ablaufdatum sind unbegrenzt gueltig.
+Tokens can be created with an expiration date (1 to 365 days). Expired tokens are automatically rejected. Tokens without an expiration date remain valid indefinitely.

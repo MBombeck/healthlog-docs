@@ -1,55 +1,55 @@
 ---
-title: Einleitung
-description: HealthLog ist eine selbst gehostete, mobile-first Health-Tracking PWA fuer Gewicht, Blutdruck, Koerperfett, Schlaf, Aktivitaet, Stimmung, Medikamenten-Management und mehr.
+title: Introduction
+description: HealthLog is a self-hosted, mobile-first health tracking PWA for weight, blood pressure, body fat, sleep, activity, mood, medication management, and more.
 sidebar:
   order: 1
 ---
 
-## Was ist HealthLog?
+## What is HealthLog?
 
-HealthLog ist eine **selbst gehostete, mobile-first Progressive Web App** (PWA) zur umfassenden Gesundheitsueberwachung. Die Anwendung kombiniert manuelle Erfassung von Vitalwerten mit automatischer Geraetesynchronisation, intelligentem Medikamenten-Management und KI-gestuetzten Auswertungen.
+HealthLog is a **self-hosted, mobile-first Progressive Web App** (PWA) for comprehensive health tracking. It combines manual vital sign logging with automatic device syncing, smart medication management, and AI-powered insights.
 
-Alle Daten bleiben auf deiner eigenen Infrastruktur — kein Cloud-Zwang, keine Abos, volle Kontrolle.
+All your data stays on your own infrastructure — no cloud lock-in, no subscriptions, full control.
 
-## Kernfunktionen
+## Key Features
 
-- **Vitalwerte-Tracking** — Gewicht, Blutdruck, Puls, Koerperfett, Schlaf, Aktivitaet, Stimmung
-- **Medikamenten-Management** — Zeitplaene, Dosierungen, Bedarfsmedikation, Compliance-Analyse
-- **Automatische Erinnerungen** — Telegram, ntfy, Web Push Notifications
-- **Withings-Synchronisation** — Automatischer Import von Waage und Blutdruckmessgeraet
-- **KI-Auswertungen** — OpenAI-Integration (BYOK), Trend-Analyse, personalisierte Empfehlungen
-- **Arztberichte als PDF** — Exportierbare Berichte mit Diagrammen und Verlaufsdaten
-- **Gamification** — 30+ Achievements fuer kontinuierliches Tracking
-- **Passkey-Authentifizierung** — Passwordless Login via WebAuthn
-- **Dark-only Dracula Theme** — Augenschonendes Design fuer jede Tageszeit
+- **Vital Sign Tracking** — Weight, blood pressure, heart rate, body fat, sleep, activity, mood
+- **Medication Management** — Schedules, dosages, as-needed medications, compliance analytics
+- **Automated Reminders** — Telegram, ntfy, Web Push notifications
+- **Withings Sync** — Automatic import from smart scales and blood pressure monitors
+- **AI Insights** — OpenAI integration (BYOK), trend analysis, personalized recommendations
+- **Medical Reports as PDF** — Exportable reports with charts and historical data
+- **Gamification** — 30+ achievements to reward consistent tracking
+- **Passkey Authentication** — Passwordless login via WebAuthn
+- **Dark-only Dracula Theme** — Easy on the eyes at any time of day
 
 ## Tech Stack
 
-| Komponente | Technologie |
+| Component | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router, React Server Components) |
-| Sprache | TypeScript (strict mode) |
-| Datenbank | PostgreSQL 16 |
-| ORM | Prisma 7 mit PrismaPg Adapter |
+| Language | TypeScript (strict mode) |
+| Database | PostgreSQL 16 |
+| ORM | Prisma 7 with PrismaPg Adapter |
 | Styling | Tailwind CSS 4 + shadcn/ui (Dracula Theme) |
 | Client State | TanStack Query 5 |
-| Auth | SimpleWebAuthn v13 (Passkeys) + Session-basiert |
+| Auth | SimpleWebAuthn v13 (Passkeys) + session-based |
 | Background Jobs | pg-boss v12 |
-| Containerisierung | Docker + Docker Compose |
+| Containerization | Docker + Docker Compose |
 
-## Voraussetzungen
+## Requirements
 
-Um HealthLog zu betreiben, werden folgende Komponenten benoetigt:
+To run HealthLog, you need the following:
 
-- **Docker** und **Docker Compose** (v2+)
-- Ein **Reverse Proxy mit HTTPS** (z.B. Nginx Proxy Manager, Traefik, Caddy)
-- **PostgreSQL 16** (in der mitgelieferten `docker-compose.yml` enthalten)
-- Eine **Domain mit gueltigem SSL-Zertifikat** (Passkeys erfordern HTTPS)
+- **Docker** and **Docker Compose** (v2+)
+- A **reverse proxy with HTTPS** (e.g., Nginx Proxy Manager, Traefik, Caddy)
+- **PostgreSQL 16** (included in the bundled `docker-compose.yml`)
+- A **domain with a valid SSL certificate** (Passkeys require HTTPS)
 
 :::caution
-Passkeys funktionieren ausschliesslich ueber HTTPS. Ein Betrieb ohne gueltiges SSL-Zertifikat ist nicht moeglich.
+Passkeys only work over HTTPS. Running HealthLog without a valid SSL certificate is not supported.
 :::
 
-## Naechster Schritt
+## Next Step
 
-Folge der [Installationsanleitung](/getting-started/installation/), um HealthLog auf deinem Server einzurichten.
+Follow the [Installation Guide](/getting-started/installation/) to set up HealthLog on your server.

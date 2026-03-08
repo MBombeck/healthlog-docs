@@ -1,92 +1,92 @@
 ---
-title: Gesundheitsdaten
-description: Gesundheitsmetriken erfassen, analysieren und visualisieren — Gewicht, Blutdruck, Puls, Koerperfett, Schlaf und Aktivitaet.
+title: Health Metrics
+description: Track, analyze, and visualize health metrics — weight, blood pressure, heart rate, body fat, sleep, and activity.
 sidebar:
   order: 1
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-HealthLog erfasst und analysiert zentrale Gesundheitswerte. Alle Metriken werden manuell oder per Integration (z.B. Withings) eingetragen und in Trendanalysen visualisiert.
+HealthLog tracks and analyzes key health metrics. All metrics can be entered manually or synced automatically via integrations (e.g., Withings), and are displayed as trend visualizations.
 
-## Unterstuetzte Metriken
+## Supported Metrics
 
-| Metrik | Einheit | Automatische Auswertung |
-|--------|---------|------------------------|
-| Gewicht | kg | BMI-Berechnung, Trendanalyse |
-| Blutdruck (Sys/Dia) | mmHg | WHO/ESC/ESH-Klassifikation |
-| Puls | bpm | Trendanalyse |
-| Koerperfettanteil | % | Trendanalyse |
-| Schlafdauer | Stunden | Trendanalyse |
-| Aktivitaet (Schritte) | Schritte | Trendanalyse |
+| Metric | Unit | Automatic Analysis |
+|--------|------|-------------------|
+| Weight | kg | BMI calculation, trend analysis |
+| Blood Pressure (Sys/Dia) | mmHg | WHO/ESC/ESH classification |
+| Heart Rate | bpm | Trend analysis |
+| Body Fat Percentage | % | Trend analysis |
+| Sleep Duration | hours | Trend analysis |
+| Activity (Steps) | steps | Trend analysis |
 
-## Datenerfassung
+## Data Entry
 
-### Einzeleintrag
+### Single Entry
 
-Ueber das Dashboard koennen einzelne Messwerte direkt erfasst werden. Jeder Eintrag erhaelt automatisch einen Zeitstempel.
+Individual readings can be logged directly from the dashboard. Each entry is automatically timestamped.
 
-### Batch-Eintrag
+### Batch Entry
 
-Fuer das Nachtragen mehrerer Werte steht ein Batch-Modus zur Verfuegung. Damit lassen sich z.B. Werte aus einem Papier-Tagebuch effizient uebertragen.
+A batch mode is available for backfilling multiple readings at once — useful for transferring data from a paper diary or another tracking system.
 
-## Trendanalyse
+## Trend Analysis
 
-Alle Metriken werden ueber drei Zeitraeume analysiert:
+All metrics are analyzed across three time ranges:
 
-- **7 Tage** -- Kurzfristiger Verlauf
-- **30 Tage** -- Monatlicher Trend
-- **90 Tage** -- Langzeitentwicklung
+- **7 days** -- Short-term trends
+- **30 days** -- Monthly trends
+- **90 days** -- Long-term development
 
-Die Visualisierung erfolgt mit Recharts (Linien- und Balkendiagramme).
+Visualizations are rendered with Recharts (line and bar charts).
 
-## BMI-Berechnung
+## BMI Calculation
 
-Der BMI wird automatisch aus Gewicht und Koerpergroesse berechnet. Die Koerpergroesse wird einmalig im Profil hinterlegt.
+BMI is calculated automatically from weight and height. Height is set once in the user profile.
 
 ```
 BMI = weight / (height_m * height_m)
 ```
 
 :::note
-Die Koerpergroesse muss im Benutzerprofil eingetragen sein, damit die automatische BMI-Berechnung funktioniert.
+Height must be configured in your user profile for automatic BMI calculation to work.
 :::
 
-## Blutdruck-Klassifikation
+## Blood Pressure Classification
 
-Die Einstufung erfolgt nach den ESC/ESH-Leitlinien 2018 und der WHO-Klassifikation:
+Readings are classified according to the 2018 ESC/ESH guidelines and WHO classification:
 
-| Kategorie | Systolisch (mmHg) | Diastolisch (mmHg) |
-|-----------|-------------------|---------------------|
+| Category | Systolic (mmHg) | Diastolic (mmHg) |
+|----------|-----------------|-------------------|
 | Optimal | < 120 | < 80 |
 | Normal | 120--129 | 80--84 |
-| Hochnormal | 130--139 | 85--89 |
-| Hypertonie Grad 1 | 140--159 | 90--99 |
-| Hypertonie Grad 2 | 160--179 | 100--109 |
-| Hypertonie Grad 3 | >= 180 | >= 110 |
+| High Normal | 130--139 | 85--89 |
+| Grade 1 Hypertension | 140--159 | 90--99 |
+| Grade 2 Hypertension | 160--179 | 100--109 |
+| Grade 3 Hypertension | >= 180 | >= 110 |
 
 :::tip
-Die Klassifikation orientiert sich am hoeheren Wert. Wenn Systole und Diastole in unterschiedliche Kategorien fallen, gilt die hoehere Stufe.
+Classification is based on the higher value. If systolic and diastolic fall into different categories, the higher grade applies.
 :::
 
-## Charts und Visualisierungen
+## Charts and Visualizations
 
-Die Darstellung nutzt Recharts mit folgenden Diagrammtypen:
+All charts are built with Recharts and include the following types:
 
-- **Liniendiagramme** fuer Gewicht, BMI, Puls
-- **Doppel-Liniendiagramme** fuer Blutdruck (Sys/Dia)
-- **Balkendiagramme** fuer Schritte und Schlafdauer
-- Farbkodierung nach Klassifikationsstufe beim Blutdruck
+- **Line charts** for weight, BMI, and heart rate
+- **Dual-line charts** for blood pressure (Sys/Dia)
+- **Bar charts** for steps and sleep duration
+- Color coding by classification level for blood pressure
 
-## Arztbericht (PDF-Export)
+## Doctor's Report (PDF Export)
 
-HealthLog generiert einen strukturierten PDF-Bericht fuer Arztbesuche.
+HealthLog generates a structured PDF report for doctor visits.
 
-- **Format**: PDF via jsPDF (Client-seitige Generierung)
-- **Inhalt**: Blutdruckverlauf, Gewichtsentwicklung, BMI, Medikamentenplan
-- **Klassifikation**: Nach ESC/ESH 2018 Leitlinien
-- **Zeitraum**: Frei waehlbar
+- **Format**: PDF via jsPDF (generated client-side)
+- **Content**: Blood pressure history, weight trends, BMI, medication plan
+- **Classification**: Based on 2018 ESC/ESH guidelines
+- **Time range**: Freely selectable
 
 :::caution
-Der PDF-Export erfolgt vollstaendig im Browser. Bei sehr grossen Datenmengen kann die Generierung einige Sekunden dauern.
+The PDF is generated entirely in the browser. For very large datasets, generation may take a few seconds.
 :::

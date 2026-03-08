@@ -1,97 +1,97 @@
 ---
-title: Datenbank-Schema
-description: Uebersicht der 22 Prisma-Modelle, gruppiert nach Domaene.
+title: Database Schema
+description: Overview of the 22 Prisma models, grouped by domain.
 sidebar:
   order: 2
 ---
 
-HealthLog verwendet **PostgreSQL 16** mit **Prisma 7** als ORM. Das Schema umfasst 22 Modelle, gruppiert in sieben Domaenen.
+HealthLog uses **PostgreSQL 16** with **Prisma 7** as its ORM. The schema consists of 22 models, grouped into seven domains.
 
-## User und Auth
+## Users and Auth
 
-| Modell | Beschreibung |
+| Model | Description |
 |---|---|
-| `User` | Benutzerkonto mit Name, E-Mail, Locale, Admin-Flag, Einstellungen |
-| `Passkey` | WebAuthn Credentials (Public Key, Counter, Transports) |
-| `Session` | Aktive Sessions mit Ablaufzeit und User-Referenz |
-| `AuthChallenge` | Temporaere WebAuthn Challenges (Registration + Login) |
+| `User` | User account with name, email, locale, admin flag, and settings |
+| `Passkey` | WebAuthn credentials (public key, counter, transports) |
+| `Session` | Active sessions with expiry and user reference |
+| `AuthChallenge` | Temporary WebAuthn challenges (registration + login) |
 
-Ein `User` kann mehrere `Passkey`s und `Session`s besitzen. `AuthChallenge`s werden nach Verwendung geloescht.
+A `User` can have multiple `Passkey`s and `Session`s. `AuthChallenge`s are deleted after use.
 
-## Gesundheitsdaten
+## Health Data
 
-| Modell | Beschreibung |
+| Model | Description |
 |---|---|
-| `Measurement` | Einzelner Messwert mit Typ, Wert und Zeitstempel |
-| `MoodEntry` | Stimmungseintrag mit Level (1–5), optionalem Kommentar und Tags |
+| `Measurement` | Individual reading with type, value, and timestamp |
+| `MoodEntry` | Mood entry with level (1–5), optional comment, and tags |
 
 ### Measurement Types
 
-| Typ | Einheit | Beschreibung |
+| Type | Unit | Description |
 |---|---|---|
-| `WEIGHT` | kg | Koerpergewicht |
-| `BLOOD_PRESSURE_SYS` | mmHg | Systolischer Blutdruck |
-| `BLOOD_PRESSURE_DIA` | mmHg | Diastolischer Blutdruck |
-| `PULSE` | bpm | Pulsfrequenz |
-| `BODY_FAT` | % | Koerperfettanteil |
-| `SLEEP_DURATION` | h | Schlafdauer |
-| `ACTIVITY_STEPS` | Schritte | Tagesschritte |
+| `WEIGHT` | kg | Body weight |
+| `BLOOD_PRESSURE_SYS` | mmHg | Systolic blood pressure |
+| `BLOOD_PRESSURE_DIA` | mmHg | Diastolic blood pressure |
+| `PULSE` | bpm | Pulse rate |
+| `BODY_FAT` | % | Body fat percentage |
+| `SLEEP_DURATION` | h | Sleep duration |
+| `ACTIVITY_STEPS` | steps | Daily step count |
 
-Messungen referenzieren immer einen `User` und tragen eine Quelle (`source`): `MANUAL`, `WITHINGS` oder `IMPORT`.
+Measurements always reference a `User` and carry a source (`source`): `MANUAL`, `WITHINGS`, or `IMPORT`.
 
-## Medikamente
+## Medications
 
-| Modell | Beschreibung |
+| Model | Description |
 |---|---|
-| `Medication` | Medikament mit Name, Dosis, Status (aktiv/pausiert) |
-| `MedicationSchedule` | Zeitplan: Zeitfenster (windowStart/windowEnd), Wochentage, optionaler Dosis-Override |
-| `MedicationIntakeEvent` | Einzelne Einnahme (genommen/uebersprungen) mit Zeitstempel und Quelle |
-| `ReminderPhaseConfig` | Phasenbasierte Erinnerungs-Eskalation (GREEN, YELLOW, ORANGE, RED) |
-| `TelegramReminderMessage` | Gesendete Telegram-Nachrichten fuer spaeteres Cleanup |
-| `TelegramScheduledDeletion` | Geplante Loeschung von Telegram-Nachrichten |
+| `Medication` | Medication with name, dosage, and status (active/paused) |
+| `MedicationSchedule` | Schedule: time window (windowStart/windowEnd), weekdays, optional dosage override |
+| `MedicationIntakeEvent` | Individual intake (taken/skipped) with timestamp and source |
+| `ReminderPhaseConfig` | Phase-based reminder escalation (GREEN, YELLOW, ORANGE, RED) |
+| `TelegramReminderMessage` | Sent Telegram messages for later cleanup |
+| `TelegramScheduledDeletion` | Scheduled deletion of Telegram messages |
 
-Ein `Medication` hat beliebig viele `MedicationSchedule`s (z.B. morgens und abends) und beliebig viele `MedicationIntakeEvent`s. Die `ReminderPhaseConfig` definiert pro Medikament die Eskalationsschwellen fuer die vier Erinnerungsphasen.
+A `Medication` has any number of `MedicationSchedule`s (e.g. morning and evening) and any number of `MedicationIntakeEvent`s. `ReminderPhaseConfig` defines per-medication escalation thresholds for the four reminder phases.
 
 ## Tokens
 
-| Modell | Beschreibung |
+| Model | Description |
 |---|---|
-| `ApiToken` | Externer API-Zugang. Der Token-Wert wird als **SHA-256 Hash** gespeichert — der Klartext ist nach Erstellung nicht mehr abrufbar. |
+| `ApiToken` | External API access. The token value is stored as a **SHA-256 hash** — the plaintext is not retrievable after creation. |
 
-## Integrationen
+## Integrations
 
-| Modell | Beschreibung |
+| Model | Description |
 |---|---|
-| `WithingsConnection` | OAuth-Verbindung zu Withings (Access Token, Refresh Token, User-ID). Tokens werden **AES-256-GCM verschluesselt** gespeichert. |
+| `WithingsConnection` | OAuth connection to Withings (access token, refresh token, user ID). Tokens are stored **encrypted with AES-256-GCM**. |
 
-## Benachrichtigungen
+## Notifications
 
-| Modell | Beschreibung |
+| Model | Description |
 |---|---|
-| `NotificationChannel` | Konfigurierter Kanal (Telegram, ntfy, Web Push) pro User |
-| `NotificationPreference` | Feinsteuerung: welche Events ueber welchen Kanal |
-| `PushSubscription` | Web Push Subscription-Daten (Endpoint, Keys) |
+| `NotificationChannel` | Configured channel (Telegram, ntfy, Web Push) per user |
+| `NotificationPreference` | Fine-grained control: which events go through which channel |
+| `PushSubscription` | Web Push subscription data (endpoint, keys) |
 
 ## System
 
-| Modell | Beschreibung |
+| Model | Description |
 |---|---|
-| `AppSettings` | Singleton mit globaler App-Konfiguration (siehe [Admin-Einstellungen](/configuration/admin-settings/)) |
-| `AuditLog` | Protokollierung sicherheitsrelevanter Aktionen (Login, Settings-Aenderungen, Token-Operationen) |
-| `DataBackup` | Metadaten zu verschluesselten Datenbank-Backups |
-| `RateLimit` | Key-basiertes Rate Limiting mit Zaehler und Reset-Zeitpunkt |
-| `UserAchievement` | Freigeschaltete Achievements (Gamification) mit Zeitstempel |
+| `AppSettings` | Singleton with global app configuration (see [Admin Settings](/configuration/admin-settings/)) |
+| `AuditLog` | Log of security-relevant actions (login, settings changes, token operations) |
+| `DataBackup` | Metadata for encrypted database backups |
+| `RateLimit` | Key-based rate limiting with counter and reset timestamp |
+| `UserAchievement` | Unlocked achievements (gamification) with timestamp |
 
-## Verschluesselung
+## Encryption
 
-Folgende Felder werden mit AES-256-GCM verschluesselt in der Datenbank gespeichert:
+The following fields are stored encrypted with AES-256-GCM in the database:
 
-- `User.openaiKeyEncrypted` (OpenAI API Key)
-- `User.telegramBotToken` (Telegram Bot Token)
+- `User.openaiKeyEncrypted` (OpenAI API key)
+- `User.telegramBotToken` (Telegram bot token)
 - `User.withingsClientIdEncrypted`, `User.withingsClientSecretEncrypted`
 - `User.moodLogUrlEncrypted`, `User.moodLogApiKeyEncrypted`
 - `WithingsConnection.accessToken`, `WithingsConnection.refreshToken`
 - `AppSettings.webPushVapidPrivateKeyEncrypted`, `AppSettings.githubIssueTokenEncrypted`
-- `NotificationChannel.config` (je nach Kanal-Typ)
+- `NotificationChannel.config` (depending on channel type)
 
-Der verwendete Schluessel ist die Umgebungsvariable `ENCRYPTION_KEY`.
+The encryption key used is the `ENCRYPTION_KEY` environment variable.

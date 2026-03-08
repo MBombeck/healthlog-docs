@@ -1,15 +1,15 @@
 ---
-title: "Integrationen"
-description: "Withings und MoodLog Integrationen."
+title: "Integrations"
+description: "Withings and MoodLog integrations."
 sidebar:
   order: 8
 ---
 
 ## Withings
 
-Integration mit Withings-Geraeten (Waagen, Blutdruckmessgeraete) fuer automatischen Datenimport.
+Integration with Withings devices (scales, blood pressure monitors) for automatic data import.
 
-### Verbindung herstellen
+### Connect
 
 ```
 GET /api/withings/connect
@@ -17,17 +17,17 @@ GET /api/withings/connect
 
 **Auth:** Session Cookie
 
-Leitet zur Withings-OAuth-Autorisierung weiter.
+Redirects to the Withings OAuth authorization flow.
 
-### OAuth-Callback
+### OAuth Callback
 
 ```
 GET /api/withings/callback
 ```
 
-Verarbeitet den OAuth-Callback von Withings und speichert die Zugangsdaten.
+Processes the OAuth callback from Withings and stores the credentials.
 
-### Verbindungsstatus
+### Connection Status
 
 ```
 GET /api/withings/status
@@ -46,7 +46,7 @@ GET /api/withings/status
 }
 ```
 
-### Synchronisieren
+### Sync
 
 ```
 POST /api/withings/sync
@@ -54,14 +54,14 @@ POST /api/withings/sync
 
 **Auth:** Session Cookie
 
-Loest eine manuelle Synchronisierung der Withings-Daten aus.
+Triggers a manual sync of Withings data.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/withings/sync \
   -H "Cookie: healthlog-session=abc123"
 ```
 
-### Verbindung trennen
+### Disconnect
 
 ```
 POST /api/withings/disconnect
@@ -69,7 +69,7 @@ POST /api/withings/disconnect
 
 **Auth:** Session Cookie
 
-### Zugangsdaten verwalten
+### Manage Credentials
 
 ```
 GET /api/withings/credentials
@@ -78,7 +78,7 @@ PUT /api/withings/credentials
 
 **Auth:** Session Cookie
 
-Verwaltet die Withings API-Zugangsdaten (Client ID, Client Secret).
+Manages Withings API credentials (Client ID, Client Secret).
 
 ### Webhook
 
@@ -86,15 +86,15 @@ Verwaltet die Withings API-Zugangsdaten (Client ID, Client Secret).
 POST /api/withings/webhook
 ```
 
-**Auth:** HMAC-Signatur
+**Auth:** HMAC signature
 
-Empfaengt Echtzeit-Benachrichtigungen von Withings bei neuen Messdaten. Die Anfrage wird ueber HMAC-Signatur verifiziert.
+Receives real-time notifications from Withings when new measurements are available. The request is verified via HMAC signature.
 
 ---
 
 ## MoodLog
 
-Integration mit der MoodLog-App fuer den Import von Stimmungsdaten.
+Integration with the MoodLog app for importing mood data.
 
 ### Status
 
@@ -115,7 +115,7 @@ GET /api/integrations/moodlog/status
 }
 ```
 
-### Synchronisieren
+### Sync
 
 ```
 POST /api/integrations/moodlog/sync
@@ -123,7 +123,7 @@ POST /api/integrations/moodlog/sync
 
 **Auth:** Session Cookie
 
-Loest einen manuellen Import der MoodLog-Daten aus.
+Triggers a manual import of MoodLog data.
 
 ### Webhook
 
@@ -131,6 +131,6 @@ Loest einen manuellen Import der MoodLog-Daten aus.
 POST /api/integrations/moodlog/webhook
 ```
 
-**Auth:** HMAC-Signatur
+**Auth:** HMAC signature
 
-Empfaengt Echtzeit-Benachrichtigungen von MoodLog bei neuen Eintraegen. Die Anfrage wird ueber HMAC-Signatur verifiziert.
+Receives real-time notifications from MoodLog when new entries are created. The request is verified via HMAC signature.

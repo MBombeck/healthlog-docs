@@ -1,82 +1,82 @@
 ---
-title: Admin-Einstellungen
-description: Zentrale App-Einstellungen, konfigurierbar ueber das Admin-Interface.
+title: Admin Settings
+description: Central app settings, configurable through the admin interface.
 sidebar:
   order: 2
 ---
 
-HealthLog verwendet ein **AppSettings-Singleton** in der Datenbank. Diese Einstellungen werden ueber das Admin-Interface unter `/settings/admin` verwaltet und wirken sofort — ohne Neustart.
+HealthLog stores its configuration in an **AppSettings singleton** in the database. These settings are managed through the admin interface at `/settings/admin` and take effect immediately — no restart required.
 
-## Allgemein
+## General
 
-| Einstellung | Beschreibung | Default |
+| Setting | Description | Default |
 |---|---|---|
-| `registrationEnabled` | Registrierung fuer neue Benutzer aktivieren/deaktivieren. Der erste Benutzer kann sich **immer** registrieren, unabhaengig von dieser Einstellung. | `true` |
-| `defaultLocale` | Standard-Sprache fuer neue Benutzer: `de` oder `en` | `de` |
+| `registrationEnabled` | Enable or disable registration for new users. The first user can **always** register, regardless of this setting. | `true` |
+| `defaultLocale` | Default language for new users: `de` or `en` | `de` |
 
 :::caution
-Die Registrierung ist standardmaessig **aktiviert**. Deaktiviere sie nach der Erstellung aller gewuenschten Accounts, um unbefugte Account-Erstellung zu verhindern.
+Registration is **enabled** by default. Disable it after creating all desired accounts to prevent unauthorized signups.
 :::
 
-## Benachrichtigungen
+## Notifications
 
-Globale Schalter deaktivieren den jeweiligen Kanal fuer **alle** Benutzer. Individuelle Benutzereinstellungen werden dadurch uebersteuert.
+Global toggles disable the respective channel for **all** users. Individual user preferences are overridden.
 
-| Einstellung | Beschreibung | Default |
+| Setting | Description | Default |
 |---|---|---|
-| `telegramGlobal` | Telegram-Benachrichtigungen global aktivieren | `true` |
-| `ntfyGlobal` | ntfy-Benachrichtigungen global aktivieren | `true` |
-| `webPushGlobal` | Web Push Notifications global aktivieren | `true` |
+| `telegramGlobal` | Enable Telegram notifications globally | `true` |
+| `ntfyGlobal` | Enable ntfy notifications globally | `true` |
+| `webPushGlobal` | Enable Web Push notifications globally | `true` |
 
-## Funktionen
+## Features
 
-| Einstellung | Beschreibung | Default |
+| Setting | Description | Default |
 |---|---|---|
-| `apiGlobal` | Externe API aktivieren/deaktivieren | `true` |
-| `moodLogGlobal` | MoodLog-Integration aktivieren (Stimmungs-Sync) | `true` |
+| `apiGlobal` | Enable or disable the external API | `true` |
+| `moodLogGlobal` | Enable MoodLog integration (mood sync) | `true` |
 
-## Erinnerungen
+## Reminders
 
-| Einstellung | Beschreibung | Default |
+| Setting | Description | Default |
 |---|---|---|
-| `reminderLateMinutes` | Minuten nach geplanter Einnahme, ab der eine Erinnerung als "verspaetet" gilt | `120` |
-| `reminderMissedMinutes` | Minuten nach geplanter Einnahme, ab der eine Erinnerung als "verpasst" markiert wird | `240` |
+| `reminderLateMinutes` | Minutes after a scheduled intake before a reminder is considered "late" | `120` |
+| `reminderMissedMinutes` | Minutes after a scheduled intake before a reminder is marked as "missed" | `240` |
 
 ## Analytics (Umami)
 
-| Einstellung | Beschreibung |
+| Setting | Description |
 |---|---|
-| `umamiEnabled` | Umami-Tracking aktivieren |
-| `umamiScriptUrl` | URL zum Umami Tracking-Script |
-| `umamiWebsiteId` | Umami Website-ID |
+| `umamiEnabled` | Enable Umami tracking |
+| `umamiScriptUrl` | URL to the Umami tracking script |
+| `umamiWebsiteId` | Umami website ID |
 
 ## Error Tracking (GlitchTip)
 
-| Einstellung | Beschreibung |
+| Setting | Description |
 |---|---|
-| `glitchtipEnabled` | GlitchTip/Sentry Error-Tracking aktivieren |
-| `glitchtipDsn` | Sentry-kompatible DSN URL |
-| `glitchtipEnvironment` | Umgebungsname (z.B. `production`, `staging`) |
+| `glitchtipEnabled` | Enable GlitchTip/Sentry error tracking |
+| `glitchtipDsn` | Sentry-compatible DSN URL |
+| `glitchtipEnvironment` | Environment name (e.g. `production`, `staging`) |
 
 ## Web Push (VAPID)
 
-VAPID-Schluessel koennen direkt in den Admin-Einstellungen hinterlegt werden. Diese haben Vorrang vor den gleichnamigen Umgebungsvariablen.
+VAPID keys can be set directly in the admin settings. These take precedence over the corresponding environment variables.
 
-| Einstellung | Beschreibung |
+| Setting | Description |
 |---|---|
-| `vapidPublicKey` | VAPID Public Key |
-| `vapidPrivateKey` | VAPID Private Key (verschluesselt gespeichert) |
-| `vapidSubject` | Kontakt-URI fuer VAPID (`mailto:...`) |
+| `vapidPublicKey` | VAPID public key |
+| `vapidPrivateKey` | VAPID private key (stored encrypted) |
+| `vapidSubject` | Contact URI for VAPID (`mailto:...`) |
 
 ## Bug Reports (GitHub)
 
-Ermoeglicht es Benutzern, direkt aus der App heraus Bug Reports als GitHub Issues zu erstellen.
+Allows users to submit bug reports as GitHub issues directly from within the app.
 
-| Einstellung | Beschreibung |
+| Setting | Description |
 |---|---|
-| `githubIssueToken` | GitHub Personal Access Token (verschluesselt gespeichert) |
-| `githubIssueRepo` | Ziel-Repository im Format `owner/repo` |
+| `githubIssueToken` | GitHub Personal Access Token (stored encrypted) |
+| `githubIssueRepo` | Target repository in `owner/repo` format |
 
 :::note
-Sensitive Werte wie VAPID Private Key und GitHub Token werden mit AES-256-GCM verschluesselt in der Datenbank gespeichert. Der verwendete Schluessel ist `ENCRYPTION_KEY` aus den Umgebungsvariablen.
+Sensitive values like the VAPID private key and GitHub token are stored encrypted in the database using AES-256-GCM. The encryption key is the `ENCRYPTION_KEY` environment variable.
 :::

@@ -13,7 +13,7 @@ export default defineConfig({
 			description: 'Self-hosted health tracking PWA — documentation',
 			defaultLocale: 'root',
 			locales: {
-				root: { label: 'Deutsch', lang: 'de' },
+				root: { label: 'English', lang: 'en' },
 			},
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/MBombeck/HealthLog' },
@@ -31,7 +31,7 @@ export default defineConfig({
 			},
 			sidebar: [
 				{
-					label: 'Einstieg',
+					label: 'Getting Started',
 					items: [
 						{ slug: 'getting-started/introduction' },
 						{ slug: 'getting-started/installation' },
@@ -51,14 +51,14 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Konfiguration',
+					label: 'Configuration',
 					items: [
 						{ slug: 'configuration/environment-variables' },
 						{ slug: 'configuration/admin-settings' },
 					],
 				},
 				{
-					label: 'Architektur',
+					label: 'Architecture',
 					items: [
 						{ slug: 'architecture/overview' },
 						{ slug: 'architecture/database' },
@@ -66,7 +66,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'API-Referenz',
+					label: 'API Reference',
 					collapsed: true,
 					items: [
 						{ slug: 'api/overview' },
@@ -82,7 +82,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Sicherheit',
+					label: 'Security',
 					items: [
 						{ slug: 'security/overview' },
 						{ slug: 'security/self-hosting' },

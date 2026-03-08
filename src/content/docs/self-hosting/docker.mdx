@@ -1,15 +1,15 @@
 ---
 title: "Docker Setup"
-description: "HealthLog mit Docker Compose deployen — Image, Konfiguration und Startup-Prozess."
+description: "Deploy HealthLog with Docker Compose — image, configuration, and startup process."
 sidebar:
   order: 1
 ---
 
-HealthLog wird als Docker-Image ausgeliefert und laesst sich mit Docker Compose in wenigen Minuten deployen.
+HealthLog is distributed as a Docker image and can be deployed with Docker Compose in just a few minutes.
 
 ## Docker Compose
 
-Erstelle eine `docker-compose.yml`:
+Create a `docker-compose.yml`:
 
 ```yaml
 services:
@@ -52,64 +52,64 @@ volumes:
 ```
 
 :::danger
-Ersetze `POSTGRES_PASSWORD: changeme` **vor dem ersten Start** durch ein sicheres, zufaellig generiertes Passwort (`openssl rand -base64 24`). Dasselbe Passwort muss in `DATABASE_URL` der `.env`-Datei eingetragen werden. Ein unveraendertes Standardpasswort ist ein schwerwiegendes Sicherheitsrisiko.
+Replace `POSTGRES_PASSWORD: changeme` with a secure, randomly generated password **before the first start** (`openssl rand -base64 24`). The same password must be set in `DATABASE_URL` in your `.env` file. Leaving the default password unchanged is a serious security risk.
 :::
 
-## Umgebungsvariablen
+## Environment Variables
 
-Erstelle eine `.env`-Datei im selben Verzeichnis:
+Create a `.env` file in the same directory:
 
 ```bash
-# Datenbank
+# Database
 DATABASE_URL=postgresql://healthlog:changeme@db:5432/healthlog
 
 # App
 APP_URL=https://health.example.com
 NODE_ENV=production
 
-# Kryptographie (jeweils: openssl rand -hex 32)
+# Cryptographic keys (generate each with: openssl rand -hex 32)
 SESSION_SECRET=
 ENCRYPTION_KEY=
 API_TOKEN_HMAC_KEY=
 
-# Telemetrie deaktivieren
+# Disable telemetry
 NEXT_TELEMETRY_DISABLED=1
 ```
 
-Siehe [Sicherheit -- Self-Hosting](/security/self-hosting/) fuer Details zu den kryptographischen Schluesseln.
+See [Security -- Self-Hosting](/security/self-hosting/) for details on the cryptographic keys.
 
-## Starten
+## Starting Up
 
 ```bash
 docker compose up -d
 ```
 
-## Startup-Prozess
+## Startup Process
 
-Das Docker-Image nutzt ein `docker-entrypoint.sh`, das beim Start automatisch:
+The Docker image uses a `docker-entrypoint.sh` that automatically performs the following steps on startup:
 
-1. **Auf PostgreSQL wartet** -- bis zu 30 Verbindungsversuche mit 1s Pause
-2. **Datenbankmigrationen ausfuehrt** -- `prisma migrate deploy`
-3. **Den Node.js-Server startet** -- `node server.js`
+1. **Waits for PostgreSQL** -- up to 30 connection attempts with a 1-second delay
+2. **Runs database migrations** -- `prisma migrate deploy`
+3. **Starts the Node.js server** -- `node server.js`
 
-Dadurch ist kein manueller Migrationsschritt noetig.
+No manual migration step is needed.
 
-## Docker-Image Details
+## Docker Image Details
 
-| Eigenschaft | Wert |
-|-------------|------|
-| Base Image | Node 22 Alpine |
-| Build | Multi-stage (Builder + Runner) |
-| Benutzer | `nextjs` (UID 1001, non-root) |
+| Property | Value |
+|----------|-------|
+| Base image | Node 22 Alpine |
+| Build | Multi-stage (builder + runner) |
+| User | `nextjs` (UID 1001, non-root) |
 | Port | 3000 |
-| Healthcheck | `GET /api/health` alle 30s |
+| Healthcheck | `GET /api/health` every 30s |
 
-Der non-root User stellt sicher, dass der Container auch bei einem Ausbruch keine Root-Rechte auf dem Host erhaelt.
+The non-root user ensures that even in the event of a container breakout, no root privileges are gained on the host.
 
-## Zugriff
+## Accessing HealthLog
 
-Nach dem Start ist HealthLog unter `http://localhost:3000` erreichbar. Fuer Produktivbetrieb sollte ein [Reverse Proxy](/self-hosting/reverse-proxy/) mit HTTPS vorgeschaltet werden.
+After startup, HealthLog is available at `http://localhost:3000`. For production use, you should place a [Reverse Proxy](/self-hosting/reverse-proxy/) with HTTPS in front of it.
 
 :::caution
-Port 3000 sollte **nicht** direkt oeffentlich erreichbar sein. Exponiere nur den Reverse Proxy (Port 443/80). Wenn Docker den Port auf dem Host mappt, stelle sicher, dass eine Firewall den Zugriff von aussen blockiert, oder entferne das `ports`-Mapping und lasse den Reverse Proxy ueber das Docker-Netzwerk zugreifen.
+Port 3000 should **not** be directly exposed to the internet. Only expose the reverse proxy (ports 443/80). If Docker maps the port on the host, make sure a firewall blocks external access, or remove the `ports` mapping and let the reverse proxy connect through the Docker network.
 :::

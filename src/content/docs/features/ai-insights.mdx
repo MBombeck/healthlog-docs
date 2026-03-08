@@ -1,67 +1,67 @@
 ---
-title: KI-Insights
-description: KI-gestuetzte Gesundheitsanalysen mit OpenAI — Trends, Korrelationen und personalisierte Empfehlungen.
+title: AI Insights
+description: AI-powered health analysis with OpenAI — trends, correlations, and personalized recommendations.
 sidebar:
   order: 4
 ---
 
-HealthLog bietet KI-gestuetzte Auswertungen der erfassten Gesundheitsdaten. Die Integration nutzt OpenAI (gpt-4o-mini) nach dem BYOK-Prinzip (Bring Your Own Key).
+HealthLog offers AI-powered analysis of your health data. The integration uses OpenAI (gpt-4o-mini) with a BYOK (Bring Your Own Key) model.
 
 ## Setup
 
-Der Benutzer hinterlegt seinen eigenen OpenAI API-Key in den Einstellungen. Der Key wird mit AES-256-GCM verschluesselt in der Datenbank gespeichert.
+Users provide their own OpenAI API key in the settings. The key is stored AES-256-GCM encrypted in the database.
 
 :::note
-Ohne hinterlegten API-Key sind die KI-Insights deaktiviert. Alle anderen Funktionen von HealthLog bleiben vollstaendig nutzbar.
+Without an API key, AI Insights are disabled. All other HealthLog features remain fully functional.
 :::
 
-## Datenschutz-Modi
+## Privacy Modes
 
-Benutzer waehlen, welche Daten an OpenAI gesendet werden:
+Users choose what data is sent to OpenAI:
 
-| Modus | Beschreibung |
-|-------|-------------|
-| **Aggregated** | Nur statistische Zusammenfassungen (Durchschnitt, Min, Max, Trend) |
-| **Raw** | Tatsaechliche Messwerte mit Zeitstempeln |
+| Mode | Description |
+|------|------------|
+| **Aggregated** | Only statistical summaries (average, min, max, trend) |
+| **Raw** | Actual readings with timestamps |
 
 :::caution
-Im Raw-Modus werden echte Gesundheitsdaten an die OpenAI-API gesendet. HealthLog sendet keine Daten an Dritte, ausser wenn der Benutzer die OpenAI-Integration explizit konfiguriert hat.
+In Raw mode, real health data is sent to the OpenAI API. HealthLog never sends data to third parties unless the user has explicitly configured the OpenAI integration.
 :::
 
-## Insight-Kategorien
+## Insight Categories
 
-HealthLog generiert Insights in sieben Kategorien:
+HealthLog generates insights across seven categories:
 
-1. **Allgemein** -- Uebergreifende Gesundheitstrends
-2. **Blutdruck** -- Verlaufsanalyse, Klassifikation, Empfehlungen
-3. **Gewicht** -- Trendanalyse, BMI-Entwicklung
-4. **Puls** -- Ruhepuls-Trend, Auffaelligkeiten
-5. **BMI** -- Langzeitentwicklung, Zielbereich
-6. **Medikamenten-Compliance** -- Einnahmetreue-Analyse, Muster
-7. **Stimmung** -- Stimmungstrends und Korrelationen (bei aktiver MoodLog-Integration)
+1. **General** -- Overall health trends
+2. **Blood Pressure** -- Trend analysis, classification, recommendations
+3. **Weight** -- Trend analysis, BMI development
+4. **Heart Rate** -- Resting heart rate trends, anomalies
+5. **BMI** -- Long-term development, target range
+6. **Medication Compliance** -- Adherence analysis, patterns
+7. **Mood** -- Mood trends and correlations (when MoodLog integration is active)
 
-## Korrelationsanalysen
+## Correlation Analysis
 
-Die KI erkennt Zusammenhaenge zwischen verschiedenen Metriken:
+The AI identifies relationships between different metrics:
 
-- Gewicht und Blutdruck
-- Stimmung und Blutdruck (bei aktiver MoodLog-Integration)
-- Stimmung und Gewicht
-- Stimmung und Puls
-- Blutdruck und Medikamenten-Compliance
+- Weight and blood pressure
+- Mood and blood pressure (when MoodLog integration is active)
+- Mood and weight
+- Mood and heart rate
+- Blood pressure and medication compliance
 
-## Caching und Generierung
+## Caching and Generation
 
-- **Cache-Dauer**: 24 Stunden pro Insight
-- **Automatische Generierung**: Naechtlich zwischen 02:00 und 02:30 Uhr via pg-boss Job
-- **Manuelle Generierung**: Jederzeit ueber das Dashboard moeglich (invalidiert den Cache)
+- **Cache duration**: 24 hours per insight
+- **Automatic generation**: Nightly between 02:00 and 02:30 via pg-boss job
+- **Manual generation**: Available anytime from the dashboard (invalidates the cache)
 
 ```
-Zeitplan: 02:00-02:30 UTC (pg-boss cron)
-Cache TTL: 24 Stunden
-Modell: gpt-4o-mini
+Schedule: 02:00-02:30 UTC (pg-boss cron)
+Cache TTL: 24 hours
+Model: gpt-4o-mini
 ```
 
 :::tip
-Die automatische naechtliche Generierung stellt sicher, dass beim morgendlichen Oeffnen der App aktuelle Insights bereitstehen, ohne Wartezeit.
+The nightly auto-generation ensures that fresh insights are ready when you open the app in the morning, with no waiting required.
 :::

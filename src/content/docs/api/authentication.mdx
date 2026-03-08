@@ -1,19 +1,19 @@
 ---
-title: "Authentifizierung"
-description: "Registrierung, Login, Profilverwaltung und Passkeys."
+title: "Authentication"
+description: "Registration, login, profile management, and passkeys."
 sidebar:
   order: 2
 ---
 
-## Registrierung
+## Registration
 
-Der erste registrierte Benutzer erhaelt automatisch die Rolle `ADMIN`.
+The first registered user is automatically assigned the `ADMIN` role.
 
 ```
 POST /api/auth/register
 ```
 
-**Rate Limit:** 5 Anfragen / 15 Minuten / IP
+**Rate Limit:** 5 requests / 15 minutes / IP
 
 **Request Body:**
 
@@ -47,7 +47,7 @@ POST /api/auth/register
 POST /api/auth/login
 ```
 
-**Rate Limit:** 5 Anfragen / 15 Minuten / IP
+**Rate Limit:** 5 requests / 15 minutes / IP
 
 **Request Body:**
 
@@ -58,7 +58,7 @@ POST /api/auth/login
 }
 ```
 
-Das `identifier`-Feld akzeptiert Benutzername oder E-Mail-Adresse.
+The `identifier` field accepts either a username or an email address.
 
 ```bash
 curl -s -c cookies.txt https://your-instance.example.com/api/auth/login \
@@ -76,23 +76,23 @@ POST /api/auth/logout
 
 **Auth:** Session Cookie
 
-Loescht die aktuelle Session.
+Destroys the current session.
 
 ---
 
-## Aktueller Benutzer
+## Current User
 
 ```
 GET /api/auth/me
 ```
 
-**Auth:** Session Cookie oder Bearer Token
+**Auth:** Session Cookie or Bearer Token
 
-Gibt den aktuellen Benutzer inkl. Gravatar-URL zurueck.
+Returns the current user including their Gravatar URL.
 
 ---
 
-## Profil aktualisieren
+## Update Profile
 
 ```
 PUT /api/auth/profile
@@ -111,18 +111,18 @@ PUT /api/auth/profile
 }
 ```
 
-Alle Felder sind optional. Nur uebergebene Felder werden aktualisiert.
+All fields are optional. Only the provided fields are updated.
 
 ---
 
-## Passwort aendern
+## Change Password
 
 ```
 POST /api/auth/password
 ```
 
 **Auth:** Session Cookie
-**Rate Limit:** 5 Anfragen / 15 Minuten / Benutzer
+**Rate Limit:** 5 requests / 15 minutes / user
 
 **Request Body:**
 
@@ -133,19 +133,19 @@ POST /api/auth/password
 }
 ```
 
-Nach erfolgreicher Aenderung werden alle bestehenden Sessions invalidiert.
+After a successful password change, all existing sessions are invalidated.
 
 ---
 
-## Registrierungsstatus
+## Registration Status
 
 ```
 GET /api/auth/registration-status
 ```
 
-**Auth:** Keine
+**Auth:** None
 
-Prueft, ob die Registrierung aktiviert ist (z.B. ob bereits ein Admin existiert).
+Checks whether registration is enabled (e.g. whether an admin already exists).
 
 ```json
 {
@@ -160,27 +160,27 @@ Prueft, ob die Registrierung aktiviert ist (z.B. ob bereits ein Admin existiert)
 
 ## Passkeys (WebAuthn)
 
-HealthLog unterstuetzt passwortlose Authentifizierung ueber WebAuthn / Passkeys.
+HealthLog supports passwordless authentication via WebAuthn / Passkeys.
 
-### Passkey registrieren
-
-```
-POST /api/auth/passkey/register-options   — Optionen abrufen
-POST /api/auth/passkey/register-verify    — Registrierung abschliessen
-```
-
-### Passkey-Login
+### Register a Passkey
 
 ```
-POST /api/auth/passkey/login-options      — Challenge abrufen
-POST /api/auth/passkey/login-verify       — Login abschliessen
+POST /api/auth/passkey/register-options   — Retrieve options
+POST /api/auth/passkey/register-verify    — Complete registration
 ```
 
-### Passkeys verwalten
+### Passkey Login
 
 ```
-GET    /api/auth/passkeys                 — Alle Passkeys des Benutzers
-DELETE /api/auth/passkeys/[id]            — Passkey entfernen
+POST /api/auth/passkey/login-options      — Retrieve challenge
+POST /api/auth/passkey/login-verify       — Complete login
 ```
 
-**Auth:** Alle Passkey-Endpunkte (ausser Login) erfordern eine aktive Session.
+### Manage Passkeys
+
+```
+GET    /api/auth/passkeys                 — List all passkeys for the user
+DELETE /api/auth/passkeys/[id]            — Remove a passkey
+```
+
+**Auth:** All passkey endpoints (except login) require an active session.

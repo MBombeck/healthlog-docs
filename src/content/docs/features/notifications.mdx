@@ -1,70 +1,70 @@
 ---
-title: Benachrichtigungen
-description: Telegram, ntfy und Web Push Benachrichtigungen fuer Medikamenten-Erinnerungen und Systemereignisse.
+title: Notifications
+description: Telegram, ntfy, and Web Push notifications for medication reminders and system events.
 sidebar:
   order: 3
 ---
 
-HealthLog unterstuetzt drei Benachrichtigungskanaele, die parallel betrieben werden koennen. Das System arbeitet nach dem Opt-out-Prinzip: Alle Event-Typen sind standardmaessig aktiviert.
+HealthLog supports three notification channels that can run in parallel. The system follows an opt-out model: all event types are enabled by default.
 
-## Kanaele
+## Channels
 
 ### Telegram
 
-Jeder Benutzer hinterlegt seinen eigenen Bot-Token und seine Chat-ID. Der Bot-Token wird AES-256-GCM verschluesselt in der Datenbank gespeichert.
+Each user provides their own bot token and chat ID. The bot token is stored AES-256-GCM encrypted in the database.
 
-**Funktionen:**
-- Inline-Buttons in Nachrichten: Genommen / Snooze / Uebersprungen
-- Automatische Loeschung nach 1 Stunde (verhindert veraltete Buttons)
-- Bot-Kommandos: `/help`, `/start`, `/add`, `genommen <Name>`
+**Features:**
+- Inline buttons in messages: Taken / Snooze / Skipped
+- Automatic message deletion after 1 hour (prevents stale buttons)
+- Bot commands: `/help`, `/start`, `/add`, `taken <Name>`
 
 :::tip
-Mit dem Freitext-Kommando `genommen Ibuprofen` kann eine Einnahme direkt im Telegram-Chat bestaetigt werden, ohne die App zu oeffnen.
+The free-text command `taken Ibuprofen` lets you confirm an intake directly in the Telegram chat without opening the app.
 :::
 
 ### ntfy
 
-Self-hosted oder oeffentliche ntfy-Instanz. Pro Benutzer konfigurierbar:
+Self-hosted or public ntfy instance. Configurable per user:
 
-- **Server URL** -- z.B. `https://ntfy.example.com`
-- **Topic** -- z.B. `healthlog-marc`
-- **Authentifizierung** -- Optional (Basic Auth oder Token)
-- **Prioritaet** -- Wird automatisch anhand des Event-Typs gesetzt
+- **Server URL** -- e.g., `https://ntfy.example.com`
+- **Topic** -- e.g., `healthlog-marc`
+- **Authentication** -- Optional (Basic Auth or token)
+- **Priority** -- Set automatically based on event type
 
 ### Web Push
 
-Browser-basierte Push-Notifications via VAPID-Keys.
+Browser-based push notifications via VAPID keys.
 
-- VAPID-Keys werden beim Setup generiert
-- Subscriptions sind geraetebezogen (mehrere Geraete pro Benutzer moeglich)
-- Funktioniert auch bei geschlossenem Browser-Tab
+- VAPID keys are generated during setup
+- Subscriptions are device-specific (multiple devices per user supported)
+- Works even when the browser tab is closed
 
-## Event-Typen
+## Event Types
 
-| Event-Typ | Beschreibung |
-|-----------|-------------|
-| `MEDICATION_REMINDER` | Erinnerung an faellige Einnahme (phasenbasiert) |
-| `MEASUREMENT_ANOMALY` | Messwert ausserhalb des Normalbereichs |
-| `COMPLIANCE_LOW` | Einnahmetreue unter Schwellenwert |
-| `WITHINGS_SYNC_FAILED` | Withings-Synchronisation fehlgeschlagen |
-| `SYSTEM_ALERT` | Systembenachrichtigungen (Backup, Fehler) |
+| Event Type | Description |
+|-----------|------------|
+| `MEDICATION_REMINDER` | Reminder for a due intake (phase-based) |
+| `MEASUREMENT_ANOMALY` | Reading outside the normal range |
+| `COMPLIANCE_LOW` | Adherence below threshold |
+| `WITHINGS_SYNC_FAILED` | Withings sync failed |
+| `SYSTEM_ALERT` | System notifications (backup, errors) |
 
-## Konfiguration
+## Configuration
 
-### Opt-out-Modell
+### Opt-Out Model
 
-Standardmaessig sind alle Event-Typen auf allen Kanaelen aktiv. Benutzer koennen gezielt deaktivieren:
+By default, all event types are active on all channels. Users can selectively disable them:
 
-- Pro Kanal (z.B. Telegram an, ntfy aus)
-- Pro Event-Typ pro Kanal (z.B. `SYSTEM_ALERT` nur auf ntfy)
+- Per channel (e.g., Telegram on, ntfy off)
+- Per event type per channel (e.g., `SYSTEM_ALERT` on ntfy only)
 
-### Globale Einstellungen
+### Global Settings
 
-Administratoren koennen Benachrichtigungen systemweit steuern:
+Administrators can control notifications system-wide:
 
-- Globale Toggles pro Kanal
-- Zeitfenster fuer Ruhezeiten (keine Benachrichtigungen nachts)
+- Global toggles per channel
+- Quiet hours window (no notifications at night)
 
 :::caution
-Die globalen Admin-Einstellungen ueberschreiben individuelle Benutzereinstellungen. Wenn ein Kanal global deaktiviert ist, erhaelt kein Benutzer Benachrichtigungen darueber.
+Global admin settings override individual user preferences. If a channel is globally disabled, no user will receive notifications through it.
 :::

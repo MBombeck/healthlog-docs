@@ -1,63 +1,63 @@
 ---
-title: Integrationen
-description: Withings-Geraete, MoodLog und externe API-Integrationen fuer automatischen Datenimport.
+title: Integrations
+description: Withings devices, MoodLog, and external API integrations for automatic data import.
 sidebar:
   order: 5
 ---
 
-HealthLog laesst sich mit externen Diensten und Geraeten verbinden. Alle Integrationen sind optional und werden pro Benutzer konfiguriert.
+HealthLog connects with external services and devices. All integrations are optional and configured per user.
 
 ## Withings
 
-Integration mit Withings-Waagen und Blutdruckmessgeraeten ueber OAuth 2.0.
+Integration with Withings scales and blood pressure monitors via OAuth 2.0.
 
-### Unterstuetzte Geraete und Metriken
+### Supported Devices and Metrics
 
-| Geraetetyp | Metriken |
-|-----------|---------|
-| Waage | Gewicht, Koerperfettanteil |
-| Blutdruckmessgeraet | Systole, Diastole, Puls |
+| Device Type | Metrics |
+|------------|---------|
+| Scale | Weight, body fat percentage |
+| Blood Pressure Monitor | Systolic, diastolic, heart rate |
 
-### Synchronisation
+### Synchronization
 
-Die Datensynchronisation erfolgt ueber zwei Mechanismen:
+Data is synced through two mechanisms:
 
-- **Webhook** -- Echtzeit-Benachrichtigung bei neuer Messung (primaer)
-- **Polling** -- Stuendlicher Fallback-Abruf (sekundaer, falls Webhook fehlschlaegt)
+- **Webhook** -- Real-time notification on new readings (primary)
+- **Polling** -- Hourly fallback fetch (secondary, in case the webhook fails)
 
-### Voraussetzungen
+### Prerequisites
 
-Fuer die Withings-Integration wird ein **Withings Developer Account** mit registrierter App benoetigt. Die Client-ID und das Client-Secret werden in den HealthLog-Einstellungen hinterlegt und AES-256-GCM verschluesselt gespeichert.
+The Withings integration requires a **Withings Developer Account** with a registered app. The Client ID and Client Secret are entered in the HealthLog settings and stored AES-256-GCM encrypted.
 
-### Einrichtung
+### Setup
 
-1. Withings Developer App erstellen ([developer.withings.com](https://developer.withings.com))
-2. Client-ID und Client-Secret in den HealthLog-Einstellungen hinterlegen
-3. Withings-Konto in den HealthLog-Einstellungen verbinden (OAuth 2.0 Flow)
-4. Berechtigung fuer Messdaten erteilen
-5. Webhook wird automatisch registriert
+1. Create a Withings Developer App at [developer.withings.com](https://developer.withings.com)
+2. Enter the Client ID and Client Secret in the HealthLog settings
+3. Connect your Withings account in the HealthLog settings (OAuth 2.0 flow)
+4. Grant permission for measurement data
+5. The webhook is registered automatically
 
 :::note
-Bei Problemen mit dem Webhook (z.B. nach Serverumzug) greift das stuendliche Polling automatisch. Der Event-Typ `WITHINGS_SYNC_FAILED` benachrichtigt bei laengeren Ausfaellen.
+If the webhook stops working (e.g., after a server migration), the hourly polling kicks in automatically. The `WITHINGS_SYNC_FAILED` event type notifies you of prolonged outages.
 :::
 
 ## MoodLog
 
-Integration mit [moodlog.app](https://moodlog.app) fuer Stimmungsdaten.
+Integration with [moodlog.app](https://moodlog.app) for mood tracking data.
 
-- **Webhook**: MoodLog sendet neue Eintraege per Webhook an HealthLog
-- **Polling**: Regelmaessiger Abruf als Fallback
-- **Daten**: Stimmungseintraege mit Tags
+- **Webhook**: MoodLog sends new entries to HealthLog via webhook
+- **Polling**: Periodic fetch as a fallback
+- **Data**: Mood entries with tags
 
-Die Stimmungsdaten fliessen in die KI-Korrelationsanalysen ein (Stimmung vs. Blutdruck, Gewicht, Puls).
+Mood data feeds into the AI correlation analysis (mood vs. blood pressure, weight, heart rate).
 
-## Externe API
+## External API
 
-HealthLog stellt eine API fuer externe Systeme bereit, z.B. fuer Automations-Tools oder IoT-Geraete.
+HealthLog provides an API for external systems, such as automation tools or IoT devices.
 
 ### Bearer Token
 
-Tokens werden pro Medikament erstellt und haben das Praefix `hlk_`.
+Tokens are created per medication and use the `hlk_` prefix.
 
 ```bash
 curl -X POST https://healthlog.example.com/api/ingest/medication \
@@ -66,23 +66,23 @@ curl -X POST https://healthlog.example.com/api/ingest/medication \
   -d '{"medicationId": "...", "scheduleId": "..."}'
 ```
 
-**Eigenschaften:**
-- Pro-Medikament-Scope (ein Token kann nur fuer das zugeordnete Medikament Einnahmen buchen)
-- SHA-256 gehasht in der Datenbank gespeichert
-- Widerrufbar ueber die Oberflaeche
+**Properties:**
+- Per-medication scope (a token can only log intakes for its assigned medication)
+- Stored as a SHA-256 hash in the database
+- Revocable through the UI
 
 :::tip
-Die externe API eignet sich z.B. fuer NFC-Tags am Medikamentenschrank: Tag scannen, Einnahme wird automatisch gebucht.
+The external API is great for NFC tags on your medicine cabinet: scan the tag, and the intake is logged automatically.
 :::
 
 ## Bug Reports
 
-Optional koennen Benutzer Fehlerberichte direkt als GitHub Issue erstellen.
+Users can optionally submit bug reports directly as GitHub issues.
 
-- Erfordert einen vom Administrator hinterlegten GitHub Personal Access Token (PAT)
-- Issues werden im konfigurierten Repository erstellt
-- Systeminfos werden automatisch angehaengt (Version, Browser, anonymisierte Fehlerdaten)
+- Requires a GitHub Personal Access Token (PAT) configured by the administrator
+- Issues are created in the configured repository
+- System info is attached automatically (version, browser, anonymized error data)
 
 :::caution
-Der GitHub PAT wird administratorseitig konfiguriert. Benutzer benoetigen keinen eigenen GitHub-Account, um Bug Reports zu erstellen.
+The GitHub PAT is configured by the administrator. Users do not need their own GitHub account to submit bug reports.
 :::

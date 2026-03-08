@@ -1,19 +1,19 @@
 ---
-title: "Medikamente"
-description: "Medikamente verwalten, Einnahmen erfassen und Compliance auswerten."
+title: "Medications"
+description: "Manage medications, record intakes, and evaluate compliance."
 sidebar:
   order: 4
 ---
 
-## Medikamente auflisten
+## List Medications
 
 ```
 GET /api/medications
 ```
 
-**Auth:** Session Cookie oder Bearer Token
+**Auth:** Session Cookie or Bearer Token
 
-Gibt alle Medikamente mit Schedules, letzter Einnahme und heutiger Einnahmeanzahl zurueck.
+Returns all medications along with their schedules, last intake timestamp, and today's intake count.
 
 ```bash
 curl -s https://your-instance.example.com/api/medications \
@@ -44,7 +44,7 @@ curl -s https://your-instance.example.com/api/medications \
 
 ---
 
-## Medikament erstellen
+## Create Medication
 
 ```
 POST /api/medications
@@ -66,12 +66,12 @@ POST /api/medications
 
 ---
 
-## Einzelnes Medikament
+## Single Medication
 
 ```
-GET    /api/medications/[id]      — Details abrufen
-PUT    /api/medications/[id]      — Aktualisieren
-DELETE /api/medications/[id]      — Loeschen
+GET    /api/medications/[id]      — Retrieve details
+PUT    /api/medications/[id]      — Update
+DELETE /api/medications/[id]      — Delete
 ```
 
 **Auth:** Session Cookie
@@ -86,7 +86,7 @@ GET /api/medications/[id]/compliance
 
 **Auth:** Session Cookie
 
-Gibt Compliance-Raten fuer 7 und 30 Tage sowie eine 90-Tage-Heatmap zurueck.
+Returns compliance rates for 7 and 30 days as well as a 90-day heatmap.
 
 **Response:**
 
@@ -106,15 +106,15 @@ Gibt Compliance-Raten fuer 7 und 30 Tage sowie eine 90-Tage-Heatmap zurueck.
 
 ---
 
-## Einnahmen
+## Intakes
 
-### Auflisten
+### List Intakes
 
 ```
 GET /api/medications/[id]/intake
 ```
 
-### Einnahme erfassen
+### Record Intake
 
 ```
 POST /api/medications/[id]/intake
@@ -127,7 +127,7 @@ POST /api/medications/[id]/intake
 }
 ```
 
-Der `idempotencyKey` verhindert doppelte Eintraege. Anfragen mit demselben Key innerhalb von 60 Sekunden werden dedupliziert.
+The `idempotencyKey` prevents duplicate entries. Requests with the same key within 60 seconds are deduplicated.
 
 ```bash
 curl -s https://your-instance.example.com/api/medications/clx.../intake \
@@ -136,19 +136,19 @@ curl -s https://your-instance.example.com/api/medications/clx.../intake \
   -d '{"takenAt": "2026-03-08T07:15:00Z", "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000"}'
 ```
 
-### Einnahme loeschen
+### Delete Intake
 
 ```
 DELETE /api/medications/[id]/intake/[eventId]
 ```
 
-### Einnahmen importieren
+### Import Intakes
 
 ```
 POST /api/medications/[id]/intake/import
 ```
 
-### Einnahmen bereinigen
+### Purge Intakes
 
 ```
 POST /api/medications/[id]/intake/purge
@@ -156,7 +156,7 @@ POST /api/medications/[id]/intake/purge
 
 ---
 
-## Tages-Zusammenfassung
+## Daily Summary
 
 ```
 GET /api/medications/intake-summary
@@ -164,11 +164,11 @@ GET /api/medications/intake-summary
 
 **Auth:** Session Cookie
 
-Gibt eine Zusammenfassung aller Einnahmen des aktuellen Tages zurueck.
+Returns a summary of all intakes for the current day.
 
 ---
 
-## Phasen-Konfiguration
+## Phase Configuration
 
 ```
 GET /api/medications/[id]/phase-config
@@ -177,11 +177,11 @@ PUT /api/medications/[id]/phase-config
 
 **Auth:** Session Cookie
 
-Verwaltet die Erinnerungsphasen-Konfiguration (GREEN, YELLOW, ORANGE, RED) fuer ein Medikament. Definiert Schwellwerte und Modi (Minuten oder Prozent des Zeitfensters) fuer die Phasenuebergaenge.
+Manages the reminder phase configuration (GREEN, YELLOW, ORANGE, RED) for a medication. Defines thresholds and modes (minutes or percentage of the time window) for phase transitions.
 
 ---
 
-## Externer API-Endpunkt
+## External API Endpoint
 
 ```
 GET /api/medications/[id]/api-endpoint
@@ -190,4 +190,4 @@ PUT /api/medications/[id]/api-endpoint
 
 **Auth:** Session Cookie
 
-Konfiguriert den externen API-Zugang fuer ein spezifisches Medikament. Details zur externen Einnahme-Erfassung unter [Externe API](/api/external-ingest/).
+Configures external API access for a specific medication. See [External API](/api/external-ingest/) for details on external intake recording.

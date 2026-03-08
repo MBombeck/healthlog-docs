@@ -1,91 +1,91 @@
 ---
-title: "Sicherheit"
-description: "Sicherheitskonzept von HealthLog — Authentifizierung, Verschluesselung, Rate Limiting und Audit Trail."
+title: "Security"
+description: "HealthLog security architecture — authentication, encryption, rate limiting, and audit trail."
 sidebar:
   order: 1
 ---
 
-HealthLog implementiert ein mehrschichtiges Sicherheitskonzept. Diese Seite gibt einen Ueberblick ueber alle sicherheitsrelevanten Mechanismen.
+HealthLog uses a layered security model. This page provides an overview of all security-related mechanisms.
 
-## Authentifizierung
+## Authentication
 
-HealthLog unterstuetzt zwei Authentifizierungsmethoden:
+HealthLog supports two authentication methods:
 
 ### Passkeys (WebAuthn/FIDO2)
 
-Passkeys sind die empfohlene Anmeldemethode. Die Implementierung basiert auf **SimpleWebAuthn v13** und unterstuetzt alle gaengigen Authenticator-Typen (Touch ID, Face ID, Windows Hello, Hardware-Keys wie YubiKey).
+Passkeys are the recommended sign-in method. The implementation is based on **SimpleWebAuthn v13** and supports all common authenticator types (Touch ID, Face ID, Windows Hello, hardware keys like YubiKey).
 
-- Registrierung und Anmeldung vollstaendig passwortlos
-- Phishing-resistent durch Origin-Bindung
-- Mehrere Passkeys pro Account moeglich
+- Fully passwordless registration and login
+- Phishing-resistant through origin binding
+- Multiple passkeys per account
 
-### Passwoerter
+### Passwords
 
-Als Fallback steht die klassische Passwort-Authentifizierung zur Verfuegung:
+Classic password authentication is available as a fallback:
 
-| Eigenschaft | Wert |
-|-------------|------|
-| Hashing-Algorithmus | Argon2id |
-| Mindestlaenge | 12 Zeichen |
-| Komplexitaet | zxcvbn Score >= 3 |
+| Property | Value |
+|----------|-------|
+| Hashing algorithm | Argon2id |
+| Minimum length | 12 characters |
+| Complexity | zxcvbn score >= 3 |
 
-## Session-Verwaltung
+## Session Management
 
-Sessions werden serverseitig in PostgreSQL gespeichert. Der Client erhaelt ein Session-Cookie:
+Sessions are stored server-side in PostgreSQL. The client receives a session cookie:
 
-| Eigenschaft | Wert |
-|-------------|------|
-| Cookie-Name | `healthlog-session` |
+| Property | Value |
+|----------|-------|
+| Cookie name | `healthlog-session` |
 | `httpOnly` | `true` |
-| `secure` | `true` (Production) |
+| `secure` | `true` (production) |
 | `sameSite` | `lax` |
-| Sliding Expiry | 30 Tage |
+| Sliding expiry | 30 days |
 
-Bei jeder authentifizierten Anfrage wird die Session-Gueltigkeit automatisch verlaengert. Abgelaufene Sessions werden regelmaessig aus der Datenbank bereinigt.
+The session lifetime is automatically extended on each authenticated request. Expired sessions are periodically cleaned up from the database.
 
-## Verschluesselung sensibler Datenfelder
+## Encryption of Sensitive Fields
 
-Sensible Felder in der Datenbank werden mit **AES-256-GCM** verschluesselt. Das betrifft:
+Sensitive database fields are encrypted with **AES-256-GCM**. This applies to:
 
-- OpenAI API-Keys
-- Telegram Bot-Tokens und Chat-IDs
-- Withings OAuth-Tokens
-- Notification-Konfigurationen
-- VAPID-Keys (Web Push)
+- OpenAI API keys
+- Telegram bot tokens and chat IDs
+- Withings OAuth tokens
+- Notification configurations
+- VAPID keys (Web Push)
 
-Das Speicherformat ist `base64(IV + AuthTag + Ciphertext)`. Der Schluessel wird ueber die Umgebungsvariable `ENCRYPTION_KEY` bereitgestellt.
+The storage format is `base64(IV + AuthTag + Ciphertext)`. The key is provided via the `ENCRYPTION_KEY` environment variable.
 
 :::danger
-Geht der `ENCRYPTION_KEY` verloren, sind alle verschluesselten Felder unwiderruflich unlesbar.
+If the `ENCRYPTION_KEY` is lost, all encrypted fields become permanently unreadable.
 :::
 
-## API-Token-Sicherheit
+## API Token Security
 
-Bearer Tokens fuer die externe API (`hlk_...`) werden nach folgendem Prinzip gesichert:
+Bearer tokens for the external API (`hlk_...`) are secured as follows:
 
-- **SHA-256 + HMAC** gehasht in der Datenbank gespeichert
-- Klartext wird dem Benutzer **nur einmal** bei Erstellung angezeigt
-- Jeder Token hat **definierte Berechtigungen** (Scopes)
-- Tokens koennen jederzeit **widerrufen** werden
+- Stored in the database as **SHA-256 + HMAC** hashes
+- The plaintext token is shown to the user **only once** at creation time
+- Each token has **defined permissions** (scopes)
+- Tokens can be **revoked** at any time
 
 ## Rate Limiting
 
-HealthLog nutzt ein In-Memory Sliding Window fuer Rate Limiting:
+HealthLog uses an in-memory sliding window for rate limiting:
 
-| Endpunkt | Limit |
+| Endpoint | Limit |
 |----------|-------|
-| Login | 5 Anfragen / 15 min |
-| Registrierung | 5 Anfragen / 15 min |
-| Daten-Ingest | 60 Anfragen / min |
-| Export | 10 Anfragen / h |
-| KI-Insights | 2 Anfragen / h |
-| Bug-Report | 3 Anfragen / h |
+| Login | 5 requests / 15 min |
+| Registration | 5 requests / 15 min |
+| Data ingest | 60 requests / min |
+| Export | 10 requests / h |
+| AI insights | 2 requests / h |
+| Bug report | 3 requests / h |
 
-Bei Ueberschreitung wird `429 Too Many Requests` zurueckgegeben. Die Header `X-RateLimit-Remaining` und `X-RateLimit-Reset` informieren ueber den aktuellen Status.
+When the limit is exceeded, the server responds with `429 Too Many Requests`. The `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers indicate the current status.
 
 ## Security Headers
 
-Jede Response enthaelt die folgenden Sicherheits-Header:
+Every response includes the following security headers:
 
 ```
 X-Content-Type-Options: nosniff
@@ -93,50 +93,50 @@ X-Frame-Options: DENY
 Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=()
 Strict-Transport-Security: max-age=31536000; includeSubDomains
-Content-Security-Policy: [mit Nonces, kein unsafe-inline]
+Content-Security-Policy: [with nonces, no unsafe-inline]
 ```
 
-Die CSP nutzt dynamische Nonces statt `unsafe-inline` fuer Script-Tags.
+The CSP uses dynamic nonces instead of `unsafe-inline` for script tags.
 
-## Input-Validierung
+## Input Validation
 
-Alle API-Eingaben werden mit **Zod v4** Schemas validiert. Die Validierung prueft:
+All API inputs are validated using **Zod v4** schemas. Validation checks include:
 
-- Datentypen und Formate (z.B. E-Mail, UUID)
-- Wertebereiche (z.B. systolischer Blutdruck 60-300 mmHg)
-- String-Laengen und erlaubte Zeichen
-- Enum-Werte
+- Data types and formats (e.g. email, UUID)
+- Value ranges (e.g. systolic blood pressure 60-300 mmHg)
+- String lengths and allowed characters
+- Enum values
 
-Ungueltige Eingaben werden mit `422 Unprocessable Entity` und einer beschreibenden Fehlermeldung abgewiesen.
+Invalid inputs are rejected with `422 Unprocessable Entity` and a descriptive error message.
 
-## CSRF-Schutz
+## CSRF Protection
 
-HealthLog schuetzt gegen Cross-Site Request Forgery durch drei Massnahmen:
+HealthLog protects against Cross-Site Request Forgery through three measures:
 
-1. **SameSite=lax** Cookie-Attribut verhindert Cross-Origin-Requests
-2. **JSON-only API** -- alle Mutations erfordern `Content-Type: application/json`
-3. **CSP form-action self** -- Formulare koennen nur an die eigene Domain senden
+1. **SameSite=lax** cookie attribute prevents cross-origin requests
+2. **JSON-only API** -- all mutations require `Content-Type: application/json`
+3. **CSP form-action self** -- forms can only submit to the app's own domain
 
-## Webhook-Verifizierung
+## Webhook Verification
 
-Eingehende Webhooks (z.B. von Withings) werden mit **HMAC-SHA256** verifiziert. Die Signaturpruefung nutzt Timing-Safe Comparison, um Timing-Angriffe zu verhindern.
+Incoming webhooks (e.g. from Withings) are verified using **HMAC-SHA256**. Signature verification uses timing-safe comparison to prevent timing attacks.
 
 ## Audit Trail
 
-Alle sicherheitsrelevanten Aktionen werden protokolliert:
+All security-relevant actions are logged:
 
-- Login-Versuche (erfolgreich und fehlgeschlagen)
-- Passkey-Registrierung und -Entfernung
-- Token-Erstellung und -Widerruf
-- Administratoraktionen
-- Kontenaenderungen
+- Login attempts (successful and failed)
+- Passkey registration and removal
+- Token creation and revocation
+- Administrator actions
+- Account changes
 
-Jeder Eintrag enthaelt die **IP-Adresse** und **Geo-Location** des Ausfuehrenden.
+Each entry includes the **IP address** and **geo-location** of the actor.
 
-## Kein Telemetrie-Tracking
+## No Telemetry or Tracking
 
-HealthLog sammelt keine Nutzungsdaten:
+HealthLog does not collect any usage data:
 
-- Next.js Telemetrie ist deaktiviert (`NEXT_TELEMETRY_DISABLED=1`)
-- Kein Tracking-Code, keine Analytics, keine Drittanbieter-Scripts
-- Externe Verbindungen nur bei expliziter Konfiguration (OpenAI, Withings, Telegram)
+- Next.js telemetry is disabled (`NEXT_TELEMETRY_DISABLED=1`)
+- No tracking code, no analytics, no third-party scripts
+- External connections are only made when explicitly configured (OpenAI, Withings, Telegram)

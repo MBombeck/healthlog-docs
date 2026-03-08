@@ -1,91 +1,91 @@
 ---
-title: Umgebungsvariablen
-description: Alle Umgebungsvariablen fuer HealthLog — Pflicht, optional und Service-spezifisch.
+title: Environment Variables
+description: All environment variables for HealthLog — required, optional, and service-specific.
 sidebar:
   order: 1
 ---
 
-HealthLog wird ueber Umgebungsvariablen konfiguriert. Diese werden in der `.env`-Datei neben der `docker-compose.yml` abgelegt.
+HealthLog is configured through environment variables. Place them in a `.env` file next to your `docker-compose.yml`.
 
-## Pflicht (Required)
+## Required
 
-Diese Variablen **muessen** gesetzt sein, damit HealthLog startet.
+These variables **must** be set for HealthLog to start.
 
-| Variable | Beschreibung | Beispiel |
+| Variable | Description | Example |
 |---|---|---|
-| `DATABASE_URL` | PostgreSQL Connection String | `postgresql://healthlog:healthlog@db:5432/healthlog` |
-| `SESSION_SECRET` | Session-Signierung, 64 Hex-Zeichen | `openssl rand -hex 32` |
-| `ENCRYPTION_KEY` | AES-256-GCM Schluessel, 64 Hex-Zeichen | `openssl rand -hex 32` |
-| `API_TOKEN_HMAC_KEY` | HMAC-Schluessel fuer API-Token-Hashing, 64 Hex-Zeichen | `openssl rand -hex 32` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://healthlog:healthlog@db:5432/healthlog` |
+| `SESSION_SECRET` | Used to sign sessions, 64 hex characters | `openssl rand -hex 32` |
+| `ENCRYPTION_KEY` | AES-256-GCM key, 64 hex characters | `openssl rand -hex 32` |
+| `API_TOKEN_HMAC_KEY` | HMAC key for API token hashing, 64 hex characters | `openssl rand -hex 32` |
 
 :::danger
-`ENCRYPTION_KEY` darf nach dem ersten Start **niemals** geaendert werden. Alle verschluesselten Datenbankfelder (Tokens, OAuth-Credentials, API Keys) werden mit diesem Schluessel ver- und entschluesselt. Ein Wechsel macht saemtliche verschluesselten Daten unwiderruflich unlesbar.
+`ENCRYPTION_KEY` must **never** be changed after the initial startup. All encrypted database fields (tokens, OAuth credentials, API keys) are encrypted and decrypted with this key. Changing it will make all encrypted data permanently unrecoverable.
 :::
 
-## Wichtig
+## Important
 
-| Variable | Beschreibung | Beispiel |
+| Variable | Description | Example |
 |---|---|---|
-| `NEXT_PUBLIC_APP_URL` | Oeffentliche URL der App. Wird fuer Passkey RP-ID, OAuth Redirects und Webhooks verwendet. | `https://health.example.com` |
-| `APP_URL` | Alternativname fuer `NEXT_PUBLIC_APP_URL` (Fallback) | `https://health.example.com` |
-| `NODE_ENV` | `production` oder `development` | `production` |
+| `NEXT_PUBLIC_APP_URL` | Public URL of the app. Used for Passkey RP-ID, OAuth redirects, and webhooks. | `https://health.example.com` |
+| `APP_URL` | Alternative name for `NEXT_PUBLIC_APP_URL` (fallback) | `https://health.example.com` |
+| `NODE_ENV` | `production` or `development` | `production` |
 
 ## Telegram
 
-| Variable | Beschreibung |
+| Variable | Description |
 |---|---|
-| `TELEGRAM_WEBHOOK_SECRET` | Geheimer String zur Verifizierung eingehender Telegram-Webhooks |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret string used to verify incoming Telegram webhooks |
 
 ## Withings
 
-| Variable | Beschreibung |
+| Variable | Description |
 |---|---|
-| `WITHINGS_REDIRECT_URI` | Optionaler Override fuer die OAuth Redirect URI |
-| `WITHINGS_WEBHOOK_SECRET` | Secret zur Verifizierung eingehender Withings-Webhooks |
+| `WITHINGS_REDIRECT_URI` | Optional override for the OAuth redirect URI |
+| `WITHINGS_WEBHOOK_SECRET` | Secret used to verify incoming Withings webhooks |
 
 ## Logging (Loki)
 
-| Variable | Beschreibung | Default |
+| Variable | Description | Default |
 |---|---|---|
-| `LOG_LEVEL` | Minimales Log-Level: `debug`, `info`, `warn`, `error` | `info` |
-| `LOKI_ENDPOINT` | Loki Push-URL, z.B. `https://loki.example.com/loki/api/v1/push` | — |
-| `LOKI_USERNAME` | Basic-Auth Benutzername fuer Loki | — |
-| `LOKI_PASSWORD` | Basic-Auth Passwort fuer Loki | — |
-| `LOG_SAMPLE_RATE` | Sampling-Rate fuer Logs (`0.0`–`1.0`) | `1.0` |
-| `LOG_SLOW_THRESHOLD_MS` | Schwellwert fuer Slow-Request-Warnings in ms | `3000` |
-| `LOG_INCLUDE_STACK` | Stack Traces in Error-Logs einschliessen | `true` |
+| `LOG_LEVEL` | Minimum log level: `debug`, `info`, `warn`, `error` | `info` |
+| `LOKI_ENDPOINT` | Loki push URL, e.g. `https://loki.example.com/loki/api/v1/push` | — |
+| `LOKI_USERNAME` | Basic auth username for Loki | — |
+| `LOKI_PASSWORD` | Basic auth password for Loki | — |
+| `LOG_SAMPLE_RATE` | Log sampling rate (`0.0`–`1.0`) | `1.0` |
+| `LOG_SLOW_THRESHOLD_MS` | Threshold for slow request warnings in ms | `3000` |
+| `LOG_INCLUDE_STACK` | Include stack traces in error logs | `true` |
 
 ## Monitoring
 
-| Variable | Beschreibung |
+| Variable | Description |
 |---|---|
-| `COMMIT_SHA` / `GIT_COMMIT` / `SOURCE_COMMIT` | Git Commit Hash des Builds (fuer Health-Check und Error-Tracking) |
-| `BUILD_TIMESTAMP` | Build-Zeitstempel |
+| `COMMIT_SHA` / `GIT_COMMIT` / `SOURCE_COMMIT` | Git commit hash of the build (used for health checks and error tracking) |
+| `BUILD_TIMESTAMP` | Build timestamp |
 
 ## Web Push (Fallback)
 
-Diese Variablen sind optional — Web Push kann auch ueber die Admin-Einstellungen konfiguriert werden. Umgebungsvariablen dienen als Fallback.
+These variables are optional — Web Push can also be configured through the admin settings. Environment variables serve as a fallback.
 
-| Variable | Beschreibung |
+| Variable | Description |
 |---|---|
-| `VAPID_PUBLIC_KEY` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID Public Key fuer Web Push |
-| `VAPID_PRIVATE_KEY` | VAPID Private Key |
-| `VAPID_SUBJECT` / `VAPID_EMAIL` | Kontakt-URI oder E-Mail fuer VAPID (`mailto:admin@example.com`) |
+| `VAPID_PUBLIC_KEY` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
+| `VAPID_PRIVATE_KEY` | VAPID private key |
+| `VAPID_SUBJECT` / `VAPID_EMAIL` | Contact URI or email for VAPID (`mailto:admin@example.com`) |
 
 ## Bug Reports
 
-| Variable | Beschreibung |
+| Variable | Description |
 |---|---|
-| `GITHUB_ISSUE_TOKEN` | GitHub Personal Access Token mit `repo` Scope |
-| `GITHUB_ISSUE_REPO` | Ziel-Repository im Format `owner/repo` |
+| `GITHUB_ISSUE_TOKEN` | GitHub Personal Access Token with `repo` scope |
+| `GITHUB_ISSUE_REPO` | Target repository in `owner/repo` format |
 
 ## .env.example
 
 ```bash
-# === Pflicht ===
+# === Required ===
 DATABASE_URL=postgresql://healthlog:healthlog@db:5432/healthlog
 SESSION_SECRET=          # openssl rand -hex 32
-ENCRYPTION_KEY=          # openssl rand -hex 32 — NIEMALS nach erstem Start aendern!
+ENCRYPTION_KEY=          # openssl rand -hex 32 — NEVER change after first start!
 API_TOKEN_HMAC_KEY=      # openssl rand -hex 32
 
 # === App ===
@@ -109,7 +109,7 @@ LOKI_PASSWORD=
 COMMIT_SHA=
 BUILD_TIMESTAMP=
 
-# === Web Push (optional, Fallback zu Admin-Einstellungen) ===
+# === Web Push (optional, falls back to admin settings) ===
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=

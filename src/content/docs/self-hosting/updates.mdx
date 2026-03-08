@@ -1,61 +1,61 @@
 ---
 title: "Updates"
-description: "HealthLog aktualisieren, Backups erstellen und Rollbacks durchfuehren."
+description: "Updating HealthLog, creating backups, and performing rollbacks."
 sidebar:
   order: 3
 ---
 
-HealthLog wird ueber Docker-Images aktualisiert. Datenbankmigrationen werden beim Start automatisch ausgefuehrt.
+HealthLog is updated by pulling new Docker images. Database migrations run automatically on startup.
 
-## Update durchfuehren
+## Performing an Update
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-Der Startup-Prozess fuehrt `prisma migrate deploy` aus, bevor der Server startet. Manuelle Migrationsschritte sind nicht noetig.
+The startup process runs `prisma migrate deploy` before starting the server. No manual migration steps are needed.
 
-## Vor dem Update: Backup erstellen
+## Before Updating: Create a Backup
 
 :::danger
-Erstelle **vor jedem Update** ein Datenbank-Backup. Datenbankmigrationen koennen Schemaenderungen enthalten, die nicht rueckgaengig gemacht werden koennen. Ohne Backup ist ein Rollback auf eine aeltere Version nicht moeglich.
+**Always create a database backup before updating.** Database migrations may include schema changes that cannot be reversed. Without a backup, rolling back to a previous version is not possible.
 :::
 
-### Manuelles Backup
+### Manual Backup
 
 ```bash
 docker compose exec db pg_dump -U healthlog healthlog > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-### Backup wiederherstellen
+### Restoring a Backup
 
 ```bash
 docker compose exec -T db psql -U healthlog healthlog < backup_20260308_120000.sql
 ```
 
-## Automatische Backups
+## Automatic Backups
 
-HealthLog erstellt woechentlich ein automatisches Backup:
+HealthLog creates a weekly automatic backup:
 
-| Eigenschaft | Wert |
-|-------------|------|
-| Zeitplan | Sonntag, 03:00 Uhr |
-| Speicherort | Verschluesselt in der Datenbank |
-| Verwaltung | pg-boss Job |
+| Property | Value |
+|----------|-------|
+| Schedule | Sunday, 03:00 |
+| Storage | Encrypted in the database |
+| Managed by | pg-boss job |
 
-Die automatischen Backups sind ueber das Admin-Panel einsehbar.
+Automatic backups can be viewed in the admin panel.
 
-## Versionierung
+## Versioning
 
-Docker-Images werden unter `ghcr.io/mbombeck/healthlog` bereitgestellt. Verfuegbare Tags:
+Docker images are published at `ghcr.io/mbombeck/healthlog`. Available tags:
 
-| Tag | Beschreibung |
+| Tag | Description |
 |-----|-------------|
-| `latest` | Aktuellster stabiler Release |
-| `x.y.z` | Spezifische Version (empfohlen fuer Produktion) |
+| `latest` | Most recent stable release |
+| `x.y.z` | Specific version (recommended for production) |
 
-Fuer maximale Stabilitaet kann ein festes Versions-Tag verwendet werden:
+For maximum stability, pin a specific version tag:
 
 ```yaml
 services:
@@ -65,20 +65,20 @@ services:
 
 ## Rollback
 
-Falls ein Update Probleme verursacht:
+If an update causes problems:
 
-1. Stoppe die Container:
+1. Stop the containers:
    ```bash
    docker compose down
    ```
 
-2. Stelle das Backup wieder her:
+2. Restore the backup:
    ```bash
    docker compose up -d db
    docker compose exec -T db psql -U healthlog healthlog < backup_YYYYMMDD_HHMMSS.sql
    ```
 
-3. Starte mit der vorherigen Image-Version:
+3. Start with the previous image version:
    ```yaml
    image: ghcr.io/mbombeck/healthlog:1.2.2
    ```
@@ -88,5 +88,5 @@ Falls ein Update Probleme verursacht:
    ```
 
 :::note
-Ein Rollback auf eine aeltere Version erfordert moeglicherweise auch das Zurueckspielen eines Datenbank-Backups, falls die neue Version Schemaenderungen enthaelt.
+Rolling back to an older version may also require restoring a database backup if the newer version included schema changes.
 :::

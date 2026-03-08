@@ -1,46 +1,46 @@
 ---
 title: Export & Import
-description: Daten exportieren (JSON, CSV), importieren und automatische verschluesselte Backups.
+description: Export data (JSON, CSV), import records, and automatic encrypted backups.
 sidebar:
   order: 7
 ---
 
-HealthLog bietet umfassende Export- und Import-Funktionen fuer Datensicherung, Arztkommunikation und Migration.
+HealthLog provides comprehensive export and import capabilities for data backup, sharing with doctors, and migration.
 
 ## Export
 
-### Formate
+### Formats
 
-| Format | Beschreibung |
-|--------|-------------|
-| **JSON** | Strukturiertes Format, geeignet fuer Backups und Re-Import |
-| **CSV** | Tabellenformat, kompatibel mit Excel, Google Sheets, etc. |
+| Format | Description |
+|--------|------------|
+| **JSON** | Structured format, suitable for backups and re-import |
+| **CSV** | Tabular format, compatible with Excel, Google Sheets, etc. |
 
-### Export-Typen
+### Export Types
 
-Daten koennen einzeln oder komplett exportiert werden:
+Data can be exported individually or as a complete package:
 
-- `measurements` -- Alle Gesundheitsmesswerte
-- `medications` -- Medikamente und Einnahmeplaene
-- `intake` -- Einnahme-Protokoll
-- `mood` -- Stimmungseintraege (bei aktiver MoodLog-Integration)
-- `all` -- Gesamtexport aller Daten
+- `measurements` -- All health readings
+- `medications` -- Medications and schedules
+- `intake` -- Intake log
+- `mood` -- Mood entries (when MoodLog integration is active)
+- `all` -- Full export of all data
 
 ### Rate Limit
 
 ```
-Maximale Exports: 10 pro Stunde und Benutzer
+Maximum exports: 10 per hour per user
 ```
 
 :::note
-Das Rate Limit schuetzt vor versehentlichem Mehrfach-Export und ueberlast. Fuer regulaere Nutzung ist es mehr als ausreichend.
+The rate limit prevents accidental repeated exports and excessive load. It is more than sufficient for regular use.
 :::
 
 ## Import
 
 ### Format
 
-Der Import akzeptiert JSON-Dateien mit folgendem Aufbau:
+The import accepts JSON files with the following structure:
 
 ```json
 {
@@ -54,39 +54,39 @@ Der Import akzeptiert JSON-Dateien mit folgendem Aufbau:
   "moodEntries": [
     {
       "mood": 7,
-      "tags": ["entspannt"],
+      "tags": ["relaxed"],
       "createdAt": "2026-03-01T20:00:00Z"
     }
   ]
 }
 ```
 
-### Einschraenkungen
+### Limitations
 
-- **Maximale Datensaetze**: 10.000 pro Import
-- **Unterstuetzte Daten**: `measurements` und `moodEntries`
-- **Deduplizierung**: Duplikate werden anhand von Unique Constraints automatisch erkannt und uebersprungen
+- **Maximum records**: 10,000 per import
+- **Supported data**: `measurements` and `moodEntries`
+- **Deduplication**: Duplicates are detected automatically via unique constraints and skipped
 
 :::caution
-Der Import ueberschreibt keine bestehenden Daten. Duplikate (gleicher Typ, gleicher Zeitstempel) werden ignoriert.
+Imports never overwrite existing data. Duplicates (same type, same timestamp) are silently ignored.
 :::
 
-## Automatisches Backup
+## Automatic Backup
 
-HealthLog erstellt woechentlich ein verschluesseltes Backup:
+HealthLog creates a weekly encrypted backup:
 
-- **Zeitplan**: Sonntags, 03:00 Uhr (pg-boss Job)
-- **Verschluesselung**: AES-256-GCM
-- **Speicherort**: In der Datenbank (als verschluesselter Blob)
-- **Inhalt**: Alle Benutzerdaten (Messwerte, Medikamente, Einnahmen, Stimmung)
+- **Schedule**: Sundays at 03:00 (pg-boss job)
+- **Encryption**: AES-256-GCM
+- **Storage**: In the database (as an encrypted blob)
+- **Content**: All user data (readings, medications, intakes, mood)
 
 ```
-Schedule: Sonntag 03:00 UTC
+Schedule: Sunday 03:00 UTC
 Encryption: AES-256-GCM
 Storage: PostgreSQL (encrypted blob)
 Job Runner: pg-boss
 ```
 
 :::caution
-Das automatische In-App-Backup wird **in derselben Datenbank** gespeichert. Bei Verlust der Datenbank sind auch diese Backups verloren. Richte zusaetzlich ein externes PostgreSQL-Backup ein (z.B. `pg_dump` per Cronjob). Siehe [Self-Hosting Sicherheit](/security/self-hosting/) fuer Details.
+The automatic in-app backup is stored **in the same database**. If the database is lost, these backups are lost too. Set up an external PostgreSQL backup as well (e.g., `pg_dump` via cron job). See [Self-Hosting Security](/security/self-hosting/) for details.
 :::
