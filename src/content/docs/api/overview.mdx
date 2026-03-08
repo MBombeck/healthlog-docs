@@ -53,7 +53,7 @@ HealthLog supports two authentication methods:
 
 | Method | Usage | Header/Cookie |
 |--------|-------|---------------|
-| Session Cookie | Browser clients | `healthlog-session` cookie (automatic) |
+| Session Cookie | Browser clients | `healthlog_session` cookie (automatic) |
 | Bearer Token | External API calls | `Authorization: Bearer hlk_...` |
 
 Bearer tokens are created through the [token management](/api/external-ingest/) and are bound to specific permissions.
@@ -88,7 +88,7 @@ When the limit is exceeded, the API returns `429 Too Many Requests`.
 
 ```bash
 curl -s https://your-instance.example.com/api/auth/me \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 Response:

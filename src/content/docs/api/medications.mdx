@@ -17,7 +17,7 @@ Returns all medications along with their schedules, last intake timestamp, and t
 
 ```bash
 curl -s https://your-instance.example.com/api/medications \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 **Response:**
@@ -32,7 +32,7 @@ curl -s https://your-instance.example.com/api/medications \
       "category": "BLOOD_PRESSURE",
       "active": true,
       "schedules": [
-        { "id": "tw1", "label": "Morgens", "windowStart": "07:00", "windowEnd": "09:00" }
+        { "id": "tw1", "label": "Morning", "windowStart": "07:00", "windowEnd": "09:00" }
       ],
       "lastTakenAt": "2026-03-08T07:15:00.000Z",
       "todayEventCount": 1
@@ -58,8 +58,8 @@ POST /api/medications
   "dose": "47.5mg",
   "category": "BLOOD_PRESSURE",
   "schedules": [
-    { "label": "Morgens", "windowStart": "07:00", "windowEnd": "09:00" },
-    { "label": "Abends", "windowStart": "19:00", "windowEnd": "21:00" }
+    { "label": "Morning", "windowStart": "07:00", "windowEnd": "09:00" },
+    { "label": "Evening", "windowStart": "19:00", "windowEnd": "21:00" }
   ]
 }
 ```
@@ -123,7 +123,7 @@ POST /api/medications/[id]/intake
 ```json
 {
   "takenAt": "2026-03-08T07:15:00.000Z",
-  "idempotencyKey": "uuid-v4-hier"
+  "idempotencyKey": "uuid-v4-here"
 }
 ```
 
@@ -132,7 +132,7 @@ The `idempotencyKey` prevents duplicate entries. Requests with the same key with
 ```bash
 curl -s https://your-instance.example.com/api/medications/clx.../intake \
   -H "Content-Type: application/json" \
-  -H "Cookie: healthlog-session=abc123" \
+  -H "Cookie: healthlog_session=abc123" \
   -d '{"takenAt": "2026-03-08T07:15:00Z", "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000"}'
 ```
 

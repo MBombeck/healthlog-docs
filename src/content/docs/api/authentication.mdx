@@ -21,7 +21,7 @@ POST /api/auth/register
 {
   "username": "marc",
   "email": "marc@example.com",
-  "password": "sicheres-passwort"
+  "password": "secure-password"
 }
 ```
 
@@ -54,7 +54,7 @@ POST /api/auth/login
 ```json
 {
   "identifier": "marc",
-  "password": "sicheres-passwort"
+  "password": "secure-password"
 }
 ```
 
@@ -63,7 +63,7 @@ The `identifier` field accepts either a username or an email address.
 ```bash
 curl -s -c cookies.txt https://your-instance.example.com/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"identifier": "marc", "password": "sicheres-passwort"}'
+  -d '{"identifier": "marc", "password": "secure-password"}'
 ```
 
 ---
@@ -104,7 +104,7 @@ PUT /api/auth/profile
 
 ```json
 {
-  "email": "neu@example.com",
+  "email": "new@example.com",
   "heightCm": 182,
   "dateOfBirth": "1990-05-15",
   "gender": "MALE"
@@ -128,8 +128,8 @@ POST /api/auth/password
 
 ```json
 {
-  "currentPassword": "altes-passwort",
-  "newPassword": "neues-sicheres-passwort"
+  "currentPassword": "old-password",
+  "newPassword": "new-secure-password"
 }
 ```
 

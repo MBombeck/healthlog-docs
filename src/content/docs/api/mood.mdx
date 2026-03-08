@@ -7,13 +7,17 @@ sidebar:
 
 ## Mood Values
 
-| Value | Label | Score |
-|-------|-------|-------|
-| `SUPER_GUT` | Super gut | 5 |
-| `GUT` | Gut | 4 |
-| `OKAY` | Okay | 3 |
-| `SCHLECHT` | Schlecht | 2 |
-| `LAUSIG` | Lausig | 1 |
+| Value | Label (German) | English | Score |
+|-------|---------------|---------|-------|
+| `SUPER_GUT` | Super gut | Excellent | 5 |
+| `GUT` | Gut | Good | 4 |
+| `OKAY` | Okay | Okay | 3 |
+| `SCHLECHT` | Schlecht | Bad | 2 |
+| `LAUSIG` | Lausig | Terrible | 1 |
+
+:::note
+Mood enum values use German labels as the app's primary UI language is German. The `score` field (1–5) is language-independent.
+:::
 
 ## List Entries
 
@@ -33,7 +37,7 @@ GET /api/mood-entries
 
 ```bash
 curl -s "https://your-instance.example.com/api/mood-entries?from=2026-03-01&to=2026-03-08" \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 **Response:**
@@ -45,8 +49,8 @@ curl -s "https://your-instance.example.com/api/mood-entries?from=2026-03-01&to=2
       "id": "clx...",
       "mood": "GUT",
       "score": 4,
-      "tags": ["Sport", "Gut geschlafen"],
-      "notes": "Produktiver Tag",
+      "tags": ["Exercise", "Slept well"],
+      "notes": "Productive day",
       "createdAt": "2026-03-08T20:00:00.000Z"
     }
   ],
@@ -67,12 +71,12 @@ POST /api/mood-entries
 ```bash
 curl -s https://your-instance.example.com/api/mood-entries \
   -H "Content-Type: application/json" \
-  -H "Cookie: healthlog-session=abc123" \
+  -H "Cookie: healthlog_session=abc123" \
   -d '{
     "mood": "GUT",
     "score": 4,
-    "tags": ["Sport", "Gut geschlafen"],
-    "notes": "Produktiver Tag"
+    "tags": ["Exercise", "Slept well"],
+    "notes": "Productive day"
   }'
 ```
 
@@ -84,8 +88,8 @@ curl -s https://your-instance.example.com/api/mood-entries \
     "id": "clx...",
     "mood": "GUT",
     "score": 4,
-    "tags": ["Sport", "Gut geschlafen"],
-    "notes": "Produktiver Tag",
+    "tags": ["Exercise", "Slept well"],
+    "notes": "Productive day",
     "createdAt": "2026-03-08T20:00:00.000Z"
   },
   "error": null

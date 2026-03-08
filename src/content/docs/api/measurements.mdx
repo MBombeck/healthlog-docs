@@ -15,7 +15,7 @@ sidebar:
 | `PULSE` | Pulse / heart rate | bpm |
 | `BODY_FAT` | Body fat percentage | % |
 | `SLEEP_DURATION` | Sleep duration | hours |
-| `ACTIVITY_STEPS` | Steps | count |
+| `ACTIVITY_STEPS` | Steps | steps |
 
 ## List Measurements
 
@@ -39,7 +39,7 @@ GET /api/measurements
 
 ```bash
 curl -s "https://your-instance.example.com/api/measurements?type=WEIGHT&limit=5&sortDir=desc" \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 **Response:**
@@ -80,7 +80,7 @@ Supports both single values and batch creation (array).
   "type": "WEIGHT",
   "value": 81.5,
   "measuredAt": "2026-03-08T07:30:00.000Z",
-  "notes": "Nuechtern gemessen"
+  "notes": "Measured fasting"
 }
 ```
 
@@ -91,7 +91,7 @@ A blood pressure reading consists of two related measurements:
 ```bash
 curl -s https://your-instance.example.com/api/measurements \
   -H "Content-Type: application/json" \
-  -H "Cookie: healthlog-session=abc123" \
+  -H "Cookie: healthlog_session=abc123" \
   -d '[
     {
       "type": "BLOOD_PRESSURE_SYS",
@@ -143,7 +143,7 @@ PUT /api/measurements/[id]
 ```json
 {
   "value": 82.0,
-  "notes": "Korrigiert"
+  "notes": "Corrected"
 }
 ```
 

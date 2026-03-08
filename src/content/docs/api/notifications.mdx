@@ -18,7 +18,7 @@ Manages channel preferences and per-event opt-out settings for each channel.
 
 ```bash
 curl -s https://your-instance.example.com/api/notifications/preferences \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 **Response:**
@@ -122,7 +122,7 @@ Sends a test message through the configured Telegram bot.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/settings/telegram/test \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 ---

@@ -18,7 +18,7 @@ Generates an AI-powered insight based on the user's health data. Uses OpenAI `gp
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/insights/generate \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 **Response:**
@@ -26,7 +26,7 @@ curl -s -X POST https://your-instance.example.com/api/insights/generate \
 ```json
 {
   "data": {
-    "insight": "Dein Blutdruck zeigt in den letzten 7 Tagen einen leicht ruecklaeufigen Trend...",
+    "insight": "Your blood pressure shows a slightly declining trend over the past 7 days...",
     "generatedAt": "2026-03-08T10:00:00.000Z",
     "cached": false
   },

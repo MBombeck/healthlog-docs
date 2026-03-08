@@ -19,7 +19,7 @@ Returns a system overview including user count, measurements, worker status, int
 
 ```bash
 curl -s https://your-instance.example.com/api/admin/status \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 **Response:**
@@ -88,7 +88,7 @@ Generates a temporary password for the user.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/admin/users/clx.../reset-password \
-  -H "Cookie: healthlog-session=abc123"
+  -H "Cookie: healthlog_session=abc123"
 ```
 
 **Response:**
