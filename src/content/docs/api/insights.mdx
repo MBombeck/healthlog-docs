@@ -1,0 +1,128 @@
+---
+title: "KI-Insights"
+description: "KI-gestuetzte Gesundheits-Insights und umfassende Analytik."
+sidebar:
+  order: 6
+---
+
+## KI-Insight generieren
+
+```
+POST /api/insights/generate
+```
+
+**Auth:** Session Cookie
+**Rate Limit:** 2 Anfragen / Stunde / Benutzer
+
+Generiert einen KI-gestuetzten Insight basierend auf den Gesundheitsdaten des Benutzers. Verwendet OpenAI `gpt-4o-mini` mit einem 24-Stunden-Cache.
+
+```bash
+curl -s -X POST https://your-instance.example.com/api/insights/generate \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "insight": "Dein Blutdruck zeigt in den letzten 7 Tagen einen leicht ruecklaeufigen Trend...",
+    "generatedAt": "2026-03-08T10:00:00.000Z",
+    "cached": false
+  },
+  "error": null
+}
+```
+
+---
+
+## Umfassende Analyse
+
+```
+GET /api/insights/comprehensive
+```
+
+**Auth:** Session Cookie
+
+Gibt eine vollstaendige Analyse zurueck: Trends, Korrelationen, BMI, Blutdruck, Stimmung und Medikamenten-Compliance.
+
+```json
+{
+  "data": {
+    "bmi": { "current": 24.6, "trend": "STABLE" },
+    "bloodPressure": { "avgSys": 128, "avgDia": 83, "classification": "NORMAL_HIGH" },
+    "mood": { "average": 3.6, "trend": "IMPROVING" },
+    "compliance": { "overall": 0.91, "streak": 12 },
+    "correlations": [
+      { "factor1": "SLEEP_DURATION", "factor2": "MOOD", "coefficient": 0.72 }
+    ]
+  },
+  "error": null
+}
+```
+
+---
+
+## Kategorie-Status
+
+Fuer jede Kategorie gibt es einen eigenen Status-Endpunkt:
+
+```
+GET /api/insights/general-status
+GET /api/insights/blood-pressure-status
+GET /api/insights/weight-status
+GET /api/insights/pulse-status
+GET /api/insights/bmi-status
+GET /api/insights/medication-compliance-status
+GET /api/insights/mood-status
+```
+
+**Auth:** Session Cookie
+
+Jeder Endpunkt gibt kategoriespezifische Zusammenfassungen und Empfehlungen zurueck.
+
+---
+
+## Einstellungen
+
+```
+GET /api/insights/settings
+PUT /api/insights/settings
+```
+
+**Auth:** Session Cookie
+
+Verwaltet Datenschutz-Modus und API-Key-Status fuer KI-Funktionen.
+
+```json
+{
+  "data": {
+    "privacyMode": "aggregated",
+    "apiKeyConfigured": true
+  },
+  "error": null
+}
+```
+
+---
+
+## Blutdruck-Zielwerte
+
+```
+GET /api/insights/targets
+```
+
+**Auth:** Session Cookie
+
+Gibt altersabhaengige Blutdruck-Zielwerte zurueck.
+
+```json
+{
+  "data": {
+    "systolic": { "optimal": 120, "normal": 130, "high": 140 },
+    "diastolic": { "optimal": 80, "normal": 85, "high": 90 },
+    "basedOnAge": 35
+  },
+  "error": null
+}
+```

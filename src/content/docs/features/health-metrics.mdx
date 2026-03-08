@@ -1,0 +1,92 @@
+---
+title: Gesundheitsdaten
+description: Gesundheitsmetriken erfassen, analysieren und visualisieren — Gewicht, Blutdruck, Puls, Koerperfett, Schlaf und Aktivitaet.
+sidebar:
+  order: 1
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+HealthLog erfasst und analysiert zentrale Gesundheitswerte. Alle Metriken werden manuell oder per Integration (z.B. Withings) eingetragen und in Trendanalysen visualisiert.
+
+## Unterstuetzte Metriken
+
+| Metrik | Einheit | Automatische Auswertung |
+|--------|---------|------------------------|
+| Gewicht | kg | BMI-Berechnung, Trendanalyse |
+| Blutdruck (Sys/Dia) | mmHg | WHO/ESC/ESH-Klassifikation |
+| Puls | bpm | Trendanalyse |
+| Koerperfettanteil | % | Trendanalyse |
+| Schlafdauer | Stunden | Trendanalyse |
+| Aktivitaet (Schritte) | Schritte | Trendanalyse |
+
+## Datenerfassung
+
+### Einzeleintrag
+
+Ueber das Dashboard koennen einzelne Messwerte direkt erfasst werden. Jeder Eintrag erhaelt automatisch einen Zeitstempel.
+
+### Batch-Eintrag
+
+Fuer das Nachtragen mehrerer Werte steht ein Batch-Modus zur Verfuegung. Damit lassen sich z.B. Werte aus einem Papier-Tagebuch effizient uebertragen.
+
+## Trendanalyse
+
+Alle Metriken werden ueber drei Zeitraeume analysiert:
+
+- **7 Tage** -- Kurzfristiger Verlauf
+- **30 Tage** -- Monatlicher Trend
+- **90 Tage** -- Langzeitentwicklung
+
+Die Visualisierung erfolgt mit Recharts (Linien- und Balkendiagramme).
+
+## BMI-Berechnung
+
+Der BMI wird automatisch aus Gewicht und Koerpergroesse berechnet. Die Koerpergroesse wird einmalig im Profil hinterlegt.
+
+```
+BMI = weight / (height_m * height_m)
+```
+
+:::note
+Die Koerpergroesse muss im Benutzerprofil eingetragen sein, damit die automatische BMI-Berechnung funktioniert.
+:::
+
+## Blutdruck-Klassifikation
+
+Die Einstufung erfolgt nach den ESC/ESH-Leitlinien 2018 und der WHO-Klassifikation:
+
+| Kategorie | Systolisch (mmHg) | Diastolisch (mmHg) |
+|-----------|-------------------|---------------------|
+| Optimal | < 120 | < 80 |
+| Normal | 120--129 | 80--84 |
+| Hochnormal | 130--139 | 85--89 |
+| Hypertonie Grad 1 | 140--159 | 90--99 |
+| Hypertonie Grad 2 | 160--179 | 100--109 |
+| Hypertonie Grad 3 | >= 180 | >= 110 |
+
+:::tip
+Die Klassifikation orientiert sich am hoeheren Wert. Wenn Systole und Diastole in unterschiedliche Kategorien fallen, gilt die hoehere Stufe.
+:::
+
+## Charts und Visualisierungen
+
+Die Darstellung nutzt Recharts mit folgenden Diagrammtypen:
+
+- **Liniendiagramme** fuer Gewicht, BMI, Puls
+- **Doppel-Liniendiagramme** fuer Blutdruck (Sys/Dia)
+- **Balkendiagramme** fuer Schritte und Schlafdauer
+- Farbkodierung nach Klassifikationsstufe beim Blutdruck
+
+## Arztbericht (PDF-Export)
+
+HealthLog generiert einen strukturierten PDF-Bericht fuer Arztbesuche.
+
+- **Format**: PDF via jsPDF (Client-seitige Generierung)
+- **Inhalt**: Blutdruckverlauf, Gewichtsentwicklung, BMI, Medikamentenplan
+- **Klassifikation**: Nach ESC/ESH 2018 Leitlinien
+- **Zeitraum**: Frei waehlbar
+
+:::caution
+Der PDF-Export erfolgt vollstaendig im Browser. Bei sehr grossen Datenmengen kann die Generierung einige Sekunden dauern.
+:::

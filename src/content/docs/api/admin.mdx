@@ -1,0 +1,185 @@
+---
+title: "Admin-API"
+description: "Administrations-Endpunkte fuer Systemstatus, Benutzer und Einstellungen."
+sidebar:
+  order: 9
+---
+
+Alle Endpunkte auf dieser Seite erfordern die Rolle **Admin**.
+
+## Systemstatus
+
+```
+GET /api/admin/status
+```
+
+**Auth:** Session Cookie (Admin)
+
+Gibt einen Ueberblick ueber das System zurueck: Anzahl Benutzer, Messwerte, Worker-Status, Integrations-Status und Version.
+
+```bash
+curl -s https://your-instance.example.com/api/admin/status \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "version": "1.4.2",
+    "users": 3,
+    "measurements": 1842,
+    "medications": 7,
+    "moodEntries": 156,
+    "worker": { "status": "RUNNING", "pendingJobs": 0 },
+    "integrations": {
+      "withings": { "connected": true },
+      "telegram": { "configured": true },
+      "glitchtip": { "configured": true }
+    }
+  },
+  "error": null
+}
+```
+
+---
+
+## App-Einstellungen
+
+```
+GET /api/admin/settings
+PUT /api/admin/settings
+```
+
+**Auth:** Session Cookie (Admin)
+
+Verwaltet globale Anwendungs-Einstellungen.
+
+---
+
+## Benutzerverwaltung
+
+### Alle Benutzer
+
+```
+GET /api/admin/users
+```
+
+### Einzelner Benutzer
+
+```
+GET /api/admin/users/[id]
+```
+
+### Benutzer loeschen
+
+```
+DELETE /api/admin/users/[id]
+```
+
+### Passwort zuruecksetzen
+
+```
+POST /api/admin/users/[id]/reset-password
+```
+
+Generiert ein temporaeres Passwort fuer den Benutzer.
+
+```bash
+curl -s -X POST https://your-instance.example.com/api/admin/users/clx.../reset-password \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "temporaryPassword": "xK9m!pQ2..."
+  },
+  "error": null
+}
+```
+
+---
+
+## API-Tokens
+
+```
+GET /api/admin/tokens
+```
+
+**Auth:** Session Cookie (Admin)
+
+Listet alle API-Tokens aller Benutzer auf.
+
+---
+
+## Audit-Log
+
+```
+GET /api/admin/audit-log
+```
+
+**Auth:** Session Cookie (Admin)
+
+Gibt das Audit-Log zurueck (Login-Versuche, Aenderungen, Admin-Aktionen).
+
+---
+
+## Datenbank-Statistiken
+
+```
+GET /api/admin/data
+```
+
+**Auth:** Session Cookie (Admin)
+
+Gibt Statistiken zur Datenbanknutzung zurueck (Tabellengroessen, Eintraege pro Typ).
+
+---
+
+## Benachrichtigungen testen
+
+```
+POST /api/admin/notifications/test
+```
+
+**Auth:** Session Cookie (Admin)
+
+Sendet eine Test-Benachrichtigung ueber alle konfigurierten Kanaele.
+
+### Erinnerungs-Check
+
+```
+POST /api/admin/notifications/reminder-check
+```
+
+**Auth:** Session Cookie (Admin)
+
+Loest eine manuelle Pruefung faelliger Medikamenten-Erinnerungen aus.
+
+---
+
+## Monitoring testen
+
+### GlitchTip
+
+```
+POST /api/admin/monitoring/glitchtip-test
+```
+
+**Auth:** Session Cookie (Admin)
+
+Sendet einen Test-Event an GlitchTip (Sentry-kompatibel).
+
+### Umami
+
+```
+POST /api/admin/monitoring/umami-test
+```
+
+**Auth:** Session Cookie (Admin)
+
+Sendet einen Test-Event an Umami Analytics.

@@ -1,0 +1,134 @@
+---
+title: "Stimmung"
+description: "Stimmungseintraege erfassen, abfragen und analysieren."
+sidebar:
+  order: 5
+---
+
+## Stimmungswerte
+
+| Wert | Label | Score |
+|------|-------|-------|
+| `SUPER_GUT` | Super gut | 5 |
+| `GUT` | Gut | 4 |
+| `OKAY` | Okay | 3 |
+| `SCHLECHT` | Schlecht | 2 |
+| `LAUSIG` | Lausig | 1 |
+
+## Eintraege auflisten
+
+```
+GET /api/mood-entries
+```
+
+**Auth:** Session Cookie oder Bearer Token
+
+**Query-Parameter:**
+
+| Parameter | Typ | Beschreibung |
+|-----------|-----|-------------|
+| `mood` | string | Filtern nach Stimmungswert |
+| `from` | ISO 8601 | Startdatum |
+| `to` | ISO 8601 | Enddatum |
+
+```bash
+curl -s "https://your-instance.example.com/api/mood-entries?from=2026-03-01&to=2026-03-08" \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "clx...",
+      "mood": "GUT",
+      "score": 4,
+      "tags": ["Sport", "Gut geschlafen"],
+      "notes": "Produktiver Tag",
+      "createdAt": "2026-03-08T20:00:00.000Z"
+    }
+  ],
+  "error": null
+}
+```
+
+---
+
+## Eintrag erstellen
+
+```
+POST /api/mood-entries
+```
+
+**Auth:** Session Cookie
+
+```bash
+curl -s https://your-instance.example.com/api/mood-entries \
+  -H "Content-Type: application/json" \
+  -H "Cookie: healthlog-session=abc123" \
+  -d '{
+    "mood": "GUT",
+    "score": 4,
+    "tags": ["Sport", "Gut geschlafen"],
+    "notes": "Produktiver Tag"
+  }'
+```
+
+**Response** `201`:
+
+```json
+{
+  "data": {
+    "id": "clx...",
+    "mood": "GUT",
+    "score": 4,
+    "tags": ["Sport", "Gut geschlafen"],
+    "notes": "Produktiver Tag",
+    "createdAt": "2026-03-08T20:00:00.000Z"
+  },
+  "error": null
+}
+```
+
+---
+
+## Einzelner Eintrag
+
+```
+GET    /api/mood-entries/[id]     — Details abrufen
+PUT    /api/mood-entries/[id]     — Aktualisieren
+DELETE /api/mood-entries/[id]     — Loeschen
+```
+
+**Auth:** Session Cookie. Benutzer koennen nur eigene Eintraege verwalten.
+
+---
+
+## Stimmungs-Analytik
+
+```
+GET /api/mood/analytics
+```
+
+**Auth:** Session Cookie
+
+Gibt aggregierte Stimmungsdaten zurueck: Durchschnittswerte, Verteilung und Trends.
+
+```json
+{
+  "data": {
+    "averageScore": 3.6,
+    "distribution": {
+      "SUPER_GUT": 5,
+      "GUT": 12,
+      "OKAY": 8,
+      "SCHLECHT": 3,
+      "LAUSIG": 1
+    },
+    "trend": "STABLE"
+  },
+  "error": null
+}
+```

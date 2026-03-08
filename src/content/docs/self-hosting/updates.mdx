@@ -1,0 +1,92 @@
+---
+title: "Updates"
+description: "HealthLog aktualisieren, Backups erstellen und Rollbacks durchfuehren."
+sidebar:
+  order: 3
+---
+
+HealthLog wird ueber Docker-Images aktualisiert. Datenbankmigrationen werden beim Start automatisch ausgefuehrt.
+
+## Update durchfuehren
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Der Startup-Prozess fuehrt `prisma migrate deploy` aus, bevor der Server startet. Manuelle Migrationsschritte sind nicht noetig.
+
+## Vor dem Update: Backup erstellen
+
+:::danger
+Erstelle **vor jedem Update** ein Datenbank-Backup. Datenbankmigrationen koennen Schemaenderungen enthalten, die nicht rueckgaengig gemacht werden koennen. Ohne Backup ist ein Rollback auf eine aeltere Version nicht moeglich.
+:::
+
+### Manuelles Backup
+
+```bash
+docker compose exec db pg_dump -U healthlog healthlog > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### Backup wiederherstellen
+
+```bash
+docker compose exec -T db psql -U healthlog healthlog < backup_20260308_120000.sql
+```
+
+## Automatische Backups
+
+HealthLog erstellt woechentlich ein automatisches Backup:
+
+| Eigenschaft | Wert |
+|-------------|------|
+| Zeitplan | Sonntag, 03:00 Uhr |
+| Speicherort | Verschluesselt in der Datenbank |
+| Verwaltung | pg-boss Job |
+
+Die automatischen Backups sind ueber das Admin-Panel einsehbar.
+
+## Versionierung
+
+Docker-Images werden unter `ghcr.io/mbombeck/healthlog` bereitgestellt. Verfuegbare Tags:
+
+| Tag | Beschreibung |
+|-----|-------------|
+| `latest` | Aktuellster stabiler Release |
+| `x.y.z` | Spezifische Version (empfohlen fuer Produktion) |
+
+Fuer maximale Stabilitaet kann ein festes Versions-Tag verwendet werden:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mbombeck/healthlog:1.2.3
+```
+
+## Rollback
+
+Falls ein Update Probleme verursacht:
+
+1. Stoppe die Container:
+   ```bash
+   docker compose down
+   ```
+
+2. Stelle das Backup wieder her:
+   ```bash
+   docker compose up -d db
+   docker compose exec -T db psql -U healthlog healthlog < backup_YYYYMMDD_HHMMSS.sql
+   ```
+
+3. Starte mit der vorherigen Image-Version:
+   ```yaml
+   image: ghcr.io/mbombeck/healthlog:1.2.2
+   ```
+
+   ```bash
+   docker compose up -d
+   ```
+
+:::note
+Ein Rollback auf eine aeltere Version erfordert moeglicherweise auch das Zurueckspielen eines Datenbank-Backups, falls die neue Version Schemaenderungen enthaelt.
+:::

@@ -1,0 +1,67 @@
+---
+title: KI-Insights
+description: KI-gestuetzte Gesundheitsanalysen mit OpenAI — Trends, Korrelationen und personalisierte Empfehlungen.
+sidebar:
+  order: 4
+---
+
+HealthLog bietet KI-gestuetzte Auswertungen der erfassten Gesundheitsdaten. Die Integration nutzt OpenAI (gpt-4o-mini) nach dem BYOK-Prinzip (Bring Your Own Key).
+
+## Setup
+
+Der Benutzer hinterlegt seinen eigenen OpenAI API-Key in den Einstellungen. Der Key wird mit AES-256-GCM verschluesselt in der Datenbank gespeichert.
+
+:::note
+Ohne hinterlegten API-Key sind die KI-Insights deaktiviert. Alle anderen Funktionen von HealthLog bleiben vollstaendig nutzbar.
+:::
+
+## Datenschutz-Modi
+
+Benutzer waehlen, welche Daten an OpenAI gesendet werden:
+
+| Modus | Beschreibung |
+|-------|-------------|
+| **Aggregated** | Nur statistische Zusammenfassungen (Durchschnitt, Min, Max, Trend) |
+| **Raw** | Tatsaechliche Messwerte mit Zeitstempeln |
+
+:::caution
+Im Raw-Modus werden echte Gesundheitsdaten an die OpenAI-API gesendet. HealthLog sendet keine Daten an Dritte, ausser wenn der Benutzer die OpenAI-Integration explizit konfiguriert hat.
+:::
+
+## Insight-Kategorien
+
+HealthLog generiert Insights in sieben Kategorien:
+
+1. **Allgemein** -- Uebergreifende Gesundheitstrends
+2. **Blutdruck** -- Verlaufsanalyse, Klassifikation, Empfehlungen
+3. **Gewicht** -- Trendanalyse, BMI-Entwicklung
+4. **Puls** -- Ruhepuls-Trend, Auffaelligkeiten
+5. **BMI** -- Langzeitentwicklung, Zielbereich
+6. **Medikamenten-Compliance** -- Einnahmetreue-Analyse, Muster
+7. **Stimmung** -- Stimmungstrends und Korrelationen (bei aktiver MoodLog-Integration)
+
+## Korrelationsanalysen
+
+Die KI erkennt Zusammenhaenge zwischen verschiedenen Metriken:
+
+- Gewicht und Blutdruck
+- Stimmung und Blutdruck (bei aktiver MoodLog-Integration)
+- Stimmung und Gewicht
+- Stimmung und Puls
+- Blutdruck und Medikamenten-Compliance
+
+## Caching und Generierung
+
+- **Cache-Dauer**: 24 Stunden pro Insight
+- **Automatische Generierung**: Naechtlich zwischen 02:00 und 02:30 Uhr via pg-boss Job
+- **Manuelle Generierung**: Jederzeit ueber das Dashboard moeglich (invalidiert den Cache)
+
+```
+Zeitplan: 02:00-02:30 UTC (pg-boss cron)
+Cache TTL: 24 Stunden
+Modell: gpt-4o-mini
+```
+
+:::tip
+Die automatische naechtliche Generierung stellt sicher, dass beim morgendlichen Oeffnen der App aktuelle Insights bereitstehen, ohne Wartezeit.
+:::

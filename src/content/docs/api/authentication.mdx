@@ -1,0 +1,186 @@
+---
+title: "Authentifizierung"
+description: "Registrierung, Login, Profilverwaltung und Passkeys."
+sidebar:
+  order: 2
+---
+
+## Registrierung
+
+Der erste registrierte Benutzer erhaelt automatisch die Rolle `ADMIN`.
+
+```
+POST /api/auth/register
+```
+
+**Rate Limit:** 5 Anfragen / 15 Minuten / IP
+
+**Request Body:**
+
+```json
+{
+  "username": "marc",
+  "email": "marc@example.com",
+  "password": "sicheres-passwort"
+}
+```
+
+**Response** `201`:
+
+```json
+{
+  "data": {
+    "id": "clx...",
+    "username": "marc",
+    "email": "marc@example.com",
+    "role": "ADMIN"
+  },
+  "error": null
+}
+```
+
+---
+
+## Login
+
+```
+POST /api/auth/login
+```
+
+**Rate Limit:** 5 Anfragen / 15 Minuten / IP
+
+**Request Body:**
+
+```json
+{
+  "identifier": "marc",
+  "password": "sicheres-passwort"
+}
+```
+
+Das `identifier`-Feld akzeptiert Benutzername oder E-Mail-Adresse.
+
+```bash
+curl -s -c cookies.txt https://your-instance.example.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier": "marc", "password": "sicheres-passwort"}'
+```
+
+---
+
+## Logout
+
+```
+POST /api/auth/logout
+```
+
+**Auth:** Session Cookie
+
+Loescht die aktuelle Session.
+
+---
+
+## Aktueller Benutzer
+
+```
+GET /api/auth/me
+```
+
+**Auth:** Session Cookie oder Bearer Token
+
+Gibt den aktuellen Benutzer inkl. Gravatar-URL zurueck.
+
+---
+
+## Profil aktualisieren
+
+```
+PUT /api/auth/profile
+```
+
+**Auth:** Session Cookie
+
+**Request Body:**
+
+```json
+{
+  "email": "neu@example.com",
+  "heightCm": 182,
+  "dateOfBirth": "1990-05-15",
+  "gender": "MALE"
+}
+```
+
+Alle Felder sind optional. Nur uebergebene Felder werden aktualisiert.
+
+---
+
+## Passwort aendern
+
+```
+POST /api/auth/password
+```
+
+**Auth:** Session Cookie
+**Rate Limit:** 5 Anfragen / 15 Minuten / Benutzer
+
+**Request Body:**
+
+```json
+{
+  "currentPassword": "altes-passwort",
+  "newPassword": "neues-sicheres-passwort"
+}
+```
+
+Nach erfolgreicher Aenderung werden alle bestehenden Sessions invalidiert.
+
+---
+
+## Registrierungsstatus
+
+```
+GET /api/auth/registration-status
+```
+
+**Auth:** Keine
+
+Prueft, ob die Registrierung aktiviert ist (z.B. ob bereits ein Admin existiert).
+
+```json
+{
+  "data": {
+    "registrationEnabled": true
+  },
+  "error": null
+}
+```
+
+---
+
+## Passkeys (WebAuthn)
+
+HealthLog unterstuetzt passwortlose Authentifizierung ueber WebAuthn / Passkeys.
+
+### Passkey registrieren
+
+```
+POST /api/auth/passkey/register-options   — Optionen abrufen
+POST /api/auth/passkey/register-verify    — Registrierung abschliessen
+```
+
+### Passkey-Login
+
+```
+POST /api/auth/passkey/login-options      — Challenge abrufen
+POST /api/auth/passkey/login-verify       — Login abschliessen
+```
+
+### Passkeys verwalten
+
+```
+GET    /api/auth/passkeys                 — Alle Passkeys des Benutzers
+DELETE /api/auth/passkeys/[id]            — Passkey entfernen
+```
+
+**Auth:** Alle Passkey-Endpunkte (ausser Login) erfordern eine aktive Session.

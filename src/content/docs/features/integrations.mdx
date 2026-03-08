@@ -1,0 +1,88 @@
+---
+title: Integrationen
+description: Withings-Geraete, MoodLog und externe API-Integrationen fuer automatischen Datenimport.
+sidebar:
+  order: 5
+---
+
+HealthLog laesst sich mit externen Diensten und Geraeten verbinden. Alle Integrationen sind optional und werden pro Benutzer konfiguriert.
+
+## Withings
+
+Integration mit Withings-Waagen und Blutdruckmessgeraeten ueber OAuth 2.0.
+
+### Unterstuetzte Geraete und Metriken
+
+| Geraetetyp | Metriken |
+|-----------|---------|
+| Waage | Gewicht, Koerperfettanteil |
+| Blutdruckmessgeraet | Systole, Diastole, Puls |
+
+### Synchronisation
+
+Die Datensynchronisation erfolgt ueber zwei Mechanismen:
+
+- **Webhook** -- Echtzeit-Benachrichtigung bei neuer Messung (primaer)
+- **Polling** -- Stuendlicher Fallback-Abruf (sekundaer, falls Webhook fehlschlaegt)
+
+### Voraussetzungen
+
+Fuer die Withings-Integration wird ein **Withings Developer Account** mit registrierter App benoetigt. Die Client-ID und das Client-Secret werden in den HealthLog-Einstellungen hinterlegt und AES-256-GCM verschluesselt gespeichert.
+
+### Einrichtung
+
+1. Withings Developer App erstellen ([developer.withings.com](https://developer.withings.com))
+2. Client-ID und Client-Secret in den HealthLog-Einstellungen hinterlegen
+3. Withings-Konto in den HealthLog-Einstellungen verbinden (OAuth 2.0 Flow)
+4. Berechtigung fuer Messdaten erteilen
+5. Webhook wird automatisch registriert
+
+:::note
+Bei Problemen mit dem Webhook (z.B. nach Serverumzug) greift das stuendliche Polling automatisch. Der Event-Typ `WITHINGS_SYNC_FAILED` benachrichtigt bei laengeren Ausfaellen.
+:::
+
+## MoodLog
+
+Integration mit [moodlog.app](https://moodlog.app) fuer Stimmungsdaten.
+
+- **Webhook**: MoodLog sendet neue Eintraege per Webhook an HealthLog
+- **Polling**: Regelmaessiger Abruf als Fallback
+- **Daten**: Stimmungseintraege mit Tags
+
+Die Stimmungsdaten fliessen in die KI-Korrelationsanalysen ein (Stimmung vs. Blutdruck, Gewicht, Puls).
+
+## Externe API
+
+HealthLog stellt eine API fuer externe Systeme bereit, z.B. fuer Automations-Tools oder IoT-Geraete.
+
+### Bearer Token
+
+Tokens werden pro Medikament erstellt und haben das Praefix `hlk_`.
+
+```bash
+curl -X POST https://healthlog.example.com/api/ingest/medication \
+  -H "Authorization: Bearer hlk_abc123..." \
+  -H "Content-Type: application/json" \
+  -d '{"medicationId": "...", "scheduleId": "..."}'
+```
+
+**Eigenschaften:**
+- Pro-Medikament-Scope (ein Token kann nur fuer das zugeordnete Medikament Einnahmen buchen)
+- SHA-256 gehasht in der Datenbank gespeichert
+- Widerrufbar ueber die Oberflaeche
+
+:::tip
+Die externe API eignet sich z.B. fuer NFC-Tags am Medikamentenschrank: Tag scannen, Einnahme wird automatisch gebucht.
+:::
+
+## Bug Reports
+
+Optional koennen Benutzer Fehlerberichte direkt als GitHub Issue erstellen.
+
+- Erfordert einen vom Administrator hinterlegten GitHub Personal Access Token (PAT)
+- Issues werden im konfigurierten Repository erstellt
+- Systeminfos werden automatisch angehaengt (Version, Browser, anonymisierte Fehlerdaten)
+
+:::caution
+Der GitHub PAT wird administratorseitig konfiguriert. Benutzer benoetigen keinen eigenen GitHub-Account, um Bug Reports zu erstellen.
+:::

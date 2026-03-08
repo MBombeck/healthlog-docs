@@ -1,0 +1,70 @@
+---
+title: Benachrichtigungen
+description: Telegram, ntfy und Web Push Benachrichtigungen fuer Medikamenten-Erinnerungen und Systemereignisse.
+sidebar:
+  order: 3
+---
+
+HealthLog unterstuetzt drei Benachrichtigungskanaele, die parallel betrieben werden koennen. Das System arbeitet nach dem Opt-out-Prinzip: Alle Event-Typen sind standardmaessig aktiviert.
+
+## Kanaele
+
+### Telegram
+
+Jeder Benutzer hinterlegt seinen eigenen Bot-Token und seine Chat-ID. Der Bot-Token wird AES-256-GCM verschluesselt in der Datenbank gespeichert.
+
+**Funktionen:**
+- Inline-Buttons in Nachrichten: Genommen / Snooze / Uebersprungen
+- Automatische Loeschung nach 1 Stunde (verhindert veraltete Buttons)
+- Bot-Kommandos: `/help`, `/start`, `/add`, `genommen <Name>`
+
+:::tip
+Mit dem Freitext-Kommando `genommen Ibuprofen` kann eine Einnahme direkt im Telegram-Chat bestaetigt werden, ohne die App zu oeffnen.
+:::
+
+### ntfy
+
+Self-hosted oder oeffentliche ntfy-Instanz. Pro Benutzer konfigurierbar:
+
+- **Server URL** -- z.B. `https://ntfy.example.com`
+- **Topic** -- z.B. `healthlog-marc`
+- **Authentifizierung** -- Optional (Basic Auth oder Token)
+- **Prioritaet** -- Wird automatisch anhand des Event-Typs gesetzt
+
+### Web Push
+
+Browser-basierte Push-Notifications via VAPID-Keys.
+
+- VAPID-Keys werden beim Setup generiert
+- Subscriptions sind geraetebezogen (mehrere Geraete pro Benutzer moeglich)
+- Funktioniert auch bei geschlossenem Browser-Tab
+
+## Event-Typen
+
+| Event-Typ | Beschreibung |
+|-----------|-------------|
+| `MEDICATION_REMINDER` | Erinnerung an faellige Einnahme (phasenbasiert) |
+| `MEASUREMENT_ANOMALY` | Messwert ausserhalb des Normalbereichs |
+| `COMPLIANCE_LOW` | Einnahmetreue unter Schwellenwert |
+| `WITHINGS_SYNC_FAILED` | Withings-Synchronisation fehlgeschlagen |
+| `SYSTEM_ALERT` | Systembenachrichtigungen (Backup, Fehler) |
+
+## Konfiguration
+
+### Opt-out-Modell
+
+Standardmaessig sind alle Event-Typen auf allen Kanaelen aktiv. Benutzer koennen gezielt deaktivieren:
+
+- Pro Kanal (z.B. Telegram an, ntfy aus)
+- Pro Event-Typ pro Kanal (z.B. `SYSTEM_ALERT` nur auf ntfy)
+
+### Globale Einstellungen
+
+Administratoren koennen Benachrichtigungen systemweit steuern:
+
+- Globale Toggles pro Kanal
+- Zeitfenster fuer Ruhezeiten (keine Benachrichtigungen nachts)
+
+:::caution
+Die globalen Admin-Einstellungen ueberschreiben individuelle Benutzereinstellungen. Wenn ein Kanal global deaktiviert ist, erhaelt kein Benutzer Benachrichtigungen darueber.
+:::

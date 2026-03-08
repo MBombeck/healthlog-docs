@@ -1,0 +1,108 @@
+---
+title: Architektur-Uebersicht
+description: Technischer Aufbau, Projektstruktur und zentrale Patterns von HealthLog.
+sidebar:
+  order: 1
+---
+
+## Tech Stack
+
+| Komponente | Technologie |
+|---|---|
+| Framework | Next.js 16 (App Router, React Server Components) |
+| Sprache | TypeScript (strict mode) |
+| Datenbank | PostgreSQL 16 |
+| ORM | Prisma 7 mit PrismaPg Adapter |
+| Background Jobs | pg-boss v12 |
+| Styling | Tailwind CSS 4 + shadcn/ui (Dracula Theme, dark-only) |
+| Charts | Recharts 3 |
+| Client State | TanStack Query 5 |
+| Formulare | React Hook Form 7 |
+| Validierung | Zod 4 |
+| Auth | SimpleWebAuthn v13 (Passkeys) + Session-basiert |
+| PDF-Export | jsPDF |
+
+## Projektstruktur
+
+```
+src/
+├── app/              # Next.js Pages + API Routes (App Router)
+├── components/
+│   ├── ui/          # shadcn/ui Primitives (Button, Dialog, etc.)
+│   ├── layout/      # Shell, Navigation, Header
+│   └── [domain]/    # Feature-spezifische Komponenten (medications/, measurements/, etc.)
+├── lib/
+│   ├── auth/        # Session-Management, requireAuth(), requireAdmin()
+│   ├── crypto.ts    # AES-256-GCM Encryption/Decryption
+│   ├── db.ts        # Prisma Client Singleton
+│   ├── jobs/        # pg-boss Worker + Job-Definitionen
+│   ├── logging/     # Wide Event Logging, Loki Transport
+│   └── [domain]/    # Feature Libraries (withings/, telegram/, notifications/, etc.)
+├── hooks/           # React Hooks (useMediaQuery, useMeasurements, etc.)
+├── generated/       # Auto-generiert (Prisma Client)
+├── i18n/            # Uebersetzungen (de, en)
+└── types/           # TypeScript Definitionen
+```
+
+## Request Flow
+
+```
+Client (Browser/PWA)
+  → Middleware (proxy.ts)
+    → API Route Handler
+      → apiHandler() Wrapper
+        → Auth Check (requireAuth / requireAdmin)
+          → Business Logic
+            → Prisma (DB)
+              → Response
+```
+
+### apiHandler Wrapper
+
+Alle API Routes verwenden den `apiHandler()` Wrapper. Dieser kuemmert sich um:
+
+- Einheitliches Error Handling
+- Request-Validierung (Zod Schemas)
+- Logging (Wide Events)
+- Einheitliches Response-Format
+
+### Response Envelope
+
+Alle API-Antworten folgen einem einheitlichen Format:
+
+```typescript
+// Erfolg
+{ data: T, error: null }
+
+// Fehler
+{ data: null, error: string }
+
+// Optional bei Listen
+{ data: T[], error: null, meta: { total, limit, offset } }
+```
+
+## Authentifizierung
+
+HealthLog nutzt **Passkeys** (WebAuthn) als primaere Authentifizierung, mit optionalem Passwort-Fallback (Argon2id).
+
+1. Client sendet Request mit Session-Cookie
+2. Middleware prueft Cookie-Vorhandensein
+3. `requireAuth()` laedt Session aus der Datenbank und validiert Ablauf
+4. `requireAdmin()` prueft zusaetzlich die Rolle (`role === "ADMIN"`)
+5. Bei API-Token-Zugriff: Token wird per SHA-256 + HMAC gehasht und gegen die DB geprueft
+
+## Logging
+
+HealthLog verwendet **Wide Events** — strukturierte Log-Eintraege, die moeglichst viel Kontext in einem einzelnen Event buendeln:
+
+- Request-Metadaten (Method, Path, Duration, Status)
+- User-Kontext (userId, sessionId)
+- Business-Kontext (je nach Aktion)
+- Optional: Push nach Loki fuer zentrales Logging
+
+## Internationalisierung (i18n)
+
+- Unterstuetzte Sprachen: **Deutsch** und **Englisch**
+- Pro Benutzer konfigurierbar (`User.locale`)
+- Globaler Default ueber Admin-Einstellungen (`defaultLocale`)
+- Uebersetzungsdateien in `src/i18n/`

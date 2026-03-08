@@ -1,0 +1,94 @@
+---
+title: Schnellstart
+description: Nach der Installation — die ersten Schritte mit HealthLog, vom Onboarding bis zur taeglichen Nutzung.
+sidebar:
+  order: 3
+---
+
+## Erste Schritte nach der Installation
+
+### 1. Account registrieren
+
+Oeffne HealthLog in deinem Browser und erstelle einen Account. Du wirst aufgefordert, einen **Passkey** (Fingerabdruck, Face ID oder Sicherheitsschluessel) zu registrieren. Der erste Account erhaelt automatisch Admin-Rechte.
+
+:::note
+Passkeys sind geraetegebunden. Registriere Passkeys auf allen Geraeten, mit denen du dich einloggen moechtest (Smartphone, Laptop, Tablet).
+:::
+
+### 2. Onboarding abschliessen
+
+Nach der Registrierung fuehrt dich das Onboarding durch die Grundkonfiguration:
+
+- **Koerpergroesse** — wird fuer BMI-Berechnung benoetigt
+- **Geburtsdatum** — fuer altersabhaengige Referenzwerte
+- **Geschlecht** — fuer geschlechtsspezifische Normwerte
+
+Diese Angaben koennen spaeter in den Einstellungen geaendert werden.
+
+### 3. Ersten Messwert erfassen
+
+Tippe auf das **Plus-Symbol** in der Navigation und waehle eine Kategorie:
+
+- **Gewicht** — optional mit Koerperfettanteil
+- **Blutdruck** — Systole, Diastole, Puls
+- **Schlaf** — Dauer und Qualitaet
+- **Aktivitaet** — Art, Dauer, Intensitaet
+- **Stimmung** — Tagesbewertung mit optionalem Kommentar
+
+Alle Werte werden sofort im Dashboard mit Trendlinien und Statistiken visualisiert.
+
+### 4. Medikamente einrichten
+
+Unter **Medikamente** kannst du deine aktuelle Medikation erfassen:
+
+- Name, Wirkstoff und Dosierung
+- Einnahmezeiten (z.B. morgens 08:00, abends 20:00)
+- Bedarfsmedikation (ohne festen Zeitplan)
+- Start- und optional Enddatum
+
+HealthLog trackt deine Compliance automatisch und zeigt Statistiken zur Einnahmetreue.
+
+### 5. Benachrichtigungen konfigurieren
+
+Richte mindestens einen Benachrichtigungskanal ein, um Erinnerungen zu erhalten:
+
+| Kanal | Einrichtung |
+|---|---|
+| **Web Push** | Im Browser die Berechtigung erteilen — funktioniert ohne externe Dienste |
+| **Telegram** | Bot-Token und Chat-ID in den Einstellungen hinterlegen |
+| **ntfy** | Server-URL und Topic konfigurieren |
+
+Erinnerungen werden fuer Medikamenteneinnahmen und optionale Mess-Erinnerungen verschickt.
+
+### 6. Optionale Integrationen
+
+**Withings-Synchronisation**
+
+Verbinde dein Withings-Konto unter **Einstellungen > Integrationen**. Unterstuetzte Geraete:
+
+- Withings Body+ / Body Comp (Gewicht, Koerperfett)
+- Withings BPM Connect (Blutdruck, Puls)
+
+Messwerte werden automatisch importiert — keine manuelle Eingabe noetig.
+
+**KI-Auswertungen (OpenAI)**
+
+HealthLog kann deine Gesundheitsdaten mit OpenAI analysieren und personalisierte Einblicke liefern. Hinterlege deinen eigenen API Key unter **Einstellungen > KI**. Es wird kein API Key mitgeliefert (BYOK — Bring Your Own Key).
+
+:::tip
+Auch ohne KI-Integration bietet HealthLog umfangreiche Statistiken, Trendanalysen und Normwert-Vergleiche direkt im Dashboard.
+:::
+
+## Tipps fuer die taegliche Nutzung
+
+- **Installiere die PWA** — Oeffne HealthLog im mobilen Browser und waehle "Zum Startbildschirm hinzufuegen". Die App laeuft dann wie eine native Anwendung.
+- **Nutze die Schnelleingabe** — Das Plus-Symbol ist von jeder Seite aus erreichbar. Gewichtseingabe dauert unter 5 Sekunden.
+- **Pruefe die Achievements** — Unter **Profil > Achievements** findest du ueber 30 freischaltbare Erfolge fuer konsistentes Tracking.
+- **Exportiere Arztberichte** — Vor dem naechsten Arzttermin unter **Berichte** einen PDF-Export mit Verlaufsdaten und Diagrammen erstellen.
+
+## Weitergehende Dokumentation
+
+- [Medikamenten-Management im Detail](/features/medications/)
+- [Withings-Integration einrichten](/features/integrations/)
+- [KI-Auswertungen konfigurieren](/features/ai-insights/)
+- [API-Dokumentation fuer externe Integrationen](/api/overview/)

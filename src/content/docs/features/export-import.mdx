@@ -1,0 +1,92 @@
+---
+title: Export & Import
+description: Daten exportieren (JSON, CSV), importieren und automatische verschluesselte Backups.
+sidebar:
+  order: 7
+---
+
+HealthLog bietet umfassende Export- und Import-Funktionen fuer Datensicherung, Arztkommunikation und Migration.
+
+## Export
+
+### Formate
+
+| Format | Beschreibung |
+|--------|-------------|
+| **JSON** | Strukturiertes Format, geeignet fuer Backups und Re-Import |
+| **CSV** | Tabellenformat, kompatibel mit Excel, Google Sheets, etc. |
+
+### Export-Typen
+
+Daten koennen einzeln oder komplett exportiert werden:
+
+- `measurements` -- Alle Gesundheitsmesswerte
+- `medications` -- Medikamente und Einnahmeplaene
+- `intake` -- Einnahme-Protokoll
+- `mood` -- Stimmungseintraege (bei aktiver MoodLog-Integration)
+- `all` -- Gesamtexport aller Daten
+
+### Rate Limit
+
+```
+Maximale Exports: 10 pro Stunde und Benutzer
+```
+
+:::note
+Das Rate Limit schuetzt vor versehentlichem Mehrfach-Export und ueberlast. Fuer regulaere Nutzung ist es mehr als ausreichend.
+:::
+
+## Import
+
+### Format
+
+Der Import akzeptiert JSON-Dateien mit folgendem Aufbau:
+
+```json
+{
+  "measurements": [
+    {
+      "type": "WEIGHT",
+      "value": 82.5,
+      "measuredAt": "2026-03-01T08:00:00Z"
+    }
+  ],
+  "moodEntries": [
+    {
+      "mood": 7,
+      "tags": ["entspannt"],
+      "createdAt": "2026-03-01T20:00:00Z"
+    }
+  ]
+}
+```
+
+### Einschraenkungen
+
+- **Maximale Datensaetze**: 10.000 pro Import
+- **Unterstuetzte Daten**: `measurements` und `moodEntries`
+- **Deduplizierung**: Duplikate werden anhand von Unique Constraints automatisch erkannt und uebersprungen
+
+:::caution
+Der Import ueberschreibt keine bestehenden Daten. Duplikate (gleicher Typ, gleicher Zeitstempel) werden ignoriert.
+:::
+
+## Automatisches Backup
+
+HealthLog erstellt woechentlich ein verschluesseltes Backup:
+
+- **Zeitplan**: Sonntags, 03:00 Uhr (pg-boss Job)
+- **Verschluesselung**: AES-256-GCM
+- **Speicherort**: In der Datenbank (als verschluesselter Blob)
+- **Inhalt**: Alle Benutzerdaten (Messwerte, Medikamente, Einnahmen, Stimmung)
+
+```
+Schedule: Sonntag 03:00 UTC
+Encryption: AES-256-GCM
+Storage: PostgreSQL (encrypted blob)
+Job Runner: pg-boss
+```
+
+:::caution
+Das automatische In-App-Backup wird **in derselben Datenbank** gespeichert. Bei Verlust der Datenbank sind auch diese Backups verloren. Richte zusaetzlich ein externes PostgreSQL-Backup ein (z.B. `pg_dump` per Cronjob). Siehe [Self-Hosting Sicherheit](/security/self-hosting/) fuer Details.
+:::

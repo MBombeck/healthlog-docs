@@ -1,0 +1,115 @@
+---
+title: "Docker Setup"
+description: "HealthLog mit Docker Compose deployen — Image, Konfiguration und Startup-Prozess."
+sidebar:
+  order: 1
+---
+
+HealthLog wird als Docker-Image ausgeliefert und laesst sich mit Docker Compose in wenigen Minuten deployen.
+
+## Docker Compose
+
+Erstelle eine `docker-compose.yml`:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mbombeck/healthlog:latest
+    container_name: healthlog
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:16-alpine
+    container_name: healthlog-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: healthlog
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: healthlog
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "healthlog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+```
+
+:::danger
+Ersetze `POSTGRES_PASSWORD: changeme` **vor dem ersten Start** durch ein sicheres, zufaellig generiertes Passwort (`openssl rand -base64 24`). Dasselbe Passwort muss in `DATABASE_URL` der `.env`-Datei eingetragen werden. Ein unveraendertes Standardpasswort ist ein schwerwiegendes Sicherheitsrisiko.
+:::
+
+## Umgebungsvariablen
+
+Erstelle eine `.env`-Datei im selben Verzeichnis:
+
+```bash
+# Datenbank
+DATABASE_URL=postgresql://healthlog:changeme@db:5432/healthlog
+
+# App
+APP_URL=https://health.example.com
+NODE_ENV=production
+
+# Kryptographie (jeweils: openssl rand -hex 32)
+SESSION_SECRET=
+ENCRYPTION_KEY=
+API_TOKEN_HMAC_KEY=
+
+# Telemetrie deaktivieren
+NEXT_TELEMETRY_DISABLED=1
+```
+
+Siehe [Sicherheit -- Self-Hosting](/security/self-hosting/) fuer Details zu den kryptographischen Schluesseln.
+
+## Starten
+
+```bash
+docker compose up -d
+```
+
+## Startup-Prozess
+
+Das Docker-Image nutzt ein `docker-entrypoint.sh`, das beim Start automatisch:
+
+1. **Auf PostgreSQL wartet** -- bis zu 30 Verbindungsversuche mit 1s Pause
+2. **Datenbankmigrationen ausfuehrt** -- `prisma migrate deploy`
+3. **Den Node.js-Server startet** -- `node server.js`
+
+Dadurch ist kein manueller Migrationsschritt noetig.
+
+## Docker-Image Details
+
+| Eigenschaft | Wert |
+|-------------|------|
+| Base Image | Node 22 Alpine |
+| Build | Multi-stage (Builder + Runner) |
+| Benutzer | `nextjs` (UID 1001, non-root) |
+| Port | 3000 |
+| Healthcheck | `GET /api/health` alle 30s |
+
+Der non-root User stellt sicher, dass der Container auch bei einem Ausbruch keine Root-Rechte auf dem Host erhaelt.
+
+## Zugriff
+
+Nach dem Start ist HealthLog unter `http://localhost:3000` erreichbar. Fuer Produktivbetrieb sollte ein [Reverse Proxy](/self-hosting/reverse-proxy/) mit HTTPS vorgeschaltet werden.
+
+:::caution
+Port 3000 sollte **nicht** direkt oeffentlich erreichbar sein. Exponiere nur den Reverse Proxy (Port 443/80). Wenn Docker den Port auf dem Host mappt, stelle sicher, dass eine Firewall den Zugriff von aussen blockiert, oder entferne das `ports`-Mapping und lasse den Reverse Proxy ueber das Docker-Netzwerk zugreifen.
+:::

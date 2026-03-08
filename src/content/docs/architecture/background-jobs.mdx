@@ -1,0 +1,53 @@
+---
+title: Hintergrund-Jobs
+description: pg-boss Job-Queues, Cron-Schedules und Worker-Architektur.
+sidebar:
+  order: 3
+---
+
+HealthLog nutzt **pg-boss v12** fuer Hintergrund-Jobs. pg-boss speichert Jobs direkt in PostgreSQL — kein separater Message Broker noetig.
+
+## Worker-Start
+
+Der Worker startet automatisch ueber die **Next.js Instrumentation API** (`register()`). Beim Serverstart wird `pg-boss` initialisiert und alle Cron-Jobs registriert. Ein manueller Start ist nicht erforderlich.
+
+Der Health-Check Endpoint `/api/health` gibt den aktuellen Worker-Status zurueck.
+
+## Job-Uebersicht
+
+| Queue | Cron | Beschreibung |
+|---|---|---|
+| `medication-reminder-check` | `*/15 * * * *` | Phasenbasierte Medikamenten-Erinnerungen, Snooze-Cleanup, Telegram-Nachrichten-Cleanup |
+| `withings-fallback-sync` | `0 * * * *` | Fallback-Polling fuer Withings-Daten (ergaenzt Webhook-basierte Sync) |
+| `moodlog-sync` | `30 * * * *` | MoodLog-Fallback-Sync (Stimmungsdaten) |
+| `insights-general-status` | `0 2 * * *` | Allgemeine Gesundheits-Insights berechnen |
+| `insights-blood-pressure-status` | `5 2 * * *` | Blutdruck-Insights |
+| `insights-weight-status` | `10 2 * * *` | Gewichts-Insights |
+| `insights-pulse-status` | `15 2 * * *` | Puls-Insights |
+| `insights-bmi-status` | `20 2 * * *` | BMI-Insights |
+| `insights-medication-compliance-status` | `25 2 * * *` | Medikamenten-Compliance Insights |
+| `insights-mood-status` | `30 2 * * *` | Stimmungs-Insights (bei aktiver MoodLog-Integration) |
+| `data-backup` | `0 3 * * 0` | Woechentliches verschluesseltes Datenbank-Backup (Sonntag 03:00 UTC) |
+| `telegram-message-cleanup` | On-Demand | Loescht abgelaufene Telegram-Nachrichten (ausgeloest durch andere Jobs) |
+
+## Medikamenten-Erinnerungen
+
+Der `medication-reminder-check`-Job laeuft alle 15 Minuten und prueft fuer jeden Benutzer:
+
+1. **Faellige Erinnerungen** — Geplante Einnahmen ohne Bestaetigung, Phasen-Eskalation (sanft, dringend, verpasst)
+2. **Snooze-Ablauf** — Abgelaufene Snooze-Timer reaktivieren die Erinnerung
+3. **Nachrichten-Cleanup** — Veraltete Telegram-Reminder-Nachrichten loeschen
+
+Die Eskalationsphasen und Schwellwerte werden ueber `ReminderPhaseConfig` (pro Medikament) und die Admin-Einstellungen (`reminderLateMinutes`, `reminderMissedMinutes`) gesteuert.
+
+## Insights-Jobs
+
+Die sieben Insights-Jobs laufen gestaffelt zwischen 02:00 und 02:30 UTC, um die Datenbank nicht gleichzeitig zu belasten. Jeder Job berechnet Trends, Durchschnitte und Auffaelligkeiten fuer den jeweiligen Messwerttyp.
+
+## Data Backup
+
+Der woechentliche Backup-Job erstellt ein verschluesseltes Export aller Benutzerdaten. Metadaten werden im `DataBackup`-Modell gespeichert.
+
+## Fehlerbehandlung
+
+pg-boss bietet eingebautes Retry-Verhalten. Fehlgeschlagene Jobs werden mit exponentiellem Backoff wiederholt. Dauerhafte Fehler werden geloggt und im Audit-Log erfasst.

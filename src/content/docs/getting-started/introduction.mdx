@@ -1,0 +1,55 @@
+---
+title: Einleitung
+description: HealthLog ist eine selbst gehostete, mobile-first Health-Tracking PWA fuer Gewicht, Blutdruck, Koerperfett, Schlaf, Aktivitaet, Stimmung, Medikamenten-Management und mehr.
+sidebar:
+  order: 1
+---
+
+## Was ist HealthLog?
+
+HealthLog ist eine **selbst gehostete, mobile-first Progressive Web App** (PWA) zur umfassenden Gesundheitsueberwachung. Die Anwendung kombiniert manuelle Erfassung von Vitalwerten mit automatischer Geraetesynchronisation, intelligentem Medikamenten-Management und KI-gestuetzten Auswertungen.
+
+Alle Daten bleiben auf deiner eigenen Infrastruktur — kein Cloud-Zwang, keine Abos, volle Kontrolle.
+
+## Kernfunktionen
+
+- **Vitalwerte-Tracking** — Gewicht, Blutdruck, Puls, Koerperfett, Schlaf, Aktivitaet, Stimmung
+- **Medikamenten-Management** — Zeitplaene, Dosierungen, Bedarfsmedikation, Compliance-Analyse
+- **Automatische Erinnerungen** — Telegram, ntfy, Web Push Notifications
+- **Withings-Synchronisation** — Automatischer Import von Waage und Blutdruckmessgeraet
+- **KI-Auswertungen** — OpenAI-Integration (BYOK), Trend-Analyse, personalisierte Empfehlungen
+- **Arztberichte als PDF** — Exportierbare Berichte mit Diagrammen und Verlaufsdaten
+- **Gamification** — 30+ Achievements fuer kontinuierliches Tracking
+- **Passkey-Authentifizierung** — Passwordless Login via WebAuthn
+- **Dark-only Dracula Theme** — Augenschonendes Design fuer jede Tageszeit
+
+## Tech Stack
+
+| Komponente | Technologie |
+|---|---|
+| Framework | Next.js 16 (App Router, React Server Components) |
+| Sprache | TypeScript (strict mode) |
+| Datenbank | PostgreSQL 16 |
+| ORM | Prisma 7 mit PrismaPg Adapter |
+| Styling | Tailwind CSS 4 + shadcn/ui (Dracula Theme) |
+| Client State | TanStack Query 5 |
+| Auth | SimpleWebAuthn v13 (Passkeys) + Session-basiert |
+| Background Jobs | pg-boss v12 |
+| Containerisierung | Docker + Docker Compose |
+
+## Voraussetzungen
+
+Um HealthLog zu betreiben, werden folgende Komponenten benoetigt:
+
+- **Docker** und **Docker Compose** (v2+)
+- Ein **Reverse Proxy mit HTTPS** (z.B. Nginx Proxy Manager, Traefik, Caddy)
+- **PostgreSQL 16** (in der mitgelieferten `docker-compose.yml` enthalten)
+- Eine **Domain mit gueltigem SSL-Zertifikat** (Passkeys erfordern HTTPS)
+
+:::caution
+Passkeys funktionieren ausschliesslich ueber HTTPS. Ein Betrieb ohne gueltiges SSL-Zertifikat ist nicht moeglich.
+:::
+
+## Naechster Schritt
+
+Folge der [Installationsanleitung](/getting-started/installation/), um HealthLog auf deinem Server einzurichten.

@@ -1,0 +1,131 @@
+---
+title: "Externe API"
+description: "Medikamenten-Einnahme von externen Quellen erfassen und API-Tokens verwalten."
+sidebar:
+  order: 10
+---
+
+## Einnahme erfassen (extern)
+
+```
+POST /api/ingest/medication
+```
+
+**Auth:** Bearer Token (`hlk_...`)
+**Rate Limit:** 60 Anfragen / Minute / IP
+
+Erfasst eine Medikamenten-Einnahme von einer externen Quelle (z.B. Home Assistant, Shortcut, Webhook).
+
+### Vollstaendiges Beispiel
+
+```bash
+curl -s -X POST https://your-instance.example.com/api/ingest/medication \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer hlk_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2" \
+  -d '{
+    "medicationId": "clx...",
+    "takenAt": "2026-03-08T07:15:00.000Z",
+    "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000"
+  }'
+```
+
+**Response** `201`:
+
+```json
+{
+  "data": {
+    "id": "evt...",
+    "medicationId": "clx...",
+    "takenAt": "2026-03-08T07:15:00.000Z",
+    "source": "API"
+  },
+  "error": null
+}
+```
+
+Der `idempotencyKey` ist optional, wird aber empfohlen. Doppelte Anfragen mit demselben Key innerhalb von 60 Sekunden werden dedupliziert.
+
+---
+
+## Token-Verwaltung
+
+### Tokens auflisten
+
+```
+GET /api/tokens
+```
+
+**Auth:** Session Cookie
+
+Gibt alle API-Tokens des aktuellen Benutzers zurueck. Token-Werte werden nicht erneut angezeigt.
+
+### Token erstellen
+
+```
+POST /api/tokens
+```
+
+**Auth:** Session Cookie
+
+```json
+{
+  "name": "Home Assistant Metoprolol",
+  "permissions": ["medication:ingest", "medication:clx...:ingest"],
+  "expiresInDays": 90
+}
+```
+
+**Response** `201`:
+
+```json
+{
+  "data": {
+    "id": "tok...",
+    "name": "Home Assistant Metoprolol",
+    "token": "hlk_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+    "permissions": ["medication:ingest", "medication:clx...:ingest"],
+    "expiresAt": "2026-06-06T00:00:00.000Z",
+    "createdAt": "2026-03-08T10:00:00.000Z"
+  },
+  "error": null
+}
+```
+
+**Wichtig:** Der Token-Wert (`hlk_...`) wird nur einmalig bei der Erstellung angezeigt. Er kann danach nicht erneut abgerufen werden.
+
+### Token loeschen
+
+```
+DELETE /api/tokens/[id]
+```
+
+**Auth:** Session Cookie
+
+---
+
+## Token-Format
+
+Tokens bestehen aus dem Praefix `hlk_` gefolgt von 32 zufaelligen Bytes in Hex-Darstellung:
+
+```
+hlk_ + 64 Hex-Zeichen = 68 Zeichen gesamt
+```
+
+Tokens werden serverseitig als SHA-256-Hash gespeichert. Der Klartext-Token ist nur bei der Erstellung verfuegbar.
+
+---
+
+## Berechtigungen
+
+| Permission | Beschreibung |
+|-----------|-------------|
+| `medication:ingest` | Einnahme fuer alle Medikamente erfassen |
+| `medication:{id}:ingest` | Einnahme nur fuer ein bestimmtes Medikament |
+
+Es wird empfohlen, Tokens mit moeglichst eingeschraenkten Berechtigungen zu erstellen (Least Privilege).
+
+---
+
+## Ablaufdatum
+
+Tokens koennen mit einem Ablaufdatum erstellt werden (1 bis 365 Tage). Abgelaufene Tokens werden automatisch abgelehnt. Tokens ohne Ablaufdatum sind unbegrenzt gueltig.

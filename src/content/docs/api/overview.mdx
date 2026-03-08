@@ -1,0 +1,106 @@
+---
+title: "API-Uebersicht"
+description: "Allgemeine Informationen zur HealthLog REST API."
+sidebar:
+  order: 1
+---
+
+## Base URL
+
+Alle API-Endpunkte sind relativ zur Basis-URL der Instanz:
+
+```
+https://your-instance.example.com/api
+```
+
+## Response-Format
+
+Jede Antwort folgt einem einheitlichen Envelope-Format:
+
+```json
+{
+  "data": { ... },
+  "error": null
+}
+```
+
+Bei Fehlern:
+
+```json
+{
+  "data": null,
+  "error": "Validation failed: password must be at least 8 characters"
+}
+```
+
+Einige Endpunkte liefern zusaetzlich ein `meta`-Objekt mit Paginierungsdaten:
+
+```json
+{
+  "data": [ ... ],
+  "error": null,
+  "meta": {
+    "total": 142,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+## Authentifizierung
+
+HealthLog unterstuetzt zwei Authentifizierungsmethoden:
+
+| Methode | Verwendung | Header/Cookie |
+|---------|-----------|---------------|
+| Session Cookie | Browser-Clients | `healthlog-session` Cookie (automatisch) |
+| Bearer Token | Externe API-Aufrufe | `Authorization: Bearer hlk_...` |
+
+Bearer Tokens werden ueber die [Token-Verwaltung](/api/external-ingest/) erstellt und sind an spezifische Berechtigungen gebunden.
+
+## Rate Limiting
+
+Geschuetzte Endpunkte senden Rate-Limit-Header in jeder Antwort:
+
+| Header | Beschreibung |
+|--------|-------------|
+| `X-RateLimit-Remaining` | Verbleibende Anfragen im aktuellen Fenster |
+| `X-RateLimit-Reset` | Unix-Timestamp, wann das Fenster zurueckgesetzt wird |
+
+Bei Ueberschreitung wird `429 Too Many Requests` zurueckgegeben.
+
+## HTTP-Statuscodes
+
+| Code | Bedeutung |
+|------|-----------|
+| `200` | Erfolg |
+| `201` | Ressource erstellt |
+| `204` | Erfolg ohne Response-Body |
+| `400` | Ungueltige Anfrage |
+| `401` | Nicht authentifiziert |
+| `403` | Keine Berechtigung |
+| `404` | Ressource nicht gefunden |
+| `422` | Validierungsfehler (z.B. ungueltige Feldwerte) |
+| `429` | Rate Limit ueberschritten |
+| `500` | Interner Serverfehler |
+
+## Beispiel-Anfrage
+
+```bash
+curl -s https://your-instance.example.com/api/auth/me \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+Antwort:
+
+```json
+{
+  "data": {
+    "id": "clx...",
+    "username": "marc",
+    "email": "marc@example.com",
+    "role": "ADMIN"
+  },
+  "error": null
+}
+```

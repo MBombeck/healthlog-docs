@@ -1,0 +1,156 @@
+---
+title: "Messwerte"
+description: "Messwerte erfassen, abfragen und verwalten."
+sidebar:
+  order: 3
+---
+
+## Messwert-Typen
+
+| Typ | Beschreibung | Einheit |
+|-----|-------------|---------|
+| `WEIGHT` | Koerpergewicht | kg |
+| `BLOOD_PRESSURE_SYS` | Systolischer Blutdruck | mmHg |
+| `BLOOD_PRESSURE_DIA` | Diastolischer Blutdruck | mmHg |
+| `PULSE` | Puls / Herzfrequenz | bpm |
+| `BODY_FAT` | Koerperfettanteil | % |
+| `SLEEP_DURATION` | Schlafdauer | Stunden |
+| `ACTIVITY_STEPS` | Schritte | Anzahl |
+
+## Messwerte auflisten
+
+```
+GET /api/measurements
+```
+
+**Auth:** Session Cookie oder Bearer Token
+
+**Query-Parameter:**
+
+| Parameter | Typ | Beschreibung |
+|-----------|-----|-------------|
+| `type` | string | Filtern nach Messwert-Typ |
+| `from` | ISO 8601 | Startdatum |
+| `to` | ISO 8601 | Enddatum |
+| `limit` | number | Max. Anzahl (Standard: 20) |
+| `offset` | number | Offset fuer Paginierung |
+| `sortBy` | string | Sortierfeld (z.B. `measuredAt`) |
+| `sortDir` | `asc` / `desc` | Sortierrichtung |
+
+```bash
+curl -s "https://your-instance.example.com/api/measurements?type=WEIGHT&limit=5&sortDir=desc" \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "clx...",
+      "type": "WEIGHT",
+      "value": 81.5,
+      "measuredAt": "2026-03-08T07:30:00.000Z",
+      "notes": null,
+      "createdAt": "2026-03-08T07:31:12.000Z"
+    }
+  ],
+  "error": null,
+  "meta": { "total": 142, "limit": 5, "offset": 0 }
+}
+```
+
+---
+
+## Messwert erstellen
+
+```
+POST /api/measurements
+```
+
+**Auth:** Session Cookie oder Bearer Token
+
+Unterstuetzt Einzelwerte und Batch-Erstellung (Array).
+
+### Einzelner Messwert
+
+```json
+{
+  "type": "WEIGHT",
+  "value": 81.5,
+  "measuredAt": "2026-03-08T07:30:00.000Z",
+  "notes": "Nuechtern gemessen"
+}
+```
+
+### Blutdruck-Messung (Batch)
+
+Blutdruck besteht aus zwei zusammengehoerenden Messwerten:
+
+```bash
+curl -s https://your-instance.example.com/api/measurements \
+  -H "Content-Type: application/json" \
+  -H "Cookie: healthlog-session=abc123" \
+  -d '[
+    {
+      "type": "BLOOD_PRESSURE_SYS",
+      "value": 125,
+      "measuredAt": "2026-03-08T08:00:00.000Z"
+    },
+    {
+      "type": "BLOOD_PRESSURE_DIA",
+      "value": 82,
+      "measuredAt": "2026-03-08T08:00:00.000Z"
+    },
+    {
+      "type": "PULSE",
+      "value": 68,
+      "measuredAt": "2026-03-08T08:00:00.000Z"
+    }
+  ]'
+```
+
+**Response** `201`:
+
+```json
+{
+  "data": [
+    { "id": "clx1...", "type": "BLOOD_PRESSURE_SYS", "value": 125, "measuredAt": "2026-03-08T08:00:00.000Z" },
+    { "id": "clx2...", "type": "BLOOD_PRESSURE_DIA", "value": 82, "measuredAt": "2026-03-08T08:00:00.000Z" },
+    { "id": "clx3...", "type": "PULSE", "value": 68, "measuredAt": "2026-03-08T08:00:00.000Z" }
+  ],
+  "error": null
+}
+```
+
+---
+
+## Einzelner Messwert
+
+### Abrufen
+
+```
+GET /api/measurements/[id]
+```
+
+### Aktualisieren
+
+```
+PUT /api/measurements/[id]
+```
+
+```json
+{
+  "value": 82.0,
+  "notes": "Korrigiert"
+}
+```
+
+### Loeschen
+
+```
+DELETE /api/measurements/[id]
+```
+
+**Auth:** Session Cookie oder Bearer Token. Benutzer koennen nur eigene Messwerte bearbeiten.

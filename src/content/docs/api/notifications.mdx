@@ -1,0 +1,157 @@
+---
+title: "Benachrichtigungen"
+description: "Web Push, Telegram und ntfy Benachrichtigungen konfigurieren."
+sidebar:
+  order: 7
+---
+
+## Benachrichtigungs-Praeferenzen
+
+```
+GET /api/notifications/preferences
+PUT /api/notifications/preferences
+```
+
+**Auth:** Session Cookie
+
+Verwaltet Kanal-Praeferenzen und Opt-out pro Ereignis und Kanal.
+
+```bash
+curl -s https://your-instance.example.com/api/notifications/preferences \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "channels": {
+      "webPush": true,
+      "telegram": true,
+      "ntfy": false
+    },
+    "events": {
+      "MEDICATION_REMINDER": { "webPush": true, "telegram": true, "ntfy": false },
+      "INSIGHT_READY": { "webPush": true, "telegram": false, "ntfy": false }
+    }
+  },
+  "error": null
+}
+```
+
+---
+
+## Web Push
+
+### Abonnieren
+
+```
+POST /api/notifications/web-push
+```
+
+**Auth:** Session Cookie
+
+Registriert ein Web-Push-Abonnement.
+
+```json
+{
+  "endpoint": "https://fcm.googleapis.com/fcm/send/...",
+  "keys": {
+    "p256dh": "...",
+    "auth": "..."
+  }
+}
+```
+
+### Abmelden
+
+```
+DELETE /api/notifications/web-push
+```
+
+### VAPID-Key
+
+```
+GET /api/notifications/vapid
+```
+
+**Auth:** Keine
+
+Gibt den oeffentlichen VAPID-Key zurueck, der fuer Web-Push-Abonnements benoetigt wird.
+
+```json
+{
+  "data": {
+    "publicKey": "BNx..."
+  },
+  "error": null
+}
+```
+
+---
+
+## Telegram
+
+### Konfiguration
+
+```
+GET /api/settings/telegram
+PUT /api/settings/telegram
+```
+
+**Auth:** Session Cookie
+
+```json
+{
+  "botToken": "123456:ABC-...",
+  "chatId": "987654321",
+  "webhookEnabled": true
+}
+```
+
+### Test-Nachricht
+
+```
+POST /api/settings/telegram/test
+```
+
+**Auth:** Session Cookie
+
+Sendet eine Test-Nachricht ueber den konfigurierten Telegram-Bot.
+
+```bash
+curl -s -X POST https://your-instance.example.com/api/settings/telegram/test \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+---
+
+## ntfy
+
+### Konfiguration
+
+```
+GET /api/settings/ntfy
+PUT /api/settings/ntfy
+```
+
+**Auth:** Session Cookie
+
+```json
+{
+  "serverUrl": "https://ntfy.sh",
+  "topic": "healthlog-marc",
+  "authToken": "tk_..."
+}
+```
+
+### Test-Nachricht
+
+```
+POST /api/settings/ntfy/test
+```
+
+**Auth:** Session Cookie
+
+Sendet eine Test-Nachricht an den konfigurierten ntfy-Kanal.

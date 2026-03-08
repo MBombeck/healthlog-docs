@@ -1,0 +1,193 @@
+---
+title: "Medikamente"
+description: "Medikamente verwalten, Einnahmen erfassen und Compliance auswerten."
+sidebar:
+  order: 4
+---
+
+## Medikamente auflisten
+
+```
+GET /api/medications
+```
+
+**Auth:** Session Cookie oder Bearer Token
+
+Gibt alle Medikamente mit Schedules, letzter Einnahme und heutiger Einnahmeanzahl zurueck.
+
+```bash
+curl -s https://your-instance.example.com/api/medications \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "clx...",
+      "name": "Metoprolol",
+      "dose": "47.5mg",
+      "category": "BLOOD_PRESSURE",
+      "active": true,
+      "schedules": [
+        { "id": "tw1", "label": "Morgens", "windowStart": "07:00", "windowEnd": "09:00" }
+      ],
+      "lastTakenAt": "2026-03-08T07:15:00.000Z",
+      "todayEventCount": 1
+    }
+  ],
+  "error": null
+}
+```
+
+---
+
+## Medikament erstellen
+
+```
+POST /api/medications
+```
+
+**Auth:** Session Cookie
+
+```json
+{
+  "name": "Metoprolol",
+  "dose": "47.5mg",
+  "category": "BLOOD_PRESSURE",
+  "schedules": [
+    { "label": "Morgens", "windowStart": "07:00", "windowEnd": "09:00" },
+    { "label": "Abends", "windowStart": "19:00", "windowEnd": "21:00" }
+  ]
+}
+```
+
+---
+
+## Einzelnes Medikament
+
+```
+GET    /api/medications/[id]      — Details abrufen
+PUT    /api/medications/[id]      — Aktualisieren
+DELETE /api/medications/[id]      — Loeschen
+```
+
+**Auth:** Session Cookie
+
+---
+
+## Compliance
+
+```
+GET /api/medications/[id]/compliance
+```
+
+**Auth:** Session Cookie
+
+Gibt Compliance-Raten fuer 7 und 30 Tage sowie eine 90-Tage-Heatmap zurueck.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "rate7d": 0.93,
+    "rate30d": 0.87,
+    "heatmap": [
+      { "date": "2026-03-08", "count": 2, "expected": 2 },
+      { "date": "2026-03-07", "count": 1, "expected": 2 }
+    ]
+  },
+  "error": null
+}
+```
+
+---
+
+## Einnahmen
+
+### Auflisten
+
+```
+GET /api/medications/[id]/intake
+```
+
+### Einnahme erfassen
+
+```
+POST /api/medications/[id]/intake
+```
+
+```json
+{
+  "takenAt": "2026-03-08T07:15:00.000Z",
+  "idempotencyKey": "uuid-v4-hier"
+}
+```
+
+Der `idempotencyKey` verhindert doppelte Eintraege. Anfragen mit demselben Key innerhalb von 60 Sekunden werden dedupliziert.
+
+```bash
+curl -s https://your-instance.example.com/api/medications/clx.../intake \
+  -H "Content-Type: application/json" \
+  -H "Cookie: healthlog-session=abc123" \
+  -d '{"takenAt": "2026-03-08T07:15:00Z", "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000"}'
+```
+
+### Einnahme loeschen
+
+```
+DELETE /api/medications/[id]/intake/[eventId]
+```
+
+### Einnahmen importieren
+
+```
+POST /api/medications/[id]/intake/import
+```
+
+### Einnahmen bereinigen
+
+```
+POST /api/medications/[id]/intake/purge
+```
+
+---
+
+## Tages-Zusammenfassung
+
+```
+GET /api/medications/intake-summary
+```
+
+**Auth:** Session Cookie
+
+Gibt eine Zusammenfassung aller Einnahmen des aktuellen Tages zurueck.
+
+---
+
+## Phasen-Konfiguration
+
+```
+GET /api/medications/[id]/phase-config
+PUT /api/medications/[id]/phase-config
+```
+
+**Auth:** Session Cookie
+
+Verwaltet die Erinnerungsphasen-Konfiguration (GREEN, YELLOW, ORANGE, RED) fuer ein Medikament. Definiert Schwellwerte und Modi (Minuten oder Prozent des Zeitfensters) fuer die Phasenuebergaenge.
+
+---
+
+## Externer API-Endpunkt
+
+```
+GET /api/medications/[id]/api-endpoint
+PUT /api/medications/[id]/api-endpoint
+```
+
+**Auth:** Session Cookie
+
+Konfiguriert den externen API-Zugang fuer ein spezifisches Medikament. Details zur externen Einnahme-Erfassung unter [Externe API](/api/external-ingest/).

@@ -1,0 +1,120 @@
+---
+title: Umgebungsvariablen
+description: Alle Umgebungsvariablen fuer HealthLog — Pflicht, optional und Service-spezifisch.
+sidebar:
+  order: 1
+---
+
+HealthLog wird ueber Umgebungsvariablen konfiguriert. Diese werden in der `.env`-Datei neben der `docker-compose.yml` abgelegt.
+
+## Pflicht (Required)
+
+Diese Variablen **muessen** gesetzt sein, damit HealthLog startet.
+
+| Variable | Beschreibung | Beispiel |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL Connection String | `postgresql://healthlog:healthlog@db:5432/healthlog` |
+| `SESSION_SECRET` | Session-Signierung, 64 Hex-Zeichen | `openssl rand -hex 32` |
+| `ENCRYPTION_KEY` | AES-256-GCM Schluessel, 64 Hex-Zeichen | `openssl rand -hex 32` |
+| `API_TOKEN_HMAC_KEY` | HMAC-Schluessel fuer API-Token-Hashing, 64 Hex-Zeichen | `openssl rand -hex 32` |
+
+:::danger
+`ENCRYPTION_KEY` darf nach dem ersten Start **niemals** geaendert werden. Alle verschluesselten Datenbankfelder (Tokens, OAuth-Credentials, API Keys) werden mit diesem Schluessel ver- und entschluesselt. Ein Wechsel macht saemtliche verschluesselten Daten unwiderruflich unlesbar.
+:::
+
+## Wichtig
+
+| Variable | Beschreibung | Beispiel |
+|---|---|---|
+| `NEXT_PUBLIC_APP_URL` | Oeffentliche URL der App. Wird fuer Passkey RP-ID, OAuth Redirects und Webhooks verwendet. | `https://health.example.com` |
+| `APP_URL` | Alternativname fuer `NEXT_PUBLIC_APP_URL` (Fallback) | `https://health.example.com` |
+| `NODE_ENV` | `production` oder `development` | `production` |
+
+## Telegram
+
+| Variable | Beschreibung |
+|---|---|
+| `TELEGRAM_WEBHOOK_SECRET` | Geheimer String zur Verifizierung eingehender Telegram-Webhooks |
+
+## Withings
+
+| Variable | Beschreibung |
+|---|---|
+| `WITHINGS_REDIRECT_URI` | Optionaler Override fuer die OAuth Redirect URI |
+| `WITHINGS_WEBHOOK_SECRET` | Secret zur Verifizierung eingehender Withings-Webhooks |
+
+## Logging (Loki)
+
+| Variable | Beschreibung | Default |
+|---|---|---|
+| `LOG_LEVEL` | Minimales Log-Level: `debug`, `info`, `warn`, `error` | `info` |
+| `LOKI_ENDPOINT` | Loki Push-URL, z.B. `https://loki.example.com/loki/api/v1/push` | — |
+| `LOKI_USERNAME` | Basic-Auth Benutzername fuer Loki | — |
+| `LOKI_PASSWORD` | Basic-Auth Passwort fuer Loki | — |
+| `LOG_SAMPLE_RATE` | Sampling-Rate fuer Logs (`0.0`–`1.0`) | `1.0` |
+| `LOG_SLOW_THRESHOLD_MS` | Schwellwert fuer Slow-Request-Warnings in ms | `3000` |
+| `LOG_INCLUDE_STACK` | Stack Traces in Error-Logs einschliessen | `true` |
+
+## Monitoring
+
+| Variable | Beschreibung |
+|---|---|
+| `COMMIT_SHA` / `GIT_COMMIT` / `SOURCE_COMMIT` | Git Commit Hash des Builds (fuer Health-Check und Error-Tracking) |
+| `BUILD_TIMESTAMP` | Build-Zeitstempel |
+
+## Web Push (Fallback)
+
+Diese Variablen sind optional — Web Push kann auch ueber die Admin-Einstellungen konfiguriert werden. Umgebungsvariablen dienen als Fallback.
+
+| Variable | Beschreibung |
+|---|---|
+| `VAPID_PUBLIC_KEY` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID Public Key fuer Web Push |
+| `VAPID_PRIVATE_KEY` | VAPID Private Key |
+| `VAPID_SUBJECT` / `VAPID_EMAIL` | Kontakt-URI oder E-Mail fuer VAPID (`mailto:admin@example.com`) |
+
+## Bug Reports
+
+| Variable | Beschreibung |
+|---|---|
+| `GITHUB_ISSUE_TOKEN` | GitHub Personal Access Token mit `repo` Scope |
+| `GITHUB_ISSUE_REPO` | Ziel-Repository im Format `owner/repo` |
+
+## .env.example
+
+```bash
+# === Pflicht ===
+DATABASE_URL=postgresql://healthlog:healthlog@db:5432/healthlog
+SESSION_SECRET=          # openssl rand -hex 32
+ENCRYPTION_KEY=          # openssl rand -hex 32 — NIEMALS nach erstem Start aendern!
+API_TOKEN_HMAC_KEY=      # openssl rand -hex 32
+
+# === App ===
+NEXT_PUBLIC_APP_URL=https://health.example.com
+NODE_ENV=production
+
+# === Telegram ===
+TELEGRAM_WEBHOOK_SECRET=
+
+# === Withings ===
+WITHINGS_REDIRECT_URI=
+WITHINGS_WEBHOOK_SECRET=
+
+# === Logging ===
+LOG_LEVEL=info
+LOKI_ENDPOINT=
+LOKI_USERNAME=
+LOKI_PASSWORD=
+
+# === Monitoring ===
+COMMIT_SHA=
+BUILD_TIMESTAMP=
+
+# === Web Push (optional, Fallback zu Admin-Einstellungen) ===
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=
+
+# === Bug Reports ===
+GITHUB_ISSUE_TOKEN=
+GITHUB_ISSUE_REPO=
+```

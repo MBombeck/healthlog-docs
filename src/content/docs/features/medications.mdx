@@ -1,0 +1,93 @@
+---
+title: Medikamenten-Management
+description: Medikamente verwalten, zeitfensterbasierte Einnahmeplaene erstellen und Compliance analysieren.
+sidebar:
+  order: 2
+---
+
+Das Medikamenten-Management ist das Kernstueck von HealthLog. Es umfasst Medikamentenverwaltung, zeitfensterbasierte Einnahmeplaene, Erinnerungen mit Phasensystem und Compliance-Analysen.
+
+## Medikamente anlegen
+
+Jedes Medikament wird mit folgenden Attributen erfasst:
+
+- **Name** -- Freitextfeld
+- **Dosis** -- Standarddosis (z.B. "10mg")
+- **Kategorie** -- Frei definierbare Kategorien zur Gruppierung
+- **Aktiv/Inaktiv** -- Nur aktive Medikamente erzeugen Erinnerungen
+
+## Einnahmeplaene (Schedules)
+
+Einnahmeplaene definieren, wann ein Medikament genommen werden soll.
+
+```typescript
+interface MedicationSchedule {
+  windowStart: string;   // z.B. "08:00"
+  windowEnd: string;     // z.B. "10:00"
+  label?: string;        // z.B. "Morgens", "Abends"
+  daysOfWeek?: string;   // Komma-separierte Tagnummern (0=So..6=Sa), null = taeglich
+  dose?: string;         // Optional: ueberschreibt die Standarddosis
+}
+```
+
+- **Zeitfenster**: Definiert durch `windowStart` und `windowEnd`
+- **Wochentage**: Einnahme nur an ausgewaehlten Tagen
+- **Dosis-Override**: Pro Schedule kann eine abweichende Dosis hinterlegt werden
+
+:::tip
+Fuer Medikamente mit unterschiedlichen Dosen an verschiedenen Tagen (z.B. Methotrexat) einfach mehrere Schedules mit verschiedenen Wochentagen und Dosen anlegen.
+:::
+
+## Einnahme-Tracking
+
+Einnahmen werden mit Idempotenz-Schutz erfasst: Innerhalb von 60 Sekunden wird eine doppelte Buchung auf dasselbe Schedule automatisch verhindert.
+
+### Einnahme-Quellen
+
+| Quelle | Beschreibung |
+|--------|-------------|
+| `WEB` | Manuell ueber die Weboberflaeche |
+| `API` | Ueber die externe API (Bearer Token) |
+| `REMINDER` | Ueber Inline-Buttons in Benachrichtigungen |
+| `IMPORT` | Aus einem JSON-Import |
+
+## Phasenbasierte Erinnerungen
+
+Das Erinnerungssystem arbeitet mit vier Phasen, die visuell und per Benachrichtigung signalisiert werden:
+
+| Phase | Farbe | Bedeutung |
+|-------|-------|-----------|
+| GREEN | Gruen | Zeitfenster beginnt -- Einnahme jetzt moeglich |
+| YELLOW | Gelb | Zeitfenster endet bald -- Erinnerung |
+| ORANGE | Orange | Zeitfenster ueberschritten -- ueberfaellig |
+| RED | Rot | Einnahme verpasst -- als verpasst markiert |
+
+### Phasen-Konfiguration
+
+Die Uebergaenge zwischen den Phasen sind **pro Medikament** konfigurierbar:
+
+- **Minuten** -- Fester Zeitwert (z.B. 15 Minuten vor Ende)
+- **Prozent** -- Anteil des Zeitfensters (z.B. 80% des Fensters abgelaufen)
+
+:::note
+Die Standard-Konfiguration ist fuer die meisten Faelle sinnvoll. Individuelle Anpassungen sind besonders bei sehr kurzen oder sehr langen Zeitfenstern hilfreich.
+:::
+
+## Compliance-Analysen
+
+HealthLog berechnet Compliance-Raten auf drei Ebenen:
+
+- **7-Tage-Rate** -- Kurzfristige Einnahmetreue
+- **30-Tage-Rate** -- Monatliche Compliance
+- **90-Tage-Heatmap** -- Visuelle Darstellung der Einnahmetreue ueber drei Monate
+
+Die Heatmap zeigt farbkodiert fuer jeden Tag, ob alle Einnahmen erfolgt sind, teilweise oder gar nicht.
+
+## Pause / Snooze
+
+- **Pause**: Setzt alle Erinnerungen fuer ein Medikament aus (z.B. bei Arztruecksprache)
+- **Snooze**: Verschiebt eine einzelne Erinnerung um einen konfigurierbaren Zeitraum
+
+## Kategorien
+
+Medikamente koennen in frei definierbare Kategorien eingeordnet werden. Die Kategorien dienen der Uebersicht im Dashboard und als Filter in den Compliance-Analysen.

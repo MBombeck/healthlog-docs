@@ -1,0 +1,136 @@
+---
+title: "Integrationen"
+description: "Withings und MoodLog Integrationen."
+sidebar:
+  order: 8
+---
+
+## Withings
+
+Integration mit Withings-Geraeten (Waagen, Blutdruckmessgeraete) fuer automatischen Datenimport.
+
+### Verbindung herstellen
+
+```
+GET /api/withings/connect
+```
+
+**Auth:** Session Cookie
+
+Leitet zur Withings-OAuth-Autorisierung weiter.
+
+### OAuth-Callback
+
+```
+GET /api/withings/callback
+```
+
+Verarbeitet den OAuth-Callback von Withings und speichert die Zugangsdaten.
+
+### Verbindungsstatus
+
+```
+GET /api/withings/status
+```
+
+**Auth:** Session Cookie
+
+```json
+{
+  "data": {
+    "connected": true,
+    "lastSync": "2026-03-08T06:00:00.000Z",
+    "deviceCount": 2
+  },
+  "error": null
+}
+```
+
+### Synchronisieren
+
+```
+POST /api/withings/sync
+```
+
+**Auth:** Session Cookie
+
+Loest eine manuelle Synchronisierung der Withings-Daten aus.
+
+```bash
+curl -s -X POST https://your-instance.example.com/api/withings/sync \
+  -H "Cookie: healthlog-session=abc123"
+```
+
+### Verbindung trennen
+
+```
+POST /api/withings/disconnect
+```
+
+**Auth:** Session Cookie
+
+### Zugangsdaten verwalten
+
+```
+GET /api/withings/credentials
+PUT /api/withings/credentials
+```
+
+**Auth:** Session Cookie
+
+Verwaltet die Withings API-Zugangsdaten (Client ID, Client Secret).
+
+### Webhook
+
+```
+POST /api/withings/webhook
+```
+
+**Auth:** HMAC-Signatur
+
+Empfaengt Echtzeit-Benachrichtigungen von Withings bei neuen Messdaten. Die Anfrage wird ueber HMAC-Signatur verifiziert.
+
+---
+
+## MoodLog
+
+Integration mit der MoodLog-App fuer den Import von Stimmungsdaten.
+
+### Status
+
+```
+GET /api/integrations/moodlog/status
+```
+
+**Auth:** Session Cookie
+
+```json
+{
+  "data": {
+    "connected": true,
+    "lastSync": "2026-03-08T19:30:00.000Z",
+    "entriesImported": 47
+  },
+  "error": null
+}
+```
+
+### Synchronisieren
+
+```
+POST /api/integrations/moodlog/sync
+```
+
+**Auth:** Session Cookie
+
+Loest einen manuellen Import der MoodLog-Daten aus.
+
+### Webhook
+
+```
+POST /api/integrations/moodlog/webhook
+```
+
+**Auth:** HMAC-Signatur
+
+Empfaengt Echtzeit-Benachrichtigungen von MoodLog bei neuen Eintraegen. Die Anfrage wird ueber HMAC-Signatur verifiziert.

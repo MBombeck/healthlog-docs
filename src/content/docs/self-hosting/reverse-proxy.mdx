@@ -1,0 +1,116 @@
+---
+title: "Reverse Proxy"
+description: "Reverse Proxy Konfiguration fuer HealthLog — Traefik, Caddy und nginx Beispiele."
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+HealthLog sollte in Produktion hinter einem Reverse Proxy mit TLS-Terminierung betrieben werden. HTTPS ist Pflicht -- Session-Cookies sind `secure: true` und Passkeys erfordern eine sichere Verbindung.
+
+Nachfolgend Konfigurationsbeispiele fuer die gaengigsten Reverse Proxies.
+
+<Tabs>
+  <TabItem label="Traefik">
+
+Erweitere die `docker-compose.yml` um Traefik-Labels:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mbombeck/healthlog:latest
+    container_name: healthlog
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.healthlog.rule=Host(`health.example.com`)"
+      - "traefik.http.routers.healthlog.entrypoints=websecure"
+      - "traefik.http.routers.healthlog.tls.certresolver=letsencrypt"
+      - "traefik.http.services.healthlog.loadbalancer.server.port=3000"
+    networks:
+      - traefik
+      - default
+
+networks:
+  traefik:
+    external: true
+```
+
+Der Port-Mapping (`ports: "3000:3000"`) entfaellt, da Traefik direkt ueber das Docker-Netzwerk zugreift.
+
+  </TabItem>
+  <TabItem label="Caddy">
+
+Fuege folgenden Block in die `Caddyfile` ein:
+
+```
+health.example.com {
+    reverse_proxy localhost:3000
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}
+```
+
+Caddy kuemmert sich automatisch um Let's Encrypt Zertifikate und HTTPS-Redirects.
+
+  </TabItem>
+  <TabItem label="nginx">
+
+Erstelle eine Server-Konfiguration unter `/etc/nginx/sites-available/healthlog`:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name health.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/health.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/health.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+
+        # WebSocket-Unterstuetzung
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Header weiterleiten
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name health.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+Aktiviere die Konfiguration:
+
+```bash
+ln -s /etc/nginx/sites-available/healthlog /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+  </TabItem>
+</Tabs>
+
+## Wichtige Hinweise
+
+- **APP_URL** muss die oeffentliche Domain enthalten (z.B. `https://health.example.com`). Passkey-Registrierung und OAuth-Redirects haengen davon ab.
+- **WebSocket-Support** ist fuer kuenftige Features empfohlen. Die nginx-Konfiguration oben enthaelt die noetige `Upgrade`-Konfiguration bereits.
+- **Port 3000** sollte nicht direkt oeffentlich erreichbar sein. Exponiere nur den Reverse Proxy (443/80).

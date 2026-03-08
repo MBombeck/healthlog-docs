@@ -1,0 +1,115 @@
+---
+title: "Self-Hosting Sicherheit"
+sidebar:
+  order: 2
+---
+
+Sicherheitsrelevante Hinweise fuer den Betrieb einer eigenen HealthLog-Instanz.
+
+## 1. Kryptographische Schluessel generieren
+
+HealthLog benoetigt drei unabhaengige Secrets. Jedes muss ein 256-Bit Hex-String sein:
+
+```bash
+# Session-Signierung
+openssl rand -hex 32  # -> SESSION_SECRET
+
+# Verschluesselung sensibler DB-Felder (AES-256-GCM)
+openssl rand -hex 32  # -> ENCRYPTION_KEY
+
+# HMAC fuer API-Token-Hashing
+openssl rand -hex 32  # -> API_TOKEN_HMAC_KEY
+```
+
+:::danger
+Der `ENCRYPTION_KEY` darf **niemals** geaendert oder verloren gehen. Er verschluesselt OpenAI-Keys, Telegram-Tokens, Withings-Tokens, Notification-Config und VAPID-Keys. Bei Verlust oder Aenderung sind alle verschluesselten Daten unwiderruflich unlesbar. Sichere diesen Schluessel separat (z.B. in einem Passwort-Manager).
+:::
+
+## 2. HTTPS ist Pflicht
+
+:::caution
+HealthLog **erfordert HTTPS** in Produktion. Session-Cookies sind mit `secure: true` konfiguriert und werden ueber unverschluesselte Verbindungen nicht gesendet. Passkeys (WebAuthn) funktionieren ausschliesslich ueber HTTPS oder `localhost`.
+:::
+
+Verwende einen Reverse Proxy fuer TLS-Terminierung. Siehe [Reverse Proxy](/self-hosting/reverse-proxy/) fuer Konfigurationsbeispiele.
+
+## 3. APP_URL korrekt setzen
+
+Die Umgebungsvariable `APP_URL` wird fuer mehrere sicherheitskritische Funktionen verwendet:
+
+- **Passkey RP-ID** -- die Relying Party ID leitet sich aus der Domain ab
+- **OAuth Redirects** -- Withings OAuth Callback-URL
+- **Webhook-URLs** -- Withings Notification-Endpoint
+
+```bash
+APP_URL=https://health.example.com
+```
+
+Ein falscher Wert fuehrt dazu, dass Passkeys nicht funktionieren und OAuth-Flows fehlschlagen.
+
+## 4. Registrierung einschraenken
+
+Nach dem Erstellen des Admin-Accounts sollte die oeffentliche Registrierung deaktiviert werden:
+
+1. Als Admin anmelden
+2. **Einstellungen** -> **Administration** -> **Registrierung deaktivieren**
+
+So wird verhindert, dass Unbefugte Accounts auf der Instanz erstellen.
+
+## 5. Datenbank-Passwort aendern
+
+Die `docker-compose.yml` enthaelt ein Beispiel-Passwort. Ersetze es vor dem ersten Start:
+
+```yaml
+environment:
+  POSTGRES_PASSWORD: ein-sicheres-zufaelliges-passwort
+```
+
+Dasselbe Passwort muss in `DATABASE_URL` der App verwendet werden:
+
+```bash
+DATABASE_URL=postgresql://healthlog:ein-sicheres-zufaelliges-passwort@db:5432/healthlog
+```
+
+## 6. Secrets nicht in Versionskontrolle
+
+Lege die `.env`-Datei niemals in ein Git-Repository. Stelle sicher, dass `.env` in `.gitignore` steht. Verwende fuer CI/CD-Pipelines Environment-Secrets des jeweiligen Providers.
+
+## 7. Regelmaessig aktualisieren
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Datenbankmigrationen werden beim Start automatisch ausgefuehrt. Ein manueller Eingriff ist nicht noetig. Siehe [Updates](/self-hosting/updates/) fuer Details.
+
+## 8. Audit-Log pruefen
+
+Im Admin-Panel unter **Audit Log** sind alle sicherheitsrelevanten Ereignisse einsehbar:
+
+- Fehlgeschlagene Login-Versuche (mit IP und Geo-Location)
+- Token-Erstellung und -Widerruf
+- Administratoraktionen
+- Registrierungen
+
+Pruefe das Audit-Log regelmaessig auf ungewoehnliche Aktivitaeten.
+
+## 9. Port 3000 nicht oeffentlich exponieren
+
+Der HealthLog-Container lauscht auf Port 3000. Dieser Port sollte **nicht** direkt aus dem Internet erreichbar sein. Verwende stattdessen einen Reverse Proxy (siehe [Reverse Proxy](/self-hosting/reverse-proxy/)) und stelle sicher, dass eine Firewall den direkten Zugriff auf Port 3000 blockiert.
+
+:::caution
+Docker umgeht standardmaessig die `ufw`/`iptables`-Firewall auf Linux. Wenn du `ports: "3000:3000"` in der `docker-compose.yml` mappst, ist der Port moeglicherweise trotz Firewall von aussen erreichbar. Entferne das Port-Mapping und lasse den Reverse Proxy ueber das Docker-Netzwerk zugreifen, oder binde den Port nur an localhost: `ports: "127.0.0.1:3000:3000"`.
+:::
+
+## 10. Externes Datenbank-Backup einrichten
+
+Das automatische In-App-Backup (woechentlich, verschluesselt in der DB) ersetzt **kein** externes Backup. Richte zusaetzlich ein regelmaessiges PostgreSQL-Backup ein:
+
+```bash
+# Taeglich per Cronjob
+docker compose exec db pg_dump -U healthlog healthlog | gzip > /backups/healthlog_$(date +\%Y\%m\%d).sql.gz
+```
+
+Bei Verlust der gesamten Datenbank sind auch die In-App-Backups verloren, da sie in derselben Datenbank gespeichert werden.

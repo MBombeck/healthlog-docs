@@ -1,0 +1,82 @@
+---
+title: Admin-Einstellungen
+description: Zentrale App-Einstellungen, konfigurierbar ueber das Admin-Interface.
+sidebar:
+  order: 2
+---
+
+HealthLog verwendet ein **AppSettings-Singleton** in der Datenbank. Diese Einstellungen werden ueber das Admin-Interface unter `/settings/admin` verwaltet und wirken sofort — ohne Neustart.
+
+## Allgemein
+
+| Einstellung | Beschreibung | Default |
+|---|---|---|
+| `registrationEnabled` | Registrierung fuer neue Benutzer aktivieren/deaktivieren. Der erste Benutzer kann sich **immer** registrieren, unabhaengig von dieser Einstellung. | `true` |
+| `defaultLocale` | Standard-Sprache fuer neue Benutzer: `de` oder `en` | `de` |
+
+:::caution
+Die Registrierung ist standardmaessig **aktiviert**. Deaktiviere sie nach der Erstellung aller gewuenschten Accounts, um unbefugte Account-Erstellung zu verhindern.
+:::
+
+## Benachrichtigungen
+
+Globale Schalter deaktivieren den jeweiligen Kanal fuer **alle** Benutzer. Individuelle Benutzereinstellungen werden dadurch uebersteuert.
+
+| Einstellung | Beschreibung | Default |
+|---|---|---|
+| `telegramGlobal` | Telegram-Benachrichtigungen global aktivieren | `true` |
+| `ntfyGlobal` | ntfy-Benachrichtigungen global aktivieren | `true` |
+| `webPushGlobal` | Web Push Notifications global aktivieren | `true` |
+
+## Funktionen
+
+| Einstellung | Beschreibung | Default |
+|---|---|---|
+| `apiGlobal` | Externe API aktivieren/deaktivieren | `true` |
+| `moodLogGlobal` | MoodLog-Integration aktivieren (Stimmungs-Sync) | `true` |
+
+## Erinnerungen
+
+| Einstellung | Beschreibung | Default |
+|---|---|---|
+| `reminderLateMinutes` | Minuten nach geplanter Einnahme, ab der eine Erinnerung als "verspaetet" gilt | `120` |
+| `reminderMissedMinutes` | Minuten nach geplanter Einnahme, ab der eine Erinnerung als "verpasst" markiert wird | `240` |
+
+## Analytics (Umami)
+
+| Einstellung | Beschreibung |
+|---|---|
+| `umamiEnabled` | Umami-Tracking aktivieren |
+| `umamiScriptUrl` | URL zum Umami Tracking-Script |
+| `umamiWebsiteId` | Umami Website-ID |
+
+## Error Tracking (GlitchTip)
+
+| Einstellung | Beschreibung |
+|---|---|
+| `glitchtipEnabled` | GlitchTip/Sentry Error-Tracking aktivieren |
+| `glitchtipDsn` | Sentry-kompatible DSN URL |
+| `glitchtipEnvironment` | Umgebungsname (z.B. `production`, `staging`) |
+
+## Web Push (VAPID)
+
+VAPID-Schluessel koennen direkt in den Admin-Einstellungen hinterlegt werden. Diese haben Vorrang vor den gleichnamigen Umgebungsvariablen.
+
+| Einstellung | Beschreibung |
+|---|---|
+| `vapidPublicKey` | VAPID Public Key |
+| `vapidPrivateKey` | VAPID Private Key (verschluesselt gespeichert) |
+| `vapidSubject` | Kontakt-URI fuer VAPID (`mailto:...`) |
+
+## Bug Reports (GitHub)
+
+Ermoeglicht es Benutzern, direkt aus der App heraus Bug Reports als GitHub Issues zu erstellen.
+
+| Einstellung | Beschreibung |
+|---|---|
+| `githubIssueToken` | GitHub Personal Access Token (verschluesselt gespeichert) |
+| `githubIssueRepo` | Ziel-Repository im Format `owner/repo` |
+
+:::note
+Sensitive Werte wie VAPID Private Key und GitHub Token werden mit AES-256-GCM verschluesselt in der Datenbank gespeichert. Der verwendete Schluessel ist `ENCRYPTION_KEY` aus den Umgebungsvariablen.
+:::

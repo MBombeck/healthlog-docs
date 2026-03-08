@@ -1,0 +1,142 @@
+---
+title: "Sicherheit"
+description: "Sicherheitskonzept von HealthLog — Authentifizierung, Verschluesselung, Rate Limiting und Audit Trail."
+sidebar:
+  order: 1
+---
+
+HealthLog implementiert ein mehrschichtiges Sicherheitskonzept. Diese Seite gibt einen Ueberblick ueber alle sicherheitsrelevanten Mechanismen.
+
+## Authentifizierung
+
+HealthLog unterstuetzt zwei Authentifizierungsmethoden:
+
+### Passkeys (WebAuthn/FIDO2)
+
+Passkeys sind die empfohlene Anmeldemethode. Die Implementierung basiert auf **SimpleWebAuthn v13** und unterstuetzt alle gaengigen Authenticator-Typen (Touch ID, Face ID, Windows Hello, Hardware-Keys wie YubiKey).
+
+- Registrierung und Anmeldung vollstaendig passwortlos
+- Phishing-resistent durch Origin-Bindung
+- Mehrere Passkeys pro Account moeglich
+
+### Passwoerter
+
+Als Fallback steht die klassische Passwort-Authentifizierung zur Verfuegung:
+
+| Eigenschaft | Wert |
+|-------------|------|
+| Hashing-Algorithmus | Argon2id |
+| Mindestlaenge | 12 Zeichen |
+| Komplexitaet | zxcvbn Score >= 3 |
+
+## Session-Verwaltung
+
+Sessions werden serverseitig in PostgreSQL gespeichert. Der Client erhaelt ein Session-Cookie:
+
+| Eigenschaft | Wert |
+|-------------|------|
+| Cookie-Name | `healthlog-session` |
+| `httpOnly` | `true` |
+| `secure` | `true` (Production) |
+| `sameSite` | `lax` |
+| Sliding Expiry | 30 Tage |
+
+Bei jeder authentifizierten Anfrage wird die Session-Gueltigkeit automatisch verlaengert. Abgelaufene Sessions werden regelmaessig aus der Datenbank bereinigt.
+
+## Verschluesselung sensibler Datenfelder
+
+Sensible Felder in der Datenbank werden mit **AES-256-GCM** verschluesselt. Das betrifft:
+
+- OpenAI API-Keys
+- Telegram Bot-Tokens und Chat-IDs
+- Withings OAuth-Tokens
+- Notification-Konfigurationen
+- VAPID-Keys (Web Push)
+
+Das Speicherformat ist `base64(IV + AuthTag + Ciphertext)`. Der Schluessel wird ueber die Umgebungsvariable `ENCRYPTION_KEY` bereitgestellt.
+
+:::danger
+Geht der `ENCRYPTION_KEY` verloren, sind alle verschluesselten Felder unwiderruflich unlesbar.
+:::
+
+## API-Token-Sicherheit
+
+Bearer Tokens fuer die externe API (`hlk_...`) werden nach folgendem Prinzip gesichert:
+
+- **SHA-256 + HMAC** gehasht in der Datenbank gespeichert
+- Klartext wird dem Benutzer **nur einmal** bei Erstellung angezeigt
+- Jeder Token hat **definierte Berechtigungen** (Scopes)
+- Tokens koennen jederzeit **widerrufen** werden
+
+## Rate Limiting
+
+HealthLog nutzt ein In-Memory Sliding Window fuer Rate Limiting:
+
+| Endpunkt | Limit |
+|----------|-------|
+| Login | 5 Anfragen / 15 min |
+| Registrierung | 5 Anfragen / 15 min |
+| Daten-Ingest | 60 Anfragen / min |
+| Export | 10 Anfragen / h |
+| KI-Insights | 2 Anfragen / h |
+| Bug-Report | 3 Anfragen / h |
+
+Bei Ueberschreitung wird `429 Too Many Requests` zurueckgegeben. Die Header `X-RateLimit-Remaining` und `X-RateLimit-Reset` informieren ueber den aktuellen Status.
+
+## Security Headers
+
+Jede Response enthaelt die folgenden Sicherheits-Header:
+
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Content-Security-Policy: [mit Nonces, kein unsafe-inline]
+```
+
+Die CSP nutzt dynamische Nonces statt `unsafe-inline` fuer Script-Tags.
+
+## Input-Validierung
+
+Alle API-Eingaben werden mit **Zod v4** Schemas validiert. Die Validierung prueft:
+
+- Datentypen und Formate (z.B. E-Mail, UUID)
+- Wertebereiche (z.B. systolischer Blutdruck 60-300 mmHg)
+- String-Laengen und erlaubte Zeichen
+- Enum-Werte
+
+Ungueltige Eingaben werden mit `422 Unprocessable Entity` und einer beschreibenden Fehlermeldung abgewiesen.
+
+## CSRF-Schutz
+
+HealthLog schuetzt gegen Cross-Site Request Forgery durch drei Massnahmen:
+
+1. **SameSite=lax** Cookie-Attribut verhindert Cross-Origin-Requests
+2. **JSON-only API** -- alle Mutations erfordern `Content-Type: application/json`
+3. **CSP form-action self** -- Formulare koennen nur an die eigene Domain senden
+
+## Webhook-Verifizierung
+
+Eingehende Webhooks (z.B. von Withings) werden mit **HMAC-SHA256** verifiziert. Die Signaturpruefung nutzt Timing-Safe Comparison, um Timing-Angriffe zu verhindern.
+
+## Audit Trail
+
+Alle sicherheitsrelevanten Aktionen werden protokolliert:
+
+- Login-Versuche (erfolgreich und fehlgeschlagen)
+- Passkey-Registrierung und -Entfernung
+- Token-Erstellung und -Widerruf
+- Administratoraktionen
+- Kontenaenderungen
+
+Jeder Eintrag enthaelt die **IP-Adresse** und **Geo-Location** des Ausfuehrenden.
+
+## Kein Telemetrie-Tracking
+
+HealthLog sammelt keine Nutzungsdaten:
+
+- Next.js Telemetrie ist deaktiviert (`NEXT_TELEMETRY_DISABLED=1`)
+- Kein Tracking-Code, keine Analytics, keine Drittanbieter-Scripts
+- Externe Verbindungen nur bei expliziter Konfiguration (OpenAI, Withings, Telegram)
