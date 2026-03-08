@@ -36,6 +36,7 @@ export default defineConfig({
 						{ slug: 'getting-started/introduction' },
 						{ slug: 'getting-started/installation' },
 						{ slug: 'getting-started/quick-start' },
+						{ slug: 'getting-started/troubleshooting' },
 					],
 				},
 				{
@@ -47,6 +48,8 @@ export default defineConfig({
 						{ slug: 'features/ai-insights' },
 						{ slug: 'features/integrations' },
 						{ slug: 'features/mood-tracking' },
+						{ slug: 'features/pwa-offline' },
+						{ slug: 'features/doctor-report' },
 						{ slug: 'features/gamification' },
 						{ slug: 'features/export-import' },
 					],
@@ -56,6 +59,7 @@ export default defineConfig({
 					items: [
 						{ slug: 'configuration/environment-variables' },
 						{ slug: 'configuration/admin-settings' },
+						{ slug: 'configuration/monitoring' },
 					],
 				},
 				{

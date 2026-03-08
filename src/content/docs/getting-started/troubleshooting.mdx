@@ -1,0 +1,114 @@
+---
+title: Troubleshooting
+description: Solutions for common HealthLog issues — Docker, database, authentication, sync, and more.
+sidebar:
+  order: 4
+---
+
+This page covers common issues and their solutions. If your problem is not listed here, check the [GitHub Issues](https://github.com/MBombeck/HealthLog/issues) or open a new one.
+
+## Docker Container Won't Start
+
+**Symptoms**: Container exits immediately or keeps restarting.
+
+**Check the logs first:**
+
+```bash
+docker compose logs -f app
+```
+
+**Common causes:**
+
+- **Invalid `DATABASE_URL`** -- Ensure the connection string matches the database service name, port, and credentials in `docker-compose.yml`. When using the bundled PostgreSQL, the hostname must be `db` (the service name), not `localhost`.
+- **Secrets format** -- `SESSION_SECRET`, `ENCRYPTION_KEY`, and `API_TOKEN_HMAC_KEY` must each be exactly 64 hex characters. Generate them with `openssl rand -hex 32`.
+- **Database not ready** -- The app container starts before PostgreSQL is fully initialized. The bundled `docker-compose.yml` includes a health check; make sure `depends_on` with `condition: service_healthy` is set.
+
+```bash
+# Verify the database is reachable from the app container
+docker compose exec app sh -c 'nc -z db 5432 && echo "OK" || echo "FAIL"'
+```
+
+## Prisma Migration Errors
+
+**Symptoms**: App crashes on startup with Prisma migration errors.
+
+**Solution**: Run migrations manually:
+
+```bash
+docker compose exec app pnpm db:migrate:deploy
+```
+
+This applies any pending migrations to the database schema. It is safe to run repeatedly.
+
+:::tip
+After updating to a new HealthLog version, migrations are applied automatically on startup. If this fails, running the command manually usually resolves the issue.
+:::
+
+## WebAuthn / Passkey Not Working
+
+**Symptoms**: Registration or login fails with a passkey error, or the browser does not prompt for a passkey.
+
+**Common causes:**
+
+- **Missing HTTPS** -- WebAuthn requires a secure context. The app must be served over HTTPS with a valid certificate. `localhost` is the only exception.
+- **Wrong `NEXT_PUBLIC_APP_URL`** -- This variable must match the exact URL users access (including `https://` and the correct domain). A mismatch causes the WebAuthn origin check to fail.
+- **Browser support** -- Ensure the browser supports WebAuthn. All modern browsers do, but some corporate environments block it.
+
+:::caution
+If you change the domain or `NEXT_PUBLIC_APP_URL` after users have registered passkeys, existing passkeys will stop working. Users will need to re-register.
+:::
+
+## Withings Sync Issues
+
+**Symptoms**: Withings data is not syncing, or sync shows errors.
+
+**Common causes:**
+
+- **Token expired** -- Withings OAuth tokens expire periodically. HealthLog refreshes them automatically, but if the refresh token itself has expired (180 days of inactivity), you need to re-authorize. Go to **Settings > Integrations** and reconnect Withings.
+- **Webhook not received** -- Withings sends data via webhook. Ensure your HealthLog instance is publicly reachable at the configured `NEXT_PUBLIC_APP_URL`.
+- **Rate limiting** -- Withings has strict API rate limits. If many measurements arrive at once, some syncs may be delayed.
+
+```bash
+# Check Withings sync job status in the logs
+docker compose logs app | grep -i withings
+```
+
+## Notifications Not Sending
+
+**Symptoms**: Medication reminders or other notifications are not delivered.
+
+**Check these settings:**
+
+1. **Global toggles** -- Admin settings (`/settings/admin`) have global on/off toggles per channel. If a channel is globally disabled, no user receives notifications through it.
+2. **User preferences** -- Each user can disable specific event types or channels in their notification settings.
+3. **VAPID keys** (Web Push) -- Must be configured in the admin panel or via environment variables. Without valid VAPID keys, Web Push silently fails.
+4. **Telegram bot token** -- Must be valid and the bot must have sent at least one message to the user's chat ID.
+5. **Background jobs** -- Notifications are dispatched via pg-boss. Check that the job runner is healthy:
+
+```bash
+docker compose logs app | grep -i "pg-boss"
+```
+
+## PDF Export Is Blank or Fails
+
+**Symptoms**: Doctor report PDF downloads but is empty, or generation fails.
+
+**Common causes:**
+
+- **No data in range** -- The selected date range contains no measurements. Adjust the range.
+- **Browser compatibility** -- jsPDF runs client-side. Very old browsers or browsers with aggressive content security policies may block the generation. Try a current version of Chrome or Firefox.
+- **Large dataset** -- Thousands of readings can slow down or crash PDF generation on low-memory devices. Narrow the date range.
+
+## "Session Expired" Errors
+
+**Symptoms**: Users are logged out unexpectedly or see "Session expired" messages.
+
+**Common causes:**
+
+- **`SESSION_SECRET` changed** -- If this value changes between restarts (e.g., it was not persisted in `.env`), all existing sessions are invalidated. Ensure the secret is fixed and stored permanently.
+- **Multiple instances** -- If running multiple app containers behind a load balancer, all instances must share the same `SESSION_SECRET`.
+- **Cookie domain mismatch** -- The `NEXT_PUBLIC_APP_URL` domain must match the domain the browser uses. Accessing the app via IP address while the URL is set to a domain name will cause session issues.
+
+:::tip
+Set `SESSION_SECRET` once during initial setup and never change it. If you must rotate it, all users will need to log in again.
+:::

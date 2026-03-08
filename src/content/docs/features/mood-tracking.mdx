@@ -1,0 +1,71 @@
+---
+title: Mood Tracking
+description: Track daily mood on a 5-point scale with tags, notes, and moodLog.app integration.
+sidebar:
+  order: 8
+---
+
+HealthLog includes a built-in mood tracker. Entries can be logged manually or synced automatically from [moodLog.app](https://moodlog.app) via webhook.
+
+## 5-Point Mood Scale
+
+Each entry records a single mood level on a fixed scale:
+
+| Value | Label | Description |
+|-------|-------|-------------|
+| 5 | SUPER_GUT | Excellent, energized |
+| 4 | GUT | Good, balanced |
+| 3 | OKAY | Neutral, unremarkable |
+| 2 | SCHLECHT | Poor, low energy |
+| 1 | LAUSIG | Very bad, exhausted or distressed |
+
+:::note
+The labels use German terms to match the primary UI language. The numeric values are used internally and in exports.
+:::
+
+## Tags and Notes
+
+Each mood entry can include:
+
+- **Tags** -- Freeform labels (e.g., `stressed`, `relaxed`, `headache`, `exercise`). Multiple tags per entry are supported.
+- **Notes** -- Optional free-text field for context or observations.
+
+Tags are reusable across entries and can be filtered in the analytics view.
+
+## moodLog.app Integration
+
+HealthLog can receive mood entries from the moodLog.app via webhook sync.
+
+### How It Works
+
+1. Enable the MoodLog integration in **Settings > Administration** (`moodLogGlobal`).
+2. Generate a personal API token in **Settings > API**.
+3. Configure moodLog.app to send webhooks to your HealthLog instance.
+
+The webhook endpoint accepts incoming mood data and maps it to the internal 5-point scale.
+
+:::tip
+The integration runs in the background. Synced entries appear in the mood history alongside manually logged entries, with a source indicator to distinguish them.
+:::
+
+## Mood Analytics
+
+The analytics view provides insights into mood patterns over time:
+
+- **Trend chart** -- Line chart showing mood values across 7, 30, or 90 days.
+- **Distribution** -- Bar chart showing how often each mood level was recorded.
+- **Correlations** -- Cross-referencing mood with health metrics (sleep, activity, weight) to surface potential patterns.
+
+:::note
+Correlation analysis requires sufficient data points in both mood and the respective health metric. At least 14 days of overlapping data is recommended.
+:::
+
+## Export
+
+Mood entries are included in the standard export functionality:
+
+- **JSON export** -- Full mood data with timestamps, values, tags, and notes.
+- **CSV export** -- Tabular format for spreadsheet analysis.
+- **Doctor report PDF** -- Mood distribution is included as a summary section.
+
+See [Export & Import](/features/export-import/) for details on export formats and limits.

@@ -1,0 +1,97 @@
+---
+title: Doctor Report (PDF)
+description: Generate a structured PDF health report for doctor visits, with vital signs, medication compliance, and optional AI analysis.
+sidebar:
+  order: 10
+---
+
+HealthLog can generate a comprehensive PDF report designed for sharing with healthcare providers. The report follows European medical formatting conventions and uses German medical terminology.
+
+## Generation
+
+The PDF is generated entirely **client-side** using jsPDF. No data is sent to a server during generation.
+
+- Select a custom date range for the report.
+- Click "Generate Report" in the health overview or doctor report section.
+- The PDF is downloaded directly to the device.
+
+:::tip
+For doctor appointments, generate the report covering the period since the last visit. Most physicians prefer a 3-month or 6-month overview.
+:::
+
+## Report Contents
+
+### Vital Signs Summary
+
+The report includes a summary of key vital signs for the selected period:
+
+| Metric | Details |
+|--------|---------|
+| Weight | Average, min, max, trend direction |
+| BMI | Current value, classification per WHO |
+| Blood Pressure | Average Sys/Dia, classification per ESC/ESH 2018 |
+| Pulse / Heart Rate | Average, min, max |
+
+### Blood Pressure Classification
+
+Readings are classified according to the 2018 ESC/ESH guidelines:
+
+| Category | Systolic (mmHg) | Diastolic (mmHg) |
+|----------|-----------------|-------------------|
+| Optimal | < 120 | < 80 |
+| Normal | 120--129 | 80--84 |
+| High Normal | 130--139 | 85--89 |
+| Grade 1 Hypertension | 140--159 | 90--99 |
+| Grade 2 Hypertension | 160--179 | 100--109 |
+| Grade 3 Hypertension | >= 180 | >= 110 |
+
+### BMI Classification
+
+BMI values are classified per WHO standards:
+
+| Category | BMI Range |
+|----------|-----------|
+| Underweight | < 18.5 |
+| Normal weight | 18.5--24.9 |
+| Overweight | 25.0--29.9 |
+| Obesity Class I | 30.0--34.9 |
+| Obesity Class II | 35.0--39.9 |
+| Obesity Class III | >= 40.0 |
+
+### Medication Compliance
+
+For each active medication, the report shows:
+
+- Medication name, dosage, and schedule
+- **Compliance rate** -- Percentage of scheduled intakes that were confirmed (taken) during the report period
+- Missed and skipped intakes count
+
+### Mood Distribution
+
+If mood tracking data is available for the report period, a summary is included:
+
+- Distribution across the 5-point scale (percentage per level)
+- Average mood value
+- Number of entries
+
+### Optional AI Analysis
+
+When AI insights are enabled, the report can include an AI-generated summary:
+
+- Trend interpretation for vital signs
+- Notable patterns or anomalies
+- General health observations
+
+:::caution
+The AI analysis is informational only and does not constitute medical advice. The report includes a disclaimer footer stating this explicitly.
+:::
+
+## Format and Language
+
+- **Format**: A4 PDF, structured with headers and tables
+- **Language**: German medical terminology (Blutdruck, Gewicht, Herzfrequenz, etc.)
+- **Disclaimer**: A footer on each page notes that the report is auto-generated and does not replace professional medical assessment
+
+:::caution
+The PDF is generated entirely in the browser using jsPDF. For very large datasets (thousands of readings), generation may take a few seconds. Some older or mobile browsers may have limited support for client-side PDF generation.
+:::

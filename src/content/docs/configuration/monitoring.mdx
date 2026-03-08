@@ -1,0 +1,146 @@
+---
+title: Monitoring
+description: Set up analytics, error tracking, health checks, and structured logging for your HealthLog instance.
+sidebar:
+  order: 3
+---
+
+HealthLog supports several monitoring integrations to help you understand usage patterns, catch errors, and verify uptime.
+
+## Umami Analytics
+
+[Umami](https://umami.is) is a privacy-focused, self-hosted analytics platform. HealthLog can inject the Umami tracking script automatically.
+
+### Configuration
+
+All settings are managed in **Settings > Administration**:
+
+| Setting | Description |
+|---------|-------------|
+| `umamiEnabled` | Enable or disable Umami tracking |
+| `umamiScriptUrl` | Full URL to the Umami script (e.g., `https://analytics.example.com/script.js`) |
+| `umamiWebsiteId` | Website ID from your Umami dashboard |
+
+When enabled, the tracking script is injected into every page. No code changes are required.
+
+:::note
+Umami respects Do Not Track (DNT) headers by default. No cookies are set and no personal data is collected.
+:::
+
+## GlitchTip / Sentry Error Tracking
+
+HealthLog integrates with [GlitchTip](https://glitchtip.com) (or any Sentry-compatible service) for error tracking and performance monitoring.
+
+### Configuration
+
+| Setting | Description |
+|---------|-------------|
+| `glitchtipEnabled` | Enable or disable error tracking |
+| `glitchtipDsn` | Sentry-compatible DSN URL (e.g., `https://key@glitchtip.example.com/1`) |
+| `glitchtipEnvironment` | Environment label (e.g., `production`, `staging`) |
+
+These settings are configured in the admin panel and take effect immediately.
+
+### What Is Captured
+
+- **Unhandled exceptions** -- Both client-side and server-side errors are reported automatically.
+- **Source maps** -- Uploaded during the build process for readable stack traces.
+- **Context** -- Each error includes the current route, user role (not identity), and browser information.
+
+:::tip
+Set `glitchtipEnvironment` to distinguish between your production and staging instances in the error dashboard.
+:::
+
+## Health Endpoint
+
+HealthLog exposes a health check endpoint for use with Docker health checks, uptime monitors, or load balancers.
+
+### Endpoint
+
+```
+GET /api/health
+```
+
+### Response
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-03-08T10:00:00.000Z"
+}
+```
+
+Returns HTTP 200 when the application is running and can connect to the database.
+
+### Usage Examples
+
+**Docker Compose health check:**
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mbombeck/healthlog:latest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+```
+
+**Uptime Kuma / other monitors:**
+
+Point your uptime monitor to `https://health.your-domain.com/api/health` and check for HTTP 200.
+
+:::note
+The health endpoint does not require authentication. It only returns the status and timestamp -- no sensitive information is exposed.
+:::
+
+## Structured Logging
+
+HealthLog uses a structured logging approach based on the Wide Events pattern.
+
+### Format
+
+All logs are emitted as JSON to stdout, making them compatible with any log aggregation system:
+
+```json
+{
+  "level": "info",
+  "message": "measurement.created",
+  "userId": "abc123",
+  "type": "WEIGHT",
+  "value": 82.5,
+  "timestamp": "2026-03-08T10:00:00.000Z"
+}
+```
+
+### Key Properties
+
+| Property | Description |
+|----------|-------------|
+| `level` | Log level: `debug`, `info`, `warn`, `error` |
+| `message` | Event name in dot notation (e.g., `auth.login`, `job.completed`) |
+| `timestamp` | ISO 8601 UTC timestamp |
+| Additional fields | Context-specific data (userId, jobName, duration, etc.) |
+
+### Log Aggregation
+
+Since logs are JSON on stdout, they integrate naturally with container log drivers and aggregation tools:
+
+- **Docker** -- Collected automatically via the container log driver.
+- **Loki + Alloy/Promtail** -- Parse JSON labels from stdout for structured queries in Grafana.
+- **Optional Loki push** -- HealthLog can push logs directly to a Loki instance if configured via environment variables.
+
+:::tip
+When using Grafana + Loki, filter by the `message` field to trace specific event flows (e.g., `{app="healthlog"} | json | message="job.completed"`).
+:::
+
+### Log Levels
+
+| Level | When Used |
+|-------|-----------|
+| `debug` | Detailed internal state, disabled in production by default |
+| `info` | Normal operations: logins, measurements created, jobs completed |
+| `warn` | Recoverable issues: token refresh failures, rate limit hits |
+| `error` | Unrecoverable issues: database errors, unhandled exceptions |

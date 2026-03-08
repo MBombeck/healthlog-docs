@@ -1,0 +1,78 @@
+---
+title: PWA & Offline Support
+description: Installable progressive web app with offline caching, iOS safe area support, and Web Push notifications.
+sidebar:
+  order: 9
+---
+
+HealthLog is a Progressive Web App (PWA) that can be installed on any device and works offline for core functionality.
+
+## Installation
+
+HealthLog can be installed as a standalone app on mobile and desktop:
+
+- **Android** -- "Add to Home Screen" via Chrome or any Chromium-based browser.
+- **iOS** -- "Add to Home Screen" via Safari (Share menu).
+- **Desktop** -- Install prompt in Chrome, Edge, or other supported browsers.
+
+Once installed, the app launches in standalone mode without browser UI (address bar, tabs). It behaves like a native application.
+
+## Service Worker Caching
+
+The service worker uses different caching strategies depending on the resource type:
+
+| Resource Type | Strategy | Rationale |
+|---------------|----------|-----------|
+| Static assets (JS, CSS, images, fonts) | Cache-first | Immutable after build, served instantly from cache |
+| HTML pages | Network-first | Always attempt to load the latest version, fall back to cache if offline |
+| API requests (`/api/*`) | Network-only | Data must always be fresh, no stale API responses |
+
+:::note
+API requests are never cached. If the device is offline, API calls will fail gracefully and the UI displays appropriate offline indicators.
+:::
+
+### Cache Lifecycle
+
+- Static assets are precached during service worker installation.
+- Page cache is updated on each successful network fetch.
+- Old caches are purged automatically when a new service worker activates.
+
+## iOS Safe Area Support
+
+HealthLog accounts for device notches, rounded corners, and home indicators on modern iOS devices:
+
+- The viewport is configured with `viewport-fit: cover` to extend content to the full screen.
+- CSS environment variables handle safe area insets:
+
+```css
+padding-bottom: env(safe-area-inset-bottom);
+padding-top: env(safe-area-inset-top);
+padding-left: env(safe-area-inset-left);
+padding-right: env(safe-area-inset-right);
+```
+
+:::tip
+The bottom navigation bar automatically respects `env(safe-area-inset-bottom)` so that buttons remain tappable on devices with a home indicator (iPhone X and later).
+:::
+
+## Web Push Notifications
+
+HealthLog supports browser-based push notifications via the VAPID protocol.
+
+### Setup
+
+1. Generate VAPID keys or configure them in **Settings > Administration**.
+2. Users subscribe to push notifications from their profile settings.
+3. Subscriptions are device-specific -- a user can have multiple active subscriptions.
+
+### How It Works
+
+- Push notifications are sent server-side using the Web Push protocol.
+- Notifications are delivered even when the browser tab is closed or the PWA is not in the foreground.
+- Supported events: medication reminders, measurement anomalies, compliance alerts, and system notifications.
+
+:::caution
+Web Push requires HTTPS and valid VAPID keys. On iOS, push notifications for PWAs require iOS 16.4 or later and the app must be installed to the home screen.
+:::
+
+See [Notifications](/features/notifications/) for details on all notification channels and event types.
