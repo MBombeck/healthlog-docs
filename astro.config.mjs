@@ -3,7 +3,10 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
-	site: 'https://healthlog-docs.bombeck.io',
+	site: 'https://docs.healthlog.dev',
+	redirects: {
+		'/': '/getting-started/introduction',
+	},
 	integrations: [
 		starlight({
 			title: 'HealthLog',
