@@ -7,6 +7,8 @@ sidebar:
 
 ## Getting Started After Installation
 
+HealthLog works out of the box with sensible defaults — guideline-based reference ranges, a default dashboard layout, and the built-in feedback channel. Customization (custom thresholds, dashboard reorder, AI provider, glucose units) is optional and can be done at any time from the settings.
+
 ### 1. Create Your Account
 
 Open HealthLog in your browser and create an account. You will be prompted to register a **Passkey** (fingerprint, Face ID, or security key). The first account automatically receives admin privileges.
@@ -71,9 +73,9 @@ Connect your Withings account under **Settings > Integrations**. Supported devic
 
 Measurements are imported automatically — no manual entry needed.
 
-**AI Insights (OpenAI)**
+**AI Insights (multi-provider)**
 
-HealthLog can analyze your health data with OpenAI to deliver personalized insights. Enter your own API key under **Settings > AI**. No API key is included — it is strictly BYOK (Bring Your Own Key).
+HealthLog can analyze your health data via OpenAI, Anthropic Claude, or any local OpenAI-compatible endpoint (Ollama, LM Studio, vLLM). Pick the provider under **Settings > AI** and paste the credentials. BYOK — no keys are included.
 
 :::tip
 Even without the AI integration, HealthLog provides detailed statistics, trend analysis, and reference range comparisons right on the dashboard.

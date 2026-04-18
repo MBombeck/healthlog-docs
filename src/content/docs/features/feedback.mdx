@@ -1,0 +1,48 @@
+---
+title: Feedback & Bug Reports
+description: Built-in feedback flow that works out of the box, with optional GitHub escalation for admins.
+sidebar:
+  order: 14
+---
+
+HealthLog has a built-in feedback system. Any user can submit feedback, bug reports, or feature requests directly from the app — no GitHub account, no external service, no admin configuration required.
+
+## Submitting Feedback
+
+1. Open the user menu (avatar in the top right).
+2. Click **Send Feedback**.
+3. Pick a category: **Bug**, **Feature Request**, **Question**, or **Other**.
+4. Describe the issue. System info (HealthLog version, browser, locale, anonymized recent error logs) is attached automatically — you can preview and remove it before sending.
+5. Submit.
+
+Feedback is stored in your HealthLog database, visible to admins under **Admin > Feedback**.
+
+## Admin Workflow
+
+Admins see all feedback in a single inbox with status (New, In Progress, Resolved, Won't Fix), category filters, and basic search. Each entry shows the submitter, timestamp, attached system info, and any threaded replies.
+
+Status changes trigger an in-app notification to the submitter. If the user has Telegram, ntfy, or Web Push configured, the reply also fires through their preferred channel.
+
+## Optional GitHub Escalation
+
+For self-hosters who want to track issues in a public repository, admins can configure a GitHub Personal Access Token (PAT) under **Admin > Integrations > GitHub**. When set:
+
+- An **Escalate to GitHub** button appears on each feedback entry.
+- One click creates a GitHub issue in the configured repo with the body, system info, and a back-link to the in-app entry.
+- The GitHub issue number is stored on the feedback entry. Comments on the GitHub issue stay on GitHub — HealthLog doesn't poll.
+
+This is **opt-in**. Without the PAT, the in-app flow works exactly the same; there's just no Escalate button.
+
+:::note
+The PAT needs `repo` scope (for private repos) or `public_repo` scope (for public). It is stored AES-256-GCM encrypted, the same as every other integration secret.
+:::
+
+## Privacy
+
+- Feedback bodies and attached system info live in your HealthLog database. Nothing is sent off-server unless an admin explicitly clicks Escalate to GitHub.
+- The submitter's email is not attached. Replies route through HealthLog's notification channels.
+- Anonymized error logs strip stack frames containing user paths, query parameters, and request bodies before attachment.
+
+## What Counts as Feedback
+
+The built-in flow is for product feedback — bugs, missing features, confusing UX. For security issues, use the [responsible disclosure channel](/security/overview/) instead. Sensitive bug reports should not go through Escalate to GitHub.

@@ -1,0 +1,52 @@
+---
+title: Custom Thresholds
+description: Override the computed default ranges for blood pressure, BMI, glucose, and heart rate with values your clinician recommends.
+sidebar:
+  order: 11
+---
+
+HealthLog ships with sensible default ranges for every metric — based on ESC/ESH 2018, WHO, and ADA guidelines, adjusted by your age and sex when applicable. If your doctor has set different targets for you (e.g., a tighter BP goal post-event, or a wider glucose corridor while titrating), you can override the defaults per metric.
+
+## How It Works
+
+Defaults are **computed**, not stored. They derive from your profile (age, sex, height) and the relevant guideline. When you save a custom threshold, it overrides the default for that metric only — everything else stays computed.
+
+You can override:
+
+- **Blood pressure** — separate systolic and diastolic upper bounds
+- **BMI** — lower and upper bounds
+- **Glucose** — fasting, postprandial, and random target ranges
+- **Pulse** — resting heart rate band
+
+## Setting a Threshold
+
+1. Open **Settings > Health Targets**.
+2. Pick a metric. The current default is shown alongside the input.
+3. Enter your own value(s) and save.
+4. The dashboard, traffic-light indicators, charts, and Doctor Report all switch to your custom value immediately.
+
+:::note
+Leaving a field empty resets that metric back to the computed default. There's no "delete override" button — empty means default.
+:::
+
+## Override Warning
+
+When at least one metric uses a custom threshold, a small badge appears on the dashboard and on the Doctor Report PDF. This makes it explicit — both for you and for any clinician reading the report — that the green/yellow/red zones aren't the standard guideline values.
+
+## Audit Trail
+
+Every threshold change is recorded with the previous value, the new value, and a timestamp. You can review the history under **Settings > Health Targets > Change History**. This is intentional: a custom range is a clinical decision, and being able to reconstruct when it changed matters.
+
+:::caution
+Custom thresholds change classification, not measurement. The data you logged stays the same — only the colored bands and "in/out of range" labels move.
+:::
+
+## Example
+
+Say your cardiologist wants you under 130/80 instead of the ESC/ESH default of 140/90:
+
+1. **Settings > Health Targets > Blood Pressure**
+2. Set systolic upper bound to `130`, diastolic upper bound to `80`.
+3. Save.
+
+From now on, a 135/85 reading shows as Grade 1 (yellow) rather than High Normal (green-yellow). The Doctor Report PDF prints both your custom target and the standard reference, so the receiving clinician sees both.

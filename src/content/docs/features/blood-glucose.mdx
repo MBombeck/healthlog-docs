@@ -1,0 +1,65 @@
+---
+title: Blood Glucose
+description: Track blood glucose with fasting, postprandial, random, and bedtime contexts in mg/dL or mmol/L.
+sidebar:
+  order: 12
+---
+
+HealthLog tracks blood glucose alongside the other vital signs. Each reading is tagged with a context (fasting, postprandial, random, bedtime) so the trend chart and AI insights can interpret it correctly — a 160 mg/dL reading after lunch means something very different from a 160 mg/dL reading first thing in the morning.
+
+## Units
+
+HealthLog stores glucose internally in **mg/dL** and converts on display.
+
+- **mg/dL** — common in the United States, Germany, France
+- **mmol/L** — common in the UK, Canada, Australia, most of Europe
+
+You can switch the display unit under **Settings > Units**. Conversion is automatic and lossless:
+
+```
+mg/dL = mmol/L * 18.0182
+mmol/L = mg/dL / 18.0182
+```
+
+The unit setting affects display, charts, the Doctor Report PDF, and AI insight prompts. Stored data is never converted.
+
+## Contexts
+
+Every glucose entry requires a context:
+
+| Context | When to use | Reference (non-diabetic) |
+|---------|-------------|-------------------------|
+| **Fasting** | After at least 8 hours without food | 70–99 mg/dL (3.9–5.5 mmol/L) |
+| **Postprandial** | 1–2 hours after a meal | < 140 mg/dL (< 7.8 mmol/L) |
+| **Random** | Any other time | < 200 mg/dL (< 11.1 mmol/L) |
+| **Bedtime** | Right before sleep | 100–140 mg/dL (5.5–7.8 mmol/L) |
+
+Reference ranges follow the **ADA 2024 Standards of Care** and **DGIM** guidance. They differ for people with diabetes — see Custom Thresholds to set targets your clinician recommends.
+
+## Trends and Classification
+
+Each context is charted separately. Mixing fasting and postprandial readings in one line would be misleading, so the chart layers them and the dashboard tile shows the most recent fasting and most recent postprandial value side by side.
+
+The traffic-light indicator uses the context-appropriate range. A 145 mg/dL reading is yellow if logged as fasting, green if logged as postprandial.
+
+## Doctor Report
+
+Glucose is included in the PDF report:
+
+- Average per context for the selected period
+- Time-in-range estimate (when enough readings are available)
+- Distribution histogram
+- Custom thresholds clearly marked (see [Custom Thresholds](/features/custom-thresholds/))
+
+## AI Insights
+
+When AI insights are enabled, the glucose generator looks at:
+
+- Fasting trend over 30/90 days
+- Postprandial spikes and recovery
+- Variability (standard deviation)
+- Correlation with weight, mood, and medication adherence
+
+:::caution
+HealthLog is not a diabetes management device. It does not replace continuous glucose monitoring, professional dosing advice, or HbA1c testing. Use the trends as a conversation starter with your clinician, not as a treatment decision.
+:::

@@ -31,6 +31,11 @@ The report includes a summary of key vital signs for the selected period:
 | BMI | Current value, classification per WHO |
 | Blood Pressure | Average Sys/Dia, classification per ESC/ESH 2018 |
 | Pulse / Heart Rate | Average, min, max |
+| Blood Glucose | Per-context averages (fasting / postprandial / random / bedtime), distribution, time-in-range when available |
+
+:::note
+If you have set custom thresholds (see [Custom Thresholds](/features/custom-thresholds/)), the report prints both your custom target and the standard guideline value side by side, with a clear "custom range applied" badge.
+:::
 
 ### Blood Pressure Classification
 
@@ -89,7 +94,7 @@ The AI analysis is informational only and does not constitute medical advice. Th
 ## Format and Language
 
 - **Format**: A4 PDF, structured with headers and tables
-- **Language**: German medical terminology (Blutdruck, Gewicht, Herzfrequenz, etc.)
+- **Language**: Follows your selected UI locale (English or German). Numbers, dates, and units (mg/dL vs mmol/L, kg, mmHg) format per locale via the same `useFormatters()` helper that powers the dashboard.
 - **Disclaimer**: A footer on each page notes that the report is auto-generated and does not replace professional medical assessment
 
 :::caution

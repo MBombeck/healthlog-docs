@@ -43,6 +43,7 @@ export default defineConfig({
 					label: 'Features',
 					items: [
 						{ slug: 'features/health-metrics' },
+						{ slug: 'features/blood-glucose' },
 						{ slug: 'features/medications' },
 						{ slug: 'features/notifications' },
 						{ slug: 'features/ai-insights' },
@@ -52,6 +53,9 @@ export default defineConfig({
 						{ slug: 'features/doctor-report' },
 						{ slug: 'features/gamification' },
 						{ slug: 'features/export-import' },
+						{ slug: 'features/custom-thresholds' },
+						{ slug: 'features/dashboard-customization' },
+						{ slug: 'features/feedback' },
 					],
 				},
 				{
