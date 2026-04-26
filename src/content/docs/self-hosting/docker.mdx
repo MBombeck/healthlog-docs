@@ -1,115 +1,77 @@
 ---
-title: "Docker Setup"
-description: "Deploy HealthLog with Docker Compose — image, configuration, and startup process."
+title: "Docker"
+description: "How the HealthLog container works internally — image details, startup, and operational notes."
 sidebar:
   order: 1
 ---
 
-HealthLog is distributed as a Docker image and can be deployed with Docker Compose in just a few minutes.
+If you're setting HealthLog up for the first time, start with [Getting Started → Installation](/getting-started/installation/) — that page has the canonical compose file and the Quick Start. This page documents the Docker-specific internals for operators who already have it running.
 
-## Docker Compose
+## Image source
 
-Create a `docker-compose.yml`:
+Pre-built multi-arch images are published to GitHub Container Registry by the [`docker-publish.yml`](https://github.com/MBombeck/HealthLog/blob/main/.github/workflows/docker-publish.yml) workflow on every push to `main` and every `v*` tag.
+
+| Property | Value |
+| -------- | ----- |
+| Registry | `ghcr.io/mbombeck/healthlog` |
+| Architectures | `linux/amd64`, `linux/arm64` |
+| Tags | `latest` (main), `vX.Y.Z`, `vX.Y`, `sha-<short>` |
+| Base | `node:22-alpine` (multi-stage build) |
+| User | `nextjs` (UID 1001, non-root) |
+| Port | 3000 |
+| Healthcheck | `GET /api/health` every 30 s |
+| Provenance | [SLSA build attestation](https://slsa.dev/spec/v1.0/provenance) |
+| SBOM | Attached to every image |
+
+The non-root user means a container breakout cannot escalate to root on the host. See [`SECURITY.md`](https://github.com/MBombeck/HealthLog/blob/main/SECURITY.md#supply-chain) for the full supply-chain story including verification commands.
+
+## Startup process
+
+The image's `docker-entrypoint.sh` runs three steps before handing off to Next.js:
+
+1. **Wait for PostgreSQL** — up to 30 connection attempts at 1 s intervals.
+2. **Apply migrations** — `prisma migrate deploy`. Idempotent; safe to run on every restart.
+3. **Start the server** — `node server.js`.
+
+No manual migration step is required. If the database is unreachable after 30 seconds, the entrypoint exits non-zero and Docker restarts the container under the configured `restart: unless-stopped` policy.
+
+## Updating to a new version
+
+```bash
+# Pin a tag in your docker-compose.yml first if you don't track :latest
+docker compose pull
+docker compose up -d
+```
+
+The new container starts, the entrypoint runs any pending migrations, then health-checks pass and the old container is replaced. See [Self-Hosting → Updates](/self-hosting/updates/) for the full guide including backup recommendations.
+
+## Pinning versions
+
+Production deployments should pin to a specific release:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mbombeck/healthlog:1.2.0 # not :latest
+```
+
+Each release is announced in [`CHANGELOG.md`](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md). Migrations are additive and tested in CI; downgrades are not generally supported.
+
+## Reverse proxy
+
+Port 3000 should not be exposed to the public internet directly. Run a reverse proxy with HTTPS termination in front of the container:
 
 ```yaml
 services:
   app:
     image: ghcr.io/mbombeck/healthlog:latest
-    container_name: healthlog
-    restart: unless-stopped
+    # ...
     ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  db:
-    image: postgres:16-alpine
-    container_name: healthlog-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: healthlog
-      POSTGRES_PASSWORD: changeme
-      POSTGRES_DB: healthlog
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "healthlog"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  pgdata:
+      - "127.0.0.1:3000:3000" # bind to loopback only when running behind a proxy on the same host
 ```
 
-:::danger
-Replace `POSTGRES_PASSWORD: changeme` with a secure, randomly generated password **before the first start** (`openssl rand -base64 24`). The same password must be set in `DATABASE_URL` in your `.env` file. Leaving the default password unchanged is a serious security risk.
-:::
-
-## Environment Variables
-
-Create a `.env` file in the same directory:
-
-```bash
-# Database
-DATABASE_URL=postgresql://healthlog:changeme@db:5432/healthlog
-
-# App
-NEXT_PUBLIC_APP_URL=https://health.example.com
-NODE_ENV=production
-
-# Cryptographic keys (generate each with: openssl rand -hex 32)
-SESSION_SECRET=
-ENCRYPTION_KEY=
-API_TOKEN_HMAC_KEY=
-
-# Disable telemetry
-NEXT_TELEMETRY_DISABLED=1
-```
-
-See [Security -- Self-Hosting](/security/self-hosting/) for details on the cryptographic keys.
-
-## Starting Up
-
-```bash
-docker compose up -d
-```
-
-## Startup Process
-
-The Docker image uses a `docker-entrypoint.sh` that automatically performs the following steps on startup:
-
-1. **Waits for PostgreSQL** -- up to 30 connection attempts with a 1-second delay
-2. **Runs database migrations** -- `prisma migrate deploy`
-3. **Starts the Node.js server** -- `node server.js`
-
-No manual migration step is needed.
-
-## Docker Image Details
-
-| Property | Value |
-|----------|-------|
-| Base image | Node 22 Alpine |
-| Build | Multi-stage (builder + runner) |
-| User | `nextjs` (UID 1001, non-root) |
-| Port | 3000 |
-| Healthcheck | `GET /api/health` every 30s |
-
-The non-root user ensures that even in the event of a container breakout, no root privileges are gained on the host.
-
-## Accessing HealthLog
-
-After startup, HealthLog is available at `http://localhost:3000`. For production use, you should place a [Reverse Proxy](/self-hosting/reverse-proxy/) with HTTPS in front of it.
+See [Self-Hosting → Reverse Proxy](/self-hosting/reverse-proxy/) for Caddy, Traefik, and Nginx Proxy Manager examples.
 
 :::caution
-Port 3000 should **not** be directly exposed to the internet. Only expose the reverse proxy (ports 443/80). If Docker maps the port on the host, make sure a firewall blocks external access, or remove the `ports` mapping and let the reverse proxy connect through the Docker network.
+Passkeys (WebAuthn) require a secure context. Without a valid TLS certificate on your reverse proxy, registration and login will not work.
 :::
