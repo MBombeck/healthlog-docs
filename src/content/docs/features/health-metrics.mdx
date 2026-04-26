@@ -1,6 +1,6 @@
 ---
 title: Health Metrics
-description: Track, analyze, and visualize health metrics — weight, blood pressure, heart rate, body fat, sleep, and activity.
+description: Track, analyze, and visualize health metrics — weight, blood pressure, heart rate, body composition, sleep, activity, and blood glucose.
 sidebar:
   order: 1
 ---
@@ -11,14 +11,19 @@ HealthLog tracks and analyzes key health metrics. All metrics can be entered man
 
 ## Supported Metrics
 
-| Metric | Unit | Automatic Analysis |
-|--------|------|-------------------|
-| Weight | kg | BMI calculation, trend analysis |
-| Blood Pressure (Sys/Dia) | mmHg | WHO/ESC/ESH classification |
-| Heart Rate | bpm | Trend analysis |
-| Body Fat Percentage | % | Trend analysis |
-| Sleep Duration | hours | Trend analysis |
-| Activity (Steps) | steps | Trend analysis |
+| Metric | Unit | Automatic Analysis | Withings Sync |
+|--------|------|-------------------|----|
+| Weight | kg | BMI calculation, trend analysis | Yes |
+| Blood Pressure (Sys/Dia) | mmHg | WHO/ESC/ESH classification | Yes |
+| Heart Rate | bpm | Trend analysis | Yes |
+| Body Fat Percentage | % | Trend analysis | Yes |
+| Total Body Water | kg | Trend analysis | Yes (Body+ scales) |
+| Bone Mass | kg | Trend analysis | Yes (Body+ scales) |
+| Sleep Duration | hours | Trend analysis | — |
+| Activity (Steps) | steps | Trend analysis | Yes |
+| Blood Glucose | mg/dL or mmol/L | Per-context ranges (ADA 2024) | — |
+
+Total body water and bone mass were added in 1.3.0. Both are stored canonically in kilograms — matching what Withings Body+ scales report (`hydration` measure type 77 and `bone_mass` measure type 88) and what Health Connect's `TotalBodyWaterRecord` / `BoneMassRecord` provide. Anyone with a Withings connection sees them flowing in automatically on the next sync, no extra config.
 
 ## Data Entry
 
