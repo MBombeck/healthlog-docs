@@ -1,174 +1,161 @@
 ---
 title: Installation
-description: Step-by-step guide to installing HealthLog using Docker Compose or a manual setup.
+description: Get HealthLog running with Docker Compose in about 5 minutes — or build it from source for development.
 sidebar:
   order: 2
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+HealthLog ships as a multi-arch Docker image (`linux/amd64` and `linux/arm64`) on [GitHub Container Registry](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog). The bundled `docker-compose.yml` pulls it together with a PostgreSQL 16 service — no build step required for self-hosters.
 
 ## Prerequisites
 
 - Docker Engine 24+ and Docker Compose v2+
-- Reverse proxy with HTTPS (Nginx Proxy Manager, Traefik, Caddy, etc.)
-- Domain with a valid SSL certificate
-- At least 512 MB RAM and 1 GB disk space
+- ~512 MB RAM and ~1 GB disk space
+- A reverse proxy with HTTPS in front (Nginx Proxy Manager, Traefik, Caddy, …) — required for [Passkey authentication](/security/overview/) to work in production
 
-## Step 1: Clone the Repository
+## Quick Start (Docker Compose)
 
 ```bash
 git clone https://github.com/MBombeck/HealthLog.git
 cd HealthLog
+cp .env.example .env
 ```
 
-## Step 2: Generate Secrets
-
-You need three cryptographic keys. Generate them with `openssl`:
+Generate the four required secrets and append them to `.env`:
 
 ```bash
-# Session secret (cookie signing)
-openssl rand -hex 32
-
-# Encryption key (AES-256-GCM for sensitive database fields)
-openssl rand -hex 32
-
-# HMAC key (API token hashing)
-openssl rand -hex 32
+echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)" >> .env
+echo "SESSION_SECRET=$(openssl rand -hex 32)"       >> .env
+echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"       >> .env
+echo "API_TOKEN_HMAC_KEY=$(openssl rand -hex 32)"   >> .env
 ```
 
 :::danger
-The `ENCRYPTION_KEY` encrypts sensitive data in the database (tokens, API keys). If this key is lost or changed, all encrypted data becomes permanently unrecoverable. Store it in a safe place.
+The `ENCRYPTION_KEY` encrypts sensitive data in the database (Withings/AI tokens, VAPID keys, GitHub PATs). If it is lost or rotated without re-encrypting existing rows, that data becomes permanently unrecoverable. Back the value up somewhere safe.
 :::
 
-## Step 3: Configuration
+Bring the stack up:
 
-<Tabs>
-<TabItem label="Docker Compose">
-
-Create a `.env` file in the project directory:
-
-```bash title=".env"
-# Database
-DATABASE_URL=postgresql://healthlog:YOUR_DB_PASSWORD@db:5432/healthlog
-
-# Security (use the values from Step 2)
-SESSION_SECRET=your_session_secret_here
-ENCRYPTION_KEY=your_encryption_key_here
-API_TOKEN_HMAC_KEY=your_hmac_key_here
-
-# App URL (must be HTTPS)
-NEXT_PUBLIC_APP_URL=https://health.your-domain.com
+```bash
+docker compose up -d
 ```
 
-The bundled `docker-compose.yml` includes PostgreSQL 16 and the HealthLog app:
+Tail the logs to confirm a clean start:
+
+```bash
+docker compose logs -f app
+# … once you see "Ready on http://0.0.0.0:3000", the app is up.
+```
+
+Open `http://localhost:3000` (or your reverse-proxy URL) and register the first account — it automatically gets admin rights. After that, disable open registration in **Settings → Administration**.
+
+:::caution
+Port 3000 should not be exposed to the public internet directly. Run a reverse proxy with HTTPS in front of the container (see [Self-Hosting → Reverse Proxy](/self-hosting/reverse-proxy/)). Passkeys (WebAuthn) only work in a secure context.
+:::
+
+## What's in the bundle
+
+The repo's [`docker-compose.yml`](https://github.com/MBombeck/HealthLog/blob/main/docker-compose.yml) is the canonical setup. The minimum it needs to run looks like this:
 
 ```yaml title="docker-compose.yml"
 services:
   app:
     image: ghcr.io/mbombeck/healthlog:latest
+    container_name: healthlog-app
     restart: unless-stopped
-    env_file: .env
     ports:
       - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://healthlog:${POSTGRES_PASSWORD}@db:5432/healthlog?schema=public"
+      NODE_ENV: production
+      SESSION_SECRET: "${SESSION_SECRET:?SESSION_SECRET is required}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}"
+      API_TOKEN_HMAC_KEY: "${API_TOKEN_HMAC_KEY:?API_TOKEN_HMAC_KEY is required}"
+      NEXT_PUBLIC_APP_URL: "${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
     depends_on:
       db:
         condition: service_healthy
 
   db:
     image: postgres:16-alpine
-    restart: unless-stopped
+    container_name: healthlog-db
     environment:
       POSTGRES_USER: healthlog
-      POSTGRES_PASSWORD: YOUR_SECURE_DB_PASSWORD  # openssl rand -base64 24
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
       POSTGRES_DB: healthlog
     volumes:
-      - healthlog_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U healthlog"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
 volumes:
-  healthlog_data:
+  pgdata:
+```
+
+The repo's version additionally includes a `build:` fallback so contributors can run `docker compose up --build` against their local source tree.
+
+The [`.env.example`](https://github.com/MBombeck/HealthLog/blob/main/.env.example) in the repo documents every variable inline, including how to generate each secret. See also [Configuration → Environment Variables](/configuration/environment-variables/) for the long form.
+
+## Pin a specific version
+
+`:latest` follows `main`. For production, pin to a released tag:
+
+```yaml
+image: ghcr.io/mbombeck/healthlog:1.2.0
+```
+
+See the [container registry page](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog) for available tags. Each image is built with [SLSA build provenance](https://slsa.dev/spec/v1.0/provenance) and an [SBOM](https://docs.docker.com/build/metadata/attestations/sbom/) attached — see the [Supply Chain section in `SECURITY.md`](https://github.com/MBombeck/HealthLog/blob/main/SECURITY.md#supply-chain) for verification commands.
+
+## Build from source (contributors)
+
+If you want to run a dev build instead of the published image:
+
+```bash
+docker compose up --build
+```
+
+This uses the `build:` block in the bundled `docker-compose.yml` and ignores the registry image. Or for a pure Node-based dev loop:
+
+<Tabs>
+<TabItem label="Local dev (pnpm)">
+
+```bash
+# Prereqs: Node 22+, pnpm 10+, PostgreSQL 16 reachable on localhost:5432
+cp .env.example .env
+# adjust DATABASE_URL hostname to "localhost"
+pnpm install
+pnpm db:generate
+pnpm db:migrate:deploy
+pnpm dev    # http://localhost:3000 with HMR
 ```
 
 </TabItem>
-<TabItem label="Manual Installation">
-
-To install manually without Docker:
+<TabItem label="Production build">
 
 ```bash
-# Node.js 22+ and PostgreSQL 16 must be installed
-# pnpm 10+ must be installed (corepack enable)
-
-# Install dependencies
-pnpm install
-
-# Generate Prisma Client
+pnpm install --frozen-lockfile
 pnpm db:generate
-
-# Run database migrations
-pnpm db:migrate:deploy
-
-# Create production build
 pnpm build
-
-# Start the app
+pnpm db:migrate:deploy
 pnpm start
-```
-
-Set the environment variables directly or via a `.env` file:
-
-```bash title=".env"
-DATABASE_URL=postgresql://healthlog:password@localhost:5432/healthlog
-SESSION_SECRET=your_session_secret_here
-ENCRYPTION_KEY=your_encryption_key_here
-API_TOKEN_HMAC_KEY=your_hmac_key_here
-NEXT_PUBLIC_APP_URL=https://health.your-domain.com
 ```
 
 </TabItem>
 </Tabs>
 
-## Step 4: Start the Application
+## Next steps
 
-```bash
-docker compose up -d
-```
-
-Check the logs to confirm a successful startup:
-
-```bash
-docker compose logs -f app
-```
-
-The application is ready when you see:
-
-```
-Ready on http://0.0.0.0:3000
-```
-
-## Step 5: Set Up the Reverse Proxy
-
-Configure your reverse proxy to forward HTTPS traffic to port 3000 of the HealthLog container.
-
-:::caution
-HTTPS is mandatory. Passkeys (WebAuthn) only work in a secure context. Without a valid SSL certificate, registration and login will not function.
-:::
-
-## Step 6: Register the First User
-
-Open `https://health.your-domain.com` in your browser. The first user to register is automatically granted administrator privileges.
-
-:::caution
-Register the admin account **immediately** after installation, before the URL is publicly accessible. Then disable registration under **Settings > Administration** to prevent unauthorized account creation.
-:::
+- [Quick Start](/getting-started/quick-start/) — log your first measurement and explore the dashboard
+- [Self-Hosting → Reverse Proxy](/self-hosting/reverse-proxy/) — TLS termination examples for Nginx Proxy Manager, Caddy, Traefik
+- [Self-Hosting → Updates](/self-hosting/updates/) — pulling a new version safely
+- [Self-Hosting → Docker](/self-hosting/docker/) — image internals, healthcheck behaviour, startup process
 
 :::danger
-**Never** commit the `.env` file to a Git repository. Make sure `.env` is listed in `.gitignore`. It contains cryptographic keys and database credentials.
+**Never** commit `.env` to a Git repository. It contains your encryption key and database credentials. The bundled `.gitignore` already excludes it; if you add files manually, double-check before committing.
 :::
-
-## Next Step
-
-Follow the [Quick Start](/getting-started/quick-start/) to configure HealthLog and log your first measurements.
