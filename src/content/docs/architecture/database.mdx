@@ -56,7 +56,7 @@ A `Medication` has any number of `MedicationSchedule`s (e.g. morning and evening
 
 | Model | Description |
 |---|---|
-| `ApiToken` | External API access. The token value is stored as a **SHA-256 hash** — the plaintext is not retrievable after creation. |
+| `ApiToken` | External API access. The token value is stored as a **keyed HMAC-SHA-256 hash** (using the `API_TOKEN_HMAC_KEY` env var) — the plaintext is not retrievable after creation, and a DB dump alone does not let an attacker precompute matching hashes. |
 
 ## Integrations
 

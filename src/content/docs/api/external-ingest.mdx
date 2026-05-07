@@ -111,7 +111,7 @@ Tokens consist of the prefix `hlk_` followed by 32 random bytes in hexadecimal:
 hlk_ + 64 hex characters = 68 characters total
 ```
 
-Tokens are stored server-side as SHA-256 hashes. The plaintext token is only available at creation time.
+Tokens are stored server-side as keyed HMAC-SHA-256 hashes (with the operator-set `API_TOKEN_HMAC_KEY`). The plaintext token is only available at creation time, and a DB dump alone does not let an attacker precompute the matching hash.
 
 ---
 

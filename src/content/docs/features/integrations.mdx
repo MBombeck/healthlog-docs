@@ -68,7 +68,7 @@ curl -X POST https://healthlog.example.com/api/ingest/medication \
 
 **Properties:**
 - Per-medication scope (a token can only log intakes for its assigned medication)
-- Stored as a SHA-256 hash in the database
+- Stored as a keyed HMAC-SHA-256 hash in the database (the `API_TOKEN_HMAC_KEY` env var) — a database dump alone does not let an attacker precompute a rainbow table
 - Revocable through the UI
 
 :::tip
