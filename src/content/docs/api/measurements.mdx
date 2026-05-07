@@ -14,8 +14,18 @@ sidebar:
 | `BLOOD_PRESSURE_DIA` | Diastolic blood pressure | mmHg |
 | `PULSE` | Pulse / heart rate | bpm |
 | `BODY_FAT` | Body fat percentage | % |
+| `BLOOD_GLUCOSE` | Blood glucose (requires `glucoseContext`) | mg/dL |
+| `TOTAL_BODY_WATER` | Total body water content (Withings type 77) | kg |
+| `BONE_MASS` | Bone mineral content / DEXA-equivalent (Withings type 88) | kg |
+| `OXYGEN_SATURATION` | Pulse oximetry / SpO₂ (Withings ScanWatch type 54, HealthKit, Health Connect) | % |
 | `SLEEP_DURATION` | Sleep duration | hours |
 | `ACTIVITY_STEPS` | Steps | steps |
+
+For `BLOOD_GLUCOSE` measurements, you must also send a `glucoseContext`
+field with one of `FASTING`, `POSTPRANDIAL`, `RANDOM`, or `BEDTIME`. Other
+types must omit the field. See the [Health Metrics feature
+page](/features/health-metrics/) for the v1.3 catalogue including body
+composition and the Withings auto-sync flow.
 
 ## List Measurements
 
