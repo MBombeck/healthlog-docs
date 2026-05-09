@@ -68,3 +68,15 @@ Administrators can control notifications system-wide:
 :::caution
 Global admin settings override individual user preferences. If a channel is globally disabled, no user will receive notifications through it.
 :::
+
+## Channel Status (v1.4.15+)
+
+**Settings → Notifications** now shows a status card for every channel you have configured. Each card paints:
+
+- **State badge** — connected, error (transient), or auto-disabled
+- **Last success** and **last failure** timestamps
+- **Consecutive-failure counter** — how many sends in a row failed
+- **Disable reason** — e.g. "Web Push subscription returned 410 (gone)" — when HealthLog auto-disabled the channel after a hard reject
+- **Re-enable** button (only when auto-disabled) and a **Send test** button
+
+When a channel hits a permanent rejection (e.g. an expired Web Push subscription returning 410, or a Telegram bot the user blocked), HealthLog auto-disables it after a few retries with exponential backoff so it doesn't keep banging on a dead endpoint. Transient errors retry on a `[30s, 5min, 30min, 2h]` schedule before giving up. Re-enable a channel any time after fixing the underlying issue.

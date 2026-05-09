@@ -11,12 +11,20 @@ HealthLog can generate a comprehensive PDF report designed for sharing with heal
 
 The PDF is generated entirely **client-side** using jsPDF. No data is sent to a server during generation.
 
-- Select a custom date range for the report.
 - Click "Generate Report" in the health overview or doctor report section.
+- A dialog opens (v1.4.15+) where you pick the date range and, optionally, the practice name.
 - The PDF is downloaded directly to the device.
 
+### Date Range (v1.4.15+)
+
+Before the PDF is generated, a dialog asks for the period you want covered. Three presets — **Last 90 days**, **Last 6 months**, **Last 12 months** — match the windows physicians ask for most often. You can also enter custom start and end dates by hand. The maximum span is 2 years; the default is the last 90 days.
+
+### Practice / Clinic Name (v1.4.15+)
+
+The dialog also has an optional **Praxis / Clinic name** field. If you fill it in, the name appears at the top of the cover page above the patient block — handy when you generate one report for your GP and another for your cardiologist. The field is remembered as a per-account preference so the next report pre-fills with whatever you used last; clear it to omit the line entirely.
+
 :::tip
-For doctor appointments, generate the report covering the period since the last visit. Most physicians prefer a 3-month or 6-month overview.
+For doctor appointments, generate the report covering the period since the last visit. Most physicians prefer a 3-month or 6-month overview — the 90-day default fits the common case in one click.
 :::
 
 ## Report Contents

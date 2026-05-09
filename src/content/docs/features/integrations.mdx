@@ -60,6 +60,17 @@ The moodLog instance URL is validated against an SSRF allow-list — internal-ne
 
 Each integration ships with a one-click **Test connection** button under **Settings → Integrations** (Withings, moodLog, Web Push, Glitchtip, Umami, AI provider, Telegram, ntfy). Each test runs server-side, behind its own rate limit, with sanitised error reporting and the same redirect-follow SSRF guard the production fetch uses.
 
+## Connection Status (v1.4.15+)
+
+Each integration card now sits above its credentials form (v1.4.15+) and shows the live connection state:
+
+- **State** — connected, transient error, reauth required, or disconnected
+- **Last successful sync** and **last attempted sync**
+- **Last error** (if any) — sanitised, never leaks the credential
+- **Consecutive-failure counter** — `{n}/{threshold}` chip
+
+When the upstream returns an authentication failure (Withings refresh-token rejection, moodLog 401/403), the card flips to **Reauth required** and scheduled syncs short-circuit instead of hammering the upstream — reconnect with one click and they resume on the next tick. After a configurable threshold of consecutive failures (default 3), HealthLog sends a one-shot Telegram alert to admins (if the channel is enabled) so a quietly-broken integration doesn't slowly rot for weeks.
+
 ## External API
 
 HealthLog provides an API for external systems, such as automation tools or IoT devices.

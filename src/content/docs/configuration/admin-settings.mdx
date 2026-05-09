@@ -11,7 +11,7 @@ The admin console is a **status-first overview** plus a sidebar with one focused
 
 | Section | Route | What's there |
 |---|---|---|
-| Overview | `/admin` | Status-card grid, jump-to-section menu |
+| Overview | `/admin` | Recent audit-log preview + system-status snapshot (v1.4.15+; section grid now lives in the sidebar) |
 | System status | `/admin/system-status` | Container, DB, queue, and external-service health |
 | General | `/admin/general` | Registration, default locale, feature toggles |
 | Services | `/admin/services` | Umami, GlitchTip, Web Push (VAPID) |
@@ -117,10 +117,27 @@ Each row has a **Force logout** action behind a confirmation dialog. It deletes 
 
 You cannot force-logout your own account — the button is disabled on your own row.
 
-## Backups (v1.4.14)
+## Backups (v1.4.14, expanded in v1.4.15)
 
 The **Backups** panel at `/admin/backups` shows the history of weekly snapshots (created Sundays at 03:00 Europe/Berlin by the `data-backup` queue). For every snapshot the panel shows the user, the backup type, the byte size, and the creation timestamp. The encrypted blob itself is **never** rendered — only the metadata.
 
 The **Backup now** button enqueues an ad-hoc `data-backup` job for every user without waiting for the next Sunday. The job runs through the same encryption + S3 upload path the scheduled run uses; a toast confirms success. If the worker process is not running (for example, on a `HEALTHLOG_PROCESS_TYPE=web` container without a sibling worker), the button returns a clear "worker offline" error instead of silently dropping the job.
 
-See [Self-Hosting → Scaling](/self-hosting/scaling/) for the off-host S3 upload configuration and the restore script.
+v1.4.15 turns the panel into the full backup lifecycle: every row carries **Download** (snapshot as `.json`) and **Restore** (re-import that snapshot into the database, behind a triple-confirm gate), and the page itself has a separate **Upload backup** card so you can ingest a snapshot you stored externally. Every operation — run, download, upload, restore (start + outcome) — lands in the audit log with the actor and the target snapshot. See [Backup structure and restore](/admin/backups/) for the file format, the restore confirm flow, and security considerations.
+
+See [Self-Hosting → Scaling](/self-hosting/scaling/) for the off-host S3 upload configuration and the operator-side restore script.
+
+## Overview Page (v1.4.15)
+
+The `/admin` overview was a grid of section status cards through v1.4.14. v1.4.15 replaces it with two more useful blocks:
+
+- **Recent audit-log preview** — the last handful of audit entries with actor, action, and target resource, so the moment you open `/admin` you see what's been happening on the instance. Click through to `/admin/audit-log` for the full history with filters.
+- **System-status snapshot** — container, database, queue, and external-service health in one block, so `/admin/system-status` becomes a deep-dive rather than the front door.
+
+The section grid hasn't disappeared — it now lives in the sidebar and only auto-expands while you're actually on an `/admin/*` route, so the sidebar stays quiet when you're elsewhere in the app.
+
+## Auto-Deploy on GHCR Push (v1.4.15)
+
+For self-hosters running Coolify, v1.4.15 wires a webhook so a successful Docker image build on `main` triggers a Coolify deploy automatically. Coolify then pings an internal HealthLog endpoint with the deploy result; success / failure / unknown all land in the audit log under `system.deploy.*`, and persistent failures fan a `SYSTEM_ALERT` to every admin via Telegram (if the channel is configured).
+
+Two GitHub Actions secrets enable the trigger side: `COOLIFY_WEBHOOK` (the Bearer-protected deploy URL Coolify exposes) and `COOLIFY_TOKEN`. The webhook side needs `DEPLOY_WEBHOOK_SECRET` set both in the HealthLog container env (so the endpoint can verify incoming pings) and in Coolify's outgoing-webhook config as the `X-Deploy-Webhook-Secret` header. With those in place, no more manual `docker compose pull` after a release tag.

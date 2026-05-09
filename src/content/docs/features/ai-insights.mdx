@@ -57,6 +57,10 @@ When the model identifies a metric-specific finding, it can embed a chart token 
 
 Every finding must cite a concrete number ("138/85 mmHg", "+0.4 mmol/L vs 30d-avg") rather than adjectives. Findings without a measurement anchor are dropped. Generic boilerplate ("drink enough water", "consult your doctor") is forbidden outside the disclaimer.
 
+## Hardened Guardrails (v1.4.15+)
+
+v1.4.15 tightens the contract between HealthLog and the model. Every recommendation must cite a concrete data point from the snapshot you submitted; recommendations that try to cite anything that isn't in the snapshot are rejected before they reach you. If the model returns a malformed response, HealthLog corrects it and re-asks once; if the second attempt still fails, you get a clean error rather than a half-broken card. The system prompt is versioned (the `PROMPT_VERSION` field in the audit log records which prompt produced which response), and on the ChatGPT-via-Codex path the model slug is auto-failed-over through a configurable fallback chain so a vendor-side rotation doesn't silently break Insights. The AI is still informational only — the disclaimer footer stays — but it can no longer make up numbers.
+
 ## Three Years of Context (v1.4.6)
 
 Every per-card insight (general, blood pressure, pulse, weight, BMI, mood, medication compliance) sees up to 360 daily means plus 24 monthly means for the older window — three years of history per metric — so the model can spot drift that plays out over a year, not just over the last 30 days. A 50 KB safety guard re-buckets at 180 daily days for particularly noisy accounts so the prompt token budget never blows out.
