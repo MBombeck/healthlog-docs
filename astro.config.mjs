@@ -104,6 +104,18 @@ export default defineConfig({
 						{ slug: 'self-hosting/scaling' },
 					],
 				},
+				{
+					label: 'Admin',
+					items: [
+						{ slug: 'admin/backups' },
+					],
+				},
+				{
+					label: 'Account',
+					items: [
+						{ slug: 'account/data-deletion' },
+					],
+				},
 			],
 		}),
 	],
