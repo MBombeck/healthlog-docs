@@ -52,6 +52,7 @@ export default defineConfig({
 						{ slug: 'features/doctor-report' },
 						{ slug: 'features/gamification' },
 						{ slug: 'features/export-import' },
+						{ slug: 'features/dashboard-customization' },
 					],
 				},
 				{
@@ -84,6 +85,7 @@ export default defineConfig({
 						{ slug: 'api/integrations' },
 						{ slug: 'api/admin' },
 						{ slug: 'api/external-ingest' },
+						{ slug: 'api/native-clients' },
 					],
 				},
 				{
@@ -99,6 +101,7 @@ export default defineConfig({
 						{ slug: 'self-hosting/docker' },
 						{ slug: 'self-hosting/reverse-proxy' },
 						{ slug: 'self-hosting/updates' },
+						{ slug: 'self-hosting/scaling' },
 					],
 				},
 			],
