@@ -28,13 +28,20 @@ The report includes a summary of key vital signs for the selected period:
 | Metric | Details |
 |--------|---------|
 | Weight | Average, min, max, trend direction |
-| BMI | Current value, classification per WHO |
-| Blood Pressure | Average Sys/Dia, classification per ESC/ESH 2018 |
+| BMI | Current value, classification per WHO (DEGAM age-adjusted bands for 65+) |
+| Blood Pressure | Average Sys/Dia, classification per ESH 2023 |
 | Pulse / Heart Rate | Average, min, max |
+| Blood Glucose | Per-context averages (fasting / postprandial / random / bedtime), distribution, time-in-range when available |
+| Oxygen Saturation | Average, min, with personalised thresholds for COPD baselines (BTS / NICE NG115) |
+| Body Composition | Body fat %, total body water (kg), bone mass (kg) — labelled as bioimpedance estimates, not DEXA-comparable |
+
+:::note
+If you have set custom thresholds under **Settings → Health Targets**, the report prints both your custom target and the standard guideline value side by side, with a clear "custom range applied" badge.
+:::
 
 ### Blood Pressure Classification
 
-Readings are classified according to the 2018 ESC/ESH guidelines:
+Readings are classified according to the ESH 2023 guidelines (numeric thresholds unchanged from 2018; ESC has since withdrawn from the joint document):
 
 | Category | Systolic (mmHg) | Diastolic (mmHg) |
 |----------|-----------------|-------------------|
@@ -89,7 +96,7 @@ The AI analysis is informational only and does not constitute medical advice. Th
 ## Format and Language
 
 - **Format**: A4 PDF, structured with headers and tables
-- **Language**: German medical terminology (Blutdruck, Gewicht, Herzfrequenz, etc.)
+- **Language**: Follows your selected UI locale (English or German). Numbers, dates, and units (mg/dL vs mmol/L, kg, mmHg) format per locale via the same `useFormatters()` helper that powers the dashboard.
 - **Disclaimer**: A footer on each page notes that the report is auto-generated and does not replace professional medical assessment
 
 :::caution

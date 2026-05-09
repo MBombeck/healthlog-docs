@@ -14,16 +14,21 @@ HealthLog tracks and analyzes key health metrics. All metrics can be entered man
 | Metric | Unit | Automatic Analysis | Withings Sync |
 |--------|------|-------------------|----|
 | Weight | kg | BMI calculation, trend analysis | Yes |
-| Blood Pressure (Sys/Dia) | mmHg | WHO/ESC/ESH classification | Yes |
+| Blood Pressure (Sys/Dia) | mmHg | ESH 2023 classification | Yes (BPM Connect) |
 | Heart Rate | bpm | Trend analysis | Yes |
-| Body Fat Percentage | % | Trend analysis | Yes |
-| Total Body Water | kg | Trend analysis | Yes (Body+ scales) |
+| Body Fat Percentage | % | ACE bands (essential / athlete / fitness / acceptable / overweight / obese) | Yes |
+| Total Body Water | kg | Trend analysis (Watson formula reference) | Yes (Body+ scales) |
 | Bone Mass | kg | Trend analysis | Yes (Body+ scales) |
-| Sleep Duration | hours | Trend analysis | — |
-| Activity (Steps) | steps | Trend analysis | Yes |
-| Blood Glucose | mg/dL or mmol/L | Per-context ranges (ADA 2024) | — |
+| Sleep Duration | hours | AASM 2015 adult range | — |
+| Activity (Steps) | steps | Saint-Maurice JAMA 2020 (continued benefit through ~12 000/d) | Yes |
+| Blood Glucose | mg/dL or mmol/L | Per-context ranges (ADA 2024) — fasting / postprandial / random / bedtime | — |
+| Oxygen Saturation (SpO2) | % | BTS / NICE NG115; personalised baseline for COPD | Yes (ScanWatch) |
 
-Total body water and bone mass were added in 1.3.0. Both are stored canonically in kilograms — matching what Withings Body+ scales report (`hydration` measure type 77 and `bone_mass` measure type 88) and what Health Connect's `TotalBodyWaterRecord` / `BoneMassRecord` provide. Anyone with a Withings connection sees them flowing in automatically on the next sync, no extra config.
+Total body water and bone mass were added in 1.3.0; pulse oximetry (SpO2) in 1.3.3. All are stored canonically in their listed units — matching what the Withings devices report and what Health Connect's `TotalBodyWaterRecord` / `BoneMassRecord` provide. Anyone with a Withings connection sees them flowing in automatically on the next sync, no extra config.
+
+:::tip
+Reference ranges for any metric can be overridden under **Settings → Health Targets**. The dashboard, traffic-light indicators, charts, and the Doctor Report PDF all switch to your custom value, and the report prints both your custom target and the standard guideline value side by side.
+:::
 
 ## Data Entry
 
@@ -43,7 +48,7 @@ All metrics are analyzed across three time ranges:
 - **30 days** -- Monthly trends
 - **90 days** -- Long-term development
 
-Visualizations are rendered with Recharts (line and bar charts).
+Visualizations are rendered with Recharts (line and bar charts). Long ranges (>90 days) auto-bucket the data — weekly mean for 91–730 days, monthly mean beyond — with an inline chip showing the active bucket so the aggregation is never silent.
 
 ## BMI Calculation
 
@@ -59,7 +64,7 @@ Height must be configured in your user profile for automatic BMI calculation to 
 
 ## Blood Pressure Classification
 
-Readings are classified according to the 2018 ESC/ESH guidelines and WHO classification:
+Readings are classified according to the ESH 2023 hypertension guidelines (ESC withdrew from the joint authoring; the numeric thresholds are unchanged from 2018):
 
 | Category | Systolic (mmHg) | Diastolic (mmHg) |
 |----------|-----------------|-------------------|
@@ -88,8 +93,8 @@ All charts are built with Recharts and include the following types:
 HealthLog generates a structured PDF report for doctor visits.
 
 - **Format**: PDF via jsPDF (generated client-side)
-- **Content**: Blood pressure history, weight trends, BMI, medication plan
-- **Classification**: Based on 2018 ESC/ESH guidelines
+- **Content**: Blood pressure history, weight trends, BMI, glucose, oxygen saturation, body composition, medication compliance, mood
+- **Classification**: ESH 2023 (BP), WHO + DEGAM age-adjusted (BMI), ADA 2024 (glucose), BTS / NICE NG115 (SpO2)
 - **Time range**: Freely selectable
 
 :::caution
