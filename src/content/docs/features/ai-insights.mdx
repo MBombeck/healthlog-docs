@@ -15,7 +15,7 @@ Configure a provider per user under **Settings → AI**:
 |----------|-------|-------|
 | **OpenAI** | Paste your own API key (BYOK), or use the admin-shared key | Model dropdown with provider presets, plus a custom-model field for power users |
 | **Anthropic Claude** | Paste your API key | Examples: `claude-3-5-haiku`, `claude-3-5-sonnet` |
-| **ChatGPT (OAuth)** | One-click "Connect with ChatGPT" — uses your existing ChatGPT subscription | Requires the operator to set `CODEX_OAUTH_CLIENT_ID`; otherwise the button is hidden and the API-key path is recommended instead |
+| **ChatGPT subscription (Codex)** | One-click **Connect with ChatGPT** — runs entirely through your existing ChatGPT Plus / Pro subscription, no API plan or separate billing required | Uses the OpenAI device-code flow (the same mechanism the official Codex CLI uses for headless / hosted environments). Requires the operator to set `CODEX_OAUTH_CLIENT_ID`; otherwise the button is hidden and the API-key path is the only route |
 | **Local / OpenAI-compatible** | Custom base URL + optional API key | Ollama, LM Studio, vLLM, LiteLLM — your data never leaves your network |
 
 Selection is per user. Switching providers stores the new credentials and clears any provider-specific URL the previous selection had set, so a saved local URL cannot leak to OpenAI / Anthropic on the next request.
@@ -23,6 +23,27 @@ Selection is per user. Switching providers stores the new credentials and clears
 ## Setup
 
 Pick a provider, paste the API key (and base URL for local endpoints), and pick a model from the dropdown. Keys and URLs are stored AES-256-GCM encrypted in the database. The **Test connection** button fires a single low-cost request and surfaces a clean error message if the key, model, or URL is wrong.
+
+## Connect with ChatGPT (v1.5)
+
+The ChatGPT-subscription path lets you reuse the GPT capacity that ships with ChatGPT Plus or Pro — no separate OpenAI API plan, no second invoice. HealthLog talks to the same `chatgpt.com/backend-api/codex/responses` endpoint that the official Codex CLI uses, with the access token issued for your ChatGPT account.
+
+**How the flow works:**
+
+1. Open **Settings → AI**, pick **ChatGPT (Codex)**, click **Connect with ChatGPT**.
+2. HealthLog displays a short user code (e.g. `RGRP-N5F7U`) and opens `https://auth.openai.com/codex/device` in a new tab.
+3. Enter the code on that page, confirm the access prompt with your ChatGPT account.
+4. The Settings panel polls in the background and switches to **ChatGPT connected** — done.
+
+There is no redirect URL to whitelist, so the flow works on any HealthLog instance, including hosted self-hosts behind a domain. The OAuth refresh token is stored AES-256-GCM encrypted; HealthLog rotates the access token transparently before each request.
+
+**Default model.** The default is `gpt-5.3-codex` — the codex-optimised slug that ChatGPT Plus and Pro tiers can call. Operators can pin a different default for their plan tier via the `CODEX_MODEL` environment variable (for example, a Pro-only slug). The Codex backend rejects model slugs that aren't in the allow-list for your plan with a clear error message in **Test connection**.
+
+**Disconnect.** A **Trennen** / **Disconnect** button next to the badge revokes the stored token; reconnect any time.
+
+:::note
+If you connected before v1.5.0, click **Disconnect** and reconnect once. The earlier storage form did not carry the `chatgpt_account_id` claim that the Codex backend requires today, so old tokens cannot be carried forward.
+:::
 
 :::note
 Without any provider configured, AI Insights are disabled. Every other HealthLog feature stays fully functional, and the dashboard simply hides the AI cards.

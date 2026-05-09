@@ -7,7 +7,24 @@ sidebar:
 
 HealthLog stores its configuration in an **AppSettings singleton** in the database. These settings are managed through the admin interface at `/admin` and take effect immediately — no restart required.
 
-The admin console is built around a **status-first card grid** (Users, Integrations, Monitoring, Backups, Maintenance, Audit Log, Feedback). Each card links to its own focused panel beneath the grid. As of v1.4, every panel is its own component — no more 2,700-line monolith — but the URLs and the visible structure are unchanged.
+The admin console is a **status-first overview** plus a sidebar with one focused panel per section. As of v1.5, every panel lives at its own URL (`/admin/<section>`) so links and bookmarks point at the exact view you want, and only the section you visit ships its bundle to the browser:
+
+| Section | Route | What's there |
+|---|---|---|
+| Overview | `/admin` | Status-card grid, jump-to-section menu |
+| System status | `/admin/system-status` | Container, DB, queue, and external-service health |
+| General | `/admin/general` | Registration, default locale, feature toggles |
+| Services | `/admin/services` | Umami, GlitchTip, Web Push (VAPID) |
+| Integrations | `/admin/integrations` | All integration sub-panels in one view |
+| Reminders | `/admin/reminders` | Late / missed thresholds for medication reminders |
+| Users | `/admin/users` | Per-user list with role filters and force-logout (v1.5+) |
+| API tokens | `/admin/api-tokens` | Cross-user view of issued bearer + refresh tokens |
+| Login overview | `/admin/login-overview` | Recent logins per user / IP |
+| Backups | `/admin/backups` | Weekly backup history + manual run (v1.5+) |
+| Feedback | `/admin/feedback` | Bug-report inbox, optional escalation |
+| Danger zone | `/admin/danger-zone` | Wipe data, decommission instance |
+
+Old anchor-style links (`/admin#section-users`) issue a 301 to the new route, so existing bookmarks keep working.
 
 ## General
 
@@ -87,3 +104,23 @@ The toggle is independent of the GitHub PAT. You can keep the PAT configured for
 :::note
 Sensitive values like the VAPID private key and GitHub token are stored encrypted in the database using AES-256-GCM. The encryption key is the `ENCRYPTION_KEY` environment variable.
 :::
+
+## Users (v1.5)
+
+The **Users** panel at `/admin/users` lists every account on the instance with the role badge, the email Gravatar, the registration date, and the last-seen timestamp. Three filter pills narrow the list:
+
+- **All** — every account.
+- **Admins** — accounts with the admin role.
+- **Users** — non-admin accounts.
+
+Each row has a **Force logout** action behind a confirmation dialog. It deletes every active session for the target user (web cookies, native Bearer tokens, refresh tokens). The user is signed out immediately on every device and has to re-authenticate. The action writes an `admin.user.force-logout` entry to the audit log so the trail survives.
+
+You cannot force-logout your own account — the button is disabled on your own row.
+
+## Backups (v1.5)
+
+The **Backups** panel at `/admin/backups` shows the history of weekly snapshots (created Sundays at 03:00 Europe/Berlin by the `data-backup` queue). For every snapshot the panel shows the user, the backup type, the byte size, and the creation timestamp. The encrypted blob itself is **never** rendered — only the metadata.
+
+The **Backup now** button enqueues an ad-hoc `data-backup` job for every user without waiting for the next Sunday. The job runs through the same encryption + S3 upload path the scheduled run uses; a toast confirms success. If the worker process is not running (for example, on a `HEALTHLOG_PROCESS_TYPE=web` container without a sibling worker), the button returns a clear "worker offline" error instead of silently dropping the job.
+
+See [Self-Hosting → Scaling](/self-hosting/scaling/) for the off-host S3 upload configuration and the restore script.

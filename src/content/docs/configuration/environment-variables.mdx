@@ -87,7 +87,8 @@ These variables are optional — Web Push can also be configured through the adm
 | `ENCRYPTION_KEYS` | JSON map of versioned keys, e.g. `{"v1":"<64-hex>","v2":"<64-hex>"}` (replaces single `ENCRYPTION_KEY` for installs that need rotation) | — |
 | `ENCRYPTION_ACTIVE_KEY_ID` | Which key in `ENCRYPTION_KEYS` encrypts new writes | — |
 | `API_TOKEN_HMAC_KEY` | HMAC-SHA-256 key for token hashing (already required) | — |
-| `CODEX_OAUTH_CLIENT_ID` | When set, the **Connect with ChatGPT** button appears in Settings → AI; without it the API-key path is the only route | — |
+| `CODEX_OAUTH_CLIENT_ID` | When set, the **Connect with ChatGPT** button appears in Settings → AI and the device-code flow against `auth.openai.com` is enabled. Without it the API-key path is the only route | — |
+| `CODEX_MODEL` | Operator-side default model slug for the ChatGPT-Codex provider. Falls back to `gpt-5.3-codex` (works on Plus and Pro). Override only if your plan tier needs a different default — the Codex backend will reject any slug that isn't in your plan's allow-list | `gpt-5.3-codex` |
 
 See [Scaling & Operations](/self-hosting/scaling/) for the rotation workflow and the worker / web split.
 
