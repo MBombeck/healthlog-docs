@@ -7,7 +7,7 @@ sidebar:
 
 HealthLog stores its configuration in an **AppSettings singleton** in the database. These settings are managed through the admin interface at `/admin` and take effect immediately — no restart required.
 
-The admin console is a **status-first overview** plus a sidebar with one focused panel per section. As of v1.5, every panel lives at its own URL (`/admin/<section>`) so links and bookmarks point at the exact view you want, and only the section you visit ships its bundle to the browser:
+The admin console is a **status-first overview** plus a sidebar with one focused panel per section. As of v1.4.14, every panel lives at its own URL (`/admin/<section>`) so links and bookmarks point at the exact view you want, and only the section you visit ships its bundle to the browser:
 
 | Section | Route | What's there |
 |---|---|---|
@@ -17,10 +17,10 @@ The admin console is a **status-first overview** plus a sidebar with one focused
 | Services | `/admin/services` | Umami, GlitchTip, Web Push (VAPID) |
 | Integrations | `/admin/integrations` | All integration sub-panels in one view |
 | Reminders | `/admin/reminders` | Late / missed thresholds for medication reminders |
-| Users | `/admin/users` | Per-user list with role filters and force-logout (v1.5+) |
+| Users | `/admin/users` | Per-user list with role filters and force-logout (v1.4.14+) |
 | API tokens | `/admin/api-tokens` | Cross-user view of issued bearer + refresh tokens |
 | Login overview | `/admin/login-overview` | Recent logins per user / IP |
-| Backups | `/admin/backups` | Weekly backup history + manual run (v1.5+) |
+| Backups | `/admin/backups` | Weekly backup history + manual run (v1.4.14+) |
 | Feedback | `/admin/feedback` | Bug-report inbox, optional escalation |
 | Danger zone | `/admin/danger-zone` | Wipe data, decommission instance |
 
@@ -105,7 +105,7 @@ The toggle is independent of the GitHub PAT. You can keep the PAT configured for
 Sensitive values like the VAPID private key and GitHub token are stored encrypted in the database using AES-256-GCM. The encryption key is the `ENCRYPTION_KEY` environment variable.
 :::
 
-## Users (v1.5)
+## Users (v1.4.14)
 
 The **Users** panel at `/admin/users` lists every account on the instance with the role badge, the email Gravatar, the registration date, and the last-seen timestamp. Three filter pills narrow the list:
 
@@ -117,7 +117,7 @@ Each row has a **Force logout** action behind a confirmation dialog. It deletes 
 
 You cannot force-logout your own account — the button is disabled on your own row.
 
-## Backups (v1.5)
+## Backups (v1.4.14)
 
 The **Backups** panel at `/admin/backups` shows the history of weekly snapshots (created Sundays at 03:00 Europe/Berlin by the `data-backup` queue). For every snapshot the panel shows the user, the backup type, the byte size, and the creation timestamp. The encrypted blob itself is **never** rendered — only the metadata.
 

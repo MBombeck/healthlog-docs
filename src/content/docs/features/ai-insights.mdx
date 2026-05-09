@@ -24,7 +24,7 @@ Selection is per user. Switching providers stores the new credentials and clears
 
 Pick a provider, paste the API key (and base URL for local endpoints), and pick a model from the dropdown. Keys and URLs are stored AES-256-GCM encrypted in the database. The **Test connection** button fires a single low-cost request and surfaces a clean error message if the key, model, or URL is wrong.
 
-## Connect with ChatGPT (v1.5)
+## Connect with ChatGPT (v1.4.14)
 
 The ChatGPT-subscription path lets you reuse the GPT capacity that ships with ChatGPT Plus or Pro — no separate OpenAI API plan, no second invoice. HealthLog talks to the same `chatgpt.com/backend-api/codex/responses` endpoint that the official Codex CLI uses, with the access token issued for your ChatGPT account.
 
@@ -42,7 +42,7 @@ There is no redirect URL to whitelist, so the flow works on any HealthLog instan
 **Disconnect.** A **Trennen** / **Disconnect** button next to the badge revokes the stored token; reconnect any time.
 
 :::note
-If you connected before v1.5.0, click **Disconnect** and reconnect once. The earlier storage form did not carry the `chatgpt_account_id` claim that the Codex backend requires today, so old tokens cannot be carried forward.
+If you connected before v1.4.14, click **Disconnect** and reconnect once. The earlier storage form did not carry the `chatgpt_account_id` claim that the Codex backend requires today, so old tokens cannot be carried forward.
 :::
 
 :::note

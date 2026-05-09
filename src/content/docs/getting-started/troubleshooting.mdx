@@ -81,7 +81,7 @@ docker compose logs app | grep -i withings
 
 - **Button is hidden** -- The operator has not set the `CODEX_OAUTH_CLIENT_ID` environment variable. Without it the button is intentionally hidden and the API-key path is the only route. See [Environment Variables](/configuration/environment-variables/).
 - **Connect step finishes but every Insight call fails with "model not supported"** -- The Codex backend keeps a per-plan allow-list of model slugs. If your ChatGPT plan does not include `gpt-5.3-codex`, set the operator-side `CODEX_MODEL` environment variable to a slug your plan accepts and restart.
-- **You connected before v1.5.0 and Insights now fail** -- The token storage form changed in v1.5: the older form did not carry the `chatgpt_account_id` claim that the Codex backend now requires. Click **Disconnect** in **Settings → AI** and reconnect once. No data is lost.
+- **You connected before v1.4.14 and Insights now fail** -- The token storage form changed in v1.4.14: the older form did not carry the `chatgpt_account_id` claim that the Codex backend now requires. Click **Disconnect** in **Settings → AI** and reconnect once. No data is lost.
 - **Code expires before you confirm it** -- The user code is short-lived (a few minutes). Click **Connect with ChatGPT** again to get a fresh code.
 
 ## Notifications Not Sending
