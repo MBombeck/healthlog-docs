@@ -5,7 +5,9 @@ sidebar:
   order: 2
 ---
 
-HealthLog stores its configuration in an **AppSettings singleton** in the database. These settings are managed through the admin interface at `/settings/admin` and take effect immediately — no restart required.
+HealthLog stores its configuration in an **AppSettings singleton** in the database. These settings are managed through the admin interface at `/admin` and take effect immediately — no restart required.
+
+The admin console is built around a **status-first card grid** (Users, Integrations, Monitoring, Backups, Maintenance, Audit Log, Feedback). Each card links to its own focused panel beneath the grid. As of v1.4, every panel is its own component — no more 2,700-line monolith — but the URLs and the visible structure are unchanged.
 
 ## General
 
@@ -68,14 +70,19 @@ VAPID keys can be set directly in the admin settings. These take precedence over
 | `vapidPrivateKey` | VAPID private key (stored encrypted) |
 | `vapidSubject` | Contact URI for VAPID (`mailto:...`) |
 
-## Bug Reports (GitHub)
+## Bug Reports
 
-Allows users to submit bug reports as GitHub issues directly from within the app.
+The built-in feedback flow always works (stored in your HealthLog database). Two extra knobs:
 
 | Setting | Description |
 |---|---|
-| `githubIssueToken` | GitHub Personal Access Token (stored encrypted) |
+| `bugReportEnabled` | Master on/off toggle (v1.4.3+). When off, `/bugreport` and `/api/feedback` both return 503 with a readable error so users see "bug reports are disabled" instead of a broken form. |
+| `githubIssueToken` | GitHub Personal Access Token for the optional **Escalate to GitHub** admin action (stored encrypted) |
 | `githubIssueRepo` | Target repository in `owner/repo` format |
+
+:::note
+The toggle is independent of the GitHub PAT. You can keep the PAT configured for escalation while turning the public bug-report form off, or run the form without ever escalating to GitHub.
+:::
 
 :::note
 Sensitive values like the VAPID private key and GitHub token are stored encrypted in the database using AES-256-GCM. The encryption key is the `ENCRYPTION_KEY` environment variable.

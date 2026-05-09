@@ -76,8 +76,42 @@ These variables are optional — Web Push can also be configured through the adm
 
 | Variable | Description |
 |---|---|
-| `GITHUB_ISSUE_TOKEN` | GitHub Personal Access Token with `repo` scope |
+| `GITHUB_ISSUE_TOKEN` | GitHub Personal Access Token with `repo` scope (legacy fallback — admin settings preferred) |
 | `GITHUB_ISSUE_REPO` | Target repository in `owner/repo` format |
+
+## Multi-Tenant / Scaling (v1.4+)
+
+| Variable | Description | Default |
+|---|---|---|
+| `HEALTHLOG_PROCESS_TYPE` | `web`, `worker`, or `all` — splits HTTP traffic and pg-boss jobs into separate containers | `all` |
+| `ENCRYPTION_KEYS` | JSON map of versioned keys, e.g. `{"v1":"<64-hex>","v2":"<64-hex>"}` (replaces single `ENCRYPTION_KEY` for installs that need rotation) | — |
+| `ENCRYPTION_ACTIVE_KEY_ID` | Which key in `ENCRYPTION_KEYS` encrypts new writes | — |
+| `API_TOKEN_HMAC_KEY` | HMAC-SHA-256 key for token hashing (already required) | — |
+| `CODEX_OAUTH_CLIENT_ID` | When set, the **Connect with ChatGPT** button appears in Settings → AI; without it the API-key path is the only route | — |
+
+See [Scaling & Operations](/self-hosting/scaling/) for the rotation workflow and the worker / web split.
+
+## Off-Host S3 Backups (v1.4+)
+
+| Variable | Description |
+|---|---|
+| `BACKUP_S3_ENDPOINT` | Base URL of the S3-compatible service |
+| `BACKUP_S3_REGION` | Bucket region |
+| `BACKUP_S3_BUCKET` | Target bucket name |
+| `BACKUP_S3_ACCESS_KEY_ID` | Access key |
+| `BACKUP_S3_SECRET_ACCESS_KEY` | Secret key |
+| `BACKUP_S3_PREFIX` | Optional path prefix inside the bucket (e.g. `healthlog/`) |
+
+The IAM grant must be `PutObject` + `GetObject` only — retention is the bucket's lifecycle-rule job, never the worker's.
+
+## Auth & Privacy
+
+| Variable | Description | Default |
+|---|---|---|
+| `TRUST_PROXY_HOPS` | How many `X-Forwarded-For` hops to trust when reading client IPs (matches your reverse-proxy chain) | `1` |
+| `IP_GEO_LOOKUP_URL` | HTTPS-only IP-geolocation provider URL | `https://ipwho.is/{ip}` |
+| `IP_GEO_LOOKUP_DISABLED` | Set to `1` to skip IP geolocation entirely | — |
+| `AUDIT_LOG_RETENTION_DAYS` | Days before audit-log rows are purged (GDPR Art. 5(1)(e)) | `365` |
 
 ## .env.example
 
