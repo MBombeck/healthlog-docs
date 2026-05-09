@@ -1,0 +1,83 @@
+---
+title: "Scaling & Operations"
+description: "Worker / web split, encryption-key rotation, off-host S3 backups."
+sidebar:
+  order: 4
+---
+
+For single-user self-hosts, the bundled `docker-compose.yml` is enough — a single container runs the web app, the proxy, and the pg-boss worker side by side. The v1.4 release added three operations features that matter once you grow past that:
+
+## Worker / Web Split
+
+The optional `HEALTHLOG_PROCESS_TYPE` env var splits HTTP traffic and pg-boss background jobs into separate containers, so you can scale each independently.
+
+| Value | Behaviour |
+|-------|-----------|
+| `all` (default) | Single container — HTTP + pg-boss in the same process. |
+| `web` | HTTP only. pg-boss is not started. Reminders, insight caching, and weekly backups will not run. |
+| `worker` | pg-boss only. The proxy refuses HTTP traffic with `503 Service Unavailable` and an `X-HealthLog-Process-Type: worker` header so a misrouted request fails loudly. |
+
+Run **at most one** worker per database — pg-boss serializes through Postgres advisory locks, but running multiple workers wastes connections.
+
+```yaml title="docker-compose.scale.yml"
+services:
+  app-web:
+    image: ghcr.io/mbombeck/healthlog:1.4.6
+    environment:
+      HEALTHLOG_PROCESS_TYPE: web
+      # ... rest of env
+
+  app-worker:
+    image: ghcr.io/mbombeck/healthlog:1.4.6
+    environment:
+      HEALTHLOG_PROCESS_TYPE: worker
+      # ... rest of env
+```
+
+## Encryption-Key Rotation
+
+`ENCRYPTION_KEYS` is a JSON map of versioned keys; `ENCRYPTION_ACTIVE_KEY_ID` selects which key encrypts new writes. Old data keeps decrypting under its original key.
+
+```bash
+# Initial setup
+ENCRYPTION_KEYS='{"v1":"<64-hex>"}'
+ENCRYPTION_ACTIVE_KEY_ID=v1
+
+# Add a new key, keep the old one for decryption
+ENCRYPTION_KEYS='{"v1":"<64-hex>","v2":"<new-64-hex>"}'
+ENCRYPTION_ACTIVE_KEY_ID=v2
+
+# Re-encrypt every encrypted column under v2
+pnpm tsx scripts/rotate-encryption-key.ts v2
+```
+
+After the rotation script completes, you can drop `v1` from `ENCRYPTION_KEYS`. The legacy single-key `ENCRYPTION_KEY` env var still works as a transparent fallback for installs that haven't migrated to the JSON map yet.
+
+:::danger
+**Never remove a key from `ENCRYPTION_KEYS` until you have re-encrypted every row under another key.** Encrypted columns include Withings tokens, AI provider keys, VAPID private key, GitHub bug-report PAT, moodLog webhook secret, and notification credentials. Removing the only key that can decrypt a row makes that row permanently unreadable.
+:::
+
+Walk-through and rollback notes live in `docs/ops/encryption-key-rotation.md` in the repo.
+
+## Off-Host S3 Backups
+
+The pg-boss `data-backup` queue runs a weekly backup (Sundays 03:00 Europe/Berlin) of every user's data as encrypted JSON. With v1.4, the backup can be uploaded to any S3-compatible bucket.
+
+| Variable | Description |
+|----------|-------------|
+| `BACKUP_S3_ENDPOINT` | Base URL of the S3-compatible service (e.g. `https://s3.eu-central-1.amazonaws.com`, `https://s3.your-minio.example.com`) |
+| `BACKUP_S3_REGION` | Bucket region |
+| `BACKUP_S3_BUCKET` | Target bucket name |
+| `BACKUP_S3_ACCESS_KEY_ID` | Access key |
+| `BACKUP_S3_SECRET_ACCESS_KEY` | Secret key |
+| `BACKUP_S3_PREFIX` | Optional path prefix inside the bucket (e.g. `healthlog/`) |
+
+The IAM grant is intentionally **`PutObject` + `GetObject` only**. Retention is the bucket's lifecycle-rule job, not the worker's — a compromised worker cannot wipe the backup history.
+
+The admin "Backup target" connection-test button on the integrations panel validates the configuration end-to-end (endpoint reachable, credentials valid, bucket writable).
+
+Restore script + step-by-step doc: `docs/ops/backup-restore.md` in the repo.
+
+:::tip
+For single-user self-hosts the in-database weekly backup is enough for accidental-delete recovery, but a database-level `pg_dump` to off-host storage is still the right floor — see [Updates](/self-hosting/updates/) for the cron one-liner.
+:::
