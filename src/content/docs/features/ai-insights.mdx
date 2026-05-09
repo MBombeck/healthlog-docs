@@ -1,23 +1,48 @@
 ---
 title: AI Insights
-description: AI-powered health analysis with OpenAI — trends, correlations, and personalized recommendations.
+description: AI-powered health analysis — trends, correlations, inline charts, and personalized recommendations across multiple providers (OpenAI, Anthropic, ChatGPT-OAuth, local).
 sidebar:
   order: 4
 ---
 
-HealthLog offers AI-powered analysis of your health data. The integration uses OpenAI (gpt-4o-mini) with a BYOK (Bring Your Own Key) model.
+HealthLog offers AI-powered analysis of your health data. As of v1.2 you can pick the provider that fits your privacy and budget profile — there is no longer a single hard-coded vendor.
+
+## Providers
+
+Configure a provider per user under **Settings → AI**:
+
+| Provider | Setup | Notes |
+|----------|-------|-------|
+| **OpenAI** | Paste your own API key (BYOK), or use the admin-shared key | Model dropdown with provider presets, plus a custom-model field for power users |
+| **Anthropic Claude** | Paste your API key | Examples: `claude-3-5-haiku`, `claude-3-5-sonnet` |
+| **ChatGPT (OAuth)** | One-click "Connect with ChatGPT" — uses your existing ChatGPT subscription | Requires the operator to set `CODEX_OAUTH_CLIENT_ID`; otherwise the button is hidden and the API-key path is recommended instead |
+| **Local / OpenAI-compatible** | Custom base URL + optional API key | Ollama, LM Studio, vLLM, LiteLLM — your data never leaves your network |
+
+Selection is per user. Switching providers stores the new credentials and clears any provider-specific URL the previous selection had set, so a saved local URL cannot leak to OpenAI / Anthropic on the next request.
 
 ## Setup
 
-Users provide their own OpenAI API key in the settings. The key is stored AES-256-GCM encrypted in the database.
+Pick a provider, paste the API key (and base URL for local endpoints), and pick a model from the dropdown. Keys and URLs are stored AES-256-GCM encrypted in the database. The **Test connection** button fires a single low-cost request and surfaces a clean error message if the key, model, or URL is wrong.
 
 :::note
-Without an API key, AI Insights are disabled. All other HealthLog features remain fully functional.
+Without any provider configured, AI Insights are disabled. Every other HealthLog feature stays fully functional, and the dashboard simply hides the AI cards.
 :::
+
+## Inline Charts in Findings (v1.4+)
+
+When the model identifies a metric-specific finding, it can embed a chart token that renders the matching chart directly under the paragraph. Supported tokens include `metric:WEIGHT`, `metric:BLOOD_PRESSURE`, `metric:PULSE`, `metric:BMI`, `metric:MOOD`, and the medication-compliance chart. The renderer is allow-listed server-side — only the supported tokens render; any other emission is dropped silently. The "Key Takeaway" card strips the tokens for prose and renders the matching chart underneath.
+
+## Evidence-Anchored Findings (v1.4.3+)
+
+Every finding must cite a concrete number ("138/85 mmHg", "+0.4 mmol/L vs 30d-avg") rather than adjectives. Findings without a measurement anchor are dropped. Generic boilerplate ("drink enough water", "consult your doctor") is forbidden outside the disclaimer.
+
+## Three Years of Context (v1.4.6)
+
+Every per-card insight (general, blood pressure, pulse, weight, BMI, mood, medication compliance) sees up to 360 daily means plus 24 monthly means for the older window — three years of history per metric — so the model can spot drift that plays out over a year, not just over the last 30 days. A 50 KB safety guard re-buckets at 180 daily days for particularly noisy accounts so the prompt token budget never blows out.
 
 ## Privacy Modes
 
-Users choose what data is sent to OpenAI:
+Users choose what data is sent to the provider:
 
 | Mode | Description |
 |------|------------|
@@ -25,43 +50,32 @@ Users choose what data is sent to OpenAI:
 | **Raw** | Actual readings with timestamps |
 
 :::caution
-In Raw mode, real health data is sent to the OpenAI API. HealthLog never sends data to third parties unless the user has explicitly configured the OpenAI integration.
+In Raw mode, real health data is sent to the configured provider. Local endpoints keep the data on your network; cloud providers see whatever you send.
 :::
 
 ## Insight Categories
 
 HealthLog generates insights across seven categories:
 
-1. **General** -- Overall health trends
-2. **Blood Pressure** -- Trend analysis, classification, recommendations
-3. **Weight** -- Trend analysis, BMI development
-4. **Heart Rate** -- Resting heart rate trends, anomalies
-5. **BMI** -- Long-term development, target range
-6. **Medication Compliance** -- Adherence analysis, patterns
-7. **Mood** -- Mood trends and correlations (when MoodLog integration is active)
-
-## Correlation Analysis
-
-The AI identifies relationships between different metrics:
-
-- Weight and blood pressure
-- Mood and blood pressure (when MoodLog integration is active)
-- Mood and weight
-- Mood and heart rate
-- Blood pressure and medication compliance
+1. **General** — Cross-domain synthesis with cardiovascular risk stratification
+2. **Blood Pressure** — Trend, ESH 2023 classification, morning risk, pulse pressure
+3. **Weight** — Trend, BMI, plateau detection, body-composition divergence
+4. **Heart Rate** — Resting trends, fitness ladder, anomalies
+5. **BMI** — Long-term development, age-adjusted DEGAM bands for 65+
+6. **Medication Compliance** — Adherence, chronotherapy hints, mood-adherence risk
+7. **Mood** — Mood trends, bidirectional correlations with vitals and adherence
 
 ## Caching and Generation
 
 - **Cache duration**: 24 hours per insight
-- **Automatic generation**: Nightly between 02:00 and 02:30 via pg-boss job
+- **Automatic generation**: Nightly between 02:00 and 02:30 (pg-boss cron)
 - **Manual generation**: Available anytime from the dashboard (invalidates the cache)
+- **Cached reloads** do not consume rate-limit budget — a noisy refresh from the dashboard cannot lock you out of fresh generations.
 
-```
-Schedule: 02:00-02:30 UTC (pg-boss cron)
-Cache TTL: 24 hours
-Model: gpt-4o-mini
-```
+## Locale-Aware Prompts
+
+Prompts and responses run in the user's selected locale. A German user gets German recommendations; an English user gets English. Numbers, dates, and units (mg/dL vs mmol/L, kg, mmHg) are formatted by `useFormatters()` before being injected into the prompt — the model never has to translate or convert.
 
 :::tip
-The nightly auto-generation ensures that fresh insights are ready when you open the app in the morning, with no waiting required.
+Even without an AI provider, HealthLog provides detailed statistics, trend analysis, and reference-range comparisons on the dashboard. The AI is additive, not load-bearing.
 :::
