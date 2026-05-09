@@ -15,8 +15,9 @@ Integration with Withings scales and blood pressure monitors via OAuth 2.0.
 
 | Device Type | Metrics |
 |------------|---------|
-| Scale | Weight, body fat percentage |
-| Blood Pressure Monitor | Systolic, diastolic, heart rate |
+| Scale (Body+ / Body Comp) | Weight, body fat percentage, total body water (kg), bone mass (kg) |
+| Blood Pressure Monitor (BPM Connect) | Systolic, diastolic, heart rate |
+| ScanWatch | Oxygen saturation (SpO2) |
 
 ### Synchronization
 
@@ -50,6 +51,14 @@ Integration with [moodlog.app](https://moodlog.app) for mood tracking data.
 - **Data**: Mood entries with tags
 
 Mood data feeds into the AI correlation analysis (mood vs. blood pressure, weight, heart rate).
+
+:::note
+The moodLog instance URL is validated against an SSRF allow-list — internal-network and cloud-metadata addresses are rejected on save and re-checked at fetch time. The webhook secret is stored AES-256-GCM encrypted.
+:::
+
+## Test Connection Buttons
+
+Each integration ships with a one-click **Test connection** button under **Settings → Integrations** (Withings, moodLog, Web Push, Glitchtip, Umami, AI provider, Telegram, ntfy). Each test runs server-side, behind its own rate limit, with sanitised error reporting and the same redirect-follow SSRF guard the production fetch uses.
 
 ## External API
 

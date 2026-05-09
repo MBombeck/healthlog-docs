@@ -13,13 +13,17 @@ All your data stays on your own infrastructure — no cloud lock-in, no subscrip
 
 ## Key Features
 
-- **Vital Sign Tracking** — Weight, blood pressure, heart rate, body fat, sleep, activity, mood
+- **Vital Sign Tracking** — Weight, blood pressure, heart rate, body fat, sleep, activity, mood, blood glucose, oxygen saturation, total body water, bone mass
 - **Medication Management** — Schedules, dosages, as-needed medications, compliance analytics
 - **Automated Reminders** — Telegram, ntfy, Web Push notifications
-- **Withings Sync** — Automatic import from smart scales and blood pressure monitors
-- **AI Insights** — OpenAI integration (BYOK), trend analysis, personalized recommendations
-- **Medical Reports as PDF** — Exportable reports with charts and historical data
-- **Gamification** — 38 achievements to reward consistent tracking
+- **Withings Sync** — Automatic import from smart scales, BP monitors, ScanWatch (SpO2), and Body+ (TBW, bone mass)
+- **AI Insights** — Multi-provider (OpenAI / Anthropic Claude / ChatGPT-OAuth / local OpenAI-compatible), inline charts in findings, three years of context per metric
+- **Doctor Report PDF** — Client-side, locale-aware export with vital signs, medication compliance, mood distribution, and an optional AI summary
+- **Custom Health Targets** — Override any guideline default with the values your clinician set, audit-logged
+- **Customizable Dashboard** — Show / hide / reorder every widget
+- **Built-in Feedback** — Bug, feature, question, or other — with optional GitHub escalation for admins
+- **Native API Clients** — Bearer-token + refresh-token flow, Idempotency-Key header support — ready for the iOS app and external automation (n8n, Health Connect)
+- **Gamification** — 38 persistent achievements to reward consistent tracking
 - **Passkey Authentication** — Passwordless login via WebAuthn
 - **Dark-only Dracula Theme** — Easy on the eyes at any time of day
 
