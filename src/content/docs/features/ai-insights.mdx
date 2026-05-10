@@ -39,7 +39,7 @@ There is no redirect URL to whitelist, so the flow works on any HealthLog instan
 
 **Default model.** The default is `gpt-5.3-codex` — the codex-optimised slug that ChatGPT Plus and Pro tiers can call. Operators can pin a different default for their plan tier via the `CODEX_MODEL` environment variable (for example, a Pro-only slug). The Codex backend rejects model slugs that aren't in the allow-list for your plan with a clear error message in **Test connection**.
 
-**Disconnect.** A **Trennen** / **Disconnect** button next to the badge revokes the stored token; reconnect any time.
+**Disconnect.** A **Disconnect** button next to the badge revokes the stored token; reconnect any time.
 
 :::note
 If you connected before v1.4.14, click **Disconnect** and reconnect once. The earlier storage form did not carry the `chatgpt_account_id` claim that the Codex backend requires today, so old tokens cannot be carried forward.
