@@ -135,6 +135,12 @@ export default defineConfig({
 						{ slug: 'account/data-deletion' },
 					],
 				},
+				{
+					label: 'Contributing',
+					items: [
+						{ slug: 'contributing/branch-model' },
+					],
+				},
 			],
 		}),
 	],
