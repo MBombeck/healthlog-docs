@@ -12,7 +12,10 @@ The admin console is a **status-first overview** plus a sidebar with one focused
 | Section | Route | What's there |
 |---|---|---|
 | Overview | `/admin` | Recent audit-log preview + system-status snapshot (v1.4.15+; section grid now lives in the sidebar) |
-| System status | `/admin/system-status` | Container, DB, queue, and external-service health |
+| System status | `/admin/system-status` | Container, DB, queue, and external-service health, plus a host-load chart over the last 2h (v1.4.16+) |
+| App logs | `/admin/app-logs` | Tail of the last hour of structured wide-events with filters + JSON inspector (v1.4.16+) |
+| Audit log | `/admin/audit-log` | Filterable + paginated audit history with CSV export (v1.4.16+ filters / pagination / export) |
+| AI quality | `/admin/ai-quality` | Per-(severity × provider) helpful-rate from user feedback (v1.4.16+) |
 | General | `/admin/general` | Registration, default locale, feature toggles |
 | Services | `/admin/services` | Umami, GlitchTip, Web Push (VAPID) |
 | Integrations | `/admin/integrations` | All integration sub-panels in one view |
@@ -135,6 +138,33 @@ The `/admin` overview was a grid of section status cards through v1.4.14. v1.4.1
 - **System-status snapshot** — container, database, queue, and external-service health in one block, so `/admin/system-status` becomes a deep-dive rather than the front door.
 
 The section grid hasn't disappeared — it now lives in the sidebar and only auto-expands while you're actually on an `/admin/*` route, so the sidebar stays quiet when you're elsewhere in the app.
+
+## Host-Load Chart (v1.4.16)
+
+The **System status** panel gains a host-load chart at the top showing host CPU, memory, and disk-IO over the **last 2 hours**, sampled every minute. Coolify Sentinel doesn't expose a clean read endpoint for these numbers, so HealthLog runs its own in-process sampler — a `host-metric-sampler` pg-boss job writes a row to a new `HostMetric` table every minute and the API returns the last 2h on demand. Samples are retained for 7 days, then expired by the same job that writes them.
+
+The chart sits above the existing system-status block, so the moment you open `/admin/system-status` you see whether the host is healthy before you even read the container / DB / queue rows.
+
+## App-Log Preview (v1.4.16)
+
+A new **App logs** panel at `/admin/app-logs` surfaces a tail of the last hour of **structured wide-events** straight from the per-process ring buffer (500-entry FIFO; redacted at API egress). Filters narrow the list by:
+
+- **`trace_id`** — paste a request id from a user-reported bug and you see only that request's events.
+- **Level** — `debug` / `info` / `warn` / `error`.
+- **Action** — pulldown of every action that's actually been observed in the buffer.
+- **Time window** — last 5/15/60 minutes.
+
+Click any row to open a JSON inspector modal with the full event payload (after redaction). Useful for debugging without `docker compose logs` and without shipping every event to Loki — the buffer always has the most recent hour for free.
+
+## AI Quality Preview (v1.4.16)
+
+`/admin/ai-quality` surfaces the daily aggregate of user feedback on AI recommendations. The table is grouped by `severity × provider × prompt-version`, with a helpful-rate column tinted by band (green for ≥ 75%, orange for 50–74%, red for < 50%). A degrading provider or a regression in a new prompt version shows up at a glance.
+
+The aggregator runs once a day at 04:00 Europe/Berlin (`feedback-aggregator` pg-boss queue). The summary is stored in `AppSettings.adminAiInsightsFeedbackSummary` so the page renders from a single read; the per-user feedback rows themselves are never returned to admins.
+
+## Audit Log (v1.4.16)
+
+The audit log gets first-class filtering and export. Filter by **actor**, **action**, **target**, paginate at 25/50/100 rows per page, and click the export button to download the current filtered view as CSV. The action filter is a pulldown populated from a `groupBy` over the audit table itself, so you only ever see actions that actually happened on the instance.
 
 ## Auto-Deploy on GHCR Push (v1.4.15)
 

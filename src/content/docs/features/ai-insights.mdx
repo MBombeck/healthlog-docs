@@ -61,6 +61,54 @@ Every finding must cite a concrete number ("138/85 mmHg", "+0.4 mmol/L vs 30d-av
 
 v1.4.15 tightens the contract between HealthLog and the model. Every recommendation must cite a concrete data point from the snapshot you submitted; recommendations that try to cite anything that isn't in the snapshot are rejected before they reach you. If the model returns a malformed response, HealthLog corrects it and re-asks once; if the second attempt still fails, you get a clean error rather than a half-broken card. The system prompt is versioned (the `PROMPT_VERSION` field in the audit log records which prompt produced which response), and on the ChatGPT-via-Codex path the model slug is auto-failed-over through a configurable fallback chain so a vendor-side rotation doesn't silently break Insights. The AI is still informational only — the disclaimer footer stays — but it can no longer make up numbers.
 
+## Per-Recommendation Explainability (v1.4.16+)
+
+Every recommendation now carries a **rationale** that explains where it came from. Click the chevron on a card to expand it and you see three lines plus a mini-chart of the data window the model actually looked at:
+
+- **Window** — the time range the recommendation was derived from (e.g. *last 30 days*, *last 7 days*).
+- **Compared to** — the baseline the current value was checked against (your 90-day personal baseline, the prior period, the guideline target).
+- **Deviation** — what the difference looked like in plain numbers (e.g. *+6 mmHg systolic vs. last month*).
+
+The mini-chart embedded directly under the rationale is the same Recharts wrapper that powers the dashboard, scoped to the rationale window — you see the same data the model saw, in 140 px of vertical space. If the chart series doesn't match the metric the recommendation talks about, that's a schema violation and the recommendation is rejected before it reaches you.
+
+The rationale is part of the strict schema. A recommendation without `dataWindow`, `comparedTo`, and `deviation` won't render — the corrective retry runs first; if the model still won't comply, the recommendation is dropped.
+
+## Confidence Score (v1.4.16+)
+
+Every recommendation gets a **0–100 confidence score** that's computed deterministically on the server, not whatever the model claims. The score is derived from three inputs:
+
+- **Sample size** — how many readings backed the finding. Log-saturating; capped at 40 points. Fewer than three readings hard-caps the score at `5 × n`.
+- **Recency** — how stale the most recent reading was. Linear decay, 30 points at zero days down to zero at 30 days old.
+- **Signal strength** — the magnitude of the deviation in standard deviations. 30 points at \|z\| ≥ 1.5; null signal contributes a neutral 15.
+
+The card renders the score as a colour-banded ring + 5-bar meter on the right of the recommendation. Scores below 25 show a small "Low confidence — based on limited data" pill instead of being hidden, so you can still see the suggestion and decide for yourself whether to act on it. The model's claimed confidence value is discarded — the meter you see is always the deterministic computation.
+
+## Was-this-helpful Feedback (v1.4.16+)
+
+Every recommendation has a **thumbs-up / thumbs-down** pair. Tapping a thumb is optimistic — the UI updates immediately, the mutation persists in the background. Each verdict is stored against `(userId, recommendationId, recommendationText)`, so toggling within the same recommendation overwrites the previous vote and you can't double-count yourself.
+
+Provider attribution is **filled server-side** from the latest insight-generation audit row — clients can't tamper with which provider gets credit. The feedback table ties feedback to the provider that produced the recommendation, so the admin AI-quality dashboard at `/admin/ai-quality` can show per-(severity × provider) helpful-rate over time.
+
+Privacy: feedback is **per-user only**. The aggregate is admin-only and gated behind `requireAdmin`. Cross-user feedback never leaves your instance, and the daily aggregator only writes summary counts, not individual votes.
+
+## Medical-Reference Grounding (v1.4.16+)
+
+Recommendations now cite **curated medical guidelines** by id. The bundle ships with seven references — ESH 2023, ESC 2024, ACC/AHA 2017, WHO 2021 hypertension, WHO BMI, DGE 2024 nutrition, AHA pulse — each with a stable slug, EN/DE titles, the source URL, and the metrics it applies to.
+
+The system prompt injects a SOURCES block listing only references that match the metrics in the current snapshot, plus a ground rule telling the model to cite by id. The schema validates the `referenceId` field against the bundle — a fabricated id fails parse before it can render. The post-validation step logs **citation coverage** (how many normative recommendations carry a citation) as a Wide-Event annotation, so the admin AI-quality dashboard can plot coverage over time.
+
+In the UI, every cited recommendation gets a small "Source: ESH 2023" footnote with an external-link icon. Click it and the source guideline opens in a new tab. No model hallucinations of "studies have shown…" — if a recommendation makes a normative claim, it cites a guideline you can read for yourself.
+
+## Multi-Provider Fallback Chain (v1.4.16+)
+
+The insight wrapper tries each configured provider in turn. If a provider hard-fails — `401`, `403`, `429`, `5xx`, transport error — the wrapper cascades to the next. **Schema 422** still bubbles, because that's a problem with the response body, not the provider; retrying it against another provider would just waste another paid request. The last provider that successfully answered is **cached for an hour** per user, so the cascade only runs once after a vendor outage instead of on every generation.
+
+Order, enable / disable, and the provider list itself are configurable per user under **Settings → AI**. See [Provider configuration](/settings/ai-providers/) for the dropdown + form layout, the test-connection button, and the fallback chain editor.
+
+The chain is **per user**, not per instance — you can have one user on Codex with OpenAI fallback, another user on a local Ollama with no fallback, and a third user on the admin-shared OpenAI key. The "active provider" badge in Settings → AI shows which entry actually answered the most recent generation, so you can see at a glance whether the fallback kicked in.
+
+For a deeper walk-through of how the rationale, confidence, citations, and feedback all fit together end-to-end, see [How AI Insights work](/insights/how-it-works/).
+
 ## Three Years of Context (v1.4.6)
 
 Every per-card insight (general, blood pressure, pulse, weight, BMI, mood, medication compliance) sees up to 360 daily means plus 24 monthly means for the older window — three years of history per metric — so the model can spot drift that plays out over a year, not just over the last 30 days. A 50 KB safety guard re-buckets at 180 daily days for particularly noisy accounts so the prompt token budget never blows out.
@@ -95,7 +143,9 @@ HealthLog generates insights across seven categories:
 - **Cache duration**: 24 hours per insight
 - **Automatic generation**: Nightly between 02:00 and 02:30 (pg-boss cron)
 - **Manual generation**: Available anytime from the dashboard (invalidates the cache)
+- **Rate limit**: 10 generations per hour per user (v1.4.16+; previously 2/h). Configurable via the `INSIGHTS_RATE_LIMIT_PER_HOUR` env var.
 - **Cached reloads** do not consume rate-limit budget — a noisy refresh from the dashboard cannot lock you out of fresh generations.
+- **Regeneration evicts the cache fully** (v1.4.16+) — when you generate a new insight, every previously cached per-status payload for that user is deleted, so the dashboard never shows a stale cached card next to a fresh one.
 
 ## Locale-Aware Prompts
 

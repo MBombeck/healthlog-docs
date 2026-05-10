@@ -50,6 +50,8 @@ All metrics are analyzed across three time ranges:
 
 Visualizations are rendered with Recharts (line and bar charts). Long ranges (>90 days) auto-bucket the data — weekly mean for 91–730 days, monthly mean beyond — with an inline chip showing the active bucket so the aggregation is never silent.
 
+A **comparison overlay** (v1.4.16+) at the top of every chart and tile lets you toggle "vs. last month" / "vs. last year" — the prior period renders as a dimmed line beneath the current one, with a delta callout (Δ ±N) next to the headline value. See [Comparison views](/dashboard/comparison/) for the full toggle UX.
+
 ## BMI Calculation
 
 BMI is calculated automatically from weight and height. Height is set once in the user profile.

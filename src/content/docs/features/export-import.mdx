@@ -7,6 +7,18 @@ sidebar:
 
 HealthLog provides comprehensive export and import capabilities for data backup, sharing with doctors, and migration.
 
+## Settings → Export (v1.4.16+)
+
+Every export — the doctor-report PDF, the per-domain CSVs, and the full JSON backup — lives under one consolidated route at **Settings → Export**. Each export is its own card with a clear title, a one-line description, the relevant filters, and a download button. The cards are:
+
+- **Doctor report (PDF)** — the same client-side jsPDF generator described in [Doctor Report](/features/doctor-report/), but reachable from the Export page now instead of a separate top-level link. Configurable date range and optional practice name.
+- **Measurements (CSV)** — every reading you've logged. Time range filter on the card.
+- **Medications (CSV)** — your medication list. An optional "include intake history" toggle lets you bundle every recorded intake event into the same CSV.
+- **Mood (CSV)** — your mood entries with tags.
+- **Full JSON backup** — the entire account snapshot in JSON, importable back into HealthLog.
+
+The mobile layout stacks the cards in one column; on `≥ md` viewports they sit two-up. Every download writes a `user.export.<kind>` entry to your audit log. All four endpoints share a global `export:<userId>` rate-limit bucket of **10 / hour**, and the doctor-report PDF — generated client-side — does not count against that bucket.
+
 ## Export
 
 ### Formats
