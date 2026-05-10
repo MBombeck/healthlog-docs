@@ -57,6 +57,10 @@ When the model identifies a metric-specific finding, it can embed a chart token 
 
 Every finding must cite a concrete number ("138/85 mmHg", "+0.4 mmol/L vs 30d-avg") rather than adjectives. Findings without a measurement anchor are dropped. Generic boilerplate ("drink enough water", "consult your doctor") is forbidden outside the disclaimer.
 
+## Prompt Tone (v1.4.19)
+
+v1.4.19 revises the system prompt so insights no longer open with a default-positivity sentence about data quality. "Your data foundation is strong" / "Datengrundlage ist sehr stark" openers are explicitly forbidden by GROUND RULE 7 in both EN and DE locales. Data-quality caveats are still allowed when they're useful — `n < 7` in the analysed window, recency older than 14 days, or a coverage gap that biases the comparison — but they no longer pad every reply. `PROMPT_VERSION` bumped 4.16.1 → 4.19.0 so feedback aggregation can attribute responses to the new rule.
+
 ## Hardened Guardrails (v1.4.15+)
 
 v1.4.15 tightens the contract between HealthLog and the model. Every recommendation must cite a concrete data point from the snapshot you submitted; recommendations that try to cite anything that isn't in the snapshot are rejected before they reach you. If the model returns a malformed response, HealthLog corrects it and re-asks once; if the second attempt still fails, you get a clean error rather than a half-broken card. The system prompt is versioned (the `PROMPT_VERSION` field in the audit log records which prompt produced which response), and on the ChatGPT-via-Codex path the model slug is auto-failed-over through a configurable fallback chain so a vendor-side rotation doesn't silently break Insights. The AI is still informational only — the disclaimer footer stays — but it can no longer make up numbers.
