@@ -90,7 +90,7 @@ docker compose logs app | grep -i withings
 
 **Check these settings:**
 
-1. **Global toggles** -- Admin settings (`/settings/admin`) have global on/off toggles per channel. If a channel is globally disabled, no user receives notifications through it.
+1. **Global toggles** -- Admin settings (`/admin/services`) have global on/off toggles per channel. If a channel is globally disabled, no user receives notifications through it.
 2. **User preferences** -- Each user can disable specific event types or channels in their notification settings.
 3. **VAPID keys** (Web Push) -- Must be configured in the admin panel or via environment variables. Without valid VAPID keys, Web Push silently fails.
 4. **Telegram bot token** -- Must be valid and the bot must have sent at least one message to the user's chat ID.

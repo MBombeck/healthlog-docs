@@ -12,9 +12,9 @@ POST /api/insights/generate
 ```
 
 **Auth:** Session Cookie
-**Rate Limit:** 2 requests / hour / user
+**Rate Limit:** 10 requests / hour / user (configurable via the `INSIGHTS_RATE_LIMIT_PER_HOUR` env var; the 24h DB cache short-circuits this for read traffic — only `force=true` and expired-cache regenerations consume budget)
 
-Generates an AI-powered insight based on the user's health data. Uses OpenAI `gpt-4o-mini` with a 24-hour cache.
+Generates an AI-powered insight based on the user's health data. The provider is the user's configured choice (OpenAI / Anthropic / ChatGPT-Codex / local OpenAI-compatible) — see [Settings → AI Providers](/settings/ai-providers/) — with a 24-hour cache.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/insights/generate \

@@ -5,16 +5,13 @@ sidebar:
   order: 1
 ---
 
-v1.4.16 adds a **comparison overlay** that turns every chart, tile, and the insights surface into a "this month vs. last month" view at the flick of a toggle. This page covers what the toggle does, where to find it, and what the numbers mean.
+v1.4.16 added a **comparison overlay** that turns charts and the insights surface into a "this month vs. last month" view at the flick of a toggle. v1.4.19 narrowed the surface — the dashboard no longer shows the toggle (it lived above every chart in v1.4.16–v1.4.18 and added too much noise to the default view); it now lives **only on `/insights`**, folded into the hero meta band. This page covers what the toggle does, where to find it, and what the numbers mean.
 
 ## Where the toggle lives
 
-The comparison toggle has two surfaces. They both write to the same per-user preference, so flipping one updates the other.
+As of v1.4.19 there is one entry point: the `/insights` hero meta band. The three-state segmented control reads *Off / vs. last month / vs. last year* — tap once to flip on the last-month overlay, tap again for last-year, tap a third time to turn it off. The control is touch-friendly (no hover dependency) and writes a per-user preference that survives reload and follows you across devices.
 
-- **Chart-side controls.** Above every chart on the dashboard and on the metric detail pages, a small three-state segmented control reads *Off / vs. last month / vs. last year*. Tap once to flip on the last-month overlay, tap again for last-year, tap a third time to turn it off. The control is touch-friendly — no hover dependency.
-- **Settings → Dashboard Layout.** The same preference lives at the top of the Dashboard Layout page so you can set the default once. Saved to your account; survives reload, survives device.
-
-The toggle is **per user, per metric family** — so you can keep the BP chart in last-month overlay mode while the weight chart sits in last-year overlay mode. Default is off; nothing changes until you turn it on.
+Default is off; nothing changes until you turn it on. The dashboard's per-chart cog menu (v1.4.18+) handles trend, trend-arrow, and target-range overlays separately — see [Dashboard Customization](/features/dashboard-customization/#per-chart-overlay-toggles-v1418).
 
 ## What the overlay actually shows
 
@@ -28,9 +25,9 @@ The two periods share the **same visible x-axis**. The prior-period series is **
 
 ### 2. The headline value picks up a delta callout
 
-Above each chart, the existing 7-day-trend value gets a second chip: **Δ ±N**. The number is the difference between the current-period mean and the prior-period mean, in the metric's own units. Colour follows the same metric-aware sentiment as the 7-day trend (green for "improvement", orange for "concerning", muted for "neutral").
+On `/insights`, the hero metric value gets a **Δ ±N** chip alongside the toggle. The number is the difference between the current-period mean and the prior-period mean, in the metric's own units. Colour follows the same metric-aware sentiment as the dashboard 7-day trend chips (green for "improvement", orange for "concerning", muted for "neutral").
 
-Tile cards on the dashboard get the same Δ callout, fed from two new fields on the data summary (`avg30LastMonth`, `avg30LastYear`) so the chart and the tile read from the same source of truth.
+The two new fields on the data summary (`avg30LastMonth`, `avg30LastYear`) feed the delta computation, so the chart and the headline read from the same source of truth.
 
 ### 3. The AI insights surface narrates the comparison
 

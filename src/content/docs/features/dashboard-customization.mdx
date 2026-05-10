@@ -78,11 +78,11 @@ Every chart card has a small cog button next to its header. Tap it for a popover
 
 Defaults are all off, so the default look is a clean line. Each switch is **per chart, per user** — the BP chart can have target-range on while the weight chart stays off. State is persisted in your account (`User.dashboardWidgetsJson.chartOverlayPrefs`), so it survives reload and follows you across devices. The personal-baseline reference line is no longer always-on the way it was in v1.4.16; it only renders when the Trend switch on that specific chart is enabled.
 
-### Comparison overlays (v1.4.16+)
+### Comparison overlays (v1.4.16+, dashboard surface removed in v1.4.19)
 
-Every chart, every dashboard tile, and the insights page have a new **comparison toggle** at the top: *off / vs. last month / vs. last year*. With the toggle on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
+The **comparison toggle** — *off / vs. last month / vs. last year* — lives on the `/insights` hero as of v1.4.19. The dashboard surface (one toggle per chart, plus a global toggle in the layout settings) was removed because it added too much noise to the default view; the cog menu on each chart card still handles trend, trend-arrow, and target-range overlays separately. With the toggle on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
 
-Tiles get the same treatment via two new fields (`avg30LastMonth`, `avg30LastYear`) on the data summary, and the AI insights surface narrates the comparison ("your average BP improved by 4 mmHg vs. last month") when the toggle is active. See [Comparison views](/dashboard/comparison/) for the full walk-through.
+The AI insights surface narrates the comparison ("your average BP improved by 4 mmHg vs. last month") when the toggle is active. See [Comparison views](/dashboard/comparison/) for the full walk-through.
 
 Once you finish the onboarding checklist, the dashboard stops re-fetching the checklist gates on every load (v1.4.14+) — opening the dashboard is roughly a second faster for established accounts because two background requests no longer fire. Insights chart bundles also load on demand on the **Insights** page, so the first paint is faster for everyone.
 

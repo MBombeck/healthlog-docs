@@ -78,7 +78,7 @@ HealthLog uses an in-memory sliding window for rate limiting:
 | Registration | 5 requests / 15 min |
 | Data ingest | 60 requests / min |
 | Export | 10 requests / h |
-| AI insights | 2 requests / h |
+| AI insights | 10 requests / h (configurable via `INSIGHTS_RATE_LIMIT_PER_HOUR`) |
 | Bug report | 3 requests / h |
 
 When the limit is exceeded, the server responds with `429 Too Many Requests`. The `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers indicate the current status.
