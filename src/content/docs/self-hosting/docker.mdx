@@ -9,12 +9,12 @@ If you're setting HealthLog up for the first time, start with [Getting Started â
 
 ## Image source
 
-Pre-built multi-arch images are published to GitHub Container Registry by the [`docker-publish.yml`](https://github.com/MBombeck/HealthLog/blob/main/.github/workflows/docker-publish.yml) workflow on every push to `main` and every `v*` tag.
+Pre-built images are published to GitHub Container Registry by the [`docker-publish.yml`](https://github.com/MBombeck/HealthLog/blob/main/.github/workflows/docker-publish.yml) workflow on every push to `main` and every `v*` tag.
 
 | Property | Value |
 | -------- | ----- |
 | Registry | `ghcr.io/mbombeck/healthlog` |
-| Architectures | `linux/amd64`, `linux/arm64` |
+| Architectures | `linux/amd64` (native arm64 image planned for v1.5; build from source on arm64 hosts in the meantime) |
 | Tags | `latest` (main), `vX.Y.Z`, `vX.Y`, `sha-<short>` |
 | Base | `node:22-alpine` (multi-stage build) |
 | User | `nextjs` (UID 1001, non-root) |

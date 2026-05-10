@@ -7,7 +7,7 @@ sidebar:
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-HealthLog ships as a multi-arch Docker image (`linux/amd64` and `linux/arm64`) on [GitHub Container Registry](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog). The bundled `docker-compose.yml` pulls it together with a PostgreSQL 16 service — no build step required for self-hosters.
+HealthLog ships as a `linux/amd64` Docker image on [GitHub Container Registry](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog). The bundled `docker-compose.yml` pulls it together with a PostgreSQL 16 service — no build step required for self-hosters. (A native arm64 image is planned for v1.5; until then arm64 hosts can build from source — see the *Build from source* section below.)
 
 ## Prerequisites
 
