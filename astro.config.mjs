@@ -56,6 +56,24 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Insights',
+					items: [
+						{ slug: 'insights/how-it-works' },
+					],
+				},
+				{
+					label: 'Dashboard',
+					items: [
+						{ slug: 'dashboard/comparison' },
+					],
+				},
+				{
+					label: 'Settings',
+					items: [
+						{ slug: 'settings/ai-providers' },
+					],
+				},
+				{
 					label: 'Configuration',
 					items: [
 						{ slug: 'configuration/environment-variables' },
