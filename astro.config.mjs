@@ -51,6 +51,7 @@ export default defineConfig({
 						{ slug: 'features/pwa-offline' },
 						{ slug: 'features/doctor-report' },
 						{ slug: 'features/gamification' },
+						{ slug: 'features/achievements-hidden' },
 						{ slug: 'features/export-import' },
 						{ slug: 'features/dashboard-customization' },
 					],
