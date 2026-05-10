@@ -73,6 +73,17 @@ v1.4.20 ships a redesigned `/insights` surface that mounts five new pieces on to
 
 Three pre-defined correlation cards (BP × medication compliance, mood × pulse, weight × weekday) and a Trends row with AI annotations on the BP timeline round out the new layout. `PROMPT_VERSION` ratcheted 4.19.0 → 4.20.0 → 4.20.1 → 4.20.2 across the rollout; every bump carries one new optional schema block, so insights cached before v1.4.20 still parse without a re-run.
 
+## Coach Prose Rewrite + Collapsible Evidence (v1.4.22)
+
+v1.4.22 is the polish release that lands before the iOS push. The Coach used to open every reply with a number — clinical, database-cursor energy. v1.4.22 reframes the persona as warm, curious, and reserved: a partner sitting alongside you, not pushing data.
+
+- **Prose-first responses.** The reply is a real sentence — "Your blood pressure has settled into the green zone over the last two weeks; the morning readings still tend to run a little high." Numbers move out of the prose into a collapsible evidence block.
+- **Collapsible evidence disclosure.** Each assistant turn carries a "Worauf bezieht sich das?" / "What I'm looking at" `<details>` toggle, closed by default, hidden when no evidence rows came back. Behind the toggle: the metric labels, windows, and aggregate values the Coach drew on. The toggle reveals the data without burying the conversation in it.
+- **Hard caps on the evidence envelope.** The sentinel block the model emits has a 1 KB payload limit, 8 lines maximum, and per-line Zod validation, so a prompt-injection attempt can't grow the persisted envelope.
+- **`PROMPT_VERSION` 4.20.2 → 4.22.0** — first minor-digit bump in v1.4.x because the persona, the sentinel-block contract, and the warmth of the prose all changed in one coherent step.
+
+The token budget per Coach turn is unchanged from v1.4.21 (≈3 000 tokens for a full-scope snapshot, ≈600–700 for a single-source last-7-days narrowed turn).
+
 ## Hardened Guardrails (v1.4.15+)
 
 v1.4.15 tightens the contract between HealthLog and the model. Every recommendation must cite a concrete data point from the snapshot you submitted; recommendations that try to cite anything that isn't in the snapshot are rejected before they reach you. If the model returns a malformed response, HealthLog corrects it and re-asks once; if the second attempt still fails, you get a clean error rather than a half-broken card. The system prompt is versioned (the `PROMPT_VERSION` field in the audit log records which prompt produced which response), and on the ChatGPT-via-Codex path the model slug is auto-failed-over through a configurable fallback chain so a vendor-side rotation doesn't silently break Insights. The AI is still informational only — the disclaimer footer stays — but it can no longer make up numbers.
