@@ -54,17 +54,25 @@ Every metric tile in the top strip shows a coloured `(±N.N)` next to the value.
 
 The trend label is consistent across **every** chart, tile, and subtitle now (v1.4.16+) — there is no more mix of "7d average" and "7d trend" depending on which surface you're on, and the indicator appears for mood and medication-compliance just like it does for the vitals charts. Long ranges fall back to a split-half mean delta when the per-week rate would round to zero, so the ±N never reads `0.0` when there's a real movement underneath.
 
-### Apple-Health-style chart polish (v1.4.16+)
+### Chart polish (v1.4.16+, refined in v1.4.18)
 
-Every dashboard chart and the matching detail pages got a visual leap in v1.4.16. Blood pressure, weight, pulse, body fat, sleep, steps, mood, and medication-compliance charts now ship with:
+Every dashboard chart and the matching detail pages share the same visual baseline. Blood pressure, weight, pulse, body fat, sleep, steps, mood, and medication-compliance charts now ship with:
 
-- A **gradient fill** under the line in the metric's accent colour, so the chart reads as a shape, not just a stroke.
-- A **personal-baseline reference line** (your 90-day median, labelled "Your normal" / "Dein Mittel") that gives every reading a personal anchor instead of just a guideline number.
-- **Smooth, animated entry** — 600 ms ease-out on the line and gradient. The animation respects `prefers-reduced-motion` and snaps to final state for users who prefer reduced motion.
-- A **rich tooltip** on hover or tap that includes the date, the value in the metric's units, and the delta from your personal baseline.
+- **Smooth, animated entry** — 600 ms ease-out on the line. The animation respects `prefers-reduced-motion` and snaps to final state for users who prefer reduced motion.
+- A **rich tooltip** on hover or tap that includes the date and the value in the metric's units.
 - An **explicit empty state** for sparse data (fewer than three readings in the visible range) instead of a degenerate one-or-two-point line.
 
-The mood chart additionally renders an emoji glyph at every score point (😖 🙁 😐 🙂 😄 mapped from 1 to 5) so it stays instantly readable. The medication-compliance chart keeps the 80% threshold and 100% goal reference lines and adds a "−N pp vs. target" tooltip delta.
+v1.4.18 trimmed the chart aesthetic back to a clean line. The gradient fills under the lines that landed in v1.4.16 are gone — the chart reads as a single coloured stroke against the card background, no shape underneath. The mood chart also drops the emoji glyphs at the data points; plain coloured dots sit on the line, and the y-axis already labels each integer (very low / low / okay / good / great), so the chart stays scannable. The emoji still appears in the tooltip when you hover or tap a point. The medication-compliance chart keeps the 80% threshold and 100% goal reference lines and adds a "−N pp vs. target" tooltip delta.
+
+### Per-chart overlay toggles (v1.4.18+)
+
+Every chart card has a small cog button next to its header. Tap it for a popover with three independent switches:
+
+- **7-day trend** — paints the personal-baseline line (your 90-day median, labelled "Your normal" / "Dein Mittel") on top of the chart, plus a numeric trend indicator next to the headline. Off by default.
+- **Trend arrow** — adds the small ↑ / ↓ direction-arrow chip to the headline. Off by default.
+- **Target range** — shades the metric's healthy band across the chart background (sys 120–139, weight ±5% of personal target, etc.). Off by default.
+
+Defaults are all off, so the default look is a clean line. Each switch is **per chart, per user** — the BP chart can have target-range on while the weight chart stays off. State is persisted in your account (`User.dashboardWidgetsJson.chartOverlayPrefs`), so it survives reload and follows you across devices. The personal-baseline reference line is no longer always-on the way it was in v1.4.16; it only renders when the Trend switch on that specific chart is enabled.
 
 ### Comparison overlays (v1.4.16+)
 

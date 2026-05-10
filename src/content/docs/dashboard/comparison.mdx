@@ -22,7 +22,7 @@ With the toggle on, three things change.
 
 ### 1. The chart gets a dimmed prior-period line
 
-The current period renders in full colour with the gradient fill, exactly as before. The prior period — last month or last year, depending on which mode you picked — renders as a **dimmed line beneath it**, no fill, lower opacity.
+The current period renders in full colour as the primary line. The prior period — last month or last year, depending on which mode you picked — renders as a **dimmed line beneath it**, lower opacity.
 
 The two periods share the **same visible x-axis**. The prior-period series is **forward-shifted** internally: a reading from a year ago renders at the position of "today − 365d + offset", so each prior-period point sits directly under the current-period point it should be compared against. Same time of month, same day of week. The vertical distance between the two lines is the comparison — no eye-balling alignment.
 
