@@ -84,6 +84,14 @@ v1.4.22 is the polish release that lands before the iOS push. The Coach used to 
 
 The token budget per Coach turn is unchanged from v1.4.21 (≈3 000 tokens for a full-scope snapshot, ≈600–700 for a single-source last-7-days narrowed turn).
 
+## Apple Health Metric Slot + Per-User Prompt Prefs + Helpful/Unhelpful Feedback (v1.4.23)
+
+v1.4.23 lands three Coach-side foundations for the iOS push without changing the persona or the prose contract:
+
+- **Apple Health metric slots.** The strict insight schema's `sourceMetric` and `trendAnnotations` enums extend to admit nine additive HealthKit categories — HRV, sleep, resting HR, steps, active energy, flights climbed, walking + running distance, VO2 max, body temperature. The Coach snapshot pipeline queries the new measurement types only when scope toggles them on, so web-only accounts pay zero extra SQL. `PROMPT_VERSION` ratchets 4.22.0 → 4.23.0 with a new GROUND RULE 12 (EN + DE): treat the new categories as silent when the snapshot doesn't carry them. No apologetic openers about missing data.
+- **Per-user prompt-tuning surface.** The settings cog on the Coach drawer opens a right-edge sheet that lets you set `tone` (warm / direct / concise), `verbosity` (terse / standard / detailed), focus metrics, and exclude metrics. Prefs are persisted in `User.coachPrefsJson` and read **before** the snapshot pipeline runs, so excluded metrics never enter the snapshot in the first place — the privacy boundary is structural, not prompt-policed. The system prompt then prepends a per-user OVERRIDE block.
+- **Per-message helpful/unhelpful feedback.** Each Coach reply renders a 👍 / 👎 affordance. Verdicts persist against the canonical encrypted message row via `recommendation_feedback.target_type = COACH_MESSAGE`; admin dashboards bucket the rate by (`PROMPT_VERSION`, tone, verbosity) so a regression on a future persona bump is visible the same week.
+
 ## Hardened Guardrails (v1.4.15+)
 
 v1.4.15 tightens the contract between HealthLog and the model. Every recommendation must cite a concrete data point from the snapshot you submitted; recommendations that try to cite anything that isn't in the snapshot are rejected before they reach you. If the model returns a malformed response, HealthLog corrects it and re-asks once; if the second attempt still fails, you get a clean error rather than a half-broken card. The system prompt is versioned (the `PROMPT_VERSION` field in the audit log records which prompt produced which response), and on the ChatGPT-via-Codex path the model slug is auto-failed-over through a configurable fallback chain so a vendor-side rotation doesn't silently break Insights. The AI is still informational only — the disclaimer footer stays — but it can no longer make up numbers.
