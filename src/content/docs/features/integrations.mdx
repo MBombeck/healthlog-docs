@@ -9,26 +9,44 @@ HealthLog connects with external services and devices. All integrations are opti
 
 ## Withings
 
-Integration with Withings scales and blood pressure monitors via OAuth 2.0.
+Integration with Withings scales, blood pressure monitors, thermometers, and ScanWatch wearables via OAuth 2.0. Devices live on the Withings ecosystem and pair through the Withings app -- HealthLog reads the data after the user authorises one OAuth connection.
+
+- Marketing site & product range: [withings.com](https://www.withings.com)
+- Health Mate app (the Withings companion app you pair devices with): [withings.com/eu/en/health-mate](https://www.withings.com/eu/en/health-mate)
+- Developer documentation (for the curious / for setting up the OAuth app): [developer.withings.com](https://developer.withings.com)
+
+:::tip
+You do **not** need a Withings+ subscription for any of this. The data sync works with any Withings account that owns the right device. Withings+ adds clinical services and the Withings Intelligence chatbot on top of the free app -- HealthLog provides its own AI Insights surface that doesn't require either.
+:::
 
 ### Supported Devices and Metrics
 
 | Device Type | Metrics |
 |------------|---------|
-| Scale (Body+ / Body Comp) | Weight, body fat percentage, total body water (kg), bone mass (kg) |
-| Blood Pressure Monitor (BPM Connect) | Systolic, diastolic, heart rate |
-| ScanWatch | Oxygen saturation (SpO2) |
+| Scale (Body+ / Body Comp / Body Scan) | Weight, body fat percentage, total body water (kg), bone mass (kg) |
+| Blood Pressure Monitor (BPM Connect / BPM Core / BPM Vision) | Systolic, diastolic, heart rate, SpO2 (BPM Vision) |
+| ScanWatch / ScanWatch 2 / ScanWatch Nova | Oxygen saturation (SpO2), VO2 max |
+| Thermo | Body temperature (both first- and current-generation) |
+
+### Forward compatibility
+
+When Withings exposes a new metric in the Health Mate app and developer API, HealthLog picks it up as soon as we ship the matching adapter -- usually a one-line addition to the meastype mapping table.
+
+- The current coverage table (every Withings `meastype` code → HealthLog measurement) lives in the main repo under [`src/lib/withings/mapping.md`](https://github.com/MBombeck/HealthLog/blob/main/src/lib/withings/mapping.md).
+- The audit of the **full** Withings API surface, with scoring of what's coming next, lives at [`.planning/research/withings-api-coverage.md`](https://github.com/MBombeck/HealthLog/blob/main/.planning/research/withings-api-coverage.md).
+
+If you own a Withings device that produces data HealthLog doesn't ingest yet, open a [GitHub issue](https://github.com/MBombeck/HealthLog/issues) -- additive mappings ship in patch releases.
 
 ### Synchronization
 
 Data is synced through two mechanisms:
 
-- **Webhook** -- Real-time notification on new readings (primary)
-- **Polling** -- Hourly fallback fetch (secondary, in case the webhook fails)
+- **Webhook** -- Real-time push notification on new readings (primary). HealthLog subscribes to the weight + body-composition (`appli=1`), temperature (`appli=2`), and pressure (`appli=4`) categories so blood pressure readings and Thermo measurements arrive within seconds of the device taking them.
+- **Polling** -- Hourly fallback fetch (secondary, in case the webhook fails).
 
 ### Prerequisites
 
-The Withings integration requires a **Withings Developer Account** with a registered app. The Client ID and Client Secret are entered in the HealthLog settings and stored AES-256-GCM encrypted.
+The Withings integration requires a **Withings Developer Account** with a registered app. The Client ID and Client Secret are entered in the HealthLog settings and stored AES-256-GCM encrypted. The developer app itself is free -- the partner-hub "Basic Biomarker Pack" covers everything HealthLog ingests today.
 
 ### Setup
 
