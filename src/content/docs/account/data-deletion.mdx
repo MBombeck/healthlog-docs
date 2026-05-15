@@ -97,6 +97,14 @@ If your instance has off-host S3 backups configured ([Scaling & Operations](/sel
 
 The HealthLog code never auto-prunes off-host backups — that's intentional ([Scaling & Operations](/self-hosting/scaling/) explains why a compromised worker must not be able to wipe your backup history).
 
+## Public Privacy Policy page (v1.4.26)
+
+Every HealthLog instance now serves a public Privacy Policy at `/privacy` — reachable without an account so app-store reviewers, prospective users, and self-hosted-instance visitors can read it before signing up. The page was added so the iOS build could clear App Store Connect submission, but it doubles as the canonical DSGVO / GDPR transparency surface for every deployment:
+
+- **EU GDPR / DSGVO data-subject rights** are enumerated explicitly — right of access (Art. 15), rectification (Art. 16), erasure / "right to be forgotten" (Art. 17), restriction (Art. 18), data portability (Art. 20), and objection (Art. 21) — each cross-linked to the in-app surface that fulfils it.
+- **Apple HealthKit quantity-type list** is disclosed in full so reviewers and users see exactly which HealthKit categories the upcoming iOS app reads — body mass, blood pressure systolic + diastolic, blood glucose, heart rate, oxygen saturation, body fat percentage, lean body mass, BMI, HRV SDNN, sleep analysis, resting heart rate, step count, active energy burned, flights climbed, walking + running distance, VO₂ max, and body temperature.
+- The page renders from `/privacy` on every instance (self-hosted + demo), is statically generated, and contains zero per-user data.
+
 ## Related pages
 
 - [Backup structure and restore](/admin/backups/) — what's in a snapshot, how restore works, security considerations
