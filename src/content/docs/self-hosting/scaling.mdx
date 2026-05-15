@@ -22,13 +22,13 @@ Run **at most one** worker per database — pg-boss serializes through Postgres 
 ```yaml title="docker-compose.scale.yml"
 services:
   app-web:
-    image: ghcr.io/mbombeck/healthlog:1.4.26
+    image: ghcr.io/mbombeck/healthlog:1.4.27
     environment:
       HEALTHLOG_PROCESS_TYPE: web
       # ... rest of env
 
   app-worker:
-    image: ghcr.io/mbombeck/healthlog:1.4.26
+    image: ghcr.io/mbombeck/healthlog:1.4.27
     environment:
       HEALTHLOG_PROCESS_TYPE: worker
       # ... rest of env
