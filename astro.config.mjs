@@ -57,6 +57,20 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Integrations',
+					items: [
+						{ slug: 'integrations/apple-health' },
+						{ slug: 'integrations/withings' },
+						{ slug: 'integrations/ai-providers' },
+					],
+				},
+				{
+					label: 'Concepts',
+					items: [
+						{ slug: 'concepts/source-priority' },
+					],
+				},
+				{
 					label: 'Insights',
 					items: [
 						{ slug: 'insights/how-it-works' },
@@ -121,6 +135,7 @@ export default defineConfig({
 						{ slug: 'self-hosting/reverse-proxy' },
 						{ slug: 'self-hosting/updates' },
 						{ slug: 'self-hosting/scaling' },
+						{ slug: 'self-hosting/coolify' },
 					],
 				},
 				{
