@@ -5,6 +5,14 @@ sidebar:
   order: 1
 ---
 
+import dataFlow from "../../../assets/diagrams/01-data-flow.svg";
+
+## How data flows through the system
+
+<img src={dataFlow.src} alt="HealthLog data flow: sources to ingest to storage (Measurement + MeasurementRollup) to reads to surfaces" />
+
+Every reading walks the same five-stage pipeline. **Sources** (Withings webhook, an Apple Health `export.zip`, the iPhone HealthKit batch from the v1.5 native client, manual entry, the moodLog.app webhook) reach a small set of **ingest** endpoints, which dedup against the source-priority resolver before persisting. **Storage** keeps a row per sample in `Measurement` plus pre-aggregated DAY / WEEK / MONTH buckets in `MeasurementRollup`. **Reads** probe the rollups first and fall back to live SQL when the ask is too slope-heavy or the bucket is cold. **Surfaces** — dashboard tiles, Insights cards, the AI Coach, the doctor-report PDF — all consume the same read path so the numbers stay consistent between, say, a tile and a Coach citation.
+
 ## Tech Stack
 
 | Component | Technology |

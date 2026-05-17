@@ -7,6 +7,12 @@ sidebar:
 
 This page walks through what actually happens between the moment you open the **Insights** page and the moment you see a recommendation card. It complements the [AI Insights feature page](/features/ai-insights/), which lists what's there; this page explains why each piece is on the card and how the pieces fit together.
 
+import coachPipeline from "../../../assets/diagrams/02-coach-pipeline.svg";
+
+<img src={coachPipeline.src} alt="Coach prompt pipeline: question → snapshot → prompt → provider chain → parser → cited reply" />
+
+The diagram above is the bird's-eye view of the same flow: your question (or the dashboard's implicit "what changed recently?") goes through a snapshot builder, then a prompt assembler that bolts the system prompt + locale + Zod citation schema onto the snapshot, then a per-user provider chain that walks ChatGPT OAuth → BYOK OpenAI → BYOK Anthropic → local → admin-shared. The response parser validates against the schema (corrective retry on a 422) before the cited reply renders. The sections below zoom in on each card on the resulting `/insights` page.
+
 ## The recommendation card
 
 Every recommendation is a single card with five parts.

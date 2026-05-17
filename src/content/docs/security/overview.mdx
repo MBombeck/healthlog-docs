@@ -7,6 +7,12 @@ sidebar:
 
 HealthLog uses a layered security model. This page provides an overview of all security-related mechanisms.
 
+import securityModel from "../../../assets/diagrams/05-security-model.svg";
+
+<img src={securityModel.src} alt="Security model: three concentric layers — auth perimeter, session perimeter, encrypted core — with rate limiter, audit log, HMAC tokens, CSP/HSTS and SSRF guard as side rails" />
+
+The diagram above is the mental model: three concentric perimeters protect the encrypted core, with five side rails (rate limiter, audit log, HMAC tokens, CSP/HSTS headers, SSRF guard) cutting across all of them. The sections below cover each piece in detail.
+
 ## Authentication
 
 HealthLog supports two authentication methods:

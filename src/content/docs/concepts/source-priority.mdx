@@ -1,0 +1,68 @@
+---
+title: Source priority
+description: How HealthLog picks one canonical row when Apple Watch, Withings and manual entries all log the same metric for the same day — the two-axis (cumulative vs point) ladder, audit trail, and per-user override.
+sidebar:
+  order: 1
+---
+
+If you run an Apple Watch plus a Withings ScanWatch plus the iPhone Health app, three different sensors are writing your step count for the same day. Without a resolver, the dashboard would triple-count and the AI Coach would talk about 30 000 steps in a day you spent on the couch. HealthLog's source-priority resolver picks **one canonical row per (user, day, metric)** at ingest time, keeps the losing rows in the audit trail, and never silently merges values.
+
+import sourcePriority from "../../../assets/diagrams/04-source-priority.svg";
+
+<img src={sourcePriority.src} alt="Source-priority ladder: same day, same metric, three sources resolve to one canonical row per the cumulative or point ladder" />
+
+## The two-axis ladder
+
+The resolver runs a different ladder depending on whether the metric is **cumulative** (a daily total that grows with activity) or a **point measurement** (a single sensor reading at a moment in time):
+
+| Axis | Ladder | Why |
+| ---- | ------ | --- |
+| Cumulative — steps, active energy, distance, flights, sleep duration, HRV, resting HR | **APPLE_HEALTH ≻ WITHINGS ≻ MANUAL ≻ IMPORT** | iOS HealthKit folds every contributing sensor (Apple Watch motion, iPhone motion, Withings ScanWatch via Health Mate) into one canonical daily aggregate. That aggregate is more complete than any single device's stream. |
+| Point — weight, BP, body fat, body temperature, SpO₂, VO₂ max | **WITHINGS ≻ APPLE_HEALTH ≻ MANUAL ≻ IMPORT** | Withings devices are the primary sensor; the Apple Health row for the same reading is a second-hand copy received via the Health Mate iOS app. Trusting the primary sensor avoids round-trip rounding and timezone-shift artefacts. |
+
+The defaults are encoded in `src/lib/validations/source-priority.ts` and ship with the app. They're conservative — they minimise surprises for users who turn on a second source after months of running just one.
+
+## The audit trail
+
+The resolver never deletes the losing rows. Every `Measurement` lands in Postgres tagged with its `source` enum value (`APPLE_HEALTH`, `WITHINGS`, `MANUAL`, `IMPORT`, `MOODLOG`); only the **aggregation pipeline** filters them through the ladder. Practically:
+
+- The `/measurements` list view shows all rows. Filter by source to see what each integration contributed.
+- The dashboard tiles, trend charts, Insights cards, and Coach answers all read the resolved aggregate.
+- The doctor-report PDF prints the resolved aggregate, with an optional appendix listing per-source breakdowns.
+- If you change your mind about a source ranking, the historic rows are still there — the next aggregation read picks the new winner without a backfill.
+
+## Per-user override
+
+The ladder is a default, not a rule. Per-user overrides live in `User.sourcePriorityJson` and edit through the **Sources** section of `/settings/thresholds`. Use cases:
+
+- **You trust your Withings step count more than the iPhone aggregate.** Override the cumulative ladder to put `WITHINGS` ahead of `APPLE_HEALTH` for `STEPS` only.
+- **You ran a multi-month period with manual weigh-ins before adding the Withings scale.** Override the point ladder to put `MANUAL` ahead of `APPLE_HEALTH` so the gap days don't lose the manual entries to a HealthKit echo.
+- **You disabled an integration entirely.** Drop it from the chain; rows still arrive but the resolver skips them.
+
+The override is a JSON document of the shape `{ "STEPS": ["WITHINGS", "APPLE_HEALTH", "MANUAL"] }`. Malformed JSON falls back to the default rather than 500-ing.
+
+## What "winner per day" actually means
+
+The resolver runs at the **day granularity** the metric uses. For cumulative metrics that's the user-local day (`Europe/Berlin` by default, configurable per user). For point measurements it's "per row" — there is no daily aggregate to pick, so the winner is decided per reading by source ranking, then time-of-day for tied sources.
+
+The day boundary respects the user's timezone preference end-to-end. A Withings scale weighing at 23:55 local time and an Apple Health echo of the same reading at 23:58 UTC the next day resolve to the same canonical user-local day because the Apple Health row carries its own local timestamp from the export.
+
+## Source-priority + Apple Health import
+
+The [Apple Health import](/integrations/apple-health/) page covers the upload mechanics. Worth knowing once you've imported:
+
+- A 10-year history import adds rows back to the start of your iCloud-synced history. The resolver runs at read time, not import time, so older days with no competing source see the imported rows immediately.
+- Days that overlap with existing Withings data resolve via the point or cumulative ladder above — no double-counting, no manual deduplication required.
+- The `result.recordsInserted` and `result.recordsUpdated` counts on the `ImportJob` row tell you how many days landed cleanly versus updated an existing row.
+
+## Source-priority + comparison overlays
+
+The [comparison overlay](/dashboard/comparison/) (vs. last month / vs. last year) reads from the same resolved aggregate. The prior-period mean is computed over the resolved daily series, not the raw multi-source row stream — flipping the toggle does not expose the audit-trail rows.
+
+## When to override
+
+A short rule of thumb: trust the device that produced the reading, not the system that re-syndicates it. Apple Health is a near-perfect aggregator for cumulative activity. Withings devices are the primary sensor for the point measurements they take. Manual entries are the gap-filler. The defaults reflect this; touch the override only when your hardware reality diverges.
+
+## Wide-event observability
+
+Every resolve runs through the `measurements.aggregate.resolve` wide-event log line with the ladder used, the source counts, and the winner per metric. Tail the structured logs (or query the Loki endpoint if you configured one) to see exactly which source backed each tile on a given day — useful when a user reports "the number on the dashboard doesn't match the number my watch shows".
