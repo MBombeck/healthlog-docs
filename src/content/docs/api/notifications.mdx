@@ -155,3 +155,38 @@ POST /api/settings/ntfy/test
 **Auth:** Session Cookie
 
 Sends a test message to the configured ntfy channel.
+
+---
+
+## APNs (Apple Push)
+
+[Apple Push Notification service](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) is the optional channel for the native iOS client. Unlike the per-user channels above, APNs is configured **server-wide via environment variables** — there is no per-user settings endpoint. If the variables are not all set, APNs is silently disabled and the dispatcher falls back to Web Push / Telegram / ntfy.
+
+### Environment configuration
+
+| Variable | Required | Description |
+|---------|----------|-------------|
+| `APNS_KEY_ID` | yes | 10-char key ID of the `.p8` auth key |
+| `APNS_TEAM_ID` | yes | 10-char Apple Developer team ID |
+| `APNS_BUNDLE_ID` | yes | Bundle-id of the signed iOS app; used as the APNs topic |
+| `APNS_KEY` | one of | `.p8` PEM contents (multi-line or `\n`-escaped) |
+| `APNS_KEY_B64` | one of | Base64-encoded `.p8` (escape-free alternative) |
+| `APNS_KEY_FILE` | one of | Filesystem path to the `.p8` |
+| `APNS_PRODUCTION` | no | `"true"` forces the production gateway |
+
+```bash
+APNS_KEY_ID="ABCD123456"
+APNS_TEAM_ID="S8WDX4W5KX"
+APNS_BUNDLE_ID="dev.healthlog.app"
+APNS_KEY_B64="LS0tLS1CRUdJTi...="
+```
+
+All of `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, plus exactly one key source must be present together; otherwise the channel stays off (no crash, soft fallback).
+
+### Device token registration
+
+The iOS app registers its APNs device token through `POST /api/devices` (see [Native API Clients](/api/native-clients/)). The server then fans one push out per registered token, setting the push `topic` to `APNS_BUNDLE_ID`.
+
+:::caution[Self-hosters must rebuild the iOS app]
+The `.p8` key must belong to the same Apple Developer team that signed the app, and the topic (`APNS_BUNDLE_ID`) must equal the app's bundle-id. To use your own `.p8`, rebuild and re-sign the iOS client under your own bundle-id and team. See [Notifications → APNs](/features/notifications/#apns-apple-push) and the [iOS repo](https://github.com/MBombeck/healthlog-iOS).
+:::

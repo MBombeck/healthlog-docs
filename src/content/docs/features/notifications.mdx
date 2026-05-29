@@ -5,7 +5,11 @@ sidebar:
   order: 3
 ---
 
-HealthLog supports three notification channels that can run in parallel. The system follows an opt-out model: all event types are enabled by default.
+import apnsFlow from "../../../assets/diagrams/07-apns-push-flow.svg";
+
+HealthLog supports several notification channels that can run in parallel. Three of them — Telegram, ntfy, and Web Push — work with nothing more than the server and a browser. A fourth, **APNs (Apple Push)**, is an optional channel for the native iOS client. The system follows an opt-out model: all event types are enabled by default.
+
+<img src={apnsFlow.src} alt="Push delivery flow: the server raises a notification event; if APNs is configured with a .p8 key it routes through Apple's gateway to the iOS device, otherwise it falls back to Telegram, ntfy or Web Push" />
 
 ## Channels
 
@@ -38,6 +42,35 @@ Browser-based push notifications via VAPID keys.
 - VAPID keys are generated during setup
 - Subscriptions are device-specific (multiple devices per user supported)
 - Works even when the browser tab is closed
+
+### APNs (Apple Push)
+
+[Apple Push Notification service](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) (APNs) is the optional channel used by the **native HealthLog iOS app**. It is the only channel that requires an Apple Developer account, and the only one that delivers push to an iPhone or iPad when the app is backgrounded.
+
+APNs is **entirely optional**. If you do not configure it, the server silently skips it and falls back to Telegram, ntfy, and Web Push — the iOS app stays fully functional, you simply won't get native lock-screen pushes. The diagram at the top of this page shows that fall-through.
+
+The server signs each push as a JWT using an Apple **`.p8` auth key** and sends it to Apple's gateway. Three identifiers must line up:
+
+| Setting | What it is |
+|--------|-----------|
+| `APNS_KEY_ID` | The 10-character key ID of the `.p8` auth key |
+| `APNS_TEAM_ID` | Your 10-character Apple Developer team ID |
+| `APNS_BUNDLE_ID` | The bundle-id of the signed iOS app — this becomes the APNs *topic* |
+| `APNS_KEY` / `APNS_KEY_B64` / `APNS_KEY_FILE` | The `.p8` contents (PEM, base64, or a file path) — provide exactly one |
+
+```bash
+# Provide all four (one key source). Missing any → APNs is disabled, fallbacks take over.
+APNS_KEY_ID="ABCD123456"
+APNS_TEAM_ID="S8WDX4W5KX"
+APNS_BUNDLE_ID="dev.healthlog.app"
+APNS_KEY_B64="LS0tLS1CRUdJTi...="   # base64 of the .p8, no newlines
+```
+
+:::caution[Self-hosters: the .p8 is bound to *your* app, not Marc's]
+An Apple `.p8` key only works with apps signed by the **same Apple Developer team**, and APNs delivers only to the app whose **bundle-id matches the topic**. The published HealthLog app is signed under `dev.healthlog.app`. To push from your own server with your own `.p8`, you must **rebuild and re-sign the iOS app under your own bundle-id and team**, then set `APNS_BUNDLE_ID` to that bundle-id. Reusing the stock bundle-id with a foreign `.p8` is rejected by Apple (`DeviceTokenNotForTopic`). See the [TLS Certificates](/self-hosting/tls-certificates/) guide for the related rebuild story, and the [iOS client repo](https://github.com/MBombeck/healthlog-iOS) for the native implementation.
+:::
+
+The iOS app registers its APNs device token through `POST /api/devices`; the server fans one push out per registered device. Implementation details (registration, the `HKMetadataKeyExternalUUID` de-dup, background sync) live in the native client — this server doc only covers the wire contract. See [Native API Clients](/api/native-clients/) and the [iOS repo](https://github.com/MBombeck/healthlog-iOS).
 
 ## Event Types
 
