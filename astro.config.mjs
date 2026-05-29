@@ -126,6 +126,7 @@ export default defineConfig({
 					items: [
 						{ slug: 'security/overview' },
 						{ slug: 'security/self-hosting' },
+						{ slug: 'security/certificate-pinning' },
 					],
 				},
 				{
@@ -133,6 +134,7 @@ export default defineConfig({
 					items: [
 						{ slug: 'self-hosting/docker' },
 						{ slug: 'self-hosting/reverse-proxy' },
+						{ slug: 'self-hosting/tls-certificates' },
 						{ slug: 'self-hosting/updates' },
 						{ slug: 'self-hosting/scaling' },
 						{ slug: 'self-hosting/coolify' },

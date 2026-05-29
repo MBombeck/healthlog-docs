@@ -1,0 +1,63 @@
+---
+title: "TLS Certificates"
+description: "Getting a valid TLS certificate for a self-hosted HealthLog instance, why self-hosted domains are never pin-locked, and the optional advanced path to pin your own domain in the iOS app."
+sidebar:
+  order: 3
+---
+
+HealthLog requires HTTPS in production — session cookies are `secure: true` and passkeys (WebAuthn) only work over TLS or `localhost`. This page covers how a self-hoster gets a valid certificate and clears up a common worry: **certificate pinning in the iOS app does not affect your self-hosted domain.**
+
+## Get a valid certificate
+
+You almost never deal with certificates by hand. The reverse proxy in front of HealthLog terminates TLS and provisions a Let's Encrypt certificate automatically:
+
+- **Caddy** — issues and renews Let's Encrypt certificates with zero configuration.
+- **Traefik** — set a `certresolver` (e.g. `letsencrypt`) on the router label.
+- **nginx** — pair with `certbot` for issuance and renewal.
+
+The [Reverse Proxy](/self-hosting/reverse-proxy/) guide has copy-paste examples for all three. Make sure `APP_URL` matches the public HTTPS domain you terminate on — passkey registration and OAuth redirects depend on it.
+
+```bash
+APP_URL=https://health.example.com
+```
+
+That is the entire TLS story for the vast majority of self-hosters: point a reverse proxy at port 3000, let it fetch a Let's Encrypt cert, done.
+
+## Self-hosted domains are never pin-locked
+
+The HealthLog iOS app uses [certificate pinning](/security/certificate-pinning/), but it pins **only** the managed-cloud domain `*.bombeck.io`. Every other host — including your self-hosted domain — is validated with standard, CA-validated system-trust TLS.
+
+:::tip[No action needed]
+If you self-host on your own domain with a normal Let's Encrypt (or any CA-issued) certificate, the iOS app trusts it like any other modern app. There is no pin to satisfy and no lockout. You do **not** need to do anything special.
+:::
+
+## Optional: pin your own domain (advanced)
+
+If you are security-conscious and want the same MITM hardening that the managed cloud gets, you can pin your own domain — but this requires rebuilding the iOS app, so it is strictly optional and only worthwhile if you are already re-signing the client under your own bundle-id (for example because you also configured [APNs push](/features/notifications/#apns-apple-push)).
+
+The pinning host list is being exposed as a build configuration in the iOS project:
+
+1. Extract the SPKI hashes for your domain from its live TLS chain:
+
+   ```bash
+   scripts/extract-spki.sh yourdomain.example.com
+   ```
+
+   This prints the base64 SHA-256 SPKI for the leaf, intermediate, and root certificates.
+
+2. Set the forthcoming build config in the iOS project:
+
+   - **`HLPinnedHosts`** — your host (e.g. `health.example.com`)
+   - **`HLPinnedSPKIHashes`** — the leaf + intermediate + root hashes from step 1
+
+3. Rebuild and re-sign the app, then distribute it to your devices.
+
+:::caution[`HLPinnedHosts` is a forthcoming, optional config]
+Own-domain pinning via `HLPinnedHosts` is an optional, advanced build-time setting being added to the iOS client. Pin **all three** of leaf, intermediate, and root so a routine leaf rotation doesn't lock you out before you can ship a new build — see the [rotation-survival strategy](/security/certificate-pinning/#the-three-pin-rotation-survival-strategy). The implementation lives in the [iOS repo](https://github.com/MBombeck/healthlog-iOS).
+:::
+
+## Related
+
+- [Reverse Proxy](/self-hosting/reverse-proxy/) — TLS termination + Let's Encrypt
+- [Certificate Pinning](/security/certificate-pinning/) — how and why the iOS app pins
+- [Self-Hosting Security](/security/self-hosting/) — the broader hardening checklist
