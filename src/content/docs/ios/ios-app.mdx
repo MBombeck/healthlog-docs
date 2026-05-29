@@ -1,0 +1,103 @@
+---
+title: iOS app
+description: The native SwiftUI HealthLog iOS client — TestFlight beta, live Apple Health (HealthKit) two-way sync, local medication reminders, passkey sign-in, and how it pairs with a self-hosted instance.
+sidebar:
+  order: 1
+---
+
+import iosDashboard from '../../../assets/ios/ios-dashboard.png';
+import iosInsights from '../../../assets/ios/ios-insights.png';
+import iosMedicationDetail from '../../../assets/ios/ios-medication-detail.png';
+import iosMoodEntry from '../../../assets/ios/ios-mood-entry.png';
+
+HealthLog ships a native [SwiftUI](https://developer.apple.com/xcode/swiftui/) iOS client alongside the web PWA. It is in **public beta via [TestFlight](https://testflight.apple.com/join/bucuTBpa)** and talks to the same `/api` surfaces as the browser — same server, same data, same source of truth. The phone is a view plus a write-ahead log; your self-hosted instance remains the database.
+
+The iOS source lives in its own repository: [github.com/MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
+
+<div style="display:flex;gap:0.75rem;overflow-x:auto;padding:0.5rem 0;">
+  <img src={iosDashboard.src} alt="HealthLog iOS dashboard with health-score ring, medication compliance, and vital-sign tiles" width="220" />
+  <img src={iosInsights.src} alt="HealthLog iOS insights tab with AI coach prompt and blood-pressure reference ranges" width="220" />
+  <img src={iosMedicationDetail.src} alt="HealthLog iOS medication detail with 30-day compliance ring and intake-status track" width="220" />
+  <img src={iosMoodEntry.src} alt="HealthLog iOS mood-entry sheet with five mood faces" width="220" />
+</div>
+
+## Requirements
+
+- **iOS 18 or newer** for the app itself.
+- **iOS 26 or newer** on an Apple-Intelligence-eligible iPhone for the on-device AI coach.
+- A reachable HealthLog instance served over HTTPS. Passkeys and the secure-cookie path require a valid TLS certificate — see [TLS certificates](/self-hosting/tls-certificates/).
+- An Apple ID enrolled in the [TestFlight](https://testflight.apple.com/join/bucuTBpa) beta.
+
+## Install the beta
+
+1. Install Apple's **TestFlight** app from the App Store.
+2. Open the [TestFlight invite link](https://testflight.apple.com/join/bucuTBpa) on the iPhone and accept the beta.
+3. Install HealthLog from TestFlight and launch it.
+
+Builds ship frequently. The [iOS repository CHANGELOG](https://github.com/MBombeck/healthlog-iOS/blob/main/CHANGELOG.md) and tag list track what landed in each build. The UI is German-primary with English secondary, matching the web client.
+
+## Pair with your self-hosted instance
+
+The app authenticates against your own server — there is no central HealthLog account service.
+
+1. On first launch, enter the **base URL** of your instance (for example `https://health.example.com`).
+2. Sign in with a **passkey** (Face ID or Touch ID via [WebAuthn](https://en.wikipedia.org/wiki/WebAuthn)), or with the email-and-password fallback you configured on the server.
+3. The server returns a bearer access token plus a refresh token. The app stores them in the iOS Keychain and rotates the refresh token automatically. The wire contract for this exchange is documented under [Native API clients](/api/native-clients/).
+
+Refresh-token rotation is per device, and reuse detection revokes the family if a stolen token is replayed. A normal sign-out revokes the device's tokens server-side.
+
+## Apple Health (HealthKit) live two-way sync
+
+The headline feature: the iPhone reads from and writes to [Apple Health](https://en.wikipedia.org/wiki/Apple_Health) ([HealthKit](https://developer.apple.com/documentation/healthkit)) and keeps it in step with your server in near real time. This is distinct from the one-shot `export.zip` import — that path is described under [Apple Health import](/integrations/apple-health/) and remains available for backfilling historical data from any device.
+
+On first sync the app requests HealthKit read permission for the metric types it supports. iOS shows its standard per-type consent sheet; you can grant or deny each type. Typical metrics the app reads and forwards to your server include:
+
+- **Steps**, active energy, and walking/running distance (aggregated to one row per local day).
+- **Weight** and [body-composition](https://en.wikipedia.org/wiki/Body_composition) values.
+- **Blood pressure** (systolic and diastolic) and resting/heart-rate readings.
+- **Blood glucose** ([blood sugar level](https://en.wikipedia.org/wiki/Blood_sugar_level)).
+- **Sleep** analysis and heart-rate variability.
+
+Grant only the types you want synced — denied types simply never leave the phone.
+
+### How the round-trip stays clean
+
+Live reads use HealthKit's observer and anchored-query APIs, and a background-processing task gives delivery a second chance when the app is not in the foreground. Every iOS-side write carries a stable external identifier so the server and Apple Health do not echo each other's writes back and forth. Day-aggregated cumulative metrics (steps, energy, distance) use the same `stats:<HKType>:<YYYY-MM-DD>` external-ID convention the bulk importer uses, so a phone sync and a later `export.zip` import resolve to the same rows rather than duplicating. See [Source priority](/concepts/source-priority/) for how readings from the phone, a Withings device, and manual entry collapse to one canonical value per day.
+
+## Local medication reminders
+
+The app schedules **local notifications** for medication doses, with action buttons that mark an intake without opening the app — taken, snooze, or skipped — by calling the server's mark-intake endpoint directly.
+
+Because the phone owns these reminders, you can tell the server to stop sending its own push reminders for that device. The client opts in through the notification-preferences endpoint; the server then suppresses dose-due [APNs](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) pushes for that device. See [Notifications](/features/notifications/) for the channel cascade and [Certificate pinning](/security/certificate-pinning/) for how the app secures its connection.
+
+## On-device AI coach
+
+On iOS 26+ Apple-Intelligence-eligible iPhones, the app offers a conversational coach built on Apple's [Foundation Models framework](https://developer.apple.com/documentation/foundationmodels). The prompt and the response are generated on the device and never leave it. This is separate from the server-side, multi-provider [AI Insights](/features/ai-insights/) the web client uses; on iOS you can use either path.
+
+## Doctor-report export
+
+The iPhone can generate a doctor-report PDF from the device, mirroring the [doctor-report export](/features/doctor-report/) the web client produces. The export bundles vital signs and medication compliance using the [FHIR](https://en.wikipedia.org/wiki/Fast_Healthcare_Interoperability_Resources)/[LOINC](https://en.wikipedia.org/wiki/LOINC) mappings reviewed on the server.
+
+## Security on the device
+
+- **Passkey-first sign-in** via Face ID or Touch ID ([WebAuthn](https://en.wikipedia.org/wiki/WebAuthn)).
+- **Keychain storage** for tokens, scoped to the device and available only after first unlock.
+- **Public-key (SPKI) [certificate pinning](https://en.wikipedia.org/wiki/Public_key_pinning)** on authenticated requests — see [Certificate pinning](/security/certificate-pinning/) for how to configure a pin for a self-hosted certificate.
+- A log sanitiser that strips tokens and hostnames from every log line.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Sign-in fails immediately | The instance is not served over HTTPS, or the certificate is not trusted by the device | Serve over valid TLS; see [TLS certificates](/self-hosting/tls-certificates/). For a private CA, configure a [pin](/security/certificate-pinning/). |
+| No HealthKit data appears | Read permission was denied for those types | Re-grant in iOS **Settings → Privacy & Security → Health → HealthLog**. |
+| Duplicate steps after an `export.zip` import | None — the external-ID convention dedupes phone syncs against the importer | If you still see duplicates, check [Source priority](/concepts/source-priority/). |
+| Push reminders arrive twice | Both the phone and the server are reminding | The app should opt into client-managed reminders; see [Notifications](/features/notifications/). |
+
+## Links
+
+- [TestFlight beta](https://testflight.apple.com/join/bucuTBpa)
+- [iOS source repository](https://github.com/MBombeck/healthlog-iOS)
+- [iOS issue tracker](https://github.com/MBombeck/healthlog-iOS/issues)
+- [Native API clients](/api/native-clients/) — the wire contract the app speaks
+- [Apple Health import](/integrations/apple-health/) — the one-shot `export.zip` path
