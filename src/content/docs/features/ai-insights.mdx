@@ -94,7 +94,7 @@ v1.4.23 lands three Coach-side foundations for the iOS push without changing the
 
 ## Native Coach Prompts + GLP-1 Safety Rules + Research Mode (v1.4.25)
 
-v1.4.25 reshapes Insights into seven dedicated metric sub-pages, lands GLP-1 medication tracking end-to-end, and tightens Coach safety for the new therapy class without changing the persona contract introduced in v1.4.22.
+v1.4.25 reshapes Insights into seven dedicated metric sub-pages, lands [GLP-1](https://en.wikipedia.org/wiki/Glucagon-like_peptide-1_receptor_agonist) medication tracking end-to-end, and tightens Coach safety for the new therapy class without changing the persona contract introduced in v1.4.22.
 
 - **Seven Insights sub-pages.** `/insights/blutdruck`, `/insights/gewicht`, `/insights/puls`, `/insights/stimmung`, `/insights/medikamente`, `/insights/bmi` and `/insights/schlaf` each render the metric's full chart, range bands, trend annotations and correlation rows. A shared tab strip lifts the metric switcher above each chart for cross-metric scanning. `/insights/zielwerte` is redesigned with a conditional Coach-handoff card that only renders when a language-model provider is configured.
 - **Native first-party Coach prompts across six locales.** Coach + insights system prompts move from EN body + `REPLY LANGUAGE` footer to native per-locale bodies for EN, DE, FR, ES, IT, PL. The safety-contract matrix lives as YAML per locale (single source of truth across drafting + tests). An 1800-assertion refusal-probe matrix runs in CI to catch cross-locale prompt regressions before they reach the dispatch surface.

@@ -17,7 +17,7 @@ The diagram above is the mental model: three concentric perimeters protect the e
 
 HealthLog supports two authentication methods:
 
-### Passkeys (WebAuthn/FIDO2)
+### Passkeys ([WebAuthn](https://en.wikipedia.org/wiki/WebAuthn)/[FIDO2](https://en.wikipedia.org/wiki/FIDO2_Project))
 
 Passkeys are the recommended sign-in method. The implementation is based on **SimpleWebAuthn v13** and supports all common authenticator types (Touch ID, Face ID, Windows Hello, hardware keys like YubiKey).
 
@@ -31,7 +31,7 @@ Classic password authentication is available as a fallback:
 
 | Property | Value |
 |----------|-------|
-| Hashing algorithm | Argon2id |
+| Hashing algorithm | [Argon2id](https://en.wikipedia.org/wiki/Argon2) |
 | Minimum length | 12 characters |
 | Complexity | zxcvbn score >= 3 |
 
@@ -51,7 +51,7 @@ The session lifetime is automatically extended on each authenticated request. Ex
 
 ## Encryption of Sensitive Fields
 
-Sensitive database fields are encrypted with **AES-256-GCM**. This applies to:
+Sensitive database fields are encrypted with **[AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode)**. This applies to:
 
 - OpenAI API keys
 - Telegram bot tokens and chat IDs
