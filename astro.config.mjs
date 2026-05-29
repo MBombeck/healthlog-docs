@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
 	site: 'https://docs.healthlog.dev',
@@ -8,9 +9,28 @@ export default defineConfig({
 		'/': '/getting-started/introduction',
 	},
 	integrations: [
+		sitemap(),
 		starlight({
 			title: 'HealthLog',
 			description: 'Self-hosted health tracking PWA — documentation',
+			head: [
+				{
+					tag: 'meta',
+					attrs: { property: 'og:site_name', content: 'HealthLog Docs' },
+				},
+				{
+					tag: 'meta',
+					attrs: { property: 'og:image', content: 'https://docs.healthlog.dev/og-image.png' },
+				},
+				{
+					tag: 'meta',
+					attrs: { name: 'twitter:card', content: 'summary_large_image' },
+				},
+				{
+					tag: 'meta',
+					attrs: { name: 'twitter:image', content: 'https://docs.healthlog.dev/og-image.png' },
+				},
+			],
 			defaultLocale: 'root',
 			locales: {
 				root: { label: 'English', lang: 'en' },
@@ -37,6 +57,12 @@ export default defineConfig({
 						{ slug: 'getting-started/installation' },
 						{ slug: 'getting-started/quick-start' },
 						{ slug: 'getting-started/troubleshooting' },
+					],
+				},
+				{
+					label: 'iOS App',
+					items: [
+						{ slug: 'ios/ios-app' },
 					],
 				},
 				{
