@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" font-family="ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif" role="img" aria-labelledby="title desc">
+  <title id="title">HealthLog iOS TLS-trust decision flow</title>
+  <desc id="desc">When the iOS app opens a TLS connection it checks whether the host is *.bombeck.io. If it is, the app validates the certificate chain against its pinned SPKI hashes (leaf, intermediate or root) and rejects the connection on a mismatch. For every other host — including self-hosted instances on a custom domain — the app falls back to standard CA-validated TLS provided by the operating system, with no pin lockout.</desc>
+
+  <rect x="0" y="0" width="1200" height="560" fill="#282a36" />
+
+  <text x="600" y="42" fill="#f8f8f2" font-size="22" font-weight="700" text-anchor="middle">TLS trust on the iOS client</text>
+  <text x="600" y="66" fill="#6272a4" font-size="13" text-anchor="middle">How the app decides between SPKI pinning and standard system-trust TLS.</text>
+
+  <!-- Start node -->
+  <rect x="60" y="240" width="190" height="64" rx="10" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" />
+  <text x="155" y="266" text-anchor="middle" fill="#f8f8f2" font-size="13" font-weight="600">TLS connection</text>
+  <text x="155" y="285" text-anchor="middle" fill="#bd93f9" font-size="11">URLSession → server</text>
+
+  <!-- Decision diamond -->
+  <g>
+    <polygon points="430,272 540,200 650,272 540,344" fill="#44475a" stroke="#ffb86c" stroke-width="2" />
+    <text x="540" y="262" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">isPinnedHost?</text>
+    <text x="540" y="282" text-anchor="middle" fill="#bd93f9" font-size="11">host == *.bombeck.io</text>
+  </g>
+
+  <!-- YES branch: SPKI pin -->
+  <rect x="800" y="120" width="320" height="120" rx="14" fill="none" stroke="#50fa7b" stroke-width="2" />
+  <text x="820" y="144" fill="#50fa7b" font-size="13" font-weight="700">SPKI pin check (managed cloud)</text>
+
+  <rect x="822" y="158" width="276" height="32" rx="8" fill="#44475a" stroke="#50fa7b" stroke-width="1" />
+  <text x="960" y="179" text-anchor="middle" fill="#f8f8f2" font-size="11">SHA-256 SPKI matches leaf/intermediate/root?</text>
+
+  <rect x="822" y="198" width="132" height="32" rx="8" fill="#44475a" stroke="#50fa7b" stroke-width="1" />
+  <text x="888" y="219" text-anchor="middle" fill="#50fa7b" font-size="11" font-weight="600">match → connect</text>
+
+  <rect x="966" y="198" width="132" height="32" rx="8" fill="#44475a" stroke="#ff5555" stroke-width="1" />
+  <text x="1032" y="219" text-anchor="middle" fill="#ff5555" font-size="11" font-weight="600">mismatch → abort</text>
+
+  <!-- NO branch: system trust -->
+  <rect x="800" y="320" width="320" height="120" rx="14" fill="none" stroke="#bd93f9" stroke-width="2" />
+  <text x="820" y="344" fill="#bd93f9" font-size="13" font-weight="700">System-trust TLS (self-hosted)</text>
+
+  <rect x="822" y="358" width="276" height="32" rx="8" fill="#44475a" stroke="#bd93f9" stroke-width="1" />
+  <text x="960" y="379" text-anchor="middle" fill="#f8f8f2" font-size="11">OS validates chain against CA store</text>
+
+  <rect x="822" y="398" width="276" height="32" rx="8" fill="#44475a" stroke="#50fa7b" stroke-width="1" />
+  <text x="960" y="419" text-anchor="middle" fill="#50fa7b" font-size="11" font-weight="600">valid CA cert → connect · no pin lockout</text>
+
+  <!-- Arrows -->
+  <g stroke="#8be9fd" stroke-width="1.4" fill="none" marker-end="url(#a6-c)">
+    <path d="M250 272 L 428 272" />
+  </g>
+  <g stroke="#50fa7b" stroke-width="1.4" fill="none" marker-end="url(#a6-g)">
+    <path d="M610 230 C 700 180, 720 180, 800 180" />
+  </g>
+  <g stroke="#bd93f9" stroke-width="1.4" fill="none" marker-end="url(#a6-pu)">
+    <path d="M610 314 C 700 380, 720 380, 800 380" />
+  </g>
+  <text x="700" y="170" fill="#50fa7b" font-size="12" font-weight="700">YES</text>
+  <text x="700" y="402" fill="#bd93f9" font-size="12" font-weight="700">NO</text>
+
+  <!-- Footnote -->
+  <text x="600" y="510" fill="#6272a4" font-size="11" text-anchor="middle">Self-hosters on their own domain are never locked out: only *.bombeck.io is pinned. Optional own-domain pinning via HLPinnedHosts is forthcoming.</text>
+
+  <defs>
+    <marker id="a6-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8be9fd" /></marker>
+    <marker id="a6-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#50fa7b" /></marker>
+    <marker id="a6-pu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#bd93f9" /></marker>
+  </defs>
+</svg>

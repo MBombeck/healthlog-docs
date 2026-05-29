@@ -1,0 +1,62 @@
+---
+title: "Certificate Pinning"
+description: "How the HealthLog iOS client pins TLS public keys against MITM attacks — SPKI pinning, the three-pin rotation strategy, and why self-hosters are never locked out."
+sidebar:
+  order: 3
+---
+
+import tlsFlow from "../../../assets/diagrams/06-tls-trust-flow.svg";
+
+TLS already protects HealthLog traffic, but a standard TLS handshake trusts **any** certificate that chains to a CA in the operating system's trust store. If an attacker can coerce a CA into mis-issuing a certificate for your domain — or slip a rogue root onto the device via a malicious MDM profile or proxy — they can sit in the middle and read everything. Certificate pinning closes that gap by hard-coding *which* key the app is willing to trust.
+
+<img src={tlsFlow.src} alt="TLS trust decision flow on the iOS client: if the host is *.bombeck.io the app validates the SPKI pins and aborts on mismatch, otherwise it falls back to standard CA-validated system-trust TLS with no pin lockout" />
+
+## The threat it stops
+
+A [man-in-the-middle attack](https://en.wikipedia.org/wiki/Man-in-the-middle_attack) on a [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) connection works when the attacker presents a certificate the client accepts. Plain TLS accepts any CA-signed cert for the hostname. Pinning narrows acceptance to a specific public key the app shipped with, so a mis-issued-but-valid certificate is rejected before any health data crosses the wire.
+
+## SPKI pinning vs. cert-hash pinning
+
+There are two common ways to pin:
+
+- **Cert-hash pinning** pins the SHA-256 of the entire leaf certificate (the full DER blob). The instant the server rotates to a new certificate — even one carrying the *same* key — the pin breaks.
+- **SPKI pinning** pins the SHA-256 of the certificate's **Subject Public Key Info** — the raw public key inside the [X.509](https://en.wikipedia.org/wiki/X.509) certificate. A [public-key fingerprint](https://en.wikipedia.org/wiki/Public_key_fingerprint) survives certificate reissuance as long as the key is reused, which makes operations far less fragile.
+
+HealthLog uses **SPKI pinning**. This is the modern successor to the now-deprecated [HTTP Public Key Pinning](https://en.wikipedia.org/wiki/HTTP_Public_Key_Pinning) header — same idea (pin the public key, not the cert), but enforced inside the native app instead of via an HTTP response header the browser had to remember.
+
+The iOS client extracts the SPKI from each certificate in the presented chain, hashes it with SHA-256, and accepts the connection if **any** hash in its pin set matches **any** certificate in the chain (leaf, intermediate, or root).
+
+## Only `*.bombeck.io` is pinned
+
+This is the part that matters for self-hosters: **the app pins only the managed-cloud domain `*.bombeck.io`.** The decision is made per-host by `isPinnedHost`:
+
+- **Host is `*.bombeck.io`** → the SPKI pin set is enforced. A non-matching chain aborts the connection.
+- **Any other host** (including a self-hosted instance on your own domain) → the app falls back to **standard, CA-validated system-trust TLS**. There is no pin to satisfy, so you are never locked out.
+
+In other words, pinning is a hardening measure for the hosted service Marc operates; it does not constrain people running their own instance. If you self-host, your TLS works exactly the way it would for any other modern app pointed at your domain.
+
+## The three-pin rotation-survival strategy
+
+A single pin is brittle: the moment the server rotates its key, the app can no longer connect. HealthLog ships **three pins** and survives rotation because of it:
+
+| Pin | Role | Typical lifetime |
+|-----|------|-----------------|
+| **Leaf** | The active server certificate's key | short (≈90 days, Let's Encrypt / GTS) |
+| **Intermediate** | The issuing CA's key | years |
+| **Root** | The trust-anchor key | many years |
+
+Because validation accepts a match on *any* certificate in the chain, a leaf rotation does not break the app — the intermediate (and root) pins still match the new chain. This buys a wide window to ship a new build with the new leaf pin through App Store review before the old leaf expires. A single-pin build breaks on first rotation; a three-pin build survives until the root itself rotates (years out).
+
+:::tip[Generating the hashes]
+The hashes are produced from the live TLS chain with `scripts/extract-spki.sh <host>` in the iOS repo, which pulls the chain via `openssl s_client -showcerts` and prints the base64 SHA-256 SPKI for each certificate. For the managed cloud that's `scripts/extract-spki.sh healthlog.bombeck.io`.
+:::
+
+## Where the implementation lives
+
+Pinning is a **client-side** concern — the server presents a normal certificate; the iOS app decides whether to trust it. The validation logic, the production pin policy (a minimum well-formed pin count enforced at build time), and the rotation runbook all live in the native client:
+
+- `HealthLog/Services/CertificatePinner.swift` — SPKI extraction + chain validation
+- `scripts/extract-spki.sh` — hash extraction
+- `project.yml` `HLPinnedSPKIHashes` — the pinned hash set
+
+See the [iOS repo](https://github.com/MBombeck/healthlog-iOS) for the source. Self-hosters who want to pin their *own* domain should read the [TLS Certificates](/self-hosting/tls-certificates/) guide.
