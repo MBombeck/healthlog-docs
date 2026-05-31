@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" font-family="ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif" role="img" aria-labelledby="title desc">
+  <title id="title">HealthLog offline sync: backfill, delta pull, and tombstones</title>
+  <desc id="desc">A native client first does a full backfill by reading the standard list endpoints and pushing local rows through the batch endpoints. After that it stays current incrementally: it asks GET /api/sync/state whether to sync, then drains GET /api/sync/changes page by page using an opaque cursor it echoes back but never parses. Each page carries tombstones (soft-deleted rows) and upserts (live rows); the client applies tombstones before upserts. When the response has no more pages the client is caught up. If the cursor has aged past the tombstone-retention horizon the server returns cursorExpired and the client throws away its cursor and does a clean full backfill again.</desc>
+
+  <rect x="0" y="0" width="1200" height="620" fill="#282a36" />
+
+  <text x="600" y="42" fill="#f8f8f2" font-size="22" font-weight="700" text-anchor="middle">Offline sync: backfill once, then drain the delta feed</text>
+  <text x="600" y="66" fill="#6272a4" font-size="13" text-anchor="middle">The cursor is opaque — the client echoes it back and never parses it.</text>
+
+  <!-- Phase 1: backfill -->
+  <rect x="40" y="100" width="340" height="200" rx="14" fill="none" stroke="#ffb86c" stroke-width="2" />
+  <text x="60" y="126" fill="#ffb86c" font-size="13" font-weight="700">1 · First pairing — full backfill</text>
+  <rect x="60" y="140" width="300" height="48" rx="8" fill="#44475a" stroke="#ffb86c" stroke-width="1" />
+  <text x="210" y="160" text-anchor="middle" fill="#f8f8f2" font-size="11.5" font-weight="600">Pull existing rows</text>
+  <text x="210" y="178" text-anchor="middle" fill="#bd93f9" font-size="11">GET /api/measurements · /api/mood-entries</text>
+  <rect x="60" y="200" width="300" height="48" rx="8" fill="#44475a" stroke="#ffb86c" stroke-width="1" />
+  <text x="210" y="220" text-anchor="middle" fill="#f8f8f2" font-size="11.5" font-weight="600">Push local rows</text>
+  <text x="210" y="238" text-anchor="middle" fill="#bd93f9" font-size="11">POST …/measurements/batch · …/intake/bulk</text>
+  <text x="210" y="276" text-anchor="middle" fill="#6272a4" font-size="11">Done once per pairing. Never used again for catch-up.</text>
+
+  <!-- Phase 2: handshake -->
+  <rect x="430" y="100" width="300" height="200" rx="14" fill="none" stroke="#8be9fd" stroke-width="2" />
+  <text x="450" y="126" fill="#8be9fd" font-size="13" font-weight="700">2 · Handshake — should I sync?</text>
+  <rect x="450" y="140" width="260" height="60" rx="8" fill="#44475a" stroke="#8be9fd" stroke-width="1" />
+  <text x="580" y="164" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">GET /api/sync/state</text>
+  <text x="580" y="184" text-anchor="middle" fill="#bd93f9" font-size="11">window · retention · per-domain counts</text>
+  <text x="450" y="232" fill="#f8f8f2" font-size="11">Returns the sync window, the tombstone</text>
+  <text x="450" y="250" fill="#f8f8f2" font-size="11">retention horizon, and live / tombstoned</text>
+  <text x="450" y="268" fill="#f8f8f2" font-size="11">counts per domain to drive the decision.</text>
+
+  <!-- Phase 3: delta pull loop -->
+  <rect x="780" y="100" width="380" height="200" rx="14" fill="none" stroke="#50fa7b" stroke-width="2" />
+  <text x="800" y="126" fill="#50fa7b" font-size="13" font-weight="700">3 · Drain the delta feed</text>
+  <rect x="800" y="140" width="340" height="60" rx="8" fill="#44475a" stroke="#50fa7b" stroke-width="1" />
+  <text x="970" y="164" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">GET /api/sync/changes?cursor=…&amp;limit=200</text>
+  <text x="970" y="184" text-anchor="middle" fill="#bd93f9" font-size="11">incremental only · default 200 · cap 500</text>
+  <text x="800" y="228" fill="#f8f8f2" font-size="11">Each page → apply tombstones, then upserts.</text>
+  <text x="800" y="246" fill="#f8f8f2" font-size="11">Echo the returned cursor on the next call.</text>
+  <text x="800" y="264" fill="#f8f8f2" font-size="11">hasMore: true → keep paging.</text>
+  <text x="800" y="282" fill="#50fa7b" font-size="11" font-weight="700">hasMore: false → caught up as of serverNow.</text>
+
+  <!-- Page contents -->
+  <rect x="780" y="350" width="380" height="150" rx="14" fill="none" stroke="#ff79c6" stroke-width="2" />
+  <text x="800" y="376" fill="#ff79c6" font-size="13" font-weight="700">Each page, per domain</text>
+  <rect x="800" y="390" width="160" height="44" rx="8" fill="#44475a" stroke="#ff79c6" stroke-width="1" />
+  <text x="880" y="410" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">tombstones</text>
+  <text x="880" y="426" text-anchor="middle" fill="#bd93f9" font-size="10.5">soft-deleted — apply first</text>
+  <rect x="980" y="390" width="160" height="44" rx="8" fill="#44475a" stroke="#ff79c6" stroke-width="1" />
+  <text x="1060" y="410" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">upserts</text>
+  <text x="1060" y="426" text-anchor="middle" fill="#bd93f9" font-size="10.5">live rows — apply second</text>
+  <text x="800" y="462" fill="#6272a4" font-size="11">Tombstones before upserts so a delete + later</text>
+  <text x="800" y="480" fill="#6272a4" font-size="11">re-insert in the same page never resurrects a row.</text>
+
+  <!-- Cursor expired path -->
+  <rect x="40" y="350" width="690" height="150" rx="14" fill="none" stroke="#ff5555" stroke-width="2" />
+  <text x="60" y="376" fill="#ff5555" font-size="13" font-weight="700">cursorExpired: true — re-initialise</text>
+  <text x="60" y="404" fill="#f8f8f2" font-size="11.5">The cursor predates the tombstone-retention horizon. A deletion that old may have been</text>
+  <text x="60" y="424" fill="#f8f8f2" font-size="11.5">pruned, so an incremental pull could silently miss it. The client drops its cursor and</text>
+  <text x="60" y="444" fill="#f8f8f2" font-size="11.5">returns to step 1 — a clean full backfill — rather than trusting a stale delta stream.</text>
+  <text x="60" y="476" fill="#6272a4" font-size="11">Retention = native refresh-token lifetime + margin, so a device offline within the</text>
+  <text x="60" y="492" fill="#6272a4" font-size="11">refresh window is always inside the safe range.</text>
+
+  <!-- Arrows -->
+  <g stroke="#8be9fd" stroke-width="1.4" fill="none" marker-end="url(#s9-c)">
+    <path d="M380 200 L 428 200" />
+  </g>
+  <g stroke="#50fa7b" stroke-width="1.4" fill="none" marker-end="url(#s9-g)">
+    <path d="M730 200 L 778 200" />
+  </g>
+  <g stroke="#50fa7b" stroke-width="1.4" stroke-dasharray="5 3" fill="none" marker-end="url(#s9-g)">
+    <path d="M1140 200 C 1180 250, 1180 250, 1145 195" />
+  </g>
+  <text x="1158" y="245" fill="#50fa7b" font-size="10.5" font-weight="700">loop</text>
+  <g stroke="#ff79c6" stroke-width="1.4" fill="none" marker-end="url(#s9-pk)">
+    <path d="M970 300 L 970 348" />
+  </g>
+  <g stroke="#ff5555" stroke-width="1.4" stroke-dasharray="5 3" fill="none" marker-end="url(#s9-r)">
+    <path d="M800 250 C 400 250, 385 300, 385 348" />
+  </g>
+
+  <defs>
+    <marker id="s9-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8be9fd" /></marker>
+    <marker id="s9-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#50fa7b" /></marker>
+    <marker id="s9-pk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ff79c6" /></marker>
+    <marker id="s9-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ff5555" /></marker>
+  </defs>
+</svg>

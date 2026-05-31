@@ -32,7 +32,7 @@ API requests are never cached. If the device is offline, API calls will fail gra
 :::
 
 :::note
-The PWA does not maintain its own offline write store — it reads live or shows an offline indicator. Native clients (the iOS app) that hold a local copy keep it current through the [sync delta feed](/api/native-clients/#offline-sync-delta-feed) (`/api/sync/changes`), which carries incremental upserts and soft-delete tombstones since the last cursor.
+The PWA does not maintain its own offline write store — it reads live or shows an offline indicator. Native clients (the iOS app) that hold a local copy keep it current through the [offline sync contract](/api/sync/) (`/api/sync/changes`), which carries incremental upserts and soft-delete tombstones since the last cursor.
 :::
 
 ### Cache Lifecycle

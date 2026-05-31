@@ -145,6 +145,7 @@ export default defineConfig({
 						{ slug: 'api/admin' },
 						{ slug: 'api/external-ingest' },
 						{ slug: 'api/native-clients' },
+						{ slug: 'api/sync' },
 					],
 				},
 				{
