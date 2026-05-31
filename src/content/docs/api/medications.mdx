@@ -30,10 +30,18 @@ curl -s https://your-instance.example.com/api/medications \
       "name": "Metoprolol",
       "dose": "47.5mg",
       "category": "BLOOD_PRESSURE",
+      "deliveryForm": "ORAL",
       "active": true,
       "schedules": [
-        { "id": "tw1", "label": "Morning", "windowStart": "07:00", "windowEnd": "09:00" }
+        {
+          "id": "tw1",
+          "label": "Morning",
+          "timesOfDay": ["07:00"],
+          "rrule": "FREQ=DAILY",
+          "scheduleType": "SCHEDULED"
+        }
       ],
+      "nextDueAt": "2026-03-09T07:00:00.000Z",
       "lastTakenAt": "2026-03-08T07:15:00.000Z",
       "todayEventCount": 1
     }
@@ -57,12 +65,15 @@ POST /api/medications
   "name": "Metoprolol",
   "dose": "47.5mg",
   "category": "BLOOD_PRESSURE",
+  "deliveryForm": "ORAL",
   "schedules": [
-    { "label": "Morning", "windowStart": "07:00", "windowEnd": "09:00" },
-    { "label": "Evening", "windowStart": "19:00", "windowEnd": "21:00" }
+    { "label": "Morning", "timesOfDay": ["07:00"], "rrule": "FREQ=DAILY" },
+    { "label": "Evening", "timesOfDay": ["19:00"], "rrule": "FREQ=DAILY" }
   ]
 }
 ```
+
+Each schedule's recurrence is an [RFC 5545 `rrule`](https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.10) (or a `rollingIntervalDays` interval — the two are mutually exclusive). Mark a schedule `scheduleType: "PRN"` for as-needed, or `"CYCLIC"` with `cyclicOnWeeks` / `cyclicOffWeeks` for on/off-week dosing. See [Medication Management → Schedules](/features/medications/#schedules) for the full model. The server returns a read-only `nextDueAt` on every medication. The complete request/response shape is in the [OpenAPI spec](/api/overview/).
 
 ---
 
@@ -86,7 +97,7 @@ GET /api/medications/[id]/compliance
 
 **Auth:** Session Cookie
 
-Returns compliance rates for 7 and 30 days as well as a 90-day heatmap.
+Returns compliance rates for 7 and 30 days as well as a 90-day heatmap. The expected-dose denominator is cadence-aware — it counts only doses actually due under the medication's recurrence (daily, weekday subset, bi-weekly, rolling, RRULE, or cyclic), and excludes PRN. Each day carries `due` so a client can distinguish "not due" from "missed".
 
 **Response:**
 
@@ -96,8 +107,9 @@ Returns compliance rates for 7 and 30 days as well as a 90-day heatmap.
     "rate7d": 0.93,
     "rate30d": 0.87,
     "heatmap": [
-      { "date": "2026-03-08", "count": 2, "expected": 2 },
-      { "date": "2026-03-07", "count": 1, "expected": 2 }
+      { "date": "2026-03-08", "count": 2, "due": true, "expectedCount": 2 },
+      { "date": "2026-03-07", "count": 1, "due": true, "expectedCount": 2 },
+      { "date": "2026-03-06", "count": 0, "due": false, "expectedCount": 0 }
     ]
   },
   "error": null
