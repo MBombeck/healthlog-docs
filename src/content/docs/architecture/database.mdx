@@ -1,76 +1,116 @@
 ---
 title: Database Schema
-description: Overview of the 22 Prisma models, grouped by domain.
+description: The PostgreSQL data model — 47 Prisma models grouped by domain, with notes on encryption at rest, server-side sessions, and the rollup tier.
 sidebar:
   order: 2
 ---
 
-HealthLog uses **PostgreSQL 16** with **Prisma 7** as its ORM. The schema consists of 22 models, grouped into seven domains.
+HealthLog uses **PostgreSQL 16** with **Prisma 7** as its ORM. The schema is the single source of truth for every persisted entity — 47 models grouped into the domains below. Primary keys are `cuid()`s and columns map to `snake_case` names; the generated client lives at `src/generated/prisma`.
 
 ## Users and Auth
 
 | Model | Description |
 |---|---|
-| `User` | User account with name, email, locale, admin flag, and settings |
-| `Passkey` | WebAuthn credentials (public key, counter, transports) |
-| `Session` | Active sessions with expiry and user reference |
-| `AuthChallenge` | Temporary WebAuthn challenges (registration + login) |
+| `User` | Account with username, email, locale, timezone, admin flag, per-user settings, and the optional patient-identity fields used by the [health-record export](/features/export-import/#health-record-export-pdf--fhir-r4) |
+| `Passkey` | [WebAuthn](https://www.w3.org/TR/webauthn-2/) credentials (public key, counter, transports) |
+| `Session` | Active server-side session with sliding expiry and user reference |
+| `RefreshToken` | Per-device one-time-use refresh token with family reuse-detection |
+| `AuthChallenge` | Temporary WebAuthn challenges (registration + login), deleted after use |
+| `ConsentReceipt` | Recorded consent for processing health data |
 
-A `User` can have multiple `Passkey`s and `Session`s. `AuthChallenge`s are deleted after use.
+A `User` can have multiple `Passkey`s, `Session`s, and `RefreshToken`s.
+
+### Why sessions live in Postgres
+
+Sessions are stored server-side rather than as stateless JWTs, so there is **no
+session secret to leak** and any session can be revoked instantly (a password
+change invalidates every session; logging out of one device does not require the
+others to expire on their own). Expiry slides on use over a 30-day window.
+Refresh-token rotation is per-device, and reuse of a spent token revokes the
+whole device family — a stolen token is single-use and self-defeating.
 
 ## Health Data
 
 | Model | Description |
 |---|---|
-| `Measurement` | Individual reading with type, value, and timestamp |
+| `Measurement` | Individual reading with type, value, unit, timestamp, and source |
 | `MoodEntry` | Mood entry with level (1–5), optional comment, and tags |
+| `Workout` | Workout session (type, duration, energy, distance) |
+| `WorkoutRoute` | GPS route geometry attached to a workout |
+| `PersonalRecord` | Best-ever value per metric, surfaced in gamification |
 
-### Measurement Types
+The full **measurement type catalogue** (currently 38 types, from weight and
+blood pressure through the complete HealthKit mobility and audio-exposure family)
+is documented on the [Measurements API page](/api/measurements/#measurement-types).
+Measurements always reference a `User` and carry a `source`
+(`MANUAL`, `WITHINGS`, `IMPORT`, `APPLE_HEALTH`). Values are stored canonically in
+SI — display-unit conversion happens at render time, never in the database (see
+[source priority](/concepts/source-priority/) for how overlapping sources resolve).
 
-| Type | Unit | Description |
-|---|---|---|
-| `WEIGHT` | kg | Body weight |
-| `BLOOD_PRESSURE_SYS` | mmHg | Systolic blood pressure |
-| `BLOOD_PRESSURE_DIA` | mmHg | Diastolic blood pressure |
-| `PULSE` | bpm | Pulse rate |
-| `BODY_FAT` | % | Body fat percentage |
-| `SLEEP_DURATION` | h | Sleep duration |
-| `ACTIVITY_STEPS` | steps | Daily step count |
+### Soft-delete tombstones
 
-Measurements always reference a `User` and carry a source (`source`): `MANUAL`, `WITHINGS`, or `IMPORT`.
+The two measurement delete routes **soft-delete** (set a `deletedAt` tombstone)
+rather than hard-delete. An offline client that synced a row before it was deleted
+has no other way to learn the row is gone; the [sync delta feed](/api/sync/)
+replays tombstones so a native client can mirror the deletion. Tombstones are
+pruned past a retention window keyed to the refresh-token lifetime.
 
 ## Medications
 
 | Model | Description |
 |---|---|
-| `Medication` | Medication with name, dosage, and status (active/paused) |
-| `MedicationSchedule` | Schedule: times of day plus a recurrence rule (`rrule` / `rollingIntervalDays` / `scheduleType`), optional dosage override — see [Medications](/features/medications/#schedules) |
+| `Medication` | Medication with name, dosage, route of administration, and status |
+| `MedicationSchedule` | Times of day plus a recurrence rule (`rrule` / `rollingIntervalDays` / `intervalWeeks` / `scheduleType` for PRN and cyclic) — see [Medications](/features/medications/#schedules) |
 | `MedicationIntakeEvent` | Individual intake (taken/skipped) with timestamp and source |
+| `MedicationDoseChange` | Audit trail of dose adjustments over time |
+| `MedicationSideEffect` | Logged side effect entries |
+| `MedicationInventoryItem` | On-hand stock per medication |
+| `MedicationInventoryEvent` | Inventory movements (refill, consumption) |
 | `ReminderPhaseConfig` | Phase-based reminder escalation (GREEN, YELLOW, ORANGE, RED) |
-| `TelegramReminderMessage` | Sent Telegram messages for later cleanup |
+| `TelegramReminderMessage` | Sent Telegram messages, tracked for later cleanup |
 | `TelegramScheduledDeletion` | Scheduled deletion of Telegram messages |
+| `MoodReminderDispatch` | Sent mood-reminder records (dedupe + cleanup) |
 
-A `Medication` has any number of `MedicationSchedule`s (e.g. morning and evening) and any number of `MedicationIntakeEvent`s. `ReminderPhaseConfig` defines per-medication escalation thresholds for the four reminder phases.
+A `Medication` has any number of `MedicationSchedule`s (e.g. morning and evening)
+and `MedicationIntakeEvent`s. The recurrence engine — not the database — owns
+schedule projection; the schema only stores the rule. `ReminderPhaseConfig`
+defines per-medication escalation thresholds for the four reminder phases.
+
+## AI / Coach
+
+| Model | Description |
+|---|---|
+| `CoachConversation` | A Coach chat thread |
+| `CoachMessage` | A single message; the body is stored in `encryptedContent` (`Bytes`, AES-256-GCM) |
+| `CoachUsage` | Per-user token/budget accounting for the budget gate |
+| `RecommendationFeedback` | Thumbs up/down on a Coach recommendation |
+| `Feedback` | General in-app feedback |
 
 ## Tokens
 
 | Model | Description |
 |---|---|
 | `ApiToken` | External API access. The token value is stored as a **keyed HMAC-SHA-256 hash** (using the `API_TOKEN_HMAC_KEY` env var) — the plaintext is not retrievable after creation, and a DB dump alone does not let an attacker precompute matching hashes. |
+| `IdempotencyKey` | User-scoped idempotency cache so a retried mutation is not applied twice |
 
 ## Integrations
 
 | Model | Description |
 |---|---|
-| `WithingsConnection` | OAuth connection to Withings (access token, refresh token, user ID). Tokens are stored **encrypted with AES-256-GCM**. |
+| `WithingsConnection` | OAuth connection to Withings (access token, refresh token, user ID), tokens **encrypted with AES-256-GCM** |
+| `WithingsOAuthState` | Short-lived OAuth state/PKCE values during the connect flow |
+| `IntegrationStatus` | Per-integration health, last-sync, and last-error (the error string is encrypted) |
+| `ImportJob` | Tracks a running import (Apple Health, file upload) |
 
 ## Notifications
 
 | Model | Description |
 |---|---|
-| `NotificationChannel` | Configured channel (Telegram, ntfy, Web Push) per user |
+| `NotificationChannel` | Configured channel (APNs, Telegram, ntfy, Web Push) per user; channel config is encrypted |
 | `NotificationPreference` | Fine-grained control: which events go through which channel |
 | `PushSubscription` | Web Push subscription data (endpoint, keys) |
+| `Device` | A paired native client (APNs token, model, client-managed reminder flags) |
+| `PushAttempt` | 90-day ledger of delivery attempts (channel, event, result, reason) |
 
 ## System
 
@@ -81,21 +121,50 @@ A `Medication` has any number of `MedicationSchedule`s (e.g. morning and evening
 | `DataBackup` | Metadata for encrypted database backups |
 | `RateLimit` | Key-based rate limiting with counter and reset timestamp |
 | `UserAchievement` | Unlocked achievements (gamification) with timestamp |
+| `HostMetric` | Self-monitoring host/runtime metrics |
 
 ## Rollups (pre-aggregation)
 
-Charts and analytics rarely need every raw row. HealthLog keeps **rollup tables** — pre-aggregated `DAY` / `WEEK` / `MONTH` / `YEAR` buckets per measurement type (count, min, max, mean, sum). A read tries the rollup first and falls back to live SQL only when the rollup doesn't yet cover the requested window, so the dashboard and `/insights` answer in milliseconds instead of walking hundreds of thousands of rows. New accounts are backfilled by a boot-time job; ongoing writes keep the buckets current. This is why a long history loads as fast as a short one.
+Charts and analytics rarely need every raw row, so HealthLog keeps four **rollup
+tables** — `MeasurementRollup`, `MoodEntryRollup`, and
+`MedicationComplianceRollup` — holding pre-aggregated `DAY` / `WEEK` / `MONTH` /
+`YEAR` buckets (count, min, max, mean, sum). A read tries the rollup first and
+falls back to live SQL only when the rollup does not yet cover the requested
+window, so the dashboard and `/insights` answer in milliseconds instead of
+walking hundreds of thousands of rows. New accounts are backfilled by a boot-time
+job; ongoing writes keep the buckets current. This is why a long history loads as
+fast as a short one — see [background jobs](/architecture/background-jobs/) for
+the maintenance schedule.
 
-## Encryption
+## Encryption at rest
 
-The following fields are stored encrypted with [AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) in the database:
+Sensitive columns are stored encrypted with
+[AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) — an
+authenticated cipher, so a tampered ciphertext fails to decrypt rather than
+returning garbage. The encryption layer is **fail-closed**: a missing key,
+malformed payload, or unknown key id throws rather than silently writing or
+reading plaintext, which guarantees a misconfigured instance never quietly
+downgrades your data to cleartext.
 
-- `User.openaiKeyEncrypted` (OpenAI API key)
-- `User.telegramBotToken` (Telegram bot token)
+Encrypted columns include:
+
+- `User.aiOpenaiKeyEncrypted`, `User.aiAnthropicKeyEncrypted`,
+  `User.aiLocalKeyEncrypted` (per-user BYOK AI keys)
+- `User.codexAccessTokenEncrypted`, `User.codexRefreshTokenEncrypted`
+- `User.telegramBotToken`
 - `User.withingsClientIdEncrypted`, `User.withingsClientSecretEncrypted`
 - `User.moodLogUrlEncrypted`, `User.moodLogApiKeyEncrypted`
+- `User.insuranceNumberEncrypted` (patient-identity field for the FHIR export)
 - `WithingsConnection.accessToken`, `WithingsConnection.refreshToken`
-- `AppSettings.webPushVapidPrivateKeyEncrypted`, `AppSettings.githubIssueTokenEncrypted`
-- `NotificationChannel.config` (depending on channel type)
+- `AppSettings.webPushVapidPrivateKeyEncrypted`,
+  `AppSettings.githubIssueTokenEncrypted`, `AppSettings.adminAiKeyEncrypted`
+- `NotificationChannel.config` (channel-specific secrets)
+- `IntegrationStatus.lastError` (may contain token-fragment metadata)
+- `CoachMessage.encryptedContent` (the chat body, stored as `Bytes`)
 
-The encryption key used is the `ENCRYPTION_KEY` environment variable.
+The active key is supplied as `ENCRYPTION_KEYS` (a `{ "v1": "<hex>", ... }` map)
+plus `ENCRYPTION_ACTIVE_KEY_ID`; the legacy single `ENCRYPTION_KEY` env var is
+still accepted as `v1`. Keys are versioned so a key can be rotated without
+re-encrypting everything at once — keep the old key in the map until the
+[rotation script](/configuration/environment-variables/) reports zero remaining
+rows on it.
