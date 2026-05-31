@@ -44,7 +44,7 @@ Measurements always reference a `User` and carry a source (`source`): `MANUAL`, 
 | Model | Description |
 |---|---|
 | `Medication` | Medication with name, dosage, and status (active/paused) |
-| `MedicationSchedule` | Schedule: time window (windowStart/windowEnd), weekdays, optional dosage override |
+| `MedicationSchedule` | Schedule: times of day plus a recurrence rule (`rrule` / `rollingIntervalDays` / `scheduleType`), optional dosage override — see [Medications](/features/medications/#schedules) |
 | `MedicationIntakeEvent` | Individual intake (taken/skipped) with timestamp and source |
 | `ReminderPhaseConfig` | Phase-based reminder escalation (GREEN, YELLOW, ORANGE, RED) |
 | `TelegramReminderMessage` | Sent Telegram messages for later cleanup |
@@ -82,9 +82,13 @@ A `Medication` has any number of `MedicationSchedule`s (e.g. morning and evening
 | `RateLimit` | Key-based rate limiting with counter and reset timestamp |
 | `UserAchievement` | Unlocked achievements (gamification) with timestamp |
 
+## Rollups (pre-aggregation)
+
+Charts and analytics rarely need every raw row. HealthLog keeps **rollup tables** — pre-aggregated `DAY` / `WEEK` / `MONTH` / `YEAR` buckets per measurement type (count, min, max, mean, sum). A read tries the rollup first and falls back to live SQL only when the rollup doesn't yet cover the requested window, so the dashboard and `/insights` answer in milliseconds instead of walking hundreds of thousands of rows. New accounts are backfilled by a boot-time job; ongoing writes keep the buckets current. This is why a long history loads as fast as a short one.
+
 ## Encryption
 
-The following fields are stored encrypted with AES-256-GCM in the database:
+The following fields are stored encrypted with [AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) in the database:
 
 - `User.openaiKeyEncrypted` (OpenAI API key)
 - `User.telegramBotToken` (Telegram bot token)

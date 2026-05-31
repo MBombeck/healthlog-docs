@@ -27,7 +27,8 @@ The health check endpoint `/api/health` returns the current worker status.
 | `insights-bmi-status` | `20 2 * * *` | BMI insights |
 | `insights-medication-compliance-status` | `25 2 * * *` | Medication compliance insights |
 | `insights-mood-status` | `30 2 * * *` | Mood insights (when MoodLog integration is active) |
-| `data-backup` | `0 3 * * 0` | Weekly encrypted database backup (Sunday 03:00 UTC) |
+| `insight-pregenerate` | `30 4 * * *` | Warms the comprehensive insight + daily briefing so `/insights` is a cache read |
+| `data-backup` | `0 3 * * 0` | Weekly encrypted database backup (Sunday 03:00 Europe/Berlin) |
 | `telegram-message-cleanup` | On-demand | Deletes expired Telegram messages (triggered by other jobs) |
 
 ## Medication Reminders
@@ -40,9 +41,13 @@ The `medication-reminder-check` job runs every 15 minutes and checks for each us
 
 Escalation phases and thresholds are controlled through `ReminderPhaseConfig` (per medication) and the admin settings (`reminderLateMinutes`, `reminderMissedMinutes`).
 
+All cron schedules run in **Europe/Berlin**, not UTC.
+
 ## Insights Jobs
 
-The seven insights jobs run staggered between 02:00 and 02:30 UTC to avoid overloading the database with concurrent queries. Each job calculates trends, averages, and anomalies for its respective measurement type.
+The seven insights jobs run staggered between 02:00 and 02:30 Europe/Berlin to avoid overloading the database with concurrent queries. Each job calculates trends, averages, and anomalies for its respective measurement type.
+
+A separate **`insight-pregenerate`** job runs nightly at 04:30 Europe/Berlin. It is budget-gated and warms the comprehensive AI insight and the daily briefing, so opening `/insights` is a cache read instead of a synchronous model call. The unified [dashboard snapshot](/features/dashboard-customization/#first-paint-snapshot--nightly-pre-generation) reads that pre-generated briefing for its first paint.
 
 ## Data Backup
 

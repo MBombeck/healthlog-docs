@@ -45,7 +45,7 @@ Browser-based push notifications via VAPID keys.
 
 ### APNs (Apple Push)
 
-[Apple Push Notification service](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) (APNs) is the optional channel used by the **native HealthLog iOS app**. It is the only channel that requires an Apple Developer account, and the only one that delivers push to an iPhone or iPad when the app is backgrounded.
+[Apple Push Notification service](https://developer.apple.com/documentation/usernotifications) (APNs) is the optional channel used by the **native HealthLog iOS app**. It is the only channel that requires an Apple Developer account, and the only one that delivers push to an iPhone or iPad when the app is backgrounded.
 
 APNs is **entirely optional**. If you do not configure it, the server silently skips it and falls back to Telegram, ntfy, and Web Push — the iOS app stays fully functional, you simply won't get native lock-screen pushes. The diagram at the top of this page shows that fall-through.
 
