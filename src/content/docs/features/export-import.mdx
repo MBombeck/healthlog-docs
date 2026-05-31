@@ -5,6 +5,8 @@ sidebar:
   order: 7
 ---
 
+import healthRecordExport from "../../../assets/diagrams/08-health-record-export.svg";
+
 HealthLog provides comprehensive export and import capabilities for data backup, sharing with doctors, and migration.
 
 ## Settings → Export (v1.4.16+)
@@ -18,6 +20,26 @@ Every export — the doctor-report PDF, the per-domain CSVs, and the full JSON b
 - **Full JSON backup** — the entire account snapshot in JSON, importable back into HealthLog.
 
 The mobile layout stacks the cards in one column; on `≥ md` viewports they sit two-up. Every download writes a `user.export.<kind>` entry to your audit log. All four endpoints share a global `export:<userId>` rate-limit bucket of **10 / hour**, and the doctor-report PDF — generated client-side — does not count against that bucket.
+
+## Health-record export (PDF + FHIR R4)
+
+The doctor handover has grown into a selectable **health-record export**, served from `POST /api/export/health-record`. One request can produce three things, chosen with the `format` field:
+
+- **`pdf`** — an enriched clinical PDF: a cover with your patient identity, a deterministic summary, and native sparklines.
+- **`fhir`** — a machine-readable [HL7 FHIR R4](https://hl7.org/fhir/R4/) document Bundle (`application/fhir+json`).
+- **`package`** — both of the above plus a README, zipped together.
+
+<img src={healthRecordExport.src} alt="A health-record export request feeds one shared aggregator read, which becomes an enriched PDF and an HL7 FHIR R4 Bundle. The Bundle carries a Patient resource from the profile identity fields, LOINC-coded Observations including a blood-pressure panel, MedicationStatements, a DiagnosticReport, and an opt-in AI summary marked not clinically validated." />
+
+You choose the **date range** (up to a year) and the **per-domain sections** — vitals (weight, BP, pulse, SpO₂, body composition), cardio fitness (resting HR, HRV, VO₂max), activity, glucose, medications (list, compliance, side effects), mood, and BMI. The FHIR bundle and the PDF read from the **same aggregator**, so both describe identical numbers.
+
+In the FHIR bundle, measurements become [LOINC](https://loinc.org/)-coded `Observation` resources with [UCUM](https://ucum.org/) units (blood pressure groups systolic and diastolic into one panel), medications become `MedicationStatement`s, and a `DiagnosticReport` ties the observations together. The same LOINC/UCUM conventions are used by the iOS client, so records interchange. The `Patient` resource is built from the optional **patient-identity fields** on your profile — full name, insurer, and insurance number (validated and encrypted at rest). Set them under **Account** before exporting if you want them on the record.
+
+:::caution
+The AI summary is an **explicit opt-in** section (`includeAiSummary`) and is clearly marked as **not clinically validated**. It is a convenience narrative, not a medical assessment.
+:::
+
+The endpoint shares the same `export:<userId>` bucket (**10 / hour**) as the other exports. See the [OpenAPI spec](/api/overview/) for the full request schema.
 
 ## Export
 
@@ -60,18 +82,23 @@ The import accepts JSON files with the following structure:
     {
       "type": "WEIGHT",
       "value": 82.5,
+      "unit": "kg",
       "measuredAt": "2026-03-01T08:00:00Z"
     }
   ],
   "moodEntries": [
     {
-      "mood": 7,
-      "tags": ["relaxed"],
-      "createdAt": "2026-03-01T20:00:00Z"
+      "date": "2026-03-01",
+      "mood": "GUT",
+      "score": 4,
+      "tags": "relaxed",
+      "loggedAt": "2026-03-01T20:00:00Z"
     }
   ]
 }
 ```
+
+Mood is a five-point scale — `mood` is one of `SUPER_GUT`, `GUT`, `OKAY`, `SCHLECHT`, `LAUSIG`, with the matching `score` from 5 (best) down to 1. Each measurement carries its `unit`; values outside a plausible range for the type are rejected.
 
 ### Limitations
 
@@ -87,13 +114,13 @@ Imports never overwrite existing data. Duplicates (same type, same timestamp) ar
 
 HealthLog creates a weekly encrypted backup:
 
-- **Schedule**: Sundays at 03:00 (pg-boss job)
-- **Encryption**: AES-256-GCM
+- **Schedule**: Sundays at 03:00 Europe/Berlin (pg-boss job)
+- **Encryption**: [AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode)
 - **Storage**: In the database (as an encrypted blob)
 - **Content**: All user data (readings, medications, intakes, mood)
 
 ```
-Schedule: Sunday 03:00 UTC
+Schedule: Sunday 03:00 Europe/Berlin
 Encryption: AES-256-GCM
 Storage: PostgreSQL (encrypted blob)
 Job Runner: pg-boss

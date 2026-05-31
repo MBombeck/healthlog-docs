@@ -148,11 +148,55 @@ PUT /api/auth/profile
   "email": "new@example.com",
   "heightCm": 182,
   "dateOfBirth": "1990-05-15",
-  "gender": "MALE"
+  "gender": "MALE",
+  "fullName": "Alex Example",
+  "insurerName": "Example Health",
+  "insuranceNumber": "A123456789"
 }
 ```
 
-All fields are optional. Only the provided fields are updated.
+All fields are optional. Only the provided fields are updated. `fullName`,
+`insurerName`, and `insuranceNumber` are the patient-identity fields used by the
+[health-record export](/features/export-import/#health-record-export-pdf--fhir-r4)
+cover page and the FHIR `Patient` resource. The insurance number is validated
+(German KVNR mod-10) and encrypted at rest.
+
+---
+
+## Display-Unit Preference
+
+```
+GET   /api/auth/me/unit-preference
+PATCH /api/auth/me/unit-preference
+```
+
+**Auth:** Session Cookie or Bearer Token
+
+Reads or sets the global metric/imperial display preference:
+
+```json
+{ "unitPreference": "imperial" }
+```
+
+This only drives the render-time transform — stored and exported values stay
+canonical SI. The current value is also returned on [`/api/auth/me`](#current-user).
+
+---
+
+## Avatar
+
+```
+POST   /api/user/avatar        — Upload a self-hosted avatar (multipart)
+DELETE /api/user/avatar        — Remove the avatar (falls back to initials)
+GET    /api/user/avatar/[id]   — Fetch the stored image
+```
+
+**Auth:** Session Cookie
+
+Avatars are stored in your own database and served from your instance — there is
+no third-party Gravatar request, so no email hash ever leaves the server. The
+upload accepts JPEG, PNG, or WebP. `/api/auth/me` returns the `avatarUrl` with a
+`?v=<ms>` cache-buster that changes on each upload.
 
 ---
 

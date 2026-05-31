@@ -20,12 +20,50 @@ sidebar:
 | `OXYGEN_SATURATION` | Pulse oximetry / SpO₂ (Withings ScanWatch type 54, HealthKit, Health Connect) | % |
 | `SLEEP_DURATION` | Sleep duration | hours |
 | `ACTIVITY_STEPS` | Steps | steps |
+| `ACTIVE_ENERGY_BURNED` | Active energy | kcal |
+| `WALKING_RUNNING_DISTANCE` | Walking + running distance | km |
+| `FLIGHTS_CLIMBED` | Flights of stairs climbed | flights |
+| `RESTING_HEART_RATE` | Resting heart rate | bpm |
+| `WALKING_HEART_RATE_AVERAGE` | Average walking heart rate | bpm |
+| `HEART_RATE_VARIABILITY` | Heart-rate variability (SDNN) | ms |
+| `VO2_MAX` | Cardiorespiratory fitness | mL/kg·min |
+| `RESPIRATORY_RATE` | Respiratory rate | breaths/min |
+| `BODY_TEMPERATURE` | Body temperature | °C |
+| `SKIN_TEMPERATURE` | Wrist skin temperature | °C |
+| `BODY_MASS_INDEX` | Body-mass index | kg/m² |
+| `LEAN_BODY_MASS` | Lean body mass | kg |
+| `FAT_FREE_MASS` | Fat-free mass | kg |
+| `FAT_MASS` | Fat mass | kg |
+| `MUSCLE_MASS` | Muscle mass | kg |
+| `VISCERAL_FAT` | Visceral fat | rating |
+| `PULSE_WAVE_VELOCITY` | Pulse-wave velocity (arterial stiffness) | m/s |
+| `VASCULAR_AGE` | Estimated vascular age | years |
+| `WALKING_SPEED` | Walking speed | m/s (displayed km/h) |
+| `WALKING_STEP_LENGTH` | Walking step length | cm |
+| `WALKING_ASYMMETRY` | Walking asymmetry | % |
+| `WALKING_DOUBLE_SUPPORT` | Walking double-support time | % |
+| `WALKING_STEADINESS` | Walking steadiness | % |
+| `AUDIO_EXPOSURE_ENV` | Environmental audio exposure | dB |
+| `AUDIO_EXPOSURE_HEADPHONE` | Headphone audio exposure | dB |
+| `AUDIO_EXPOSURE_EVENT` | Audio-exposure event | count |
+| `TIME_IN_DAYLIGHT` | Time in daylight | minutes |
 
 For `BLOOD_GLUCOSE` measurements, you must also send a `glucoseContext`
 field with one of `FASTING`, `POSTPRANDIAL`, `RANDOM`, or `BEDTIME`. Other
 types must omit the field. See the [Health Metrics feature
-page](/features/health-metrics/) for the v1.3 catalogue including body
-composition and the Withings auto-sync flow.
+page](/features/health-metrics/) for the full catalogue, body composition,
+and the Withings auto-sync flow.
+
+### Units & display preference
+
+Measurements are stored **canonically in SI** — kilograms, metres, metres per
+second, degrees Celsius — regardless of where they came from or how they are
+shown. A per-user **metric/imperial display preference** (Settings → Display,
+also surfaced as `unitPreference` on [`/api/auth/me`](/api/authentication/#current-user))
+drives a render-time transform only: walking speed is shown in km/h and distance
+in km, and the imperial setting converts at display time. The stored and
+**exported** values stay SI, so the FHIR R4 export's [UCUM](https://ucum.org/)
+units are always canonical.
 
 ## List Measurements
 

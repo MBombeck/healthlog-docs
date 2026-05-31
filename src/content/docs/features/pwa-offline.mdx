@@ -31,6 +31,10 @@ The service worker uses different caching strategies depending on the resource t
 API requests are never cached. If the device is offline, API calls will fail gracefully and the UI displays appropriate offline indicators.
 :::
 
+:::note
+The PWA does not maintain its own offline write store — it reads live or shows an offline indicator. Native clients (the iOS app) that hold a local copy keep it current through the [sync delta feed](/api/native-clients/#offline-sync-delta-feed) (`/api/sync/changes`), which carries incremental upserts and soft-delete tombstones since the last cursor.
+:::
+
 ### Cache Lifecycle
 
 - Static assets are precached during service worker installation.
