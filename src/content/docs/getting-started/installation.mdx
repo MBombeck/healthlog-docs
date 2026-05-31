@@ -7,7 +7,7 @@ sidebar:
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-HealthLog ships as a `linux/amd64` Docker image on [GitHub Container Registry](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog). The bundled `docker-compose.yml` pulls it together with a PostgreSQL 16 service — no build step required for self-hosters. (A native arm64 image is planned for v1.5; until then arm64 hosts can build from source — see the *Build from source* section below.)
+HealthLog ships as a multi-arch (`linux/amd64` + `linux/arm64`) Docker image on [GitHub Container Registry](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog). The bundled `docker-compose.yml` pulls it together with a PostgreSQL 16 service — no build step required for self-hosters, on Intel/AMD or ARM hosts alike.
 
 ## Prerequisites
 
@@ -23,17 +23,31 @@ cd HealthLog
 cp .env.example .env
 ```
 
-Generate the four required secrets and append them to `.env`:
+Generate the three required secrets and append them to `.env`:
 
 ```bash
 echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)" >> .env
-echo "SESSION_SECRET=$(openssl rand -hex 32)"       >> .env
 echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"       >> .env
 echo "API_TOKEN_HMAC_KEY=$(openssl rand -hex 32)"   >> .env
 ```
 
+There is no session secret to generate: sessions are stored server-side in
+PostgreSQL, not signed as stateless tokens, so there is no signing key to mint.
+
 :::danger
-The `ENCRYPTION_KEY` encrypts sensitive data in the database (Withings/AI tokens, VAPID keys, GitHub PATs). If it is lost or rotated without re-encrypting existing rows, that data becomes permanently unrecoverable. Back the value up somewhere safe.
+The `ENCRYPTION_KEY` is the master key for the database's
+[AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) encryption of
+sensitive rows (Withings/AI tokens, VAPID keys, GitHub PATs, the insurance
+number on the profile). If it is lost or rotated without re-encrypting existing
+rows, that data becomes permanently unrecoverable. Back the value up somewhere
+safe.
+
+For zero-downtime rotation, use the versioned `ENCRYPTION_KEYS` map
+(`{"v1":"<hex>","v2":"<hex>"}`) with `ENCRYPTION_ACTIVE_KEY_ID=v2` and the
+rotation CLI rather than swapping the single `ENCRYPTION_KEY` in place — see the
+[encryption-key rotation runbook](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/encryption-key-rotation.md).
+Keep every legacy key in the map until the rotation script reports zero rows
+remaining on it.
 :::
 
 Bring the stack up:
@@ -70,7 +84,6 @@ services:
     environment:
       DATABASE_URL: "postgresql://healthlog:${POSTGRES_PASSWORD}@db:5432/healthlog?schema=public"
       NODE_ENV: production
-      SESSION_SECRET: "${SESSION_SECRET:?SESSION_SECRET is required}"
       ENCRYPTION_KEY: "${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}"
       API_TOKEN_HMAC_KEY: "${API_TOKEN_HMAC_KEY:?API_TOKEN_HMAC_KEY is required}"
       NEXT_PUBLIC_APP_URL: "${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
@@ -107,7 +120,7 @@ The [`.env.example`](https://github.com/MBombeck/HealthLog/blob/main/.env.exampl
 `:latest` follows `main`. For production, pin to a released tag:
 
 ```yaml
-image: ghcr.io/mbombeck/healthlog:1.6.0
+image: ghcr.io/mbombeck/healthlog:1.7.0
 ```
 
 See the [container registry page](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog) for available tags. Each image is built with [SLSA build provenance](https://slsa.dev/spec/v1.0/provenance) and an [SBOM](https://docs.docker.com/build/metadata/attestations/sbom/) attached — see the [Supply Chain section in `SECURITY.md`](https://github.com/MBombeck/HealthLog/blob/main/SECURITY.md#supply-chain) for verification commands.

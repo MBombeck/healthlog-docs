@@ -88,7 +88,48 @@ GET /api/auth/me
 
 **Auth:** Session Cookie or Bearer Token
 
-Returns the current user including their Gravatar URL.
+Returns the current user profile. The `avatarUrl` is **self-hosted** — a relative
+URL served from your own database (`/api/user/avatar/...?v=<ms>`), never a
+third-party Gravatar request, so no email hash ever leaves your instance. It is
+`null` until an avatar is uploaded, in which case clients render the
+username-initials fallback.
+
+**Response** `200`:
+
+```json
+{
+  "data": {
+    "id": "clx...",
+    "username": "alice",
+    "email": "alice@example.com",
+    "role": "USER",
+    "heightCm": 182,
+    "dateOfBirth": "1990-05-15",
+    "gender": "MALE",
+    "timezone": "Europe/Berlin",
+    "onboardingCompletedAt": "2026-01-12T08:00:00.000Z",
+    "onboardingTourCompleted": true,
+    "avatarUrl": "/api/user/avatar/clx...?v=1716663600000",
+    "glucoseUnit": "mg/dL",
+    "unitPreference": "metric",
+    "lastReportPracticeName": null,
+    "disableCoach": false,
+    "fullName": null,
+    "insurerName": null,
+    "insuranceNumber": null
+  },
+  "error": null
+}
+```
+
+- `unitPreference` — `"metric"` or `"imperial"`, the display-unit toggle from
+  Settings → Display. Canonical storage stays SI; this only drives the
+  render-time transform.
+- `fullName`, `insurerName`, `insuranceNumber` — optional patient-identity
+  fields used by the [health-record export](/features/export-import/). The
+  insurance number is validated and encrypted at rest, and is decrypted
+  fail-soft (reads `null` rather than failing the whole profile fetch on a
+  key-rotation gap).
 
 ---
 
@@ -160,7 +201,11 @@ Checks whether registration is enabled (e.g. whether an admin already exists).
 
 ## Passkeys (WebAuthn)
 
-HealthLog supports passwordless authentication via WebAuthn / Passkeys.
+HealthLog supports passwordless authentication via
+[WebAuthn / passkeys](https://www.w3.org/TR/webauthn-2/) — the W3C standard for
+public-key credentials. The private key never leaves the authenticator (a
+device biometric or hardware key); the server only ever stores and verifies the
+public key, so there is no shared secret to phish or leak.
 
 ### Register a Passkey
 
