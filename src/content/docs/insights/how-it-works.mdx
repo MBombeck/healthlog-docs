@@ -91,7 +91,7 @@ The **last provider that successfully answered** is cached for an hour per user.
 Today, feedback affects two things:
 
 1. **Admin observability.** A daily aggregator (`feedback-aggregator`, runs at 04:00 Europe/Berlin) writes a per-(severity × provider × prompt-version) helpful-rate summary into `AppSettings.adminAiInsightsFeedbackSummary`. The admin can see at `/admin/ai-quality` whether one provider is producing recommendations users find useful and another isn't, or whether a new prompt version is regressing.
-2. **Per-user learning** *(planned for v1.4.17)*. The cross-user prompt ratchet — feeding aggregate helpful-rate data back into the system prompt to nudge the model toward what users actually find helpful — is intentionally deferred until enough feedback has been collected to be statistically meaningful.
+2. **Per-user learning** *(not yet enabled)*. The cross-user prompt ratchet — feeding aggregate helpful-rate data back into the system prompt to nudge the model toward what users actually find helpful — is intentionally deferred until enough feedback has been collected to be statistically meaningful.
 
 Feedback is **not** used as a soft-block filter. A recommendation isn't hidden because previous similar recommendations got down-voted; that would create a feedback loop where the model only ever surfaces what's already popular and never tells you the thing you need to hear.
 

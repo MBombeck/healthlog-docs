@@ -14,7 +14,7 @@ Pre-built images are published to GitHub Container Registry by the [`docker-publ
 | Property | Value |
 | -------- | ----- |
 | Registry | `ghcr.io/mbombeck/healthlog` |
-| Architectures | `linux/amd64` (native arm64 image planned for v1.5; build from source on arm64 hosts in the meantime) |
+| Architectures | multi-arch: `linux/amd64` + `linux/arm64` |
 | Tags | `latest` (main), `vX.Y.Z`, `vX.Y`, `sha-<short>` |
 | Base | `node:22-alpine` (multi-stage build) |
 | User | `nextjs` (UID 1001, non-root) |
@@ -52,7 +52,7 @@ Production deployments should pin to a specific release:
 ```yaml
 services:
   app:
-    image: ghcr.io/mbombeck/healthlog:1.6.0 # not :latest
+    image: ghcr.io/mbombeck/healthlog:1.7.0 # not :latest
 ```
 
 Each release is announced in [`CHANGELOG.md`](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md). Migrations are additive and tested in CI; downgrades are not generally supported.

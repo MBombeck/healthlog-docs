@@ -1,6 +1,6 @@
 ---
 title: AI Provider Configuration
-description: Set up Codex (ChatGPT-account), OpenAI direct, Anthropic, local OpenAI-compatible, or admin-shared providers — and configure the v1.4.16 fallback chain.
+description: Set up Codex (ChatGPT-account), OpenAI direct, Anthropic, local OpenAI-compatible, or admin-shared providers — and configure the fallback chain.
 sidebar:
   order: 1
 ---
@@ -11,7 +11,7 @@ This page covers the setup paths for each provider, the fallback-chain editor, a
 
 ## The Settings → AI page
 
-v1.4.16 collapses the previous top/bottom split (active provider on top, configured-but-inactive providers on the bottom) into a single **Pulldown-driven** layout. There's one provider dropdown at the top of the panel; the configuration form below switch-renders for whichever provider you pick. Below the form sits the fallback-chain editor.
+The panel is **dropdown-driven**: one provider dropdown sits at the top, and the configuration form below switch-renders for whichever provider you pick. Below the form sits the fallback-chain editor.
 
 The dropdown is the **only** source of truth for which provider you're editing. Switch from Codex to OpenAI direct and the Codex token isn't lost — it's parked in the encrypted config table; switching back later re-hydrates the form. So you can keep a long-tail OpenAI key around as a backup without losing it just because Codex is your daily driver.
 
@@ -64,7 +64,7 @@ Same encryption-at-rest as OpenAI direct.
 
 ## Local / OpenAI-compatible
 
-For Ollama, LM Studio, vLLM, LiteLLM, or any other endpoint that speaks the OpenAI Chat Completions API.
+For [Ollama](https://ollama.com/), LM Studio, vLLM, LiteLLM, or any other endpoint that speaks the OpenAI Chat Completions API. This is the fully self-contained path — your health data never leaves your network, since the model runs on hardware you control.
 
 1. Pick **Local / OpenAI-compatible** in the provider dropdown.
 2. Enter the **base URL** of your local endpoint (e.g. `http://192.168.1.10:11434/v1` for an Ollama box on your LAN).

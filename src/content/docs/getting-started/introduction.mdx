@@ -9,16 +9,17 @@ sidebar:
 
 HealthLog is a **self-hosted, mobile-first Progressive Web App** (PWA) for comprehensive health tracking. It combines manual vital sign logging with automatic device syncing, smart medication management, and AI-powered insights.
 
-All your data stays on your own infrastructure — no cloud lock-in, no subscriptions, full control.
+All your data stays on your own infrastructure — no cloud lock-in, no subscriptions, full control. HealthLog is free software under the [GNU AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.en.html): you can run, study, modify, and redistribute it, and anyone you offer it to over a network is entitled to the source.
 
 ## Key Features
 
-- **Vital Sign Tracking** — Weight, blood pressure, heart rate, body fat, sleep, activity, mood, blood glucose, oxygen saturation, total body water, bone mass
-- **Medication Management** — Schedules, dosages, as-needed medications, compliance analytics
+- **Vital Sign Tracking** — Weight, blood pressure, heart rate, body fat, sleep, activity, mood, blood glucose, oxygen saturation, total body water, bone mass — plus the full set of HealthKit metrics (HRV, VO₂max, resting heart rate, respiratory rate, the walking-quality and body-composition families, audio exposure, and more)
+- **Medication Management** — Flexible recurrence (daily, weekday subsets, bi-weekly, rolling, RRULE, one-time, as-needed, cyclic on/off weeks), route of administration with injection-site tracking, and cadence-aware compliance analytics
 - **Automated Reminders** — Telegram, ntfy, Web Push notifications
 - **Withings Sync** — Automatic import from smart scales, BP monitors, ScanWatch (SpO2), and Body+ (TBW, bone mass)
 - **AI Insights** — Multi-provider (OpenAI / Anthropic Claude / ChatGPT subscription via Codex / local OpenAI-compatible), inline charts in findings, three years of context per metric. The ChatGPT path uses a one-click device-code flow against `auth.openai.com` — no API plan, no separate billing
-- **Doctor Report PDF** — Client-side, locale-aware export with vital signs, medication compliance, mood distribution, and an optional AI summary
+- **Health-Record Export** — A doctor handover as an enriched PDF and a machine-readable [HL7 FHIR R4](https://hl7.org/fhir/R4/) bundle (LOINC-coded, UCUM units), with selectable date range and per-domain sections and an optional AI summary
+- **First-Paint Dashboard** — Above-the-fold tiles assemble in one snapshot round-trip; the daily briefing and insight are pre-generated overnight so nothing blocks on the model
 - **Custom Health Targets** — Override any guideline default with the values your clinician set, audit-logged
 - **Customizable Dashboard** — Show / hide / reorder every widget
 - **Built-in Feedback** — Bug, feature, question, or other — with optional GitHub escalation for admins
