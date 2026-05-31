@@ -59,7 +59,7 @@ Sensitive database fields are encrypted with **[AES-256-GCM](https://en.wikipedi
 - Notification configurations
 - VAPID keys (Web Push)
 
-The storage format is `base64(IV + AuthTag + Ciphertext)`. The key is provided via the `ENCRYPTION_KEY` environment variable.
+The storage format is `base64(IV + AuthTag + Ciphertext)`. The key is provided via the `ENCRYPTION_KEY` environment variable (or the versioned `ENCRYPTION_KEYS` map for rotation). The cipher is authenticated, so a tampered value fails to decrypt rather than returning garbage, and the encryption layer is **fail-closed**: a missing key, malformed payload, or unknown key id throws rather than silently reading or writing plaintext — a misconfigured instance never quietly downgrades your data to cleartext.
 
 :::danger
 If the `ENCRYPTION_KEY` is lost, all encrypted fields become permanently unreadable.

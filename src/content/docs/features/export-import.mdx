@@ -26,7 +26,7 @@ The mobile layout stacks the cards in one column; on `≥ md` viewports they sit
 The doctor handover has grown into a selectable **health-record export**, served from `POST /api/export/health-record`. One request can produce three things, chosen with the `format` field:
 
 - **`pdf`** — an enriched clinical PDF: a cover with your patient identity, a deterministic summary, and native sparklines.
-- **`fhir`** — a machine-readable [HL7 FHIR R4](https://hl7.org/fhir/R4/) document Bundle (`application/fhir+json`).
+- **`fhir`** — a machine-readable [HL7 FHIR R4](https://hl7.org/fhir/R4/) document Bundle (`application/fhir+json`). FHIR R4 is the format used here because it is the interchange standard clinical systems already read — Germany's electronic patient record (ePA) ingests FHIR, so the export drops into a real record rather than being a PDF a practice has to retype.
 - **`package`** — both of the above plus a README, zipped together.
 
 <img src={healthRecordExport.src} alt="A health-record export request feeds one shared aggregator read, which becomes an enriched PDF and an HL7 FHIR R4 Bundle. The Bundle carries a Patient resource from the profile identity fields, LOINC-coded Observations including a blood-pressure panel, MedicationStatements, a DiagnosticReport, and an opt-in AI summary marked not clinically validated." />
