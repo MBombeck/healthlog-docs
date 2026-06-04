@@ -1,15 +1,15 @@
 ---
 title: Mood Tracking
-description: Track daily mood on a 5-point scale with tags, notes, and moodLog.app integration.
+description: Track daily mood on a five-face scale with a structured tag catalog and rated daily-life factors.
 sidebar:
   order: 8
 ---
 
-HealthLog includes a built-in mood tracker. Entries can be logged manually or synced automatically from [moodLog.app](https://moodlog.app) via webhook.
+HealthLog includes a built-in mood tracker. An entry captures a mood level on a five-face scale, a set of structured tags picked from a shared catalog, rated daily-life factors, and an optional note.
 
-## 5-Point Mood Scale
+## Five-Face Mood Scale
 
-Each entry records a single mood level on a fixed scale:
+Each entry records a single mood level on a fixed 1–5 scale:
 
 | Value | Label | Description |
 |-------|-------|-------------|
@@ -23,30 +23,48 @@ Each entry records a single mood level on a fixed scale:
 The mood enum keys carry German labels for historical reasons (the moodLog.app integration uses them as the canonical wire format); the displayed strings follow your selected UI locale (English or German). The numeric values are used internally and in exports.
 :::
 
-## Tags and Notes
+## Structured Tags
 
-Each mood entry can include:
+Tags are picked from a shared catalog rather than typed freeform, so the same concept reads the same way on every entry and supports reliable analytics. The catalog is grouped into categories:
 
-- **Tags** -- Freeform labels (e.g., `stressed`, `relaxed`, `headache`, `exercise`). Multiple tags per entry are supported.
-- **Notes** -- Optional free-text field for context or observations.
+| Category | Example tags |
+|---|---|
+| Feelings | mood-related feeling tags |
+| Sleep | sleep-context tags |
+| Health | physical-state tags plus nutrition tags (ate-well, fast-food, no-sweets, big-meal) |
+| Social | social-context tags |
+| Work | work-context tags |
+| Hobbies | movies, reading, gaming, music, outdoors |
 
-Tags are reusable across entries and can be filtered in the analytics view.
+The catalog is global reference data for the deployment (the same set for every user) and is served by `GET /api/mood/tags`. Multiple tags per entry are supported, and each entry can carry an optional free-text **note**.
+
+## Rated Factors
+
+Alongside the binary tags, an entry can score a set of rated daily-life factors. Each factor has its own scale, and two are marked **inverse** — a higher score reads as a worse day:
+
+| Factor | Scale | Inverse |
+|---|---|---|
+| Work | 1–5 | No |
+| Social | 1–5 | No |
+| Sleep quality | 1–5 | No |
+| Stress | 1–5 | Yes |
+| Conflict | Yes / No | Yes |
+
+The factor catalog rides on the same `GET /api/mood/tags` response: a tag carries a `kind` of `BINARY` (a toggle chip) or `RATED` (a 1..`scaleMax` segmented control, rendered Yes/No when `scaleMax` is 2) plus `scaleMin`, `scaleMax`, and `inverse` so the client can branch its rendering.
 
 ## moodLog.app Integration
 
-HealthLog can receive mood entries from the moodLog.app via webhook sync.
+:::caution[Deprecated]
+The standalone moodLog.app webhook is deprecated now that mood is tracked fully inside HealthLog. It stays functional for existing integrations and is slated for removal in a future major release; do not build new callers against it.
+:::
 
-### How It Works
+HealthLog can still receive mood entries from moodLog.app via webhook sync.
 
 1. Enable the MoodLog integration in the admin panel under **Admin → General** (`/admin/general`, `moodLogGlobal`).
 2. Generate a personal API token in **Settings → API**.
 3. Configure moodLog.app to send webhooks to your HealthLog instance.
 
-The webhook endpoint accepts incoming mood data and maps it to the internal 5-point scale.
-
-:::tip
-The integration runs in the background. Synced entries appear in the mood history alongside manually logged entries, with a source indicator to distinguish them.
-:::
+The webhook endpoint accepts incoming mood data and maps it to the internal five-point scale.
 
 ## Mood Analytics
 
@@ -55,6 +73,7 @@ The analytics view provides insights into mood patterns over time:
 - **Trend chart** -- Line chart showing mood values across 7, 30, or 90 days.
 - **Distribution** -- Bar chart showing how often each mood level was recorded.
 - **Correlations** -- Cross-referencing mood with health metrics (sleep, activity, weight) to surface potential patterns.
+- **Mood relations** -- A mood-relations surface associates your structured tags and rated factors with your other metrics — for each tag present on enough days, it compares a metric's value on tagged versus untagged days and frames the result as an association in your own data, not a causal claim. Served by `GET /api/mood/insights`.
 
 :::note
 Correlation analysis requires sufficient data points in both mood and the respective health metric. At least 14 days of overlapping data is recommended.

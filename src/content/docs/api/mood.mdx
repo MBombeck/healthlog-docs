@@ -1,6 +1,6 @@
 ---
 title: "Mood"
-description: "Record, query, and analyze mood entries."
+description: "Record, query, and analyze mood entries with structured tags and rated factors."
 sidebar:
   order: 5
 ---
@@ -18,6 +18,19 @@ sidebar:
 :::note
 Mood enum values use German labels as the app's primary UI language is German. The `score` field (1–5) is language-independent.
 :::
+
+## Structured tags and rated factors
+
+Beyond free-text `tags`, an entry can carry structured tags and rated factors picked from a shared catalog (see [`GET /api/mood/tags`](#tag-catalog)):
+
+| Field | Type | Description |
+|---|---|---|
+| `tagKeys` | `string[]` (max 30) | Binary tag keys from the catalog. Unknown keys are dropped silently — the catalog is the source of truth. |
+| `ratedFactors` | `{ key, rating }[]` (max 30) | Rated factors. Each `rating` is validated against the factor's own `scaleMin..scaleMax` (e.g. 1–2 for `factor_conflict`); out-of-scale or non-rated keys are rejected. |
+| `note` | `string` (max 500) | Free-text note. |
+| `moodLoggedAt` | ISO 8601 (with offset) | When the mood was logged. Required on create. |
+
+On `PUT`, sending `tagKeys` / `ratedFactors` replaces the whole set; `null` clears every link; omitting the field leaves the links untouched.
 
 ## List Entries
 
@@ -80,21 +93,47 @@ curl -s https://your-instance.example.com/api/mood-entries \
   }'
 ```
 
-**Response** `201`:
+A structured create uses catalog keys, rated factors, and a single `note`:
 
-```json
-{
-  "data": {
-    "id": "clx...",
+```bash
+curl -s https://your-instance.example.com/api/mood-entries \
+  -H "Content-Type: application/json" \
+  -H "Cookie: healthlog_session=abc123" \
+  -d '{
     "mood": "GUT",
-    "score": 4,
-    "tags": ["Exercise", "Slept well"],
-    "notes": "Productive day",
-    "createdAt": "2026-03-08T20:00:00.000Z"
-  },
-  "error": null
-}
+    "tagKeys": ["outdoors", "ate_well"],
+    "ratedFactors": [
+      { "key": "factor_sleep_quality", "rating": 4 },
+      { "key": "factor_stress", "rating": 2 }
+    ],
+    "note": "Walk after work",
+    "moodLoggedAt": "2026-03-08T20:00:00+01:00"
+  }'
 ```
+
+---
+
+## Tag catalog
+
+```
+GET /api/mood/tags
+```
+
+**Auth:** Session Cookie
+
+Returns the active category → tag tree the mood form renders. The catalog is global reference data (one shared set for the deployment). Each tag carries a `kind` of `BINARY` (a toggle chip) or `RATED` (a `scaleMin..scaleMax` segmented control, rendered Yes/No when `scaleMax` is 2), plus an `inverse` flag where a higher score means a worse day. Tag `labelKey` fields resolve client-side against the active locale.
+
+---
+
+## Mood relations
+
+```
+GET /api/mood/insights
+```
+
+**Auth:** Session Cookie
+
+Returns mood-relations associations — for each structured tag present on enough days, a comparison of a metric's value on tagged versus untagged days, framed as an association in your own data rather than a causal claim.
 
 ---
 

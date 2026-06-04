@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: Withings devices, MoodLog, and external API integrations for automatic data import.
+description: Withings, WHOOP, Google Health/Fitbit, and external API integrations for automatic data import.
 sidebar:
   order: 5
 ---
@@ -60,7 +60,69 @@ The Withings integration requires a **Withings Developer Account** with a regist
 If the webhook stops working (e.g., after a server migration), the hourly polling kicks in automatically. The `WITHINGS_SYNC_FAILED` event type notifies you of prolonged outages.
 :::
 
+## WHOOP
+
+Integration with [WHOOP](https://www.whoop.com) recovery straps via OAuth 2.0. WHOOP is a per-user **bring-your-own-keys** integration: each self-hoster registers their own WHOOP developer app and pastes the Client ID and Client Secret into HealthLog, stored AES-256-GCM encrypted on the user record.
+
+### Supported metrics
+
+| WHOOP source | HealthLog data |
+|---|---|
+| Recovery | Resting heart rate, heart-rate variability, oxygen saturation, skin temperature, respiratory rate, and a device-native recovery score |
+| Sleep | Per-stage sleep with the shared sleep-stage model |
+| Body | Weight, height (height seeds the profile only) |
+| Workout | Exercise sessions as workouts (sport type, duration, energy, distance, heart rate) |
+
+WHOOP leads the default source ladder for the recovery-input metrics (sleep, HRV, resting heart rate, respiratory rate) — see [Source priority](/concepts/source-priority/).
+
+### Setup
+
+1. Create a WHOOP developer app at [developer.whoop.com](https://developer.whoop.com)
+2. Set the redirect URL to `<your-app-url>/api/whoop/callback` (or the `WHOOP_REDIRECT_URI` env var)
+3. Enter the Client ID and Client Secret under **Settings → Integrations → WHOOP**
+4. Connect your WHOOP account (OAuth 2.0 flow)
+
+Each connection has a **Test connection** button, a **manual sync** (incremental by default, full history on request), and a **resume** control that recovers a connection after a revoked grant. A signed webhook keeps new data flowing in near-real-time; `WHOOP_WEBHOOK_SECRET` hardens its signature verification.
+
+## Google Health / Fitbit (experimental)
+
+Integration with Fitbit and Pixel wearables through Google's [Health API](https://developers.google.com/health). Like WHOOP, this is a per-user **bring-your-own-keys** integration: each self-hoster registers their own Google Cloud OAuth client and pastes the Client ID and Client Secret into HealthLog, stored AES-256-GCM encrypted.
+
+:::caution
+This integration is **experimental**. Google's Health API is young, and several per-type value fields are not yet fully published, so some data types may import nothing until the wire mapping is verified against a live account. Treat imported coverage as provisional and report gaps as [GitHub issues](https://github.com/MBombeck/HealthLog/issues).
+:::
+
+### Supported metrics
+
+Server-side sync covers four read bundles:
+
+| Bundle | HealthLog data |
+|---|---|
+| Activity (daily) | Steps, walking/running distance, active energy burned, floors climbed, VO₂ max |
+| Health metrics | Weight, body fat, oxygen saturation, resting heart rate, heart-rate variability, respiratory rate, wrist temperature, spot heart rate (height seeds the profile only) |
+| Sleep | Per-stage sleep with the shared sleep-stage model |
+| Exercise | Workouts (sport type, duration, energy, distance, heart rate) |
+
+The live coverage table (every Google Health data type → HealthLog measurement) lives in the main repo at [`src/lib/fitbit/mapping.md`](https://github.com/MBombeck/HealthLog/blob/main/src/lib/fitbit/mapping.md).
+
+### Setup
+
+1. Create an OAuth client in a [Google Cloud](https://console.cloud.google.com) project and enable the Health API
+2. Set the redirect URI to `<your-app-url>/api/fitbit/callback` (or the `FITBIT_REDIRECT_URI` env var)
+3. Enter the Client ID and Client Secret under **Settings → Integrations**
+4. Connect your account (Google OAuth consent flow)
+
+The same **Test connection**, **manual sync** (incremental or full history), and **resume** controls as WHOOP apply.
+
+:::note
+Every scope HealthLog requests is a Google **Restricted** scope. Before the OAuth client can leave Google's Testing mode and serve more than a handful of test users, the operator's project needs Google brand verification plus an annual CASA security assessment — this is per-OAuth-client, which is why HealthLog cannot ship a single shared app.
+:::
+
 ## MoodLog
+
+:::caution[Deprecated]
+The standalone moodLog.app webhook is deprecated. Mood is now tracked fully inside HealthLog with a five-face capture, a structured tag catalog, and rated factors — see [Mood Tracking](/features/mood-tracking/). The webhook stays functional for existing integrations and is slated for removal in a future major release; do not build new callers against it.
+:::
 
 Integration with [moodlog.app](https://moodlog.app) for mood tracking data.
 

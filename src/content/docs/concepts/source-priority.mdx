@@ -5,7 +5,9 @@ sidebar:
   order: 1
 ---
 
-If you run an Apple Watch plus a Withings ScanWatch plus the iPhone Health app, three different sensors are writing your step count for the same day. Without a resolver, the dashboard would triple-count and the AI Coach would talk about 30 000 steps in a day you spent on the couch. HealthLog's source-priority resolver picks **one canonical row per (user, day, metric)** at ingest time, keeps the losing rows in the audit trail, and never silently merges values.
+If you run an Apple Watch plus a Withings ScanWatch plus the iPhone Health app, three different sensors are writing your step count for the same day. Without a resolver, the dashboard would triple-count and the AI Coach would talk about 30 000 steps in a day you spent on the couch. HealthLog's source-priority resolver picks **one canonical row per (user, day, metric)**, keeps the losing rows in the audit trail, and never silently merges values.
+
+This is the classic [data fusion](https://en.wikipedia.org/wiki/Data_fusion) problem: combining several imperfect sensors into a single, more reliable estimate. Rather than averaging readings blindly — which would let a noisy wrist estimate drag down a precise dedicated device — HealthLog ranks sources per metric by how trustworthy each is for that measurement, and takes the best available one.
 
 import sourcePriority from "../../../assets/diagrams/04-source-priority.svg";
 
@@ -17,14 +19,15 @@ The resolver runs a different ladder depending on whether the metric is **cumula
 
 | Axis | Ladder | Why |
 | ---- | ------ | --- |
-| Cumulative — steps, active energy, distance, flights, sleep duration, HRV, resting HR | **APPLE_HEALTH ≻ WITHINGS ≻ MANUAL ≻ IMPORT** | iOS HealthKit folds every contributing sensor (Apple Watch motion, iPhone motion, Withings ScanWatch via Health Mate) into one canonical daily aggregate. That aggregate is more complete than any single device's stream. |
-| Point — weight, BP, body fat, body temperature, SpO₂, VO₂ max | **WITHINGS ≻ APPLE_HEALTH ≻ MANUAL ≻ IMPORT** | Withings devices are the primary sensor; the Apple Health row for the same reading is a second-hand copy received via the Health Mate iOS app. Trusting the primary sensor avoids round-trip rounding and timezone-shift artefacts. |
+| Cumulative activity — steps, active energy, distance, flights | **APPLE_HEALTH ≻ WITHINGS ≻ FITBIT ≻ MANUAL** | iOS HealthKit folds every contributing sensor (Apple Watch motion, iPhone motion, Withings ScanWatch via Health Mate) into one canonical daily aggregate. That aggregate is more complete than any single device's stream. |
+| Recovery inputs — sleep, HRV, resting HR, respiratory rate | **WHOOP ≻ FITBIT ≻ APPLE_HEALTH ≻ WITHINGS** | A dedicated recovery strap is the primary sensor for nightly recovery signals, so it leads these ladders ahead of a general aggregator. |
+| Point — weight, BP, body fat, body temperature, SpO₂, VO₂ max | **WITHINGS ≻ APPLE_HEALTH ≻ MANUAL ≻ …** | A dedicated Withings device is the primary sensor; the Apple Health row for the same reading is a second-hand copy received via the Health Mate iOS app, and a wrist estimate (WHOOP/Fitbit) ranks below both. Trusting the primary sensor avoids round-trip rounding and timezone-shift artefacts. |
 
-The defaults are encoded in `src/lib/validations/source-priority.ts` and ship with the app. They're conservative — they minimise surprises for users who turn on a second source after months of running just one.
+The exact per-metric ladders are encoded in `src/lib/validations/source-priority.ts` and ship with the app — a few metrics tune the order (the ScanWatch pulse-ox leads SpO₂, for example). They're conservative — they minimise surprises for users who turn on a second source after months of running just one.
 
 ## The audit trail
 
-The resolver never deletes the losing rows. Every `Measurement` lands in Postgres tagged with its `source` enum value (`APPLE_HEALTH`, `WITHINGS`, `MANUAL`, `IMPORT`, `MOODLOG`); only the **aggregation pipeline** filters them through the ladder. Practically:
+The resolver never deletes the losing rows. Every `Measurement` lands in Postgres tagged with its `source` enum value (`MANUAL`, `WITHINGS`, `APPLE_HEALTH`, `WHOOP`, `FITBIT`, `IMPORT`, plus the server-derived `COMPUTED`); only the **aggregation pipeline** filters them through the ladder. Practically:
 
 - The `/measurements` list view shows all rows. Filter by source to see what each integration contributed.
 - The dashboard tiles, trend charts, Insights cards, and Coach answers all read the resolved aggregate.
