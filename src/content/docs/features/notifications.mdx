@@ -66,7 +66,7 @@ APNS_BUNDLE_ID="dev.healthlog.app"
 APNS_KEY_B64="LS0tLS1CRUdJTi...="   # base64 of the .p8, no newlines
 ```
 
-:::caution[Self-hosters: the .p8 is bound to *your* app, not Marc's]
+:::caution[Self-hosters: the .p8 is bound to *your* app, not the published one]
 An Apple `.p8` key only works with apps signed by the **same Apple Developer team**, and APNs delivers only to the app whose **bundle-id matches the topic**. The published HealthLog app is signed under `dev.healthlog.app`. To push from your own server with your own `.p8`, you must **rebuild and re-sign the iOS app under your own bundle-id and team**, then set `APNS_BUNDLE_ID` to that bundle-id. Reusing the stock bundle-id with a foreign `.p8` is rejected by Apple (`DeviceTokenNotForTopic`). See the [TLS Certificates](/self-hosting/tls-certificates/) guide for the related rebuild story, and the [iOS client repo](https://github.com/MBombeck/healthlog-iOS) for the native implementation.
 :::
 
