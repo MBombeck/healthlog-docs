@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-HealthLog ships its own per-user backup mechanism on top of any database-level dumps you take. The `data-backup` queue (pg-boss) writes a structured JSON snapshot of every user's data to the `DataBackup` table on a weekly schedule, and v1.4.15 added the full lifecycle around it: download, upload, and restore.
+HealthLog ships its own per-user backup mechanism on top of any database-level [`pg_dump`](https://www.postgresql.org/docs/current/app-pgdump.html) you take. The `data-backup` queue (pg-boss) writes a structured JSON snapshot of every user's data to the `DataBackup` table on a weekly schedule, with a full lifecycle around it: download, upload, and restore.
 
 This page explains what's inside a snapshot, how the lifecycle works, and the security implications of holding the file outside the database.
 
@@ -69,7 +69,7 @@ A few categories are deliberately excluded so the file stays focused on health d
 
 Sensitive fields stay encrypted **inside** the JSON.
 
-The `notificationChannels` block, for example, references the channel by id and carries the user's preference flags, but the credentials (Telegram bot token, ntfy auth header, Web Push endpoint with VAPID) are not embedded in plaintext — they remain in the database under `AES-256-GCM` and the backup carries only the metadata needed to wire them back up. The same goes for AI provider keys, Withings OAuth tokens, and the moodLog webhook secret: they are encrypted at rest with a key (`ENCRYPTION_KEY` or a versioned entry from `ENCRYPTION_KEYS`) that **never** leaves the running container.
+The `notificationChannels` block, for example, references the channel by id and carries the user's preference flags, but the credentials (Telegram bot token, ntfy auth header, Web Push endpoint with VAPID) are not embedded in plaintext — they remain in the database under [AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) (an authenticated cipher: a tampered ciphertext fails to decrypt rather than returning garbage) and the backup carries only the metadata needed to wire them back up. The same goes for AI provider keys, Withings OAuth tokens, and the moodLog webhook secret: they are encrypted at rest with a key (`ENCRYPTION_KEY` or a versioned entry from `ENCRYPTION_KEYS`) that **never** leaves the running container.
 
 That said, **the file still contains your full medical history**. Treat it like a password-manager export: fine on encrypted disk under your control, dangerous if it lands on the wrong USB stick.
 
@@ -101,7 +101,7 @@ Uploading a backup does **not** touch your live data — it only stores the snap
 
 ## Restore a backup
 
-Restore is the riskiest operation in the panel: it replaces the live data of the target user (or, in the global flow, every user) with the contents of the snapshot. v1.4.15 puts five independent gates in front of it.
+Restore is the riskiest operation in the panel: it replaces the live data of the target user (or, in the global flow, every user) with the contents of the snapshot. Five independent gates sit in front of it.
 
 ### The five gates
 
@@ -115,7 +115,7 @@ Restore is the riskiest operation in the panel: it replaces the live data of the
 
 Inside a single Postgres transaction:
 
-1. **Wipe the live data** for the user. Same scope as the v1.4.14 admin "wipe all data" action plus mood entries: measurements, medications + schedules + reminder phases, intake events, notification channels (and their preferences), push subscriptions, Telegram-scheduled deletions, Withings connections, integration status snapshots, mood entries, achievements, the user's onboarding / report-practice / target / layout preferences.
+1. **Wipe the live data** for the user. Same scope as the admin "wipe all data" action plus mood entries: measurements, medications + schedules + reminder phases, intake events, notification channels (and their preferences), push subscriptions, Telegram-scheduled deletions, Withings connections, integration status snapshots, mood entries, achievements, the user's onboarding / report-practice / target / layout preferences.
 2. **Re-insert** every model from the snapshot.
 3. **Audit-log** `admin.backups.restore.start` at the top of the operation and `admin.backups.restore` (success) or `admin.backups.restore.failed` (rollback) at the end.
 
@@ -144,5 +144,5 @@ A backup file is a complete medical history of one user.
 
 - [Self-Hosting → Scaling](/self-hosting/scaling/) — off-host S3 backups, encryption-key rotation
 - [Self-Hosting → Updates](/self-hosting/updates/) — database-level `pg_dump` (run alongside, not instead of, this)
-- [Admin Settings → Backups](/configuration/admin-settings/#backups-v1414-expanded-in-v1415) — the panel itself
+- [Admin Settings → Backups](/configuration/admin-settings/#backups) — the panel itself
 - [Account → Data deletion](/account/data-deletion/) — what gets removed when a user (or admin) wipes data

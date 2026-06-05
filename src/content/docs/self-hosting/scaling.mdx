@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-For single-user self-hosts, the bundled `docker-compose.yml` is enough — a single container runs the web app, the proxy, and the pg-boss worker side by side. The v1.4 release added three operations features that matter once you grow past that:
+For single-user self-hosts, the bundled `docker-compose.yml` is enough — a single container runs the web app and the pg-boss worker side by side. Three operations features matter once you grow past that:
 
 ## Worker / Web Split
 
@@ -22,13 +22,13 @@ Run **at most one** worker per database — pg-boss serializes through Postgres 
 ```yaml title="docker-compose.scale.yml"
 services:
   app-web:
-    image: ghcr.io/mbombeck/healthlog:1.7.0
+    image: ghcr.io/mbombeck/healthlog:1.12.10
     environment:
       HEALTHLOG_PROCESS_TYPE: web
       # ... rest of env
 
   app-worker:
-    image: ghcr.io/mbombeck/healthlog:1.7.0
+    image: ghcr.io/mbombeck/healthlog:1.12.10
     environment:
       HEALTHLOG_PROCESS_TYPE: worker
       # ... rest of env
@@ -36,7 +36,7 @@ services:
 
 ## Encryption-Key Rotation
 
-`ENCRYPTION_KEYS` is a JSON map of versioned keys; `ENCRYPTION_ACTIVE_KEY_ID` selects which key encrypts new writes. Old data keeps decrypting under its original key.
+[Key rotation](https://en.wikipedia.org/wiki/Key_management) — periodically retiring an old encryption key for a fresh one — limits how much data a single compromised key can expose. `ENCRYPTION_KEYS` is a JSON map of versioned keys; `ENCRYPTION_ACTIVE_KEY_ID` selects which key encrypts new writes. Old data keeps decrypting under its original key.
 
 ```bash
 # Initial setup
@@ -61,7 +61,7 @@ Walk-through and rollback notes live in `docs/ops/encryption-key-rotation.md` in
 
 ## Off-Host S3 Backups
 
-The pg-boss `data-backup` queue runs a weekly backup (Sundays 03:00 Europe/Berlin) of every user's data as encrypted JSON. With v1.4, the backup can be uploaded to any S3-compatible bucket.
+The pg-boss `data-backup` queue runs a weekly backup (Sundays 03:00 Europe/Berlin) of every user's data as encrypted JSON. The backup can additionally be uploaded to any [S3](https://docs.aws.amazon.com/s3/)-compatible bucket (Cloudflare R2, Backblaze B2, MinIO, AWS).
 
 | Variable | Description | Default |
 |----------|-------------|---------|

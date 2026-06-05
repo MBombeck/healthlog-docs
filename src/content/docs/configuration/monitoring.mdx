@@ -53,7 +53,7 @@ Set `glitchtipEnvironment` to distinguish between your production and staging in
 
 ## Health Endpoint
 
-HealthLog exposes a health check endpoint for use with Docker health checks, uptime monitors, or load balancers.
+HealthLog exposes a health-check endpoint for use with Docker health checks, uptime monitors, or load balancers — a single URL a supervisor can poll to decide whether the container is live and able to reach its database.
 
 ### Endpoint
 
@@ -98,7 +98,7 @@ The health endpoint does not require authentication. It only returns the status 
 
 ## Structured Logging
 
-HealthLog uses a structured logging approach based on the Wide Events pattern.
+HealthLog uses a structured logging approach based on the [Wide Events](https://jeremymorrell.dev/blog/a-practitioners-guide-to-wide-events/) pattern — one rich, machine-parseable JSON event per request rather than scattered free-text lines. Structured logs are one of the three pillars of [observability](https://en.wikipedia.org/wiki/Observability_(software)) (metrics, logs, traces), so they drop straight into Grafana/Loki, GlitchTip, or any JSON-aware aggregator without a parsing step.
 
 ### Format
 

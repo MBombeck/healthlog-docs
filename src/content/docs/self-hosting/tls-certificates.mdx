@@ -5,11 +5,11 @@ sidebar:
   order: 3
 ---
 
-HealthLog requires HTTPS in production — session cookies are `secure: true` and passkeys (WebAuthn) only work over TLS or `localhost`. This page covers how a self-hoster gets a valid certificate and clears up a common worry: **certificate pinning in the iOS app does not affect your self-hosted domain.**
+HealthLog requires HTTPS in production — session cookies are `secure: true` and passkeys (WebAuthn) only work over [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) or `localhost`. This page covers how a self-hoster gets a valid [X.509 certificate](https://en.wikipedia.org/wiki/X.509) and clears up a common worry: **certificate pinning in the iOS app does not affect your self-hosted domain.**
 
 ## Get a valid certificate
 
-You almost never deal with certificates by hand. The reverse proxy in front of HealthLog terminates TLS and provisions a Let's Encrypt certificate automatically:
+You almost never deal with certificates by hand. The reverse proxy in front of HealthLog terminates TLS and provisions a certificate automatically over the [ACME protocol](https://letsencrypt.org/how-it-works/) — the automated challenge-response flow [Let's Encrypt](https://letsencrypt.org/how-it-works/) uses to issue browser-trusted certificates for free, with no human in the loop:
 
 - **Caddy** — issues and renews Let's Encrypt certificates with zero configuration.
 - **Traefik** — set a `certresolver` (e.g. `letsencrypt`) on the router label.

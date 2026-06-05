@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-HealthLog is updated by pulling new Docker images. Database migrations run automatically on startup.
+HealthLog is updated by pulling new Docker images. [Database migrations](https://en.wikipedia.org/wiki/Schema_migration) — the versioned schema-change scripts that bring an older database up to the new release's expected shape — run automatically on startup via `prisma migrate deploy`.
 
 ## Performing an Update
 
@@ -23,6 +23,8 @@ The startup process runs `prisma migrate deploy` before starting the server. No 
 :::
 
 ### Manual Backup
+
+Take a full database dump with [`pg_dump`](https://www.postgresql.org/docs/current/app-pgdump.html), PostgreSQL's native logical-backup tool:
 
 ```bash
 docker compose exec db pg_dump -U healthlog healthlog > backup_$(date +%Y%m%d_%H%M%S).sql
@@ -48,7 +50,7 @@ Automatic backups are listed in the admin panel at **Admin → Backups** (`/admi
 
 ## Versioning
 
-Docker images are published at `ghcr.io/mbombeck/healthlog`. Available tags:
+Releases follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`): patch bumps are backward-compatible bug fixes, minor bumps add backward-compatible features, and a major bump signals a breaking change. Docker images are published at `ghcr.io/mbombeck/healthlog`. Available tags:
 
 | Tag | Description |
 |-----|-------------|
@@ -60,7 +62,7 @@ For maximum stability, pin a specific version tag:
 ```yaml
 services:
   app:
-    image: ghcr.io/mbombeck/healthlog:1.7.0
+    image: ghcr.io/mbombeck/healthlog:1.12.10
 ```
 
 ## Rollback
@@ -80,7 +82,7 @@ If an update causes problems:
 
 3. Start with the previous image version:
    ```yaml
-   image: ghcr.io/mbombeck/healthlog:1.6.0
+   image: ghcr.io/mbombeck/healthlog:<previous-version>
    ```
 
    ```bash

@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-HealthLog uses a long-lived `develop` branch for daily work and reserves `main` for releases.
+HealthLog uses a long-lived `develop` branch for daily work and reserves `main` for releases — a simplified take on a [Git](https://en.wikipedia.org/wiki/Git) branching workflow (the named release/support branches of the classic Git-flow model are deliberately omitted to keep a solo-maintained project lean).
 
 ```
    feature/* ──┐
@@ -17,15 +17,15 @@ HealthLog uses a long-lived `develop` branch for daily work and reserves `main` 
 ## Two simple rules
 
 - **`develop` is the daily target.** All feature, fix, test, and docs PRs go here. Pushes to `develop` do not trigger Docker image builds — the branch is intentionally free of release ceremony.
-- **`main` is release-only.** It receives a single release-merge per version, gets tagged (`v1.4.20`, etc.), and that tag is what triggers the image build, the GHCR push, and the Coolify deploy. Direct pushes to `main` outside a release happen only for hotfixes.
+- **`main` is release-only.** It receives a single release-merge per version, gets tagged (`vX.Y.Z`), and that tag is what triggers the image build, the GHCR push, and the [Coolify](https://coolify.io/docs/) deploy. Direct pushes to `main` outside a release happen only for hotfixes.
 
 ## What end users should track
 
-End users should pin to a specific tag (`ghcr.io/mbombeck/healthlog:1.4.19`) or follow `:latest`, which is updated only when a release lands. The `main` branch always equals the latest released code — it never contains in-flight work.
+End users should pin to a specific tag (`ghcr.io/mbombeck/healthlog:X.Y.Z`) or follow `:latest`, which is updated only when a release lands. The `main` branch always equals the latest released code — it never contains in-flight work.
 
 ## What contributors should track
 
-Contributors and self-hosters who want to test in-flight changes should track `develop`. Open PRs against `develop`, not `main`. CI runs on every PR.
+Contributors and self-hosters who want to test in-flight changes should track `develop`. Open PRs against `develop`, not `main`. Feature work branches off `develop` as `feature/*`, `fix/*`, `chore/*`, or `docs/*`; commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat(scope): …`, `fix(scope): …`, `chore: …`), which keeps the history machine-readable and maps cleanly onto the version bumps below. CI runs on every PR.
 
 ```bash
 git clone https://github.com/MBombeck/HealthLog.git
@@ -39,7 +39,7 @@ Critical bugs that cannot wait for the next release cycle:
 
 1. Branch from `main`: `git checkout -b hotfix/something main`
 2. Land the fix on the hotfix branch; merge into `main`
-3. Tag a patch release on `main` (`v1.4.19.1` or `v1.4.20`)
+3. Tag a patch release on `main` (`vX.Y.Z+1`, or a fourth segment such as `vX.Y.Z.1` for a hotfix on top of a release)
 4. Merge `main` back into `develop` so the next release inherits the fix
 
 Hotfixes go through the same CI gates as regular releases. The release-merge is fast-forward where possible.
@@ -54,4 +54,4 @@ Earlier versions used `main` as the daily-work branch, which meant every commit 
 
 ## Release cadence
 
-There is no fixed release cadence. Releases ship when a coherent set of fixes or features has landed on `develop` and passed multi-agent QA + product-lead review. Patch releases (`1.4.X`) ship for bug fixes; minor releases (`1.X.0`) ship when a substantial feature lands; major releases (`X.0.0`) are reserved for breaking changes.
+There is no fixed release cadence. A release is cut on a `release/vX.Y.Z` branch and merged to `main` via PR once a coherent set of fixes or features has landed on `develop` and passed QA + review. Versioning follows [Semantic Versioning](https://semver.org/): patch releases (`X.Y.Z`) ship for backward-compatible bug fixes, minor releases (`X.Y.0`) when a substantial backward-compatible feature lands, and major releases (`X.0.0`) are reserved for breaking changes.

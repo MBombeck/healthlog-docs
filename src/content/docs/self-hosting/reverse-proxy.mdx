@@ -7,14 +7,14 @@ sidebar:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-In production, HealthLog should run behind a reverse proxy with TLS termination. HTTPS is required -- session cookies are set to `secure: true` and passkeys need a secure connection.
+In production, HealthLog should run behind a [reverse proxy](https://en.wikipedia.org/wiki/Reverse_proxy) with [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) termination — a server that sits in front of the app container, terminates HTTPS, and forwards plain HTTP to port 3000 on the internal network. HTTPS is required: session cookies are set to `secure: true` and passkeys (WebAuthn) only work over a secure connection.
 
-Below are configuration examples for the most common reverse proxies.
+Below are configuration examples for the most common reverse proxies. All three can obtain and renew a free [Let's Encrypt](https://letsencrypt.org/how-it-works/) certificate over the ACME protocol — see [TLS Certificates](/self-hosting/tls-certificates/) for the certificate side.
 
 <Tabs>
   <TabItem label="Traefik">
 
-Add Traefik labels to your `docker-compose.yml`:
+Add [Traefik](https://doc.traefik.io/traefik/) labels to your `docker-compose.yml`:
 
 ```yaml
 services:
@@ -47,7 +47,7 @@ The port mapping (`ports: "3000:3000"`) is no longer needed since Traefik connec
   </TabItem>
   <TabItem label="Caddy">
 
-Add the following block to your `Caddyfile`:
+Add the following block to your [Caddy](https://caddyserver.com/docs/) `Caddyfile`:
 
 ```
 health.example.com {
@@ -66,7 +66,7 @@ Caddy automatically handles Let's Encrypt certificates and HTTPS redirects.
   </TabItem>
   <TabItem label="nginx">
 
-Create a server configuration at `/etc/nginx/sites-available/healthlog`:
+Create an [nginx](https://nginx.org/en/docs/) server configuration at `/etc/nginx/sites-available/healthlog`:
 
 ```nginx
 server {

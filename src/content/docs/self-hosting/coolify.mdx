@@ -21,7 +21,7 @@ Coolify gives you Docker-Compose-shaped self-hosting with a UI in front. For Hea
 2. **Pick the branch** — `main` is the release-only branch; `develop` is the active integration branch. Production should track `main`.
 3. **Compose file** — use the repo's `docker-compose.yml` unchanged. The entrypoint already waits for Postgres, runs migrations, and starts the server.
 4. **Environment variables** — paste the required four (`POSTGRES_PASSWORD`, `DATABASE_URL`, `ENCRYPTION_KEY`, `API_TOKEN_HMAC_KEY`) plus any integrations you plan to enable. The `.env.example` in the repo is the canonical list.
-5. **Domain + TLS** — Coolify ships Traefik by default; set your domain and toggle the auto-TLS switch.
+5. **Domain + TLS** — Coolify ships [Traefik](https://doc.traefik.io/traefik/) by default; set your domain and toggle the auto-TLS switch.
 
 ## The `pull_policy: always` requirement
 
@@ -34,7 +34,7 @@ services:
     pull_policy: always
 ```
 
-This is **load-bearing** for Coolify deploys. Without `pull_policy: always`, Coolify will happily restart the same image digest it had last time even after you've published a fresh tag — the v1.4.34.1 deploy chased this exact issue for two days before the explicit `always` policy landed in the compose file. Confirm the line is present after every compose-file edit.
+This is **load-bearing** for Coolify deploys. Without `pull_policy: always`, Coolify will happily restart the same image [digest](https://docs.docker.com/dhi/core-concepts/digests/) it had last time even after you've published a fresh tag. The explicit `always` policy ships in the repo's compose file; confirm the line is present after every compose-file edit.
 
 ## The deploy webhook
 
@@ -48,18 +48,18 @@ The pre-existing post-publish-verify workflow in the main repo already handles h
 
 ## When autodeploy refuses to pull — the host-side retag fallback
 
-Three releases in a row (v1.4.33 → v1.4.34 → v1.4.35) hit a Coolify-cache bug where the new image was published to GHCR but the deploy webhook fired against a stale manifest. The reproducible workaround:
+Coolify can hit a cache bug where a new image is published to GHCR but the deploy webhook fires against a stale manifest. The reproducible workaround is a host-side retag:
 
 ```bash
 # SSH to the host
-docker pull ghcr.io/mbombeck/healthlog:1.4.36
-docker tag ghcr.io/mbombeck/healthlog:1.4.36 ghcr.io/mbombeck/healthlog:latest
+docker pull ghcr.io/mbombeck/healthlog:<version>
+docker tag ghcr.io/mbombeck/healthlog:<version> ghcr.io/mbombeck/healthlog:latest
 # Restart from the Coolify UI
 ```
 
-The retag forces Coolify's next compose-up to use the freshly-pulled digest as the canonical `:latest`. Less elegant than autodeploy but reliable while the underlying Coolify caching issue stays open upstream.
+The retag forces Coolify's next compose-up to use the freshly-pulled digest as the canonical `:latest`. Less elegant than autodeploy but reliable when the cache misbehaves.
 
-The "right" long-term fix is to pin the compose file to an explicit version tag (`ghcr.io/mbombeck/healthlog:1.4.36`) and bump it per release — that removes Coolify's cache from the path entirely at the cost of one extra commit per release.
+The cleaner long-term fix is to pin the compose file to an explicit version tag (`ghcr.io/mbombeck/healthlog:<version>`) and bump it per release — that removes Coolify's cache from the path entirely at the cost of one extra commit per release.
 
 ## Worker-process split
 
@@ -101,13 +101,13 @@ Coolify exposes per-service CPU and memory caps. Sensible starting points:
 Two layers:
 
 - **Coolify-native daily snapshot** of the `postgres` volume. Set the retention policy in the Coolify UI; this covers the local disaster recovery case.
-- **HealthLog-native off-host weekly backup** to an S3-compatible bucket (R2, B2, MinIO, AWS). Configure in the admin panel — see [Admin → Backups](/admin/backups/). AES-GCM-encrypted on the way out; the encryption key never leaves the host.
+- **HealthLog-native off-host weekly backup** to an [S3](https://docs.aws.amazon.com/s3/)-compatible bucket (R2, B2, MinIO, AWS). Configure in the admin panel — see [Admin → Backups](/admin/backups/). [AES-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode)-encrypted on the way out; the encryption key never leaves the host.
 
 Restore drills are part of the operator manual — see [Ops → Backup & Restore](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/backup-restore.md) in the main repo.
 
 ## Logs and observability
 
-Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOG_DESTINATION_LOKI_URL` — the wide-event log lines are pre-formatted for Loki's structured-log path.
+Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth) — the wide-event log lines are pre-formatted for Loki's structured-log path.
 
 Glitchtip and Umami land in the admin-panel monitoring section; both honour the SSRF guard and only emit when explicitly configured.
 
@@ -116,4 +116,4 @@ Glitchtip and Umami land in the admin-panel monitoring section; both honour the 
 - **`unrs-resolver` build script blocked** — Coolify 4.x on pnpm 11 needs `--ignore-scripts` plus an `onlyBuiltDependencies` list for `sharp` and `unrs-resolver`. The repo's Dockerfile already has the flags; if you fork the build, copy them across verbatim.
 - **`/tmp` wiped between deploys** — the worker writes Apple Health import temp files to `/tmp`. Coolify wipes the host's `/tmp` between deploys, so an import in flight during a deploy will fail mid-stream. Acceptable; the user can re-upload (and the SHA-256 dedup short-circuits) the same archive. If you want it bulletproof, mount a named volume at `/tmp/healthlog-imports`.
 - **Coolify webhook secret in the URL** — Coolify's deploy URL includes the UUID and `force=true` as query params. Treat it as a secret; do not commit it.
-- **Edge-host clones disappearing** — the v1.4.34 edge-01 deploys saw the source clone in `/tmp` get wiped, breaking later deploys. The repo's recent compose entries auto-clone if the source directory is missing; verify your compose file includes that fallback.
+- **Edge-host clones disappearing** — on some hosts the source clone in `/tmp` gets wiped, breaking later deploys. The repo's compose entries auto-clone if the source directory is missing; verify your compose file includes that fallback.

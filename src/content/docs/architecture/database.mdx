@@ -1,11 +1,11 @@
 ---
 title: Database Schema
-description: The PostgreSQL data model — 47 Prisma models grouped by domain, with notes on encryption at rest, server-side sessions, and the rollup tier.
+description: The PostgreSQL data model — 61 Prisma models grouped by domain, with notes on encryption at rest, server-side sessions, and the rollup tier.
 sidebar:
   order: 2
 ---
 
-HealthLog uses **PostgreSQL 16** with **Prisma 7** as its ORM. The schema is the single source of truth for every persisted entity — 47 models grouped into the domains below. Primary keys are `cuid()`s and columns map to `snake_case` names; the generated client lives at `src/generated/prisma`.
+HealthLog uses [**PostgreSQL 16**](https://www.postgresql.org/docs/) — a relational database — with [**Prisma 7**](https://www.prisma.io/docs) as its [ORM](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping) (the layer that maps database rows to typed TypeScript objects so the application never hand-writes SQL for routine reads and writes). The schema is the single source of truth for every persisted entity — **61 models** in total. The tables below group the most important ones by domain; a handful of internal bookkeeping models (OAuth-state scratch rows, slug caches, rate-limit counters) are omitted for readability. Primary keys are `cuid()`s and columns map to `snake_case` names; the generated client lives at `src/generated/prisma`.
 
 ## Users and Auth
 
@@ -39,11 +39,13 @@ whole device family — a stolen token is single-use and self-defeating.
 | `WorkoutRoute` | GPS route geometry attached to a workout |
 | `PersonalRecord` | Best-ever value per metric, surfaced in gamification |
 
-The full **measurement type catalogue** (currently 38 types, from weight and
-blood pressure through the complete HealthKit mobility and audio-exposure family)
+The full **measurement type catalogue** (from weight and blood pressure through
+the complete HealthKit mobility and audio-exposure family)
 is documented on the [Measurements API page](/api/measurements/#measurement-types).
-Measurements always reference a `User` and carry a `source`
-(`MANUAL`, `WITHINGS`, `IMPORT`, `APPLE_HEALTH`). Values are stored canonically in
+Measurements always reference a `User` and carry a `source` — one of `MANUAL`,
+`WITHINGS`, `WHOOP`, `FITBIT`, `APPLE_HEALTH`, `IMPORT`, or `COMPUTED` (the last
+is a server-derived score minted by a nightly engine and never ingested from a
+client). Values are stored canonically in
 SI — display-unit conversion happens at render time, never in the database (see
 [source priority](/concepts/source-priority/) for how overlapping sources resolve).
 
@@ -98,7 +100,9 @@ defines per-medication escalation thresholds for the four reminder phases.
 | Model | Description |
 |---|---|
 | `WithingsConnection` | OAuth connection to Withings (access token, refresh token, user ID), tokens **encrypted with AES-256-GCM** |
-| `WithingsOAuthState` | Short-lived OAuth state/PKCE values during the connect flow |
+| `WhoopConnection` | OAuth connection to WHOOP (per-user BYO client credentials), tokens encrypted |
+| `FitbitConnection` | OAuth connection to Fitbit / Google Health (experimental), tokens encrypted |
+| `WithingsOAuthState` / `WhoopOAuthState` / `FitbitOAuthState` | Short-lived OAuth state/PKCE values during each provider's connect flow |
 | `IntegrationStatus` | Per-integration health, last-sync, and last-error (the error string is encrypted) |
 | `ImportJob` | Tracks a running import (Apple Health, file upload) |
 

@@ -11,20 +11,20 @@ import dataFlow from "../../../assets/diagrams/01-data-flow.svg";
 
 <img src={dataFlow.src} alt="HealthLog data flow: sources to ingest to storage (Measurement + MeasurementRollup) to reads to surfaces" />
 
-Every reading walks the same five-stage pipeline. **Sources** (Withings webhook, an Apple Health `export.zip`, the iPhone HealthKit batch from the v1.5 native client, manual entry, the moodLog.app webhook) reach a small set of **ingest** endpoints, which dedup against the source-priority resolver before persisting. **Storage** keeps a row per sample in `Measurement` plus pre-aggregated DAY / WEEK / MONTH buckets in `MeasurementRollup`. **Reads** probe the rollups first and fall back to live SQL when the ask is too slope-heavy or the bucket is cold. **Surfaces** — dashboard tiles, Insights cards, the AI Coach, the doctor-report PDF — all consume the same read path so the numbers stay consistent between, say, a tile and a Coach citation.
+Every reading walks the same five-stage pipeline. **Sources** (Withings webhook, an Apple Health `export.zip`, the iPhone HealthKit batch from the v1.5 native client, manual entry, the moodLog.app webhook) reach a small set of **ingest** endpoints, which dedup against the source-priority resolver before persisting. **Storage** keeps a row per sample in `Measurement` plus pre-aggregated DAY / WEEK / MONTH buckets in `MeasurementRollup`. **Reads** probe the rollups first and fall back to live SQL when the ask is too slope-heavy or the bucket is cold; the browser layers a [stale-while-revalidate](https://datatracker.ietf.org/doc/html/rfc5861) cache (TanStack Query) on top, so a screen paints from the last-known answer and silently refreshes in the background. **Surfaces** — dashboard tiles, Insights cards, the AI Coach, the doctor-report PDF — all consume the same read path so the numbers stay consistent between, say, a tile and a Coach citation.
 
 ## Tech Stack
 
 | Component | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router, React Server Components) |
+| Framework | [Next.js 16](https://nextjs.org/docs/app) ([App Router](https://nextjs.org/docs/app), [React Server Components](https://react.dev/reference/rsc/server-components)) |
 | Language | TypeScript (strict mode) |
-| Database | PostgreSQL 16 |
-| ORM | Prisma 7 with PrismaPg adapter |
-| Background Jobs | pg-boss v12 |
+| Database | [PostgreSQL 16](https://www.postgresql.org/docs/) |
+| ORM | [Prisma 7](https://www.prisma.io/docs) with PrismaPg adapter |
+| Background Jobs | [pg-boss v12](https://github.com/timgit/pg-boss) |
 | Styling | Tailwind CSS 4 + shadcn/ui (Dracula theme, dark-only) |
 | Charts | Recharts 3 |
-| Client State | TanStack Query 5 |
+| Client State | [TanStack Query 5](https://tanstack.com/query/latest) |
 | Forms | React Hook Form 7 |
 | Validation | Zod 4 |
 | Auth | SimpleWebAuthn v13 (Passkeys) + session-based |

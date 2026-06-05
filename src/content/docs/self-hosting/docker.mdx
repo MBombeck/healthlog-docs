@@ -9,7 +9,7 @@ If you're setting HealthLog up for the first time, start with [Getting Started �
 
 ## Image source
 
-Pre-built images are published to GitHub Container Registry by the [`docker-publish.yml`](https://github.com/MBombeck/HealthLog/blob/main/.github/workflows/docker-publish.yml) workflow on every push to `main` and every `v*` tag.
+Pre-built [Docker](https://docs.docker.com/) images are published to GitHub Container Registry by the [`docker-publish.yml`](https://github.com/MBombeck/HealthLog/blob/main/.github/workflows/docker-publish.yml) workflow on every push to `main` and every `v*` tag.
 
 | Property | Value |
 | -------- | ----- |
@@ -47,12 +47,14 @@ The new container starts, the entrypoint runs any pending migrations, then healt
 
 ## Pinning versions
 
-Production deployments should pin to a specific release:
+Production deployments should pin to a specific release tag — or, for full reproducibility, to the immutable [registry digest](https://docs.docker.com/dhi/core-concepts/digests/) (`@sha256:…`), which names the exact image bytes regardless of how a tag is later re-pointed:
 
 ```yaml
 services:
   app:
-    image: ghcr.io/mbombeck/healthlog:1.7.0 # not :latest
+    image: ghcr.io/mbombeck/healthlog:1.12.10 # a release tag, not :latest
+    # or, fully immutable:
+    # image: ghcr.io/mbombeck/healthlog@sha256:<digest>
 ```
 
 Each release is announced in [`CHANGELOG.md`](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md). Migrations are additive and tested in CI; downgrades are not generally supported.
