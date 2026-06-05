@@ -77,6 +77,22 @@ Each schedule's recurrence is an [RFC 5545 `rrule`](https://datatracker.ietf.org
 
 ---
 
+## Natural-Language Extraction
+
+```
+POST /api/medications/extract
+```
+
+**Auth:** Session Cookie
+
+Coach-backed overlay for the create wizard: the user types a free-form
+description ("Mounjaro 5mg weekly Wednesday morning") and the route runs it
+through the AI provider chain, returning a Zod-validated structured partial the
+wizard merges onto the form. Output is citation-guarded against hallucinated
+names and doses, with its own rate-limit bucket.
+
+---
+
 ## Single Medication
 
 ```
@@ -97,7 +113,9 @@ GET /api/medications/[id]/compliance
 
 **Auth:** Session Cookie
 
-Returns compliance rates for 7 and 30 days as well as a 90-day heatmap. The expected-dose denominator is cadence-aware — it counts only doses actually due under the medication's recurrence (daily, weekday subset, bi-weekly, rolling, RRULE, or cyclic), and excludes PRN. Each day carries `due` so a client can distinguish "not due" from "missed".
+Returns [medication-adherence](https://en.wikipedia.org/wiki/Medication_adherence)
+(compliance) rates for 7 and 30 days as well as a 90-day heatmap. The
+expected-dose denominator is cadence-aware — it counts only doses actually due under the medication's recurrence (daily, weekday subset, bi-weekly, rolling, RRULE, or cyclic), and excludes PRN. Each day carries `due` so a client can distinguish "not due" from "missed".
 
 **Response:**
 
@@ -154,17 +172,18 @@ curl -s https://your-instance.example.com/api/medications/clx.../intake \
 DELETE /api/medications/[id]/intake/[eventId]
 ```
 
-### Import Intakes
+### Bulk & Import
 
 ```
-POST /api/medications/[id]/intake/import
+POST /api/medications/[id]/intake/import       — Import historical intakes for one med
+POST /api/medications/[id]/intake/bulk-delete  — Delete a set of intakes
+POST /api/medications/[id]/intake/purge        — Purge all intakes for one med
+POST /api/medications/intake/bulk              — Idempotent bulk backfill (native client sync)
+POST /api/medications/intake                   — Record an intake by medication reference
 ```
 
-### Purge Intakes
-
-```
-POST /api/medications/[id]/intake/purge
-```
+The `intake/bulk` endpoint carries an idempotency key and is used by native
+clients to backfill offline-recorded doses. See [Native Clients](/api/native-clients/).
 
 ---
 
@@ -190,6 +209,29 @@ PUT /api/medications/[id]/phase-config
 **Auth:** Session Cookie
 
 Manages the reminder phase configuration (GREEN, YELLOW, ORANGE, RED) for a medication. Defines thresholds and modes (minutes or percentage of the time window) for phase transitions.
+
+---
+
+## GLP-1 Tracking
+
+For injectable GLP-1 medications, additional endpoints track pen/vial inventory,
+dose cadence, and side effects:
+
+```
+GET  /api/medications/[id]/glp1                       — GLP-1 detail view
+POST /api/medications/[id]/glp1                       — Update GLP-1 fields
+GET  /api/medications/[id]/cadence                    — Cadence + compliance read model
+GET  /api/medications/[id]/inventory                  — List pen/vial inventory
+POST /api/medications/[id]/inventory                  — Add an inventory item
+PUT  /api/medications/[id]/inventory/[itemId]         — Update an inventory item
+DELETE /api/medications/[id]/inventory/[itemId]       — Remove an inventory item
+GET  /api/medications/[id]/side-effects               — List side-effect logs
+POST /api/medications/[id]/side-effects               — Log a side effect
+PUT  /api/medications/[id]/side-effects/[logId]       — Update a side-effect log
+DELETE /api/medications/[id]/side-effects/[logId]     — Delete a side-effect log
+```
+
+**Auth:** Session Cookie
 
 ---
 

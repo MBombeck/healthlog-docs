@@ -14,7 +14,11 @@ POST /api/insights/generate
 **Auth:** Session Cookie
 **Rate Limit:** 10 requests / hour / user (configurable via the `INSIGHTS_RATE_LIMIT_PER_HOUR` env var; the 24h DB cache short-circuits this for read traffic — only `force=true` and expired-cache regenerations consume budget)
 
-Generates an AI-powered insight based on the user's health data. The provider is the user's configured choice (OpenAI / Anthropic / ChatGPT-Codex / local OpenAI-compatible) — see [Settings → AI Providers](/settings/ai-providers/) — with a 24-hour cache.
+Generates an AI-powered insight based on the user's health data. Insight text is
+produced by a [large language model](https://en.wikipedia.org/wiki/Large_language_model)
+(LLM) grounded on the user's own measurements. The provider is the user's
+configured choice (OpenAI / Anthropic / ChatGPT-Codex / local OpenAI-compatible)
+— see [Settings → AI Providers](/settings/ai-providers/) — with a 24-hour cache.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/insights/generate \
@@ -126,3 +130,87 @@ Returns age-adjusted blood pressure target values.
   "error": null
 }
 ```
+
+---
+
+## Metric & Derived Status
+
+```
+GET /api/insights/metric-status?metric=     — Generic per-HealthKit-metric assessment
+GET /api/insights/derived?metric=           — A single derived wellness metric (e.g. recovery score)
+GET /api/insights/derived/batch             — Derived metrics in one round-trip
+GET /api/insights/rhythm-events             — Device-flagged event awareness (categorical)
+POST /api/insights/pregenerate              — Warm the full assessment cache on demand
+```
+
+**Auth:** Session Cookie
+
+The status endpoints share a generic assessment treatment that classifies a
+metric against its plausibility range and personal baseline. See
+[Derived Metrics](/concepts/derived-metrics/) for the methodology behind the
+computed scores.
+
+---
+
+## Insight Cards & Layout
+
+```
+GET    /api/insights/cards    — Card adapter over the comprehensive analysis (used by iOS)
+GET    /api/insights/layout   — Read the user's insights tile layout
+PUT    /api/insights/layout   — Save the tile layout
+DELETE /api/insights/layout   — Reset to the default layout
+```
+
+**Auth:** Session Cookie
+
+---
+
+## AI Coach Chat
+
+```
+POST   /api/insights/chat                              — Send a message (streaming reply)
+GET    /api/insights/chat                              — List chat threads
+GET    /api/insights/chat/[id]                         — Retrieve a thread
+DELETE /api/insights/chat/[id]                         — Delete a thread
+POST   /api/insights/chat/messages/[id]/feedback       — Rate a coach reply
+GET    /api/insights/coach/facts                       — List active Coach facts
+DELETE /api/insights/coach/facts                       — Clear all Coach facts
+DELETE /api/insights/coach/facts/[id]                  — Forget one Coach fact
+```
+
+**Auth:** Session Cookie
+
+The Coach is a conversational LLM surface that streams replies and remembers
+durable "facts" about the user. The medication wizard's
+[natural-language extraction](/api/medications/#natural-language-extraction) uses
+a separate, schema-validated route rather than this conversational endpoint.
+
+---
+
+## Correlations, Narrative & Therapy
+
+```
+GET /api/insights/correlations     — FDR-controlled correlation discovery between metrics
+GET /api/insights/narrative        — Period-narrative summary
+GET /api/insights/glp1-timeline    — GLP-1 therapy timeline aggregator
+```
+
+**Auth:** Session Cookie
+
+Correlations are framed as associations in the user's own data — surfaced only
+after false-discovery-rate control — not causal claims.
+
+---
+
+## Feedback & Provider Chain
+
+```
+POST /api/insights/feedback        — Submit thumbs-up/down feedback on an insight (idempotent)
+GET  /api/insights/provider-chain  — Inspect the active AI provider fallback chain
+PUT  /api/insights/provider-chain  — Reorder / configure the provider chain
+```
+
+**Auth:** Session Cookie
+
+The provider chain falls back in order (ChatGPT-Codex → OpenAI → Anthropic →
+local → admin-shared OpenAI). See [Settings → AI Providers](/settings/ai-providers/).

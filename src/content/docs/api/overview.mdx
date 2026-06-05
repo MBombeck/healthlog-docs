@@ -5,6 +5,12 @@ sidebar:
   order: 1
 ---
 
+HealthLog exposes a [REST](https://en.wikipedia.org/wiki/REST)-style HTTP API:
+resources (measurements, medications, mood entries, …) live under stable URLs,
+and you act on them with the standard HTTP verbs (`GET`, `POST`, `PUT`,
+`DELETE`). Every endpoint speaks JSON and wraps its payload in a consistent
+response envelope.
+
 ## Base URL
 
 All API endpoints are relative to your instance's base URL:
@@ -56,7 +62,12 @@ HealthLog supports two authentication methods:
 | Session Cookie | Browser clients | `healthlog_session` cookie (automatic) |
 | Bearer Token | External API calls | `Authorization: Bearer hlk_...` |
 
-Bearer tokens are created through the [token management](/api/external-ingest/) and are bound to specific permissions.
+Browser clients ride a [session cookie](https://en.wikipedia.org/wiki/HTTP_cookie)
+that is set and refreshed automatically after login. External callers use a
+[bearer token](https://datatracker.ietf.org/doc/html/rfc6750) — the OAuth 2.0
+`Authorization: Bearer …` scheme from RFC 6750. Bearer tokens are created through
+the [token management](/api/external-ingest/) and are bound to specific
+permissions.
 
 ## Rate Limiting
 
@@ -70,6 +81,10 @@ Protected endpoints include rate limit headers in every response:
 When the limit is exceeded, the API returns `429 Too Many Requests`.
 
 ## HTTP Status Codes
+
+The API uses standard
+[HTTP status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status)
+to signal the outcome of every request:
 
 | Code | Meaning |
 |------|---------|

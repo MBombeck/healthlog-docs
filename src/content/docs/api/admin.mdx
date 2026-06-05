@@ -27,7 +27,7 @@ curl -s https://your-instance.example.com/api/admin/status \
 ```json
 {
   "data": {
-    "version": "1.2.1",
+    "version": "1.12.10",
     "users": 3,
     "measurements": 1842,
     "medications": 7,
@@ -55,6 +55,30 @@ PUT /api/admin/settings
 **Auth:** Session Cookie (Admin)
 
 Manages global application settings.
+
+### Assistant Flags
+
+```
+GET /api/admin/settings/assistant-flags
+PUT /api/admin/settings/assistant-flags
+```
+
+Toggles the AI assistant / Coach feature flags for the deployment.
+
+---
+
+## AI Configuration
+
+```
+GET /api/admin/ai-settings    — Read admin-shared AI provider config
+PUT /api/admin/ai-settings    — Update admin-shared AI provider config
+GET /api/admin/ai-quality     — AI insight quality metrics
+```
+
+**Auth:** Session Cookie (Admin)
+
+Manages the operator's shared AI key (the last-ditch fallback in the
+[provider chain](/settings/ai-providers/)) and surfaces quality telemetry.
 
 ---
 
@@ -85,6 +109,14 @@ POST /api/admin/users/[id]/reset-password
 ```
 
 Generates a temporary password for the user.
+
+### Force Logout
+
+```
+POST /api/admin/users/[id]/force-logout
+```
+
+Invalidates all of the user's sessions and bearer tokens immediately.
 
 ```bash
 curl -s -X POST https://your-instance.example.com/api/admin/users/clx.../reset-password \
@@ -120,11 +152,26 @@ Lists all API tokens across all users.
 
 ```
 GET /api/admin/audit-log
+GET /api/admin/audit-log/actions
 ```
 
 **Auth:** Session Cookie (Admin)
 
-Returns the audit log (login attempts, changes, admin actions).
+Returns the audit log (login attempts, changes, admin actions). The `actions`
+endpoint returns the distinct action types for filtering.
+
+---
+
+## Feedback & Bug Reports
+
+```
+GET    /api/admin/feedback                    — List submitted feedback / bug reports
+PATCH  /api/admin/feedback/[id]               — Update a report's status
+DELETE /api/admin/feedback/[id]               — Delete a report
+POST   /api/admin/feedback/[id]/github        — File the report as a GitHub issue
+```
+
+**Auth:** Session Cookie (Admin)
 
 ---
 
@@ -137,6 +184,31 @@ GET /api/admin/data
 **Auth:** Session Cookie (Admin)
 
 Returns database usage statistics (table sizes, entries per type).
+
+---
+
+## Logs & Host Metrics
+
+```
+GET /api/admin/app-logs        — Recent structured application logs
+GET /api/admin/host-metrics    — Host resource metrics (CPU / memory / disk)
+```
+
+**Auth:** Session Cookie (Admin)
+
+---
+
+## Data Maintenance
+
+```
+POST /api/admin/rollups/recompute               — Recompute daily measurement rollups
+POST /api/admin/drain-per-sample-cumulative     — Migrate per-sample cumulative rows
+POST /api/admin/import-apple-health-export      — Server-side Apple Health export ingest
+```
+
+**Auth:** Session Cookie (Admin)
+
+Backup management lives on its own page — see [Backups](/admin/backups/).
 
 ---
 
@@ -159,6 +231,17 @@ POST /api/admin/notifications/reminder-check
 **Auth:** Session Cookie (Admin)
 
 Triggers a manual check for due medication reminders.
+
+### Notification Diagnostic
+
+```
+GET /api/admin/notifications/diagnostic
+```
+
+**Auth:** Session Cookie (Admin)
+
+Reports per-channel notification configuration health (Telegram / ntfy / Web
+Push / APNs) for troubleshooting delivery.
 
 ---
 

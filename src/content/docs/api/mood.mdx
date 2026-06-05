@@ -5,6 +5,12 @@ sidebar:
   order: 5
 ---
 
+Mood logging captures the user's overall
+[affective state](https://en.wikipedia.org/wiki/Mood_(psychology)) on a 5-point
+scale, optionally annotated with structured life-context tags and rated factors.
+Like a Daylio-style journal, the goal is to surface associations between everyday
+factors and how a day felt — not to make clinical claims.
+
 ## Mood Values
 
 | Value | Label (German) | English | Score |
@@ -110,6 +116,17 @@ curl -s https://your-instance.example.com/api/mood-entries \
     "moodLoggedAt": "2026-03-08T20:00:00+01:00"
   }'
 ```
+
+### Bulk Backfill
+
+```
+POST /api/mood-entries/bulk
+```
+
+**Auth:** Session Cookie or Bearer Token
+
+Idempotent bulk-create used by native clients to drain locally-recorded mood
+entries when pairing a device. See [Native Clients](/api/native-clients/).
 
 ---
 

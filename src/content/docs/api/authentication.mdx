@@ -58,7 +58,10 @@ POST /api/auth/login
 }
 ```
 
-The `email` field accepts either a username or an email address.
+The `email` field accepts either a username or an email address. On success the
+server sets a `healthlog_session`
+[session cookie](https://en.wikipedia.org/wiki/HTTP_cookie) that subsequent
+browser requests send automatically.
 
 ```bash
 curl -s -c cookies.txt https://your-instance.example.com/api/auth/login \
@@ -240,6 +243,75 @@ Checks whether registration is enabled (e.g. whether an admin already exists).
   "error": null
 }
 ```
+
+---
+
+## Login Branch Check
+
+```
+POST /api/auth/check-user
+```
+
+**Auth:** None
+**Rate Limit:** 30 requests / 15 minutes / IP
+
+Given an `identifier` (username or email), reports which sign-in path the UI
+should offer — `not_found`, `passkey_only`, `email_fallback`, or `exists` — so
+the login form can route a passkey-only account straight to WebAuthn. The
+identifier is hashed before it touches any audit row, so no raw email or
+username lands in operator-readable logs.
+
+```json
+{ "identifier": "alice" }
+```
+
+---
+
+## Token Refresh
+
+```
+POST /api/auth/refresh
+```
+
+Rotates a native client's bearer token. The iOS app and other long-lived
+clients exchange their current refresh credential for a fresh access token here
+rather than re-prompting for a password. See [Native Clients](/api/native-clients/)
+for the full token-rotation contract.
+
+---
+
+## Trusted Devices
+
+```
+GET    /api/auth/me/devices        — List registered devices
+DELETE /api/auth/me/devices/[id]   — Revoke a device
+```
+
+**Auth:** Session Cookie or Bearer Token
+
+Lists the native clients/sessions bound to your account and lets you revoke one
+remotely (e.g. a lost phone). Revoking a device invalidates its bearer token.
+
+---
+
+## ChatGPT-Codex Device Authorization
+
+```
+POST /api/auth/codex/device-start    — Begin the device-code flow
+POST /api/auth/codex/device-poll     — Poll for approval
+POST /api/auth/codex/disconnect      — Disconnect the linked account
+```
+
+**Auth:** Session Cookie
+
+Connects a ChatGPT-Codex account for AI insights using the
+[OAuth 2.0 Device Authorization Grant (RFC 8628)](https://datatracker.ietf.org/doc/html/rfc8628).
+`device-start` returns a short `userCode` and a `verificationUrl`; the user
+approves on `chatgpt.com` from any device, and `device-poll` exchanges the
+approval for tokens once granted. This avoids a redirect back to your own
+domain — the device-grant flow is designed for exactly this no-callback case.
+The pending device-auth secret is held in an encrypted, httpOnly cookie scoped
+to the 15-minute approval window. See [Settings → AI Providers](/settings/ai-providers/).
 
 ---
 
