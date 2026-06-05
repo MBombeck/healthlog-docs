@@ -1,0 +1,53 @@
+name: Deploy docs (Coolify)
+
+# Triggers a Coolify redeploy of the docs site on every push to `main`.
+# Coolify builds the Astro site from this repo (Dockerfile + nginx.conf), so the
+# deploy is a single authenticated webhook call — no registry step.
+#
+# Setup (one-time, repo Settings → Secrets and variables → Actions):
+#   Secret  COOLIFY_WEBHOOK  full deploy URL incl. ?uuid=<app-uuid>&force=false
+#                            (Coolify → docs app → Webhooks → Deploy)
+#   Secret  COOLIFY_TOKEN    Bearer token (Coolify → Keys & Tokens → API tokens)
+#   Var     COOLIFY_AUTO_DEPLOY=on   (optional; turns a missing-secret skip into
+#                                     a hard error so a broken config is loud)
+# Until the secrets are set the job short-circuits to a green skip, so adding
+# this file changes nothing on its own.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy
+        continue-on-error: true
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_AUTO_DEPLOY: ${{ vars.COOLIFY_AUTO_DEPLOY }}
+        run: |
+          mode="${COOLIFY_AUTO_DEPLOY:-}"
+          if [ "$mode" = "off" ]; then
+            echo "::notice::COOLIFY_AUTO_DEPLOY=off — skipping docs deploy hook."
+            exit 0
+          fi
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            if [ "$mode" = "on" ]; then
+              echo "::error::COOLIFY_AUTO_DEPLOY=on but COOLIFY_WEBHOOK or COOLIFY_TOKEN is missing. Set both under repo Settings → Secrets and variables → Actions."
+              exit 1
+            fi
+            echo "::warning::COOLIFY_WEBHOOK / COOLIFY_TOKEN not set — skipping docs auto-deploy. Add them in repo Settings → Secrets to enable."
+            exit 0
+          fi
+          echo "Triggering Coolify docs redeploy…"
+          code=$(curl -s -o /tmp/coolify.out -w "%{http_code}" \
+            -X GET "$COOLIFY_WEBHOOK" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN")
+          echo "Coolify responded HTTP $code"; cat /tmp/coolify.out || true
+          case "$code" in
+            2*) echo "::notice::Coolify deploy triggered." ;;
+            *)  echo "::error::Coolify deploy webhook returned HTTP $code"; exit 1 ;;
+          esac
