@@ -1,0 +1,44 @@
+---
+title: FHIR export and API
+description: The HL7 FHIR R4 surfaces in HealthLog — the health-record export (PDF + FHIR + package), the read-only FHIR REST API gated behind the fhir:read scope, and the shareable clinician record.
+---
+
+HealthLog speaks [HL7 FHIR R4](https://hl7.org/fhir/R4/), the standard wire format clinical systems use to exchange health records. Three distinct surfaces use it: a one-off **health-record export**, a read-only **FHIR REST API**, and a **shareable clinician record**. They share the same underlying aggregator, so the numbers describe an identical record regardless of which surface a clinician reaches it through.
+
+## Health-record export
+
+`POST /api/export/health-record` produces a selectable export driven by a strict selection payload (date range, per-domain section toggles, optional charts and AI summary). Three output formats:
+
+| Format | Content type | What it is |
+| ------ | ------------ | ---------- |
+| `pdf` | `application/pdf` | An enhanced clinical report — vital summaries, BP/BMI/glucose classification, compliance, custom-threshold badges |
+| `fhir` | `application/fhir+json` | An HL7 FHIR R4 document Bundle: LOINC-coded observations, a blood-pressure panel, medication statements, and a diagnostic report |
+| `package` | `application/zip` | The PDF and the FHIR Bundle together with a short README |
+
+Both formats read the same aggregator, so the PDF and the FHIR Bundle describe identical numbers. The optional AI summary is an explicit opt-in section, marked as not clinically validated, and it is kept **out** of the FHIR Bundle entirely — it is not a clinical observation.
+
+If you fill in your patient identity on **Account** (name, insurer, insurance number), it feeds the report cover and the FHIR `Patient` resource. The export endpoint is rate-limited (a shared `export:<userId>` bucket) and audit-logged.
+
+## Read-only FHIR REST API
+
+A read-only FHIR R4 REST API lets a clinical system pull your record in a standard shape. Every endpoint is gated behind a dedicated `fhir:read` token scope — a bearer token minted with only that scope can read FHIR resources and nothing else.
+
+| Method | Endpoint | Resource |
+| ------ | -------- | -------- |
+| `GET` | `/api/fhir/metadata` | CapabilityStatement (what the server supports) |
+| `GET` | `/api/fhir/Patient` | The token owner's `Patient` |
+| `GET` | `/api/fhir/Observation` | Vitals and labs as LOINC-coded observations |
+| `GET` | `/api/fhir/MedicationStatement` | Medication regimen |
+| `GET` | `/api/fhir/MedicationAdministration` | Logged intake events |
+| `GET` | `/api/fhir/$everything` | A Bundle of every resource above |
+
+Start at `/api/fhir/metadata` — the CapabilityStatement tells a client exactly which resources and search parameters this server exposes.
+
+## Shareable clinician record
+
+Instead of handing a clinician a bearer token, you can create a scoped, time-limited **share link**. The clinician opens the read-only `/c/<token>` view, and you revoke the link when the visit is over.
+
+- Each link carries an explicit expiry (`expiresAt`) and can be revoked at any time (`revokedAt`); a link is active only while it is unrevoked and unexpired.
+- Share links **do not** expose the FHIR REST API. The capability flag `allowFhirApi` defaults to `false`, so a share link is a human-readable view, not a programmatic FHIR endpoint.
+
+The two surfaces are deliberately separate: the FHIR API is for system-to-system integration behind a token scope; the share link is for handing a person a read-only view. A share link granting API access is a future consideration, not the current behaviour.

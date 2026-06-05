@@ -74,6 +74,7 @@ export default defineConfig({
 						{ slug: 'features/ai-insights' },
 						{ slug: 'features/integrations' },
 						{ slug: 'features/mood-tracking' },
+						{ slug: 'features/fhir-export' },
 						{ slug: 'features/pwa-offline' },
 						{ slug: 'features/doctor-report' },
 						{ slug: 'features/gamification' },
@@ -87,6 +88,7 @@ export default defineConfig({
 					items: [
 						{ slug: 'integrations/apple-health' },
 						{ slug: 'integrations/withings' },
+						{ slug: 'integrations/google-health-fitbit' },
 						{ slug: 'integrations/ai-providers' },
 					],
 				},
@@ -94,6 +96,7 @@ export default defineConfig({
 					label: 'Concepts',
 					items: [
 						{ slug: 'concepts/source-priority' },
+						{ slug: 'concepts/derived-metrics' },
 					],
 				},
 				{
