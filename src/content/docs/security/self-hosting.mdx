@@ -9,7 +9,7 @@ Security guidelines for running your own HealthLog instance.
 
 ## 1. Generate Cryptographic Keys
 
-HealthLog requires three independent secrets. Each must be a 256-bit hex string:
+HealthLog requires three independent secrets. Each must be a 256-bit hex string. The `ENCRYPTION_KEY` feeds an [AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) authenticated cipher that protects every credential and OAuth token the server stores at rest; the `API_TOKEN_HMAC_KEY` keys the [HMAC](https://en.wikipedia.org/wiki/HMAC) used to hash API tokens so a leaked database alone can't reconstruct them.
 
 ```bash
 # Session signing
@@ -23,7 +23,7 @@ openssl rand -hex 32  # -> API_TOKEN_HMAC_KEY
 ```
 
 :::danger
-The `ENCRYPTION_KEY` must **never** be changed or lost. It encrypts OpenAI keys, Telegram tokens, Withings tokens, notification config, and VAPID keys. If it is lost or changed, all encrypted data becomes permanently unreadable. Store this key separately (e.g. in a password manager).
+The `ENCRYPTION_KEY` must **never** be lost. It encrypts AI provider keys, ChatGPT/Codex and Withings/WHOOP/Fitbit OAuth tokens, Telegram credentials, notification config, VAPID keys, and AI Coach history. If it is lost, all encrypted data becomes permanently unreadable. Store this key separately (e.g. in a password manager). To rotate it safely, use the versioned `ENCRYPTION_KEYS` map (key-id → key) rather than swapping `ENCRYPTION_KEY` in place — old data stays decryptable under its original key id while new writes use the active key. See [Scaling & Operations](/self-hosting/scaling/) for the rotation procedure.
 :::
 
 ## 2. HTTPS Is Required
@@ -32,7 +32,7 @@ The `ENCRYPTION_KEY` must **never** be changed or lost. It encrypts OpenAI keys,
 HealthLog **requires HTTPS** in production. Session cookies are configured with `secure: true` and will not be sent over unencrypted connections. Passkeys (WebAuthn) only work over HTTPS or `localhost`.
 :::
 
-Use a reverse proxy for TLS termination. See [Reverse Proxy](/self-hosting/reverse-proxy/) for configuration examples.
+Use a [reverse proxy](https://en.wikipedia.org/wiki/Reverse_proxy) for [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) termination — it holds the certificate and decrypts traffic before forwarding to the app over the internal Docker network. See [Reverse Proxy](/self-hosting/reverse-proxy/) for configuration examples.
 
 ## 3. Set APP_URL Correctly
 

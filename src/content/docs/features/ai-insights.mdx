@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-HealthLog offers AI-powered analysis of your health data. As of v1.2 you can pick the provider that fits your privacy and budget profile — there is no longer a single hard-coded vendor.
+HealthLog offers AI-powered analysis of your health data. You pick the [large language model](https://en.wikipedia.org/wiki/Large_language_model) provider that fits your privacy and budget profile — there is no single hard-coded vendor.
 
 ## Providers
 
@@ -13,9 +13,9 @@ Configure a provider per user under **Settings → AI**:
 
 | Provider | Setup | Notes |
 |----------|-------|-------|
-| **OpenAI** | Paste your own API key (BYOK), or use the admin-shared key | Model dropdown with provider presets, plus a custom-model field for power users |
-| **Anthropic Claude** | Paste your API key | Examples: `claude-3-5-haiku`, `claude-3-5-sonnet` |
-| **ChatGPT subscription (Codex)** | One-click **Connect with ChatGPT** — runs entirely through your existing ChatGPT Plus / Pro subscription, no API plan or separate billing required | Uses the OpenAI device-code flow (the same mechanism the official Codex CLI uses for headless / hosted environments). Requires the operator to set `CODEX_OAUTH_CLIENT_ID`; otherwise the button is hidden and the API-key path is the only route |
+| **OpenAI** | Paste your own API key (BYOK), or use the admin-shared key | Defaults to `gpt-4o`. Model dropdown with provider presets, plus a custom-model field for power users |
+| **Anthropic Claude** | Paste your API key | Defaults to `claude-sonnet-4-6`. Presets also include `claude-opus-4-7` and `claude-haiku-4-5` |
+| **ChatGPT subscription (Codex)** | One-click **Connect with ChatGPT** — runs entirely through your existing ChatGPT Plus / Pro subscription, no API plan or separate billing required | Uses the [OAuth 2.0 device authorization grant](https://datatracker.ietf.org/doc/html/rfc8628) (the same mechanism the official Codex CLI uses for headless / hosted environments). Requires the operator to set `CODEX_OAUTH_CLIENT_ID`; otherwise the button is hidden and the API-key path is the only route |
 | **Local / OpenAI-compatible** | Custom base URL + optional API key | Ollama, LM Studio, vLLM, LiteLLM — your data never leaves your network |
 
 Selection is per user. Switching providers stores the new credentials and clears any provider-specific URL the previous selection had set, so a saved local URL cannot leak to OpenAI / Anthropic on the next request.
@@ -24,7 +24,7 @@ Selection is per user. Switching providers stores the new credentials and clears
 
 Pick a provider, paste the API key (and base URL for local endpoints), and pick a model from the dropdown. Keys and URLs are stored AES-256-GCM encrypted in the database. The **Test connection** button fires a single low-cost request and surfaces a clean error message if the key, model, or URL is wrong.
 
-## Connect with ChatGPT (v1.4.14)
+## Connect with ChatGPT
 
 The ChatGPT-subscription path lets you reuse the GPT capacity that ships with ChatGPT Plus or Pro — no separate OpenAI API plan, no second invoice. HealthLog talks to the same `chatgpt.com/backend-api/codex/responses` endpoint that the official Codex CLI uses, with the access token issued for your ChatGPT account.
 
@@ -37,33 +37,33 @@ The ChatGPT-subscription path lets you reuse the GPT capacity that ships with Ch
 
 There is no redirect URL to whitelist, so the flow works on any HealthLog instance, including hosted self-hosts behind a domain. The OAuth refresh token is stored AES-256-GCM encrypted; HealthLog rotates the access token transparently before each request.
 
-**Default model.** The default is `gpt-5.3-codex` — the codex-optimised slug that ChatGPT Plus and Pro tiers can call. Operators can pin a different default for their plan tier via the `CODEX_MODEL` environment variable (for example, a Pro-only slug). The Codex backend rejects model slugs that aren't in the allow-list for your plan with a clear error message in **Test connection**.
+**Default model.** The default is `gpt-5.5` — the head of a built-in slug fallback chain (`gpt-5.5` → `gpt-5.4` → `gpt-5.4-mini` → `gpt-5.3-codex` → `gpt-5.2`) that the Codex backend accepts for ChatGPT Plus and Pro tiers. Operators can pin a different default via the `CODEX_MODEL` environment variable or reorder the chain with `CODEX_MODEL_FALLBACK_CHAIN`. The Codex backend rejects model slugs that aren't in the allow-list for your plan; HealthLog walks the chain automatically and surfaces a clear error in **Test connection** only if every rung is rejected.
 
 **Disconnect.** A **Disconnect** button next to the badge revokes the stored token; reconnect any time.
 
 :::note
-If you connected before v1.4.14, click **Disconnect** and reconnect once. The earlier storage form did not carry the `chatgpt_account_id` claim that the Codex backend requires today, so old tokens cannot be carried forward.
+If you connected very early in the Codex rollout, click **Disconnect** and reconnect once. The earliest storage form did not carry the `chatgpt_account_id` claim that the Codex backend requires today, so those old tokens cannot be carried forward.
 :::
 
 :::note
 Without any provider configured, AI Insights are disabled. Every other HealthLog feature stays fully functional, and the dashboard simply hides the AI cards.
 :::
 
-## Inline Charts in Findings (v1.4+)
+## Inline Charts in Findings
 
 When the model identifies a metric-specific finding, it can embed a chart token that renders the matching chart directly under the paragraph. Supported tokens include `metric:WEIGHT`, `metric:BLOOD_PRESSURE`, `metric:PULSE`, `metric:BMI`, `metric:MOOD`, and the medication-compliance chart. The renderer is allow-listed server-side — only the supported tokens render; any other emission is dropped silently. The "Key Takeaway" card strips the tokens for prose and renders the matching chart underneath.
 
-## Evidence-Anchored Findings (v1.4.3+)
+## Evidence-Anchored Findings
 
 Every finding must cite a concrete number ("138/85 mmHg", "+0.4 mmol/L vs 30d-avg") rather than adjectives. Findings without a measurement anchor are dropped. Generic boilerplate ("drink enough water", "consult your doctor") is forbidden outside the disclaimer.
 
-## Prompt Tone (v1.4.19)
+## Prompt Tone
 
-v1.4.19 revises the system prompt so insights no longer open with a default-positivity sentence about data quality. "Your data foundation is strong" / "Datengrundlage ist sehr stark" openers are explicitly forbidden by GROUND RULE 7 in both EN and DE locales. Data-quality caveats are still allowed when they're useful — `n < 7` in the analysed window, recency older than 14 days, or a coverage gap that biases the comparison — but they no longer pad every reply. `PROMPT_VERSION` bumped 4.16.1 → 4.19.0 so feedback aggregation can attribute responses to the new rule.
+Insights never open with a default-positivity sentence about data quality. "Your data foundation is strong" / "Datengrundlage ist sehr stark" openers are explicitly forbidden by GROUND RULE 7 in both EN and DE locales. Data-quality caveats are still allowed when they're useful — `n < 7` in the analysed window, recency older than 14 days, or a coverage gap that biases the comparison — but they don't pad every reply. The system prompt carries a versioned `PROMPT_VERSION` field so feedback aggregation can attribute each response to the prompt rules that produced it.
 
-## Daily Briefing, AI Coach, and Health Score (v1.4.20)
+## Daily Briefing, AI Coach, and Health Score
 
-v1.4.20 ships a redesigned `/insights` surface that mounts five new pieces on top of the existing recommendation engine.
+The `/insights` surface mounts five pieces on top of the recommendation engine.
 
 - **Daily Briefing** — a short paragraph plus three keyFindings drawn from the last 24-hour window, generated alongside the regular insight payload. It anchors the page so you have something opinionated to read every time you open Insights, even on quiet days.
 - **AI Coach drawer** — a right-side drawer that hosts a streaming chat. The Coach has the same provider configuration as the rest of Insights, walks the same fallback chain, and runs every reply through the same evidence-grounded schema. Conversations persist across sessions, encrypted at rest with AES-256-GCM. Source-chip provenance attaches to every assistant turn (metric, window, n-count — labels only, never raw values), so you can tell at a glance which slice of your data each answer drew on. A per-user daily token budget (25 000 tokens, ≈13 turns for a heavy user) prevents runaway spend on shared provider keys; a prompt-injection refusal pattern blocks obvious off-topic asks before the provider call.
@@ -71,24 +71,23 @@ v1.4.20 ships a redesigned `/insights` surface that mounts five new pieces on to
 - **Personal Health Score** — a deterministic composite 0–100 score with three bands (green ≥75, yellow 50–74, red &lt;50). Weights: 30% BP-target rate, 20% weight-trend alignment, 20% mood stability, 30% medication compliance. The Score panel sits beside the hero strip on `lg+` and includes an "Ask the Coach" CTA that opens the drawer with a score-aware prefill.
 - **Weekly Report** — a printable newsletter-style page at `/insights/report/[week]` (Summary / Going-well / Worth-watching / Tips / Data-quality). The hero surfaces fresh reports with Read · Share · Export PDF actions; export uses `window.print()` against Tailwind `print:` variants, so you get a clean A4 page without a server round-trip.
 
-Three pre-defined correlation cards (BP × medication compliance, mood × pulse, weight × weekday) and a Trends row with AI annotations on the BP timeline round out the new layout. `PROMPT_VERSION` ratcheted 4.19.0 → 4.20.0 → 4.20.1 → 4.20.2 across the rollout; every bump carries one new optional schema block, so insights cached before v1.4.20 still parse without a re-run.
+Three pre-defined correlation cards (BP × medication compliance, mood × pulse, weight × weekday) and a Trends row with AI annotations on the BP timeline round out the layout. Each `PROMPT_VERSION` bump carries one new *optional* schema block, so older cached insights still parse without a forced re-run.
 
-## Coach Prose Rewrite + Collapsible Evidence (v1.4.22)
+## Coach Prose Rewrite + Collapsible Evidence
 
-v1.4.22 is the polish release that lands before the iOS push. The Coach used to open every reply with a number — clinical, database-cursor energy. v1.4.22 reframes the persona as warm, curious, and reserved: a partner sitting alongside you, not pushing data.
+The Coach persona is warm, curious, and reserved — a partner sitting alongside you, not a database cursor pushing data.
 
 - **Prose-first responses.** The reply is a real sentence — "Your blood pressure has settled into the green zone over the last two weeks; the morning readings still tend to run a little high." Numbers move out of the prose into a collapsible evidence block.
 - **Collapsible evidence disclosure.** Each assistant turn carries a "Worauf bezieht sich das?" / "What I'm looking at" `<details>` toggle, closed by default, hidden when no evidence rows came back. Behind the toggle: the metric labels, windows, and aggregate values the Coach drew on. The toggle reveals the data without burying the conversation in it.
 - **Hard caps on the evidence envelope.** The sentinel block the model emits has a 1 KB payload limit, 8 lines maximum, and per-line Zod validation, so a prompt-injection attempt can't grow the persisted envelope.
-- **`PROMPT_VERSION` 4.20.2 → 4.22.0** — first minor-digit bump in v1.4.x because the persona, the sentinel-block contract, and the warmth of the prose all changed in one coherent step.
 
-The token budget per Coach turn is unchanged from v1.4.21 (≈3 000 tokens for a full-scope snapshot, ≈600–700 for a single-source last-7-days narrowed turn).
+The token budget per Coach turn is ≈3 000 tokens for a full-scope snapshot, ≈600–700 for a single-source last-7-days narrowed turn.
 
-## Apple Health Metric Slot + Per-User Prompt Prefs + Helpful/Unhelpful Feedback (v1.4.23)
+## Apple Health Metric Slots, Per-User Prompt Prefs, and Per-Message Feedback
 
-v1.4.23 lands three Coach-side foundations for the iOS push without changing the persona or the prose contract:
+Three Coach-side foundations support the iOS push without changing the persona or the prose contract:
 
-- **Apple Health metric slots.** The strict insight schema's `sourceMetric` and `trendAnnotations` enums extend to admit nine additive HealthKit categories — HRV, sleep, resting HR, steps, active energy, flights climbed, walking + running distance, VO2 max, body temperature. The Coach snapshot pipeline queries the new measurement types only when scope toggles them on, so web-only accounts pay zero extra SQL. `PROMPT_VERSION` ratchets 4.22.0 → 4.23.0 with a new GROUND RULE 12 (EN + DE): treat the new categories as silent when the snapshot doesn't carry them. No apologetic openers about missing data.
+- **Apple Health metric slots.** The strict insight schema's `sourceMetric` and `trendAnnotations` enums admit nine additive [HealthKit](https://developer.apple.com/documentation/healthkit) categories — HRV, sleep, resting HR, steps, active energy, flights climbed, walking + running distance, VO2 max, body temperature. The Coach snapshot pipeline queries the new measurement types only when scope toggles them on, so web-only accounts pay zero extra SQL. A ground rule (EN + DE) tells the model to treat the new categories as silent when the snapshot doesn't carry them — no apologetic openers about missing data.
 - **Per-user prompt-tuning surface.** The settings cog on the Coach drawer opens a right-edge sheet that lets you set `tone` (warm / direct / concise), `verbosity` (terse / standard / detailed), focus metrics, and exclude metrics. Prefs are persisted in `User.coachPrefsJson` and read **before** the snapshot pipeline runs, so excluded metrics never enter the snapshot in the first place — the privacy boundary is structural, not prompt-policed. The system prompt then prepends a per-user OVERRIDE block.
 - **Per-message helpful/unhelpful feedback.** Each Coach reply renders a 👍 / 👎 affordance. Verdicts persist against the canonical encrypted message row via `recommendation_feedback.target_type = COACH_MESSAGE`; admin dashboards bucket the rate by (`PROMPT_VERSION`, tone, verbosity) so a regression on a future persona bump is visible the same week.
 
@@ -109,25 +108,23 @@ The Coach is fed a **chosen set of data clusters** rather than a fixed bundle. T
 
 You toggle which clusters the Coach may draw on. A soft budget cap keeps the prompt within its token budget by degrading the **lowest-signal** clusters first, so turning everything on still fits. The default reproduces the prior fixed domains, so an existing setup behaves exactly as before. As with the per-user prompt prefs, an excluded cluster never enters the snapshot — the boundary is structural, not prompt-policed.
 
-## Native Coach Prompts + GLP-1 Safety Rules + Research Mode (v1.4.25)
+## Native Coach Prompts, GLP-1 Safety Rules, and Research Mode
 
-v1.4.25 reshapes Insights into seven dedicated metric sub-pages, lands [GLP-1](https://en.wikipedia.org/wiki/Glucagon-like_peptide-1_receptor_agonist) medication tracking end-to-end, and tightens Coach safety for the new therapy class without changing the persona contract introduced in v1.4.22.
+Insights is split into seven dedicated metric sub-pages, [GLP-1](https://en.wikipedia.org/wiki/Glucagon-like_peptide-1_receptor_agonist) medication tracking is wired end-to-end, and Coach safety is tightened for that therapy class without changing the warm persona contract.
 
 - **Seven Insights sub-pages.** `/insights/blutdruck`, `/insights/gewicht`, `/insights/puls`, `/insights/stimmung`, `/insights/medikamente`, `/insights/bmi` and `/insights/schlaf` each render the metric's full chart, range bands, trend annotations and correlation rows. A shared tab strip lifts the metric switcher above each chart for cross-metric scanning. `/insights/zielwerte` is redesigned with a conditional Coach-handoff card that only renders when a language-model provider is configured.
 - **Native first-party Coach prompts across six locales.** Coach + insights system prompts move from EN body + `REPLY LANGUAGE` footer to native per-locale bodies for EN, DE, FR, ES, IT, PL. The safety-contract matrix lives as YAML per locale (single source of truth across drafting + tests). An 1800-assertion refusal-probe matrix runs in CI to catch cross-locale prompt regressions before they reach the dispatch surface.
-- **GLP-1 dose-recommendation refusal — GROUND RULE 9.** The Coach refuses any request to recommend, calculate, or adjust GLP-1 dosing. Titration is presented as physician-led; the response surfaces the EMA titration ladder for context but never proposes a next step. `PROMPT_VERSION` 4.24.0 → 4.25.0 carries the rule.
+- **GLP-1 dose-recommendation refusal — GROUND RULE 9.** The Coach refuses any request to recommend, calculate, or adjust GLP-1 dosing. Titration is presented as physician-led; the response surfaces the EMA titration ladder for context but never proposes a next step.
 - **Drug-level estimate refusal + Research Mode gate — GROUND RULE 15.** Drug-level estimates from injection history are clinically unvalidated. The drug-level chart sits behind a Research-Mode acknowledgment dialog that names the limitation, cites MDR + MDCG 2021-24, and persists the acknowledgment per user. The Coach refuses to quote plasma concentrations even when the chart is unlocked.
 - **Plateau-detection rule with referral framing.** `/api/insights/briefing` flags four-week weight stalls on GLP-1 therapy and frames the next step as a clinician conversation, not a self-adjusted dose.
 
-The token budget per Coach turn is unchanged from v1.4.23 (≈3 000 tokens for a full-scope snapshot, ≈600–700 for a single-source last-7-days narrowed turn).
+## Hardened Guardrails
 
-## Hardened Guardrails (v1.4.15+)
+The contract between HealthLog and the model is strict. Every recommendation must cite a concrete data point from the snapshot you submitted; recommendations that try to cite anything that isn't in the snapshot are rejected before they reach you. If the model returns a malformed response, HealthLog corrects it and re-asks once; if the second attempt still fails, you get a clean error rather than a half-broken card. The system prompt is versioned (the `PROMPT_VERSION` field in the audit log records which prompt produced which response), and on the ChatGPT-via-Codex path the model slug is auto-failed-over through a configurable fallback chain so a vendor-side rotation doesn't silently break Insights. The AI is still informational only — the disclaimer footer stays — but it can no longer make up numbers.
 
-v1.4.15 tightens the contract between HealthLog and the model. Every recommendation must cite a concrete data point from the snapshot you submitted; recommendations that try to cite anything that isn't in the snapshot are rejected before they reach you. If the model returns a malformed response, HealthLog corrects it and re-asks once; if the second attempt still fails, you get a clean error rather than a half-broken card. The system prompt is versioned (the `PROMPT_VERSION` field in the audit log records which prompt produced which response), and on the ChatGPT-via-Codex path the model slug is auto-failed-over through a configurable fallback chain so a vendor-side rotation doesn't silently break Insights. The AI is still informational only — the disclaimer footer stays — but it can no longer make up numbers.
+## Per-Recommendation Explainability
 
-## Per-Recommendation Explainability (v1.4.16+)
-
-Every recommendation now carries a **rationale** that explains where it came from. Click the chevron on a card to expand it and you see three lines plus a mini-chart of the data window the model actually looked at:
+Every recommendation carries a **rationale** that explains where it came from. Click the chevron on a card to expand it and you see three lines plus a mini-chart of the data window the model actually looked at:
 
 - **Window** — the time range the recommendation was derived from (e.g. *last 30 days*, *last 7 days*).
 - **Compared to** — the baseline the current value was checked against (your 90-day personal baseline, the prior period, the guideline target).
@@ -137,7 +134,7 @@ The mini-chart embedded directly under the rationale is the same Recharts wrappe
 
 The rationale is part of the strict schema. A recommendation without `dataWindow`, `comparedTo`, and `deviation` won't render — the corrective retry runs first; if the model still won't comply, the recommendation is dropped.
 
-## Confidence Score (v1.4.16+)
+## Confidence Score
 
 Every recommendation gets a **0–100 confidence score** that's computed deterministically on the server, not whatever the model claims. The score is derived from three inputs:
 
@@ -147,7 +144,7 @@ Every recommendation gets a **0–100 confidence score** that's computed determi
 
 The card renders the score as a colour-banded ring + 5-bar meter on the right of the recommendation. Scores below 25 show a small "Low confidence — based on limited data" pill instead of being hidden, so you can still see the suggestion and decide for yourself whether to act on it. The model's claimed confidence value is discarded — the meter you see is always the deterministic computation.
 
-## Was-this-helpful Feedback (v1.4.16+)
+## Was-this-helpful Feedback
 
 Every recommendation has a **thumbs-up / thumbs-down** pair. Tapping a thumb is optimistic — the UI updates immediately, the mutation persists in the background. Each verdict is stored against `(userId, recommendationId, recommendationText)`, so toggling within the same recommendation overwrites the previous vote and you can't double-count yourself.
 
@@ -155,15 +152,15 @@ Provider attribution is **filled server-side** from the latest insight-generatio
 
 Privacy: feedback is **per-user only**. The aggregate is admin-only and gated behind `requireAdmin`. Cross-user feedback never leaves your instance, and the daily aggregator only writes summary counts, not individual votes.
 
-## Medical-Reference Grounding (v1.4.16+)
+## Medical-Reference Grounding
 
-Recommendations now cite **curated medical guidelines** by id. The bundle ships with seven references — ESH 2023, ESC 2024, ACC/AHA 2017, WHO 2021 hypertension, WHO BMI, DGE 2024 nutrition, AHA pulse — each with a stable slug, EN/DE titles, the source URL, and the metrics it applies to.
+Recommendations cite **curated medical guidelines** by id. The bundle ships with seven references — ESH 2023, ESC 2024, ACC/AHA 2017, WHO 2021 hypertension, WHO BMI, DGE 2024 nutrition, AHA pulse — each with a stable slug, EN/DE titles, the source URL, and the metrics it applies to.
 
 The system prompt injects a SOURCES block listing only references that match the metrics in the current snapshot, plus a ground rule telling the model to cite by id. The schema validates the `referenceId` field against the bundle — a fabricated id fails parse before it can render. The post-validation step logs **citation coverage** (how many normative recommendations carry a citation) as a Wide-Event annotation, so the admin AI-quality dashboard can plot coverage over time.
 
 In the UI, every cited recommendation gets a small "Source: ESH 2023" footnote with an external-link icon. Click it and the source guideline opens in a new tab. No model hallucinations of "studies have shown…" — if a recommendation makes a normative claim, it cites a guideline you can read for yourself.
 
-## Multi-Provider Fallback Chain (v1.4.16+)
+## Multi-Provider Fallback Chain
 
 The insight wrapper tries each configured provider in turn. If a provider hard-fails — `401`, `403`, `429`, `5xx`, transport error — the wrapper cascades to the next. **Schema 422** still bubbles, because that's a problem with the response body, not the provider; retrying it against another provider would just waste another paid request. The last provider that successfully answered is **cached for an hour** per user, so the cascade only runs once after a vendor outage instead of on every generation.
 
@@ -173,7 +170,7 @@ The chain is **per user**, not per instance — you can have one user on Codex w
 
 For a deeper walk-through of how the rationale, confidence, citations, and feedback all fit together end-to-end, see [How AI Insights work](/insights/how-it-works/).
 
-## Three Years of Context (v1.4.6)
+## Three Years of Context
 
 Every per-card insight (general, blood pressure, pulse, weight, BMI, mood, medication compliance) sees up to 360 daily means plus 24 monthly means for the older window — three years of history per metric — so the model can spot drift that plays out over a year, not just over the last 30 days. A 50 KB safety guard re-buckets at 180 daily days for particularly noisy accounts so the prompt token budget never blows out.
 
@@ -207,9 +204,9 @@ HealthLog generates insights across seven categories:
 - **Cache duration**: 24 hours per insight
 - **Automatic generation**: Nightly between 02:00 and 02:30 (pg-boss cron)
 - **Manual generation**: Available anytime from the dashboard (invalidates the cache)
-- **Rate limit**: 10 generations per hour per user (v1.4.16+; previously 2/h). Configurable via the `INSIGHTS_RATE_LIMIT_PER_HOUR` env var.
+- **Rate limit**: 10 generations per hour per user. Configurable via the `INSIGHTS_RATE_LIMIT_PER_HOUR` env var.
 - **Cached reloads** do not consume rate-limit budget — a noisy refresh from the dashboard cannot lock you out of fresh generations.
-- **Regeneration evicts the cache fully** (v1.4.16+) — when you generate a new insight, every previously cached per-status payload for that user is deleted, so the dashboard never shows a stale cached card next to a fresh one.
+- **Regeneration evicts the cache fully** — when you generate a new insight, every previously cached per-status payload for that user is deleted, so the dashboard never shows a stale cached card next to a fresh one.
 
 ## Locale-Aware Prompts
 

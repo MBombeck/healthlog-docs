@@ -12,12 +12,12 @@ HealthLog speaks [HL7 FHIR R4](https://hl7.org/fhir/R4/), the standard wire form
 | Format | Content type | What it is |
 | ------ | ------------ | ---------- |
 | `pdf` | `application/pdf` | An enhanced clinical report — vital summaries, BP/BMI/glucose classification, compliance, custom-threshold badges |
-| `fhir` | `application/fhir+json` | An HL7 FHIR R4 document Bundle: LOINC-coded observations, a blood-pressure panel, medication statements, and a diagnostic report |
+| `fhir` | `application/fhir+json` | An HL7 FHIR R4 document Bundle: LOINC-coded [observations](https://www.hl7.org/fhir/R4/observation.html), a blood-pressure panel, [medication statements](https://www.hl7.org/fhir/R4/medicationstatement.html), and a diagnostic report |
 | `package` | `application/zip` | The PDF and the FHIR Bundle together with a short README |
 
 Both formats read the same aggregator, so the PDF and the FHIR Bundle describe identical numbers. The optional AI summary is an explicit opt-in section, marked as not clinically validated, and it is kept **out** of the FHIR Bundle entirely — it is not a clinical observation.
 
-If you fill in your patient identity on **Account** (name, insurer, insurance number), it feeds the report cover and the FHIR `Patient` resource. The export endpoint is rate-limited (a shared `export:<userId>` bucket) and audit-logged.
+If you fill in your patient identity on **Account** (name, insurer, insurance number), it feeds the report cover and the FHIR [`Patient`](https://www.hl7.org/fhir/R4/patient.html) resource. The export endpoint is rate-limited (a shared `export:<userId>` bucket) and audit-logged.
 
 ## Read-only FHIR REST API
 

@@ -31,12 +31,12 @@ Available widgets:
 - Mood snapshot
 - Medication compliance
 - Today's reminders
-- Recent achievements card (v1.4.15+)
+- Recent achievements card
 - AI Insight cards (per metric)
 
-### Tile and chart toggles, separately (v1.4.15+)
+### Tile and chart toggles, separately
 
-Each metric on the dashboard appears twice: as a small **tile** in the top strip (single number, trend chip) and as a fuller **chart** in the row below. As of v1.4.15 those two surfaces have separate visibility switches in the layout settings — the row header reads "Tile / Chart" (EN) or "Kachel / Chart" (DE).
+Each metric on the dashboard appears twice: as a small **tile** in the top strip (single number, trend chip) and as a fuller **chart** in the row below. Those two surfaces have separate visibility switches in the layout settings — the row header reads "Tile / Chart" (EN) or "Kachel / Chart" (DE).
 
 So if you want to see a tile for blood pressure but not the chart, you can. Existing saved layouts keep behaving as before — one switch controls both surfaces — until you flip the new toggle for that metric.
 
@@ -52,29 +52,29 @@ If you only want to hide the AI Insight cards (e.g., you haven't configured a pr
 
 The layout is shared across breakpoints. Widgets you hide on desktop are also hidden on mobile. The order is the same, but the grid collapses to a single column on small screens.
 
-The dashboard's measurement-tile strip uses a true CSS Grid track with a 9 rem floor per tile (v1.4.5+). Every tile takes the same share of the row; on narrow viewports the row wraps rather than triggering a horizontal scroll. The **BP-in-target** tile shows three independent windows side by side (7d / 30d / all-time) — v1.4.18 wired the 7d / 30d sub-values, and v1.4.19 fixes the headline so it routes through a third `allTime` window from `computeBpInTargetWindows()` rather than aliasing to the 30d sub-value, so the three numbers can legitimately differ. The chart strip below the tiles auto-buckets its data on long ranges (v1.4.6) — daily for ≤ 90 days, weekly mean for 91–730 days, monthly mean beyond — with an inline chip showing which bucket is active. The mood chart now follows the same thresholds (v1.4.15+) so a long history of daily mood entries no longer paints a noisy spaghetti line — you see weekly means past 90 days, monthly means past 730.
+The dashboard's measurement-tile strip uses a true CSS Grid track with a 9 rem floor per tile. Every tile takes the same share of the row; on narrow viewports the row wraps rather than triggering a horizontal scroll. The **BP-in-target** tile shows three independent windows side by side (7d / 30d / all-time), each computed from its own window via `computeBpInTargetWindows()`, so the three numbers can legitimately differ. The chart strip below the tiles auto-buckets its data on long ranges — daily for ≤ 90 days, weekly mean for 91–730 days, monthly mean beyond — with an inline chip showing which bucket is active. The mood chart follows the same thresholds, so a long history of daily mood entries no longer paints a noisy spaghetti line — you see weekly means past 90 days, monthly means past 730.
 
-### 7-day trend on every tile (v1.4.15+)
+### 7-day trend on every tile
 
 Every metric tile in the top strip shows a coloured `(±N.N)` next to the value. That delta is the 7-day trend: the average of the last 7 days minus the average of the 7 days before that, in the metric's own units. The label below the value reads "7d trend" (EN) / "7T-Trend" (DE) instead of the previous "7d average". The colour follows what's good for that metric — green for "up is good" (steps, sleep), orange for "up is concerning" (BP, BMI), muted for "neutral" (weight). One glance tells you which way the metric is moving.
 
-The trend label is consistent across **every** chart, tile, and subtitle now (v1.4.16+) — there is no more mix of "7d average" and "7d trend" depending on which surface you're on, and the indicator appears for mood and medication-compliance just like it does for the vitals charts. Long ranges fall back to a split-half mean delta when the per-week rate would round to zero, so the ±N never reads `0.0` when there's a real movement underneath.
+The trend label is consistent across **every** chart, tile, and subtitle — there is no mix of "7d average" and "7d trend" depending on which surface you're on, and the indicator appears for mood and medication-compliance just like it does for the vitals charts. Long ranges fall back to a split-half mean delta when the per-week rate would round to zero, so the ±N never reads `0.0` when there's a real movement underneath.
 
-### Chart polish (v1.4.16+, refined in v1.4.18)
+### Chart polish
 
-Every dashboard chart and the matching detail pages share the same visual baseline. Blood pressure, weight, pulse, body fat, sleep, steps, mood, and medication-compliance charts now ship with:
+Every dashboard chart and the matching detail pages share the same visual baseline. Blood pressure, weight, pulse, body fat, sleep, steps, mood, and medication-compliance charts ship with:
 
 - **Smooth, animated entry** — 600 ms ease-out on the line. The animation respects `prefers-reduced-motion` and snaps to final state for users who prefer reduced motion.
 - A **rich tooltip** on hover or tap that includes the date and the value in the metric's units.
 - An **explicit empty state** for sparse data (fewer than three readings in the visible range) instead of a degenerate one-or-two-point line.
 
-v1.4.18 trimmed the chart aesthetic back to a clean line. The gradient fills under the lines that landed in v1.4.16 are gone — the chart reads as a single coloured stroke against the card background, no shape underneath. The mood chart also drops the emoji glyphs at the data points; plain coloured dots sit on the line, and the y-axis already labels each integer (very low / low / okay / good / great), so the chart stays scannable. The emoji still appears in the tooltip when you hover or tap a point. The medication-compliance chart keeps the 80% threshold and 100% goal reference lines and adds a "−N pp vs. target" tooltip delta.
+The chart aesthetic is a clean line — no gradient fills under the lines, just a single coloured stroke against the card background. The mood chart drops the emoji glyphs at the data points; plain coloured dots sit on the line, and the y-axis already labels each integer (very low / low / okay / good / great), so the chart stays scannable. The emoji still appears in the tooltip when you hover or tap a point. The medication-compliance chart keeps the 80% threshold and 100% goal reference lines and adds a "−N pp vs. target" tooltip delta.
 
-### Mobile chart layout (refined in v1.4.19)
+### Mobile chart layout
 
 The chart card header switches to a mobile-first stack below `sm` — title plus chips on row 1, range tabs plus the cog right-aligned on row 2 with `flex-nowrap`, so the tabs always own a single row down to 280 px (Galaxy Fold compact). The bucket-aggregation chip and comparison captions hide on mobile to free horizontal budget. A new `useViewportWidth` hook + `x-axis-density` helper caps the visible x-axis ticks at 4 (Fold) / 6 (Pixel 5 / iPhone 12) / 8 (small tablet) / 10 (desktop), wired into HealthChart, MoodChart, MedicationComplianceChart and ComplianceLineChart, so the medication chart no longer overloads with one tick per day.
 
-### Per-chart overlay toggles (v1.4.18+)
+### Per-chart overlay toggles
 
 Every chart card has a small cog button next to its header. Tap it for a popover with three independent switches:
 
@@ -82,15 +82,15 @@ Every chart card has a small cog button next to its header. Tap it for a popover
 - **Trend arrow** — adds the small ↑ / ↓ direction-arrow chip to the headline. Off by default.
 - **Target range** — shades the metric's healthy band across the chart background (sys 120–139, weight ±5% of personal target, etc.). Off by default.
 
-Defaults are all off, so the default look is a clean line. Each switch is **per chart, per user** — the BP chart can have target-range on while the weight chart stays off. State is persisted in your account (`User.dashboardWidgetsJson.chartOverlayPrefs`), so it survives reload and follows you across devices. The personal-baseline reference line is no longer always-on the way it was in v1.4.16; it only renders when the Trend switch on that specific chart is enabled.
+Defaults are all off, so the default look is a clean line. Each switch is **per chart, per user** — the BP chart can have target-range on while the weight chart stays off. State is persisted in your account (`User.dashboardWidgetsJson.chartOverlayPrefs`), so it survives reload and follows you across devices. The personal-baseline reference line only renders when the Trend switch on that specific chart is enabled.
 
-### Comparison overlays (v1.4.16+, single global preference in v1.4.22)
+### Comparison overlays
 
-The **comparison toggle** — *off / vs. last month / vs. last year* — moved to a single global preference under **Settings → Dashboard** in v1.4.22. The on-page surface on `/insights` retired because two surfaces for the same concept violated the no-split-Settings rule; the picker has lived in `User.dashboardWidgetsJson.comparisonBaseline` since v1.4.16 and every chart already consumed it. The cog menu on each chart card still handles trend, trend-arrow, and target-range overlays separately. With the toggle on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
+The **comparison toggle** — *off / vs. last month / vs. last year* — is a single global preference under **Settings → Dashboard**. The picker lives in `User.dashboardWidgetsJson.comparisonBaseline` and every chart consumes it. The cog menu on each chart card still handles trend, trend-arrow, and target-range overlays separately. With the toggle on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
 
 The AI insights surface narrates the comparison ("your average BP improved by 4 mmHg vs. last month") when the toggle is active. See [Comparison views](/dashboard/comparison/) for the full walk-through.
 
-Once you finish the onboarding checklist, the dashboard stops re-fetching the checklist gates on every load (v1.4.14+) — opening the dashboard is roughly a second faster for established accounts because two background requests no longer fire. Insights chart bundles also load on demand on the **Insights** page, so the first paint is faster for everyone.
+Once you finish the onboarding checklist, the dashboard stops re-fetching the checklist gates on every load — opening the dashboard is roughly a second faster for established accounts because two background requests no longer fire. Insights chart bundles also load on demand on the **Insights** page, so the first paint is faster for everyone.
 
 ## What's Not Customizable
 
