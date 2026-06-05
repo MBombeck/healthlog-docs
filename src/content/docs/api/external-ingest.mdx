@@ -11,10 +11,10 @@ sidebar:
 POST /api/ingest/medication
 ```
 
-**Auth:** Bearer Token (`hlk_...`)
+**Auth:** [Bearer Token](https://datatracker.ietf.org/doc/html/rfc6750) (`hlk_...`)
 **Rate Limit:** 60 requests / minute / IP
 
-Records a medication intake from an external source (e.g. Home Assistant, shortcut, webhook).
+Records a medication intake from an external source (e.g. Home Assistant, shortcut, webhook). A bearer token is an opaque credential sent in the `Authorization: Bearer …` header; these ingest tokens are scoped per medication, so a token can only ever log intakes for the one drug it was minted for.
 
 ### Full Example
 
@@ -43,7 +43,7 @@ curl -s -X POST https://your-instance.example.com/api/ingest/medication \
 }
 ```
 
-The `medicationName` is matched case-insensitively against active medications. The `idempotencyKey` is required and prevents duplicate entries. Requests with the same key are deduplicated.
+The `medicationName` is matched case-insensitively against active medications. The `idempotencyKey` is required and prevents duplicate entries: the operation is [idempotent](https://en.wikipedia.org/wiki/Idempotence), so a request that is retried (lost response, NFC double-tap, automation re-fire) with the same key records the intake exactly once. Requests with the same key are deduplicated.
 
 ---
 
@@ -111,7 +111,7 @@ Tokens consist of the prefix `hlk_` followed by 32 random bytes in hexadecimal:
 hlk_ + 64 hex characters = 68 characters total
 ```
 
-Tokens are stored server-side as keyed HMAC-SHA-256 hashes (with the operator-set `API_TOKEN_HMAC_KEY`). The plaintext token is only available at creation time, and a DB dump alone does not let an attacker precompute the matching hash.
+Tokens are stored server-side as keyed [HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256 hashes (with the operator-set `API_TOKEN_HMAC_KEY`). The HMAC is a hash keyed by a server-side secret, so the plaintext token is only available at creation time and a DB dump alone does not let an attacker precompute the matching hash.
 
 ---
 

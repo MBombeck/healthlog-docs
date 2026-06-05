@@ -28,7 +28,7 @@ The free-text command `taken Ibuprofen` lets you confirm an intake directly in t
 
 ### ntfy
 
-Self-hosted or public ntfy instance. Configurable per user:
+Self-hosted or public [ntfy](https://docs.ntfy.sh/) instance — a lightweight HTTP-based pub-sub push service you subscribe to by topic. Configurable per user:
 
 - **Server URL** -- e.g., `https://ntfy.example.com`
 - **Topic** -- e.g., `healthlog-alice`
@@ -37,7 +37,7 @@ Self-hosted or public ntfy instance. Configurable per user:
 
 ### Web Push
 
-Browser-based push notifications via VAPID keys.
+Browser-based push notifications via the standard [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), authenticated with [VAPID](https://datatracker.ietf.org/doc/html/rfc8292) key pairs — the server signs each push so the browser's push service can verify it without a shared secret.
 
 - VAPID keys are generated during setup
 - Subscriptions are device-specific (multiple devices per user supported)
@@ -49,7 +49,7 @@ Browser-based push notifications via VAPID keys.
 
 APNs is **entirely optional**. If you do not configure it, the server silently skips it and falls back to Telegram, ntfy, and Web Push — the iOS app stays fully functional, you simply won't get native lock-screen pushes. The diagram at the top of this page shows that fall-through.
 
-The server signs each push as a JWT using an Apple **`.p8` auth key** and sends it to Apple's gateway. Three identifiers must line up:
+The server signs each push as a [JWT](https://datatracker.ietf.org/doc/html/rfc7519) (JSON Web Token — a compact, signed credential) using an Apple **`.p8` auth key** and sends it to Apple's gateway. Three identifiers must line up:
 
 | Setting | What it is |
 |--------|-----------|
@@ -102,9 +102,9 @@ Administrators can control notifications system-wide:
 Global admin settings override individual user preferences. If a channel is globally disabled, no user will receive notifications through it.
 :::
 
-## Channel Status (v1.4.15+)
+## Channel Status
 
-**Settings → Notifications** now shows a status card for every channel you have configured. Each card paints:
+**Settings → Notifications** shows a status card for every channel you have configured. Each card paints:
 
 - **State badge** — connected, error (transient), or auto-disabled
 - **Last success** and **last failure** timestamps

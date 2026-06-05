@@ -9,7 +9,7 @@ HealthLog connects with external services and devices. All integrations are opti
 
 ## Withings
 
-Integration with Withings scales, blood pressure monitors, thermometers, and ScanWatch wearables via OAuth 2.0. Devices live on the Withings ecosystem and pair through the Withings app -- HealthLog reads the data after the user authorises one OAuth connection.
+Integration with Withings scales, blood pressure monitors, thermometers, and ScanWatch wearables via [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) — the delegated-authorization standard that lets you grant HealthLog read access to your Withings data without ever sharing your Withings password. Devices live on the Withings ecosystem and pair through the Withings app -- HealthLog reads the data after the user authorises one OAuth connection.
 
 - Marketing site & product range: [withings.com](https://www.withings.com)
 - Health Mate app (the Withings companion app you pair devices with): [withings.com/eu/en/health-mate](https://www.withings.com/eu/en/health-mate)
@@ -41,7 +41,7 @@ If you own a Withings device that produces data HealthLog doesn't ingest yet, op
 
 Data is synced through two mechanisms:
 
-- **Webhook** -- Real-time push notification on new readings (primary). HealthLog subscribes to the weight + body-composition (`appli=1`), temperature (`appli=2`), and pressure (`appli=4`) categories so blood pressure readings and Thermo measurements arrive within seconds of the device taking them.
+- **[Webhook](https://en.wikipedia.org/wiki/Webhook)** -- a server-to-server callback Withings POSTs the instant a new reading is recorded, rather than HealthLog polling for it (primary). HealthLog subscribes to the weight + body-composition (`appli=1`), temperature (`appli=2`), and pressure (`appli=4`) categories so blood pressure readings and Thermo measurements arrive within seconds of the device taking them.
 - **Polling** -- Hourly fallback fetch (secondary, in case the webhook fails).
 
 ### Prerequisites
@@ -82,7 +82,7 @@ WHOOP leads the default source ladder for the recovery-input metrics (sleep, HRV
 3. Enter the Client ID and Client Secret under **Settings → Integrations → WHOOP**
 4. Connect your WHOOP account (OAuth 2.0 flow)
 
-Each connection has a **Test connection** button, a **manual sync** (incremental by default, full history on request), and a **resume** control that recovers a connection after a revoked grant. A signed webhook keeps new data flowing in near-real-time; `WHOOP_WEBHOOK_SECRET` hardens its signature verification.
+Each connection has a **Test connection** button, a **manual sync** (incremental by default, full history on request), and a **resume** control that recovers a connection after a revoked grant. A signed webhook keeps new data flowing in near-real-time; `WHOOP_WEBHOOK_SECRET` hardens its [HMAC](https://en.wikipedia.org/wiki/HMAC) signature verification so a forged callback can't inject readings.
 
 ## Google Health / Fitbit (experimental)
 
@@ -133,16 +133,16 @@ Integration with [moodlog.app](https://moodlog.app) for mood tracking data.
 Mood data feeds into the AI correlation analysis (mood vs. blood pressure, weight, heart rate).
 
 :::note
-The moodLog instance URL is validated against an SSRF allow-list — internal-network and cloud-metadata addresses are rejected on save and re-checked at fetch time. The webhook secret is stored AES-256-GCM encrypted.
+The moodLog instance URL is validated against an [SSRF](https://owasp.org/www-community/attacks/Server_Side_Request_Forgery) allow-list — Server-Side Request Forgery is when a user-supplied URL tricks the server into calling internal addresses, so internal-network and cloud-metadata addresses are rejected on save and re-checked at fetch time. The webhook secret is stored AES-256-GCM encrypted.
 :::
 
 ## Test Connection Buttons
 
 Each integration ships with a one-click **Test connection** button under **Settings → Integrations** (Withings, moodLog, Web Push, Glitchtip, Umami, AI provider, Telegram, ntfy). Each test runs server-side, behind its own rate limit, with sanitised error reporting and the same redirect-follow SSRF guard the production fetch uses.
 
-## Connection Status (v1.4.15+, consolidated in v1.4.19)
+## Connection Status
 
-Each integration card sits above its credentials form (v1.4.15+) and shows the live connection state. v1.4.19 collapses the previous status banner trio (`connected / last successful / last attempted`) and the bottom-of-card "letzter Sync" line into a **single status pill** top-right of every card — "Connected · 12 min ago" with locale-aware relative-time bucketing (`just now` / `min` / `h` / `d`), three states (connected / error / disconnected), and `whitespace-nowrap` so it stays on one line down to Pixel-5 width. Withings and Mood Log now also share the same divider between header and body for visual symmetry.
+Each integration card sits above its credentials form and shows the live connection state in a **single status pill** top-right of every card — "Connected · 12 min ago" with locale-aware relative-time bucketing (`just now` / `min` / `h` / `d`), three states (connected / error / disconnected), and `whitespace-nowrap` so it stays on one line down to Pixel-5 width.
 
 Beyond the pill, the card still surfaces:
 
@@ -153,11 +153,11 @@ When the upstream returns an authentication failure (Withings refresh-token reje
 
 ## External API
 
-HealthLog provides an API for external systems, such as automation tools or IoT devices.
+HealthLog provides an API for external systems, such as automation tools or IoT devices. Full endpoint reference: [External API](/api/external-ingest/).
 
 ### Bearer Token
 
-Tokens are created per medication and use the `hlk_` prefix.
+Tokens are created per medication and use the `hlk_` prefix. They are presented as a [bearer token](https://datatracker.ietf.org/doc/html/rfc6750) in the `Authorization: Bearer …` header.
 
 ```bash
 curl -X POST https://healthlog.example.com/api/ingest/medication \
@@ -172,7 +172,7 @@ curl -X POST https://healthlog.example.com/api/ingest/medication \
 - Revocable through the UI
 
 :::tip
-The external API is great for NFC tags on your medicine cabinet: scan the tag, and the intake is logged automatically.
+The external API is great for [NFC](https://en.wikipedia.org/wiki/Near-field_communication) tags on your medicine cabinet: scan the tag, and the intake is logged automatically. The required `idempotencyKey` means a double-tap still records the dose only once.
 :::
 
 ## Bug Reports

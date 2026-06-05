@@ -7,7 +7,7 @@ sidebar:
 
 ## Withings
 
-Integration with Withings devices (scales, blood pressure monitors) for automatic data import.
+Integration with Withings devices (scales, blood pressure monitors) for automatic data import over [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) — the delegated-authorization standard where the user grants HealthLog read access at Withings without ever handing over their Withings password. See the [Withings integration guide](/features/integrations/#withings) for the user-facing setup.
 
 ### Connect
 
@@ -88,13 +88,13 @@ POST /api/withings/webhook
 
 **Auth:** HMAC signature
 
-Receives real-time notifications from Withings when new measurements are available. The request is verified via HMAC signature.
+A [webhook](https://en.wikipedia.org/wiki/Webhook) is a server-to-server callback: Withings POSTs to this URL the moment a new reading lands, instead of HealthLog polling for it. Each callback is verified via an [HMAC](https://en.wikipedia.org/wiki/HMAC) signature so a forged request can't inject data.
 
 ---
 
 ## WHOOP
 
-OAuth 2.0 integration with WHOOP recovery straps (bring-your-own-keys). The route set mirrors Withings.
+OAuth 2.0 integration with [WHOOP](https://www.whoop.com) recovery straps (bring-your-own-keys). The route set mirrors Withings.
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|

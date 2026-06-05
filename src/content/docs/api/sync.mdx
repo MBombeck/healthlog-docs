@@ -58,8 +58,9 @@ Three fields drive convergence. Every served row carries them:
   key the cursor walks: a soft-delete bumps `updatedAt`, so a deletion shows up
   in the same `updatedAt`-ordered scan as a normal edit.
 - **`deletedAt`** — `null` for a live row, an ISO timestamp for a soft-deleted
-  one. A row whose `deletedAt` is set is a **tombstone**; everything else is an
-  upsert.
+  one. A row whose `deletedAt` is set is a [**tombstone**](https://en.wikipedia.org/wiki/Tombstone_(data_store))
+  — a deletion marker that survives in the feed so offline replicas learn the
+  row is gone; everything else is an upsert.
 
 ## Pull, push, and the handshake
 
@@ -150,8 +151,11 @@ correction.
 
 ## The opaque cursor
 
-`GET /api/sync/changes` pages over an **opaque keyset cursor**. The client
-echoes it back verbatim and **never parses it**.
+`GET /api/sync/changes` pages over an **opaque keyset cursor**. Keyset (a.k.a.
+seek) [pagination](https://en.wikipedia.org/wiki/Pagination) walks the result
+set by the last row's `(updatedAt, id)` rather than a numeric `OFFSET`, so it
+stays correct and fast even as rows are inserted mid-scan. The client echoes the
+cursor back verbatim and **never parses it**.
 
 Internally the cursor carries one independent `(updatedAt, id)` high-water mark
 per domain. A per-domain keyset is mandatory rather than a single shared
@@ -204,7 +208,10 @@ A single-resource `GET` or `PUT` against a tombstoned row reports it as deleted.
 
 ## Conflict resolution per domain
 
-The default is **silent server-wins** — there is no merge prompt. The rules
+Convergence uses [optimistic concurrency control](https://en.wikipedia.org/wiki/Optimistic_concurrency_control):
+clients write freely without locks and conflicts are detected after the fact via
+`syncVersion`, rather than holding a lock across an offline window. The default
+resolution is **silent server-wins** — there is no merge prompt. The rules
 differ by domain because the domains have different mutability:
 
 | Domain / class | Rule | What the client sees |

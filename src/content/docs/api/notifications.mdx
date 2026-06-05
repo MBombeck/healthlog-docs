@@ -44,6 +44,8 @@ curl -s https://your-instance.example.com/api/notifications/preferences \
 
 ## Web Push
 
+Browser push delivered through the standard [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API), authenticated with [VAPID](https://datatracker.ietf.org/doc/html/rfc8292) (Voluntary Application Server Identification) — the server proves its identity to the push service with a signed key pair rather than a shared secret.
+
 ### Subscribe
 
 ```
@@ -129,6 +131,8 @@ curl -s -X POST https://your-instance.example.com/api/settings/telegram/test \
 
 ## ntfy
 
+[ntfy](https://docs.ntfy.sh/) is a simple HTTP-based pub-sub push service (self-hostable or via the public `ntfy.sh`); HealthLog publishes to a per-user topic.
+
 ### Configuration
 
 ```
@@ -160,7 +164,7 @@ Sends a test message to the configured ntfy channel.
 
 ## APNs (Apple Push)
 
-[Apple Push Notification service](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) is the optional channel for the native iOS client. Unlike the per-user channels above, APNs is configured **server-wide via environment variables** — there is no per-user settings endpoint. If the variables are not all set, APNs is silently disabled and the dispatcher falls back to Web Push / Telegram / ntfy.
+[Apple Push Notification service](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) is the optional channel for the native iOS client. The server authenticates to Apple's gateway with a [JWT](https://datatracker.ietf.org/doc/html/rfc7519) signed by an Apple `.p8` key (token-based APNs). Unlike the per-user channels above, APNs is configured **server-wide via environment variables** — there is no per-user settings endpoint. If the variables are not all set, APNs is silently disabled and the dispatcher falls back to Web Push / Telegram / ntfy. The user-facing channel overview is on [Features → Notifications](/features/notifications/).
 
 ### Environment configuration
 

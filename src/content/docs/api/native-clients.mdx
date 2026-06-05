@@ -5,7 +5,7 @@ sidebar:
   order: 11
 ---
 
-The web PWA uses cookie sessions; native clients (the HealthLog iOS app, n8n, Health Connect bridges, custom shortcuts) authenticate with bearer tokens. Both share the same handlers — every protected route accepts either credential.
+The web PWA uses cookie sessions; native clients (the HealthLog iOS app, n8n, Health Connect bridges, custom shortcuts) authenticate with [bearer tokens](https://datatracker.ietf.org/doc/html/rfc6750) — an opaque credential sent in the `Authorization: Bearer …` header that the server resolves to a user on every request. Both flows share the same handlers, so every protected route accepts either credential.
 
 ## Token Issuance
 
@@ -34,6 +34,8 @@ The browser flow is unchanged: without one of those signals you get only the ses
 The raw `hlk_<64-hex>` and `hlr_<64-hex>` values are returned **exactly once**. Default access-token lifetime is 24 hours; refresh tokens rotate.
 
 ## Refresh-Token Rotation
+
+Access tokens are short-lived; a long-lived **refresh token** mints new ones without re-prompting for credentials. HealthLog uses [rotating refresh tokens](https://datatracker.ietf.org/doc/html/rfc6749#section-10.4) — each refresh consumes the old token and issues a fresh one, so a leaked token is single-use.
 
 `POST /api/auth/refresh` exchanges a refresh token for a fresh access + refresh pair.
 
@@ -69,6 +71,8 @@ The two measurement-delete routes now **soft-delete** (write a tombstone) rather
 
 ## Idempotency-Key Header
 
+An [idempotent](https://en.wikipedia.org/wiki/Idempotence) request can be safely retried without changing the result beyond the first attempt — essential for a mobile client on a flaky network that can't tell a lost request from a lost response. HealthLog implements the [`Idempotency-Key` HTTP header](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header) convention (an IETF draft, still the canonical reference for the pattern).
+
 `POST` / `PUT` / `PATCH` / `DELETE` handlers honour an `Idempotency-Key: <8-128 chars>` header. Re-sending the same key for the same `(userId, method, path)` within 24 hours replays the original response with `X-Idempotent-Replay: true`.
 
 ```bash
@@ -96,7 +100,7 @@ If the same APNs / FCM token is already registered to a **different** account, t
 
 ## Token Storage (Server-Side)
 
-Bearer tokens are stored as **HMAC-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. The keyed HMAC defends against precomputed rainbow tables if the database leaks. The same mechanism is reused for external-ingest token verification.
+Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [external-ingest](/api/external-ingest/) token verification.
 
 :::tip
 For long-running automation (n8n, Home Assistant, Health Connect bridges), prefer a long-lived API token created from **Settings → API & Tokens** instead of the 24-hour access tokens — same auth header, no refresh dance.
