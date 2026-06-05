@@ -7,7 +7,7 @@ sidebar:
 
 ## What is HealthLog?
 
-HealthLog is a **self-hosted, mobile-first Progressive Web App** (PWA) for comprehensive health tracking. It combines manual vital sign logging with automatic device syncing, smart medication management, and AI-powered insights.
+HealthLog is a **self-hosted, mobile-first [Progressive Web App](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)** (PWA) for comprehensive health tracking. A PWA is an ordinary website that an installable manifest and a service worker turn into something that launches from the home screen and keeps working offline — so HealthLog feels like a native app without an app-store gatekeeper. It combines manual vital sign logging with automatic device syncing, smart medication management, and AI-powered insights.
 
 All your data stays on your own infrastructure — no cloud lock-in, no subscriptions, full control. HealthLog is free software under the [GNU AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.en.html): you can run, study, modify, and redistribute it, and anyone you offer it to over a network is entitled to the source.
 
@@ -28,7 +28,7 @@ All your data stays on your own infrastructure — no cloud lock-in, no subscrip
 - **Native iOS App** — A SwiftUI client in public beta via TestFlight with live Apple Health (HealthKit) two-way sync, local medication reminders, and passkey sign-in. See the [iOS app](/ios/ios-app/) guide
 - **Native API Clients** — Bearer-token + refresh-token flow, Idempotency-Key header support — ready for the iOS app and external automation (n8n, Health Connect)
 - **Gamification** — 59 persistent achievements (six of them hidden Easter-egg badges) to reward consistent tracking
-- **Passkey Authentication** — Passwordless login via WebAuthn
+- **Passkey Authentication** — Passwordless login via [WebAuthn](https://en.wikipedia.org/wiki/WebAuthn): a passkey is a public/private key pair bound to your device, so there is no shared password to phish or leak
 - **Dark-only Dracula Theme** — Easy on the eyes at any time of day
 
 ## Tech Stack

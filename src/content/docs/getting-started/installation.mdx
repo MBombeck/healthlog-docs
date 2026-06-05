@@ -7,13 +7,13 @@ sidebar:
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-HealthLog ships as a multi-arch (`linux/amd64` + `linux/arm64`) Docker image on [GitHub Container Registry](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog). The bundled `docker-compose.yml` pulls it together with a PostgreSQL 16 service — no build step required for self-hosters, on Intel/AMD or ARM hosts alike.
+HealthLog ships as a multi-arch (`linux/amd64` + `linux/arm64`) [Docker](https://docs.docker.com/) image on [GitHub Container Registry](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog). The bundled [`docker-compose.yml`](https://docs.docker.com/compose/) pulls it together with a [PostgreSQL](https://www.postgresql.org/docs/) 16 service — [Docker Compose](https://docs.docker.com/compose/) describes the whole multi-container stack in one declarative file, so there is no build step required for self-hosters, on Intel/AMD or ARM hosts alike.
 
 ## Prerequisites
 
 - Docker Engine 24+ and Docker Compose v2+
 - ~512 MB RAM and ~1 GB disk space
-- A reverse proxy with HTTPS in front (Nginx Proxy Manager, Traefik, Caddy, …) — required for [Passkey authentication](/security/overview/) to work in production
+- A reverse proxy with HTTPS in front (Nginx Proxy Manager, Traefik, Caddy, …) — required for [passkey authentication](/security/overview/) ([WebAuthn](https://en.wikipedia.org/wiki/WebAuthn)) to work in production, since browsers only expose the passkey APIs in a secure context
 
 ## Quick Start (Docker Compose)
 
@@ -120,7 +120,7 @@ The [`.env.example`](https://github.com/MBombeck/HealthLog/blob/main/.env.exampl
 `:latest` follows `main`. For production, pin to a released tag:
 
 ```yaml
-image: ghcr.io/mbombeck/healthlog:1.7.0
+image: ghcr.io/mbombeck/healthlog:1.12.10
 ```
 
 See the [container registry page](https://github.com/MBombeck/HealthLog/pkgs/container/healthlog) for available tags. Each image is built with [SLSA build provenance](https://slsa.dev/spec/v1.0/provenance) and an [SBOM](https://docs.docker.com/build/metadata/attestations/sbom/) attached — see the [Supply Chain section in `SECURITY.md`](https://github.com/MBombeck/HealthLog/blob/main/SECURITY.md#supply-chain) for verification commands.

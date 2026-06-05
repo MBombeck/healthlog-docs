@@ -5,13 +5,13 @@ sidebar:
   order: 1
 ---
 
-v1.4.16 added a **comparison overlay** that turns charts and the insights surface into a "this month vs. last month" view at the flick of a toggle. v1.4.19 narrowed the surface — the dashboard no longer shows the toggle (it lived above every chart in v1.4.16–v1.4.18 and added too much noise to the default view); it now lives **only on `/insights`**, folded into the hero meta band. This page covers what the toggle does, where to find it, and what the numbers mean.
+A **comparison overlay** turns charts and the insights surface into a "this month vs. last month" view at the flick of a toggle. To keep the default dashboard uncluttered, the overlay lives **only on `/insights`**, folded into the hero meta band. This page covers what the toggle does, where to find it, and what the numbers mean.
 
 ## Where the toggle lives
 
-As of v1.4.19 there is one entry point: the `/insights` hero meta band. The three-state segmented control reads *Off / vs. last month / vs. last year* — tap once to flip on the last-month overlay, tap again for last-year, tap a third time to turn it off. The control is touch-friendly (no hover dependency) and writes a per-user preference that survives reload and follows you across devices.
+There is one entry point: the `/insights` hero meta band. The three-state segmented control reads *Off / vs. last month / vs. last year* — tap once to flip on the last-month overlay, tap again for last-year, tap a third time to turn it off. The control is touch-friendly (no hover dependency) and writes a per-user preference that survives reload and follows you across devices.
 
-Default is off; nothing changes until you turn it on. The dashboard's per-chart cog menu (v1.4.18+) handles trend, trend-arrow, and target-range overlays separately — see [Dashboard Customization](/features/dashboard-customization/#per-chart-overlay-toggles-v1418).
+Default is off; nothing changes until you turn it on. The dashboard's per-chart cog menu handles trend, trend-arrow, and target-range overlays separately — see [Dashboard Customization](/features/dashboard-customization/).
 
 ## What the overlay actually shows
 
@@ -31,7 +31,7 @@ The two new fields on the data summary (`avg30LastMonth`, `avg30LastYear`) feed 
 
 ### 3. The AI insights surface narrates the comparison
 
-When the toggle is on, the AI summary card narrates the comparison in plain language: "your average BP improved by 4 mmHg vs. last month". The narration is added to the prompt (`PROMPT_VERSION` 4.16.1) — the model sees the prior-period mean and produces a sentence comparing the two. The narration is generated **once per snapshot** with the rest of the insight, so it doesn't double the AI cost when you toggle on and off.
+When the toggle is on, the AI summary card narrates the comparison in plain language: "your average BP improved by 4 mmHg vs. last month". The prior-period mean is added to the insight prompt, so the model sees both periods and produces a sentence comparing them. The narration is generated **once per snapshot** with the rest of the insight, so it doesn't double the AI cost when you toggle on and off.
 
 ## What "vs. last month" / "vs. last year" mean
 
@@ -47,7 +47,7 @@ Two cases:
 - **No prior-period data.** If the prior 30-day window contains zero readings, the overlay line doesn't render and the Δ callout reads "—". The toggle stays on; the moment a single prior-period reading lands (e.g. you backfill a paper diary), the overlay starts showing.
 - **Sparse prior-period data.** If the prior window has fewer than 3 readings, the overlay still renders but the Δ callout shows a small *(low confidence)* tag. Same threshold as the rest of HealthLog's sparse-data handling.
 
-The current period gets its own empty state handling — a 1- or 2-point chart still renders the explicit empty state introduced in v1.4.16 — independent of the overlay.
+The current period gets its own empty-state handling — a 1- or 2-point chart still renders an explicit empty state — independent of the overlay.
 
 ## Performance
 
@@ -59,8 +59,7 @@ The AI insights narration adds the prior-period means to the prompt — that's a
 
 The overlay line fade-in respects `prefers-reduced-motion` — for users who've turned reduced motion on, the prior-period line snaps to final state instantly instead of fading in.
 
-## What's not in the comparison overlay (yet)
+## What's not in the comparison overlay
 
-- A **dedicated `/insights/compare` route** is planned for v1.4.17. The i18n keys for that page (`comparison.insightsCallout.lastMonth`, `comparison.insightsCallout.lastYear`) are reserved already.
-- The **quarterly** and **arbitrary-window** comparison modes are deferred to v1.5 — research is open on whether anyone actually wants them or if the current month/year split is sufficient.
+- The comparison is a two-mode split — **last month** and **last year**. There are no quarterly or arbitrary-window modes; the month/year split covers the common "am I trending up or down?" question without a date-range picker.
 - The medication-compliance heatmap doesn't get a prior-period overlay; the heatmap shape doesn't translate well to overlay layering. The compliance chart and the dashboard tile do get the Δ callout normally.

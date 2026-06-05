@@ -20,7 +20,7 @@ docker compose logs -f app
 **Common causes:**
 
 - **Invalid `DATABASE_URL`** -- Ensure the connection string matches the database service name, port, and credentials in `docker-compose.yml`. When using the bundled PostgreSQL, the hostname must be `db` (the service name), not `localhost`.
-- **Secrets format** -- `SESSION_SECRET`, `ENCRYPTION_KEY`, and `API_TOKEN_HMAC_KEY` must each be exactly 64 hex characters. Generate them with `openssl rand -hex 32`.
+- **Secrets format** -- `ENCRYPTION_KEY` and `API_TOKEN_HMAC_KEY` must each be exactly 64 hex characters. Generate them with `openssl rand -hex 32`. There is no session-signing secret to set: sessions are stored server-side in PostgreSQL, not as signed stateless tokens.
 - **Database not ready** -- The app container starts before PostgreSQL is fully initialized. The bundled `docker-compose.yml` includes a health check; make sure `depends_on` with `condition: service_healthy` is set.
 
 ```bash
@@ -50,7 +50,7 @@ After updating to a new HealthLog version, migrations are applied automatically 
 
 **Common causes:**
 
-- **Missing HTTPS** -- WebAuthn requires a secure context. The app must be served over HTTPS with a valid certificate. `localhost` is the only exception.
+- **Missing HTTPS** -- [WebAuthn](https://en.wikipedia.org/wiki/WebAuthn) (the standard behind passkeys) requires a secure context. The app must be served over HTTPS with a valid certificate. `localhost` is the only exception.
 - **Wrong `NEXT_PUBLIC_APP_URL`** -- This variable must match the exact URL users access (including `https://` and the correct domain). A mismatch causes the WebAuthn origin check to fail.
 - **Browser support** -- Ensure the browser supports WebAuthn. All modern browsers do, but some corporate environments block it.
 
@@ -81,7 +81,7 @@ docker compose logs app | grep -i withings
 
 - **Button is hidden** -- The operator has not set the `CODEX_OAUTH_CLIENT_ID` environment variable. Without it the button is intentionally hidden and the API-key path is the only route. See [Environment Variables](/configuration/environment-variables/).
 - **Connect step finishes but every Insight call fails with "model not supported"** -- The Codex backend keeps a per-plan allow-list of model slugs. If your ChatGPT plan does not include `gpt-5.3-codex`, set the operator-side `CODEX_MODEL` environment variable to a slug your plan accepts and restart.
-- **You connected before v1.4.14 and Insights now fail** -- The token storage form changed in v1.4.14: the older form did not carry the `chatgpt_account_id` claim that the Codex backend now requires. Click **Disconnect** in **Settings → AI** and reconnect once. No data is lost.
+- **A long-standing connection suddenly fails** -- The Codex backend requires the `chatgpt_account_id` claim on the stored token. A token captured by a much older client may predate that claim. Click **Disconnect** in **Settings → AI** and reconnect once. No data is lost.
 - **Code expires before you confirm it** -- The user code is short-lived (a few minutes). Click **Connect with ChatGPT** again to get a fresh code.
 
 ## Notifications Not Sending
@@ -114,12 +114,10 @@ docker compose logs app | grep -i "pg-boss"
 
 **Symptoms**: Users are logged out unexpectedly or see "Session expired" messages.
 
+Sessions are stored **server-side in PostgreSQL**, not as signed stateless tokens, so there is no session-signing secret that can drift between restarts. The browser only holds an opaque session-id cookie that points at a database row. The usual culprits are therefore cookie and database issues, not a missing secret:
+
 **Common causes:**
 
-- **`SESSION_SECRET` changed** -- If this value changes between restarts (e.g., it was not persisted in `.env`), all existing sessions are invalidated. Ensure the secret is fixed and stored permanently.
-- **Multiple instances** -- If running multiple app containers behind a load balancer, all instances must share the same `SESSION_SECRET`.
-- **Cookie domain mismatch** -- The `NEXT_PUBLIC_APP_URL` domain must match the domain the browser uses. Accessing the app via IP address while the URL is set to a domain name will cause session issues.
-
-:::tip
-Set `SESSION_SECRET` once during initial setup and never change it. If you must rotate it, all users will need to log in again.
-:::
+- **Cookie domain or scheme mismatch** -- The session cookie is bound to the exact origin in `NEXT_PUBLIC_APP_URL` (scheme + host). Accessing the app by raw IP address, over plain `http://`, or via a different hostname than the one configured means the browser will not send the cookie back, and every request looks logged-out. Make `NEXT_PUBLIC_APP_URL` match the URL users actually open.
+- **Database was reset** -- Dropping or re-creating the database (or losing the `pgdata` volume) deletes the session rows, so everyone has to sign in again.
+- **Cookies blocked or cleared** -- A browser set to clear cookies on close, or a privacy extension blocking the first-party session cookie, will end the session each time.

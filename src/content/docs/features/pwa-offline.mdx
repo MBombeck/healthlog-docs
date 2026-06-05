@@ -5,7 +5,7 @@ sidebar:
   order: 9
 ---
 
-HealthLog is a Progressive Web App (PWA) that can be installed on any device and works offline for core functionality.
+HealthLog is a [Progressive Web App](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps) (PWA) that can be installed on any device and works offline for core functionality. A PWA is a regular website enhanced with two browser platform features: a [Web App Manifest](https://developer.mozilla.org/en-US/docs/Web/Manifest) (a small JSON file that tells the browser the app's name, icons, and how it should launch) and a [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API) (a script the browser runs in the background, between the page and the network, so the app can serve cached content and receive push messages even when no tab is open). Together they let HealthLog install to the home screen and behave like a native app without an app store.
 
 ## Installation
 
@@ -15,11 +15,11 @@ HealthLog can be installed as a standalone app on mobile and desktop:
 - **iOS** -- "Add to Home Screen" via Safari (Share menu).
 - **Desktop** -- Install prompt in Chrome, Edge, or other supported browsers.
 
-Once installed, the app launches in standalone mode without browser UI (address bar, tabs). It behaves like a native application.
+Once installed, the app launches in standalone mode without browser UI (address bar, tabs) — this is driven by the manifest's `display: standalone` member. It behaves like a native application.
 
 ## Service Worker Caching
 
-The service worker uses different caching strategies depending on the resource type:
+The [service worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API) sits between the app and the network and decides, per request, whether to answer from the [Cache API](https://developer.mozilla.org/en-US/docs/Web/API/Cache) (the browser's persistent store of request/response pairs) or to go to the server. It uses different caching strategies depending on the resource type:
 
 | Resource Type | Strategy | Rationale |
 |---------------|----------|-----------|
@@ -37,9 +37,11 @@ The PWA does not maintain its own offline write store — it reads live or shows
 
 ### Cache Lifecycle
 
-- Static assets are precached during service worker installation.
-- Page cache is updated on each successful network fetch.
-- Old caches are purged automatically when a new service worker activates.
+The service worker has a defined lifecycle — `install`, then `activate` — and HealthLog hooks both to keep the cache fresh:
+
+- Static assets are precached during the service worker's `install` event.
+- The named page cache is updated on each successful network fetch.
+- Old, version-stamped caches are purged automatically when a new service worker `activate`s, so a deploy never serves a mix of old and new assets.
 
 ## iOS Safe Area Support
 
@@ -61,7 +63,7 @@ The bottom navigation bar automatically respects `env(safe-area-inset-bottom)` s
 
 ## Web Push Notifications
 
-HealthLog supports browser-based push notifications via the VAPID protocol.
+HealthLog supports browser-based push notifications via the [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API) — the standard that lets the service worker receive a message from the server and show a notification even when no tab is open. Delivery is authenticated with [VAPID](https://datatracker.ietf.org/doc/html/rfc8292) (Voluntary Application Server Identification, RFC 8292), a signed token that identifies your HealthLog server to the browser's push service so only your instance can push to your subscribers.
 
 ### Setup
 

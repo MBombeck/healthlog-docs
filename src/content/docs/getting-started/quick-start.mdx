@@ -9,7 +9,7 @@ sidebar:
 
 ### 1. Create Your Account
 
-Open HealthLog in your browser and create an account. You will be prompted to register a **Passkey** (fingerprint, Face ID, or security key). The first account automatically receives admin privileges.
+Open HealthLog in your browser and create an account. You will be prompted to register a **passkey** (fingerprint, Face ID, or security key). A passkey is a [WebAuthn](https://en.wikipedia.org/wiki/WebAuthn) credential — a key pair where the private key never leaves your device, so there is no password to type or leak. The first account automatically receives admin privileges.
 
 :::note
 Passkeys are device-bound. Register a Passkey on every device you want to log in from (phone, laptop, tablet).
@@ -25,7 +25,7 @@ After registration, the onboarding wizard walks you through the basic setup:
 
 You can change these later in the settings.
 
-When you land on the dashboard for the first time (v1.4.15+), a short **spotlight tour** highlights five things you should know about: the metric tile strip, the quick-add menu, the Insights page, the integrations panel, and the achievements page. Skip with `Esc` at any time, navigate with the arrow keys, and replay the tour whenever you want from **Settings → Account → Restart tour**. The tour respects `prefers-reduced-motion` and is fully keyboard-navigable.
+When you land on the dashboard for the first time, a short **spotlight tour** highlights five things you should know about: the metric tile strip, the quick-add menu, the Insights page, the integrations panel, and the achievements page. Skip with `Esc` at any time, navigate with the arrow keys, and replay the tour whenever you want from **Settings → Account → Restart tour** (or **Settings → About → Replay**). The tour respects `prefers-reduced-motion` and is fully keyboard-navigable.
 
 ### 3. Log Your First Measurement
 
@@ -83,11 +83,11 @@ Even without the AI integration, HealthLog provides detailed statistics, trend a
 
 ## Tips for Daily Use
 
-- **Install the PWA** — Open HealthLog in your mobile browser and select "Add to Home Screen." The app then runs just like a native application.
+- **Install the PWA** — Open HealthLog in your mobile browser and select "Add to Home Screen." As a [Progressive Web App](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps) it then launches from the home screen and runs full-screen, just like a native application — and keeps working for read-only views even when you are briefly offline.
 - **Use the quick entry** — The plus icon is accessible from any page. Logging a weight entry takes less than 5 seconds.
 - **Check the achievements** — Under **Profile > Achievements**, you will find 59 unlockable achievements for consistent tracking, plus a small set of hidden Easter-egg badges that reveal themselves when you earn them.
 - **Export medical reports** — Before your next doctor's appointment, generate a PDF export with historical data and charts under **Doctor Report**.
-- **Settings live at `/settings/[section]`** — eight focused routes (`account`, `integrations`, `notifications`, `dashboard`, `ai`, `api`, `advanced`, `about`) replaced the v1.3-era single-page settings monolith. Old `/settings#anchor` links still 308-redirect to the new structure.
+- **Settings live at `/settings/[section]`** — focused routes (`account`, `integrations`, `notifications`, `dashboard`, `ai`, `api`, `advanced`, `about`) split the configuration into one screen per concern. Old `/settings#anchor` links still 308-redirect to the new structure.
 
 ## Further Reading
 
