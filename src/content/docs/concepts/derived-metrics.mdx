@@ -17,7 +17,7 @@ Two complementary ideas underpin the tier. Metrics like fitness age and vascular
 
 ### Fitness age (cardio-fitness band)
 
-Places your latest device-computed VO₂max against a published age × sex norm band. It never recomputes VO₂max — the number is your device's (HealthKit or Withings); this layer only bands and trends it, and expresses the result as a coarse "≈N years younger/older" frame rather than a false-precise single number. Without demographics, it surfaces the value and trend but no band.
+Places your latest device-computed [VO₂max](https://en.wikipedia.org/wiki/VO2_max) — the maximum rate of oxygen your body can use during exertion, the standard proxy for cardiorespiratory fitness — against a published age × sex norm band. It never recomputes VO₂max — the number is your device's (HealthKit or Withings); this layer only bands and trends it, and expresses the result as a coarse "≈N years younger/older" frame rather than a false-precise single number. Without demographics, it surfaces the value and trend but no band.
 
 *Standard:* Kaminsky et al. 2015 (FRIEND registry reference standards for cardiorespiratory fitness), with Apple's low-cardio-fitness cutoffs as the framing.
 
@@ -29,19 +29,19 @@ Frames a vascular-age estimate as a signed delta against your chronological age,
 
 ### HRV balance
 
-Builds a personal-baseline band from your own HRV history and places the recent 7-day average inside, above, or below it (Balanced / elevated / suppressed). It is gated behind the baseline engine's minimum of seven distinct days, and it is a personal-baseline band — never presented as a population-normed HRV grade.
+Builds a personal-baseline band from your own [HRV](https://en.wikipedia.org/wiki/Heart_rate_variability) (heart-rate variability — the beat-to-beat variation in the timing of your heartbeats, a widely used autonomic-recovery signal) history and places the recent 7-day average inside, above, or below it (Balanced / elevated / suppressed). It is gated behind the baseline engine's minimum of seven distinct days, and it is a personal-baseline band — never presented as a population-normed HRV grade.
 
 *Standard:* Task Force of the European Society of Cardiology / North American Society of Pacing and Electrophysiology HRV measurement standards, applied as a personal baseline.
 
 ### Sleep score
 
-Blends sleep efficiency, duration adequacy, and stage composition into a band. Duration is scored against age-based need; stage percentages against age norms.
+Blends sleep efficiency, duration adequacy, and [sleep-stage](https://en.wikipedia.org/wiki/Sleep_cycle) composition (the cyclic alternation between light, deep slow-wave, and REM sleep across the night) into a band. Duration is scored against age-based need; stage percentages against age norms.
 
 *Standard:* AASM scoring conventions (efficiency), Hirshkowitz et al. 2015 (age-based duration need), Ohayon et al. 2017 (stage-percentage norms by age).
 
 ### Daily readiness
 
-A 0–100 blend of deviation-from-baseline components — resting-HR deviation, HRV deviation, respiratory-rate stability, and sleep adequacy. Each component scores 0–100 and the weights renormalise over only the components actually present, so a missing signal lowers confidence rather than silently defaulting to zero.
+A 0–100 blend of deviation-from-baseline components — [resting-HR](https://en.wikipedia.org/wiki/Heart_rate) deviation, HRV deviation, [respiratory-rate](https://en.wikipedia.org/wiki/Respiratory_rate) stability, and sleep adequacy. Each component scores 0–100 and the weights renormalise over only the components actually present, so a missing signal lowers confidence rather than silently defaulting to zero.
 
 *Standard:* RHR elevation and HRV suppression as recovery/strain markers — Plews et al. 2013, Buchheit 2014.
 
@@ -53,7 +53,7 @@ Persists as a daily 0–100 series that the dashboard, charts, and native client
 
 Fans the personal-baseline engine across your flagship vitals and flags when several signals deviate from their established personal bands *at the same time*. Multi-signal coincidence is descriptive, not a diagnosis.
 
-*Standard:* the same robust personal-baseline basis as the vitals baseline (Hampel 1974; Leys et al. 2013 on the median absolute deviation), framed against the consumer "health monitor" surfaces of Apple Vitals, WHOOP, and Fitbit.
+*Standard:* the same robust personal-baseline basis as the vitals baseline (Hampel 1974; Leys et al. 2013 on the [median absolute deviation](https://en.wikipedia.org/wiki/Median_absolute_deviation) — an outlier-resistant measure of spread that, unlike standard deviation, isn't dragged around by a single freak reading), framed against the consumer "health monitor" surfaces of Apple Vitals, WHOOP, and Fitbit.
 
 ## Why "not enough data" matters
 

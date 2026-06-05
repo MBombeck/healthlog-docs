@@ -11,7 +11,7 @@ import coachPipeline from "../../../assets/diagrams/02-coach-pipeline.svg";
 
 <img src={coachPipeline.src} alt="Coach prompt pipeline: question → snapshot → prompt → provider chain → parser → cited reply" />
 
-The diagram above is the bird's-eye view of the same flow: your question (or the dashboard's implicit "what changed recently?") goes through a snapshot builder, then a prompt assembler that bolts the system prompt + locale + Zod citation schema onto the snapshot, then a per-user provider chain that walks ChatGPT OAuth → BYOK OpenAI → BYOK Anthropic → local → admin-shared. The response parser validates against the schema (corrective retry on a 422) before the cited reply renders. The sections below zoom in on each card on the resulting `/insights` page.
+The diagram above is the bird's-eye view of the same flow: your question (or the dashboard's implicit "what changed recently?") goes through a snapshot builder, then a prompt assembler that bolts the system prompt + locale + [Zod](https://zod.dev/) citation schema onto the snapshot, then a per-user provider chain that walks ChatGPT OAuth → BYOK OpenAI → BYOK Anthropic → local → admin-shared. The provider behind every step is a [large language model](https://en.wikipedia.org/wiki/Large_language_model) (LLM) — a text-prediction model that, here, is constrained to emit a strict JSON recommendation rather than free prose. The response parser validates against the schema (corrective retry on a 422) before the cited reply renders. The sections below zoom in on each card on the resulting `/insights` page.
 
 ## The recommendation card
 
@@ -27,7 +27,7 @@ On the right of the headline, a colour-banded ring + 5-bar meter shows the **con
 
 - **Sample size** (up to 40 points). Log-saturating curve so going from 5 to 50 readings buys you a lot more confidence than going from 50 to 500. Below three readings, the score is hard-capped at `5 × n` regardless of the rest.
 - **Recency** (up to 30 points). Linear decay from 30 points at zero days to zero at 30 days old.
-- **Signal strength** (up to 30 points). 30 at \|z\| ≥ 1.5 standard deviations from baseline; null signal contributes a neutral 15.
+- **Signal strength** (up to 30 points). 30 at \|z\| ≥ 1.5 [standard deviations](https://en.wikipedia.org/wiki/Standard_score) from baseline (the *z-score* — how far today sits from your normal, measured in your own spread); null signal contributes a neutral 15.
 
 Below 25 the meter renders a small "Low confidence — based on limited data" pill. The recommendation is **still shown** — we don't hide low-confidence findings. You see them, you see why they're low, and you decide whether to act on them.
 

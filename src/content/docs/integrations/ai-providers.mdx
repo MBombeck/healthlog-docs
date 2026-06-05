@@ -15,8 +15,8 @@ import coachPipeline from "../../../assets/diagrams/02-coach-pipeline.svg";
 
 | Provider | Key acquisition | Default model | Endpoint | Privacy stance |
 | -------- | ---------------- | ------------- | -------- | -------------- |
-| `OPENAI` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `gpt-4o-mini` | `https://api.openai.com/v1` | Measurement context sent to OpenAI |
-| `ANTHROPIC` | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) | `claude-3-5-sonnet-latest` | Anthropic SDK default | Measurement context sent to Anthropic |
+| `OPENAI` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `gpt-4o` | `https://api.openai.com/v1` | Measurement context sent to OpenAI |
+| `ANTHROPIC` | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) | `claude-sonnet-4-6` | Anthropic SDK default | Measurement context sent to Anthropic |
 | `LOCAL` | None (your endpoint) | `local-model` | OpenAI-compatible URL you control | Stays on your network |
 | `CHATGPT_OAUTH` | Sign in with your ChatGPT account | Codex-routed | `chatgpt.com/backend-api/codex/responses` | Routed via your ChatGPT subscription |
 
@@ -52,9 +52,9 @@ Edit the order in `/settings/ai`. Disable an entry without removing it by toggli
 3. Copy the `sk-…` key.
 4. In HealthLog, open `/settings/ai`. Set provider to **OpenAI**, paste the key, optionally override the model.
 
-The default model is `gpt-4o-mini` — cheap, fast, and grounded enough for the structured-output Coach prompts. Override to `gpt-4o` or `gpt-4.1` if you want more reasoning headroom and accept the per-token cost.
+The default model is `gpt-4o` — a strong general model with enough reasoning headroom for the structured-output Coach prompts. Override to a lighter slug like `gpt-4o-mini` if you want to trim cost, or to `gpt-4.1` / a reasoning model if you want more headroom and accept the per-token cost.
 
-**Cost expectation.** A daily briefing for an active account runs at roughly 4–8k input tokens + ~1k output. At gpt-4o-mini's published rates that is well under a US cent per briefing; a heavy user generating multiple Coach turns plus a weekly report typically spends a few dollars per month.
+**Cost expectation.** A daily briefing for an active account runs at roughly 4–8k input tokens + ~1k output. At `gpt-4o`'s published rates that is a few US cents per briefing; a heavy user generating multiple Coach turns plus a weekly report typically spends in the low single digits of dollars per month. Pinning `gpt-4o-mini` drops that by roughly an order of magnitude.
 
 ## Anthropic setup
 
@@ -63,9 +63,9 @@ The default model is `gpt-4o-mini` — cheap, fast, and grounded enough for the 
 3. Copy the `sk-ant-…` key.
 4. In HealthLog, open `/settings/ai`. Set provider to **Anthropic**, paste the key, optionally override the model.
 
-The default model is `claude-3-5-sonnet-latest`. The Anthropic client refuses to forward an Anthropic key to a stale `aiBaseUrl` even if one is parked in the shared column — Anthropic has no per-tenant base URL the UI exposes; the SDK default is the only correct endpoint.
+The default model is `claude-sonnet-4-6`. The Anthropic client refuses to forward an Anthropic key to a stale `aiBaseUrl` even if one is parked in the shared column — Anthropic has no per-tenant base URL the UI exposes; the SDK default is the only correct endpoint.
 
-**Cost expectation.** Claude 3.5 Sonnet runs roughly 5x the per-token cost of `gpt-4o-mini` but produces noticeably stronger reasoning on the more structured Coach prompts. Most BYOK users on Claude spend in the low single digits per month.
+**Cost expectation.** A Claude Sonnet model produces noticeably stronger reasoning on the more structured Coach prompts; its per-token cost sits a little above `gpt-4o`. Most BYOK users on Claude spend in the low single digits of dollars per month. Override to a cheaper Haiku-class slug if you want to trim that.
 
 ## Local endpoints (Ollama, LM Studio, vLLM)
 
@@ -84,13 +84,13 @@ vllm serve Qwen/Qwen2.5-14B-Instruct \
 
 Base URL `http://<vllm-host>:8000/v1`, API key `your-shared-secret`, model `Qwen/Qwen2.5-14B-Instruct`. The local-client encrypts the API key at rest like every other provider credential.
 
-**SSRF guard.** Local endpoints route through the same validation as every other outbound URL HealthLog hits. The guard rejects private-IP-range targets by default — set `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` in the container environment to allow `localhost`, RFC1918, and link-local destinations. Leave it unset on public-facing instances unless you specifically run an internal endpoint.
+**SSRF guard.** Local endpoints route through the same validation as every other outbound URL HealthLog hits — a defence against [server-side request forgery](https://owasp.org/www-community/attacks/Server_Side_Request_Forgery), where a user-supplied URL is abused to make the server reach internal network resources it shouldn't. The guard rejects private-IP-range targets by default — set `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` in the container environment to allow `localhost`, RFC1918, and link-local destinations. Leave it unset on public-facing instances unless you specifically run an internal endpoint.
 
 **Model sizing.** Roughly: 7-8B for 8 GB GPU / Apple Silicon base (briefings fine, deeper Coach reasoning gets terse), 14-24B for 16-24 GB GPU / M-series Pro/Max (sweet spot for BYOK-style usage), 70B+ for 48 GB+ / multi-GPU (comparable to mid-tier hosted models).
 
 ## ChatGPT OAuth (Codex)
 
-The `CHATGPT_OAUTH` provider routes generations via the `chatgpt.com/backend-api/codex/responses` endpoint that the official Codex CLI uses. Users authenticate with their existing ChatGPT Plus or Pro subscription via device-code OAuth — no API key, no per-token billing on top of the subscription.
+The `CHATGPT_OAUTH` provider routes generations via the `chatgpt.com/backend-api/codex/responses` endpoint that the official Codex CLI uses. Users authenticate with their existing ChatGPT Plus or Pro subscription via the [OAuth 2.0 device authorization grant (RFC 8628)](https://datatracker.ietf.org/doc/html/rfc8628) — the same "type this code on another screen" flow smart TVs use — so there is no API key and no per-token billing on top of the subscription.
 
 UI setup:
 

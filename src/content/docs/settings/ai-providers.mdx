@@ -17,7 +17,7 @@ The dropdown is the **only** source of truth for which provider you're editing. 
 
 ## Connect with ChatGPT (Codex)
 
-The headline path. If you already pay for ChatGPT Plus or ChatGPT Pro, this is the cheapest way to power Insights — it uses the same `chatgpt.com/backend-api/codex/responses` endpoint the official Codex CLI uses, against your ChatGPT account, with no separate API plan.
+The headline path. If you already pay for ChatGPT Plus or ChatGPT Pro, this is the cheapest way to power Insights — it uses the same `chatgpt.com/backend-api/codex/responses` endpoint the official Codex CLI uses, against your ChatGPT account, with no separate API plan. It authenticates with the [OAuth 2.0 device authorization grant (RFC 8628)](https://datatracker.ietf.org/doc/html/rfc8628) — the "type this code on another screen" flow — so there is nothing to whitelist on the developer side.
 
 1. Pick **ChatGPT (Codex)** in the provider dropdown.
 2. Click **Connect with ChatGPT**.
@@ -27,12 +27,12 @@ The headline path. If you already pay for ChatGPT Plus or ChatGPT Pro, this is t
 
 There is no redirect URL to whitelist, so the flow works on any HealthLog instance, including hosted self-hosts behind a domain. The OAuth refresh token is stored AES-256-GCM encrypted; HealthLog rotates the access token transparently before each request.
 
-The default model is `gpt-5.3-codex` — the codex-optimised slug that ChatGPT Plus and Pro tiers can call. Operators can pin a different default for their plan tier via the `CODEX_MODEL` environment variable.
+The client walks a fallback ladder of codex-capable model slugs (currently led by `gpt-5.5`, with `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex` and `gpt-5.2` behind it as the plan ladder permits), so it picks the best slug your ChatGPT plan tier can actually call. Operators can pin a single default with the `CODEX_MODEL` environment variable, or reorder the ladder with `CODEX_MODEL_FALLBACK_CHAIN` (comma-separated).
 
 To **disconnect**, click the *Disconnect* button next to the badge — that revokes the stored token. Reconnect any time.
 
 :::note
-If you connected before v1.4.14, click **Disconnect** and reconnect once. Earlier storage forms didn't carry the `chatgpt_account_id` claim that the Codex backend now requires.
+If a Codex connection from an older release stops working, click **Disconnect** and reconnect once. Earlier storage forms didn't carry the `chatgpt_account_id` claim that the Codex backend now requires; reconnecting captures it.
 :::
 
 :::note
@@ -45,7 +45,7 @@ The classic path: bring your own OpenAI API key.
 
 1. Pick **OpenAI** in the provider dropdown.
 2. Paste your API key (the form takes both `sk-…` and project-scoped `sk-proj-…` keys).
-3. Pick a model from the dropdown — `gpt-4o`, `gpt-4o-mini`, `gpt-5`, etc. — or type a custom model slug into the override field if your account has access to a model that isn't in the preset list yet.
+3. Pick a model from the dropdown — `gpt-4o` (the default), `gpt-4o-mini`, `gpt-5`, etc. — or type a custom model slug into the override field if your account has access to a model that isn't in the preset list yet.
 4. Click **Test connection** to verify the key + model combination before saving (see below).
 5. **Save**.
 
@@ -57,7 +57,7 @@ If your admin has set a shared OpenAI key (for the whole instance), a checkbox a
 
 1. Pick **Anthropic** in the provider dropdown.
 2. Paste your Anthropic API key.
-3. Pick a model — `claude-3-5-haiku`, `claude-3-5-sonnet`, etc.
+3. Pick a model — `claude-sonnet-4-6` (the default), a Haiku-class slug for lower cost, etc.
 4. **Test connection**, then **Save**.
 
 Same encryption-at-rest as OpenAI direct.

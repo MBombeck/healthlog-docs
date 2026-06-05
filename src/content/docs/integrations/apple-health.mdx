@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-HealthLog accepts a full Apple Health `export.zip` upload and folds the contents into the same timeline as every other ingest source. The importer is streaming end-to-end — multi-gigabyte exports never land in V8 heap — and idempotent on the upload's SHA-256 so re-uploading the same archive merges instead of duplicating.
+HealthLog accepts a full [Apple Health](https://en.wikipedia.org/wiki/Apple_Health) `export.zip` upload and folds the contents into the same timeline as every other ingest source. The importer is streaming end-to-end — multi-gigabyte exports never land in V8 heap — and [idempotent](https://en.wikipedia.org/wiki/Idempotence) on the upload's [SHA-256](https://en.wikipedia.org/wiki/SHA-2) hash so re-uploading the same archive merges instead of duplicating. *Idempotent* here means re-running the same upload produces the same result as running it once — no duplicate rows, no double counting.
 
 ## What you need
 
@@ -61,7 +61,7 @@ The lifecycle is `queued → unpacking → parsing → upserting → done` with 
 
 ## What gets imported
 
-The parser folds four XML element types into the existing HealthLog schema (CHANGELOG v1.4.34):
+The parser folds four XML element types into the existing HealthLog schema:
 
 | XML element | Maps to | Notes |
 | ----------- | ------- | ----- |
@@ -103,7 +103,7 @@ import sourcePriority from "../../../assets/diagrams/04-source-priority.svg";
 
 <img src={sourcePriority.src} alt="Source-priority ladder: three sources for the same day resolve to one canonical value per cumulative or point ladder" />
 
-HealthLog's source ladder is **APPLE_HEALTH ≻ WITHINGS ≻ MANUAL ≻ IMPORT** for cumulative metrics (steps, active energy, distance, flights, sleep, HRV, resting HR) and **WITHINGS ≻ APPLE_HEALTH ≻ MANUAL** for point measurements where the Withings device is the primary sensor (weight, BP, body fat, body temperature, SpO₂, VO₂ max). The defaults live in `src/lib/validations/source-priority.ts`.
+HealthLog's source ladder is **APPLE_HEALTH ≻ WITHINGS ≻ MANUAL ≻ IMPORT** for cumulative metrics (steps, active energy, distance, flights, sleep, [HRV](https://en.wikipedia.org/wiki/Heart_rate_variability), resting HR) and **WITHINGS ≻ APPLE_HEALTH ≻ MANUAL** for point measurements where the Withings device is the primary sensor (weight, BP, [body fat](https://en.wikipedia.org/wiki/Body_fat_percentage), body temperature, [SpO₂](https://en.wikipedia.org/wiki/Pulse_oximetry), [VO₂ max](https://en.wikipedia.org/wiki/VO2_max)). The defaults live in `src/lib/validations/source-priority.ts`. See [Source priority](/concepts/source-priority/) for the full resolver.
 
 Concrete consequences:
 

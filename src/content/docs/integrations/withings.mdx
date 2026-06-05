@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-HealthLog connects to Withings via OAuth2 plus a push webhook for near-real-time sync. Once linked, every Body+ scale weighing, BPM blood-pressure reading, ScanWatch sleep stage, and activity sample lands in HealthLog within seconds — no polling, no third-party relay.
+HealthLog connects to Withings via [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) plus a push [webhook](https://en.wikipedia.org/wiki/Webhook) for near-real-time sync. OAuth lets HealthLog read your Withings data on your behalf without ever holding your Withings password; the webhook lets Withings push a notification the moment new data arrives. Once linked, every Body+ scale weighing, BPM blood-pressure reading, ScanWatch sleep stage, and activity sample lands in HealthLog within seconds — no polling, no third-party relay.
 
 ## What gets synced
 
@@ -18,10 +18,10 @@ The Withings client (`src/lib/withings/client.ts`) maps the following metric typ
 | 9 | `BLOOD_PRESSURE_DIA` |
 | 10 | `BLOOD_PRESSURE_SYS` |
 | 11 | `PULSE` |
-| 54, 35 | `OXYGEN_SATURATION` (ScanWatch / pulse-ox products) |
-| Plus the body-composition family (fat ratio, muscle mass, bone mass, hydration) and sleep / heart-rate variability via the heart-list endpoint | |
+| 54, 35 | `OXYGEN_SATURATION` ([SpO₂](https://en.wikipedia.org/wiki/Pulse_oximetry) — ScanWatch / pulse-ox products) |
+| Plus the body-composition family ([fat ratio](https://en.wikipedia.org/wiki/Body_fat_percentage), muscle mass, bone mass, [hydration / total body water](https://en.wikipedia.org/wiki/Body_water)) and sleep / [heart-rate variability](https://en.wikipedia.org/wiki/Heart_rate_variability) via the heart-list endpoint | |
 
-Activity data (steps, active energy, distance, floors climbed) lands via the `user.activity` OAuth scope shipped in v1.4.25. Sleep stages arrive via the sleep series endpoint.
+Activity data (steps, active energy, distance, floors climbed) lands via the `user.activity` OAuth scope; metric readings come via `user.metrics`. HealthLog requests both. Sleep stages arrive via the sleep series endpoint.
 
 ## 1. Register a Withings developer app
 
@@ -53,7 +53,7 @@ When HealthLog calls Withings `Notify.subscribe()` for a newly-linked account, i
 https://your-instance.example.com/api/withings/webhook/<WITHINGS_WEBHOOK_SECRET>
 ```
 
-Withings has no facility for adding HTTP headers or signing webhook bodies, so the callback URL itself is the only authenticity surface a subscriber controls. The v1.4.25 W17a migration moved the secret from a query parameter (`?secret=…`, captured by every reverse-proxy access log) to a path segment, which keeps it out of the `query_string` column most proxies log by default.
+Withings has no facility for adding HTTP headers or signing webhook bodies, so the callback URL itself is the only authenticity surface a subscriber controls. HealthLog carries the secret as a path segment rather than a query parameter (`?secret=…`, captured by every reverse-proxy access log), which keeps it out of the `query_string` column most proxies log by default.
 
 You do not need to register the webhook URL anywhere in the developer portal — HealthLog subscribes per-user during the OAuth callback. The portal only owns the OAuth callback URL.
 
@@ -75,7 +75,7 @@ import sourcePriority from "../../../assets/diagrams/04-source-priority.svg";
 
 <img src={sourcePriority.src} alt="Source-priority ladder: per-metric resolver picks one canonical row per day across Apple Health, Withings and manual sources" />
 
-HealthLog's source ladder ranks **WITHINGS ≻ APPLE_HEALTH ≻ MANUAL** for point measurements (weight, BP, pulse, body fat, body temperature, SpO₂, VO₂ max) and **APPLE_HEALTH ≻ WITHINGS ≻ MANUAL** for cumulative metrics (steps, active energy, distance, flights, sleep, HRV, resting HR). The defaults live in `src/lib/validations/source-priority.ts`.
+HealthLog's source ladder ranks **WITHINGS ≻ APPLE_HEALTH ≻ MANUAL** for point measurements (weight, BP, pulse, body fat, body temperature, SpO₂, [VO₂ max](https://en.wikipedia.org/wiki/VO2_max)) and **APPLE_HEALTH ≻ WITHINGS ≻ MANUAL** for cumulative metrics (steps, active energy, distance, flights, sleep, HRV, resting HR). The defaults live in `src/lib/validations/source-priority.ts`. See [Source priority](/concepts/source-priority/) for the full resolver.
 
 Concrete consequences if you run Withings alongside an Apple Health import:
 
