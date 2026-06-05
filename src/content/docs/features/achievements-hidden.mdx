@@ -5,7 +5,7 @@ sidebar:
   order: 7
 ---
 
-Most achievements wear their requirements on their sleeve. The dashboard tells you "log 50 weigh-ins" and you know exactly what to do. v1.4.18 adds a small set of **hidden achievements** that work the other way around — you don't see what triggers them until you trigger them. They're a tiny celebration buried in the app, nothing more.
+Most achievements wear their requirements on their sleeve. The dashboard tells you "log 50 weigh-ins" and you know exactly what to do. A small set of **hidden achievements** work the other way around — you don't see what triggers them until you trigger them. They're a tiny celebration buried in the app, nothing more.
 
 ## What you'll see before unlocking one
 
@@ -45,16 +45,16 @@ Two reasons.
 
 The first is that they're little jokes. Bury a few delights in the app, let them surface when the moment is right. If the trigger is something you'd never optimise for — a particular calendar quirk, a particular time of day — telling you up front would just make you feel obliged to chase it. Better to let it land on its own.
 
-The second is that the discoverability of all the other achievements depends on them not crowding the page. v1.4.18 added a **discovery filter** that hides locked public badges until you have data for the metric they care about (so a streak badge for blood pressure stays out of the list until you log your first BP reading). Hidden achievements ignore that filter — they always render — but they render as opaque placeholders, so they don't reveal what they're for.
+The second is that the discoverability of all the other achievements depends on them not crowding the page. A **discovery filter** hides locked public badges until you have data for the metric they care about (so a streak badge for blood pressure stays out of the list until you log your first BP reading). Hidden achievements ignore that filter — they always render — but they render as opaque placeholders, so they don't reveal what they're for.
 
 ## Where the strings live
 
-For self-hosters and the merely curious: the redaction is enforced server-side. The `/api/achievements` route strips the title, description, icon name, and trigger metric out of the response body for any achievement marked `hidden: true` and not yet unlocked. The string-keyed lookup that would resolve the localized title is short-circuited at the page boundary — `hiddenLocked: true` makes the page render the placeholder card and never look up the real strings. The DOM never sees them.
+For self-hosters and the merely curious: the redaction is enforced server-side. The `/api/gamification/achievements` route strips the title, description, icon name, and trigger metric out of the response body for any achievement flagged `isHidden` and not yet unlocked. The string-keyed lookup that would resolve the localized title is short-circuited at the page boundary — a `hiddenLocked` entry makes the page render the placeholder card and never look up the real strings. The DOM never sees them.
 
-The bundled English and German translations still ship with the strings (so unlocked clients can render them without a round-trip), which means a determined user can `Cmd-F` through `_next/static/chunks/*.js` and find them. That's a small leak, tracked for v1.4.19 as a build-time strip or reversible obfuscation. For now the page-level redaction is enough — you'd have to actively dig for it.
+The bundled English and German translations still ship with the strings (so unlocked clients can render them without a round-trip), which means a determined user can `Cmd-F` through `_next/static/chunks/*.js` and find them. That's a small known leak. For now the page-level redaction is enough — you'd have to actively dig for it.
 
 ## How many there are
 
-Six in v1.4.18. The number isn't fixed; new ones can land in any future release without breaking your existing unlocked set, and they'll all behave the same way: placeholder card → unlock event → real card.
+Six at present. The number isn't fixed; new ones can land in any future release without breaking your existing unlocked set, and they'll all behave the same way: placeholder card → unlock event → real card.
 
 If you've earned an unusually high number of them already, it might be worth keeping that to yourself. They are, after all, hidden.

@@ -20,11 +20,12 @@ HealthLog tracks and analyzes key health metrics, including weight, [blood press
 | Total Body Water | kg | Trend analysis (Watson formula reference) | Yes (Body+ scales) |
 | Bone Mass | kg | Trend analysis | Yes (Body+ scales) |
 | [Sleep](https://en.wikipedia.org/wiki/Sleep) Duration | hours | [AASM](https://aasm.org/) 2015 adult range | — |
+| [Sleep Stages](https://en.wikipedia.org/wiki/Sleep_cycle) (awake / REM / core / deep) | minutes | Per-stage breakdown when the source reports it | — |
 | Activity (Steps) | steps | Saint-Maurice JAMA 2020 (continued benefit through ~12 000/d) | Yes |
 | [Blood Glucose](https://en.wikipedia.org/wiki/Blood_sugar_level) | mg/dL or mmol/L | Per-context ranges ([ADA](https://diabetes.org/) 2024) — fasting / postprandial / random / bedtime | — |
 | [Oxygen Saturation](https://en.wikipedia.org/wiki/Pulse_oximetry) (SpO2) | % | BTS / [NICE NG115](https://www.nice.org.uk/guidance/ng115); personalised baseline for COPD | Yes (ScanWatch) |
 
-The table above lists the metrics with their own clinical analysis. Beyond them, HealthLog charts **every metric the iOS client can read from Apple Health**: resting heart rate, [heart-rate variability](https://en.wikipedia.org/wiki/Heart_rate_variability), [VO₂max](https://en.wikipedia.org/wiki/VO2_max), respiratory rate, active energy, flights climbed, walking/running distance, the walking-quality family (speed, step length, asymmetry, double support, steadiness), the body-composition family (lean/fat/fat-free/muscle mass, BMI), environmental and headphone [audio exposure](https://en.wikipedia.org/wiki/Health_effects_from_noise), time in daylight, and more. Each gets its own chart surface. See the [measurements API type table](/api/measurements/#measurement-types) for the full machine-readable list.
+The table above lists the metrics with their own clinical analysis. Beyond them, HealthLog charts **every metric the iOS client can read from Apple Health**: resting heart rate, [heart-rate variability](https://en.wikipedia.org/wiki/Heart_rate_variability), [VO₂max](https://en.wikipedia.org/wiki/VO2_max), respiratory rate, active energy, flights climbed, walking/running distance, the walking-quality family (speed, step length, asymmetry, double support, steadiness), the body-composition family (lean/fat/fat-free/muscle mass, BMI), environmental and headphone [audio exposure](https://en.wikipedia.org/wiki/Health_effects_from_noise), time in daylight, and — where a connected sleep or breathing device reports it — the [apnea–hypopnea index (AHI)](https://en.wikipedia.org/wiki/Apnea%E2%80%93hypopnea_index), the count of breathing disruptions per hour of sleep used to grade sleep apnea, and more. Each gets its own chart surface. See the [measurements API type table](/api/measurements/#measurement-types) for the full machine-readable list.
 
 All metrics are stored canonically in **SI** units — matching what Withings devices report and what Health Connect's records provide. A per-user **metric/imperial display preference** (Settings → Display) drives a render-time transform only: walking speed reads in km/h, distance in km, and imperial converts at display time. Stored and exported values stay SI, so a Doctor Report or [FHIR R4 export](/features/export-import/#health-record-export-pdf--fhir-r4) always carries canonical units. Anyone with a Withings connection sees the supported metrics flowing in automatically on the next sync, no extra config.
 
@@ -52,7 +53,7 @@ All metrics are analyzed across three time ranges:
 
 Visualizations are rendered with Recharts (line and bar charts). Long ranges (>90 days) auto-bucket the data — weekly mean for 91–730 days, monthly mean beyond — with an inline chip showing the active bucket so the aggregation is never silent.
 
-A **comparison overlay** (v1.4.16+, surface narrowed in v1.4.19) lets you toggle "vs. last month" / "vs. last year" from the `/insights` hero — the prior period renders as a dimmed line beneath the current one, with a delta callout (Δ ±N) next to the headline value. The dashboard no longer carries the toggle as of v1.4.19. See [Comparison views](/dashboard/comparison/) for the full toggle UX.
+A **comparison overlay** lets you toggle "vs. last month" / "vs. last year" from the `/insights` hero — the prior period renders as a dimmed line beneath the current one, with a delta callout (Δ ±N) next to the headline value. See [Comparison views](/dashboard/comparison/) for the full toggle UX.
 
 ## BMI Calculation
 

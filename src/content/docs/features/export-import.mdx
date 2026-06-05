@@ -9,7 +9,7 @@ import healthRecordExport from "../../../assets/diagrams/08-health-record-export
 
 HealthLog provides comprehensive export and import capabilities for data backup, sharing with doctors, and migration.
 
-## Settings → Export (v1.4.16+)
+## Settings → Export
 
 Every export — the doctor-report PDF, the per-domain CSVs, and the full JSON backup — lives under one consolidated route at **Settings → Export**. Each export is its own card with a clear title, a one-line description, the relevant filters, and a download button. The cards are:
 
@@ -47,8 +47,8 @@ The endpoint shares the same `export:<userId>` bucket (**10 / hour**) as the oth
 
 | Format | Description |
 |--------|------------|
-| **JSON** | Structured format, suitable for backups and re-import |
-| **CSV** | Tabular format, compatible with Excel, Google Sheets, etc. |
+| **[JSON](https://en.wikipedia.org/wiki/JSON)** | Structured key–value text format, suitable for backups and re-import |
+| **[CSV](https://en.wikipedia.org/wiki/Comma-separated_values)** | Plain-text tabular format (one record per line), compatible with Excel, Google Sheets, etc. |
 
 ### Export Types
 
@@ -57,7 +57,7 @@ Data can be exported individually or as a complete package:
 - `measurements` -- All health readings
 - `medications` -- Medications and schedules
 - `intake` -- Intake log
-- `mood` -- Mood entries (when MoodLog integration is active)
+- `mood` -- Mood entries (tracked natively in HealthLog)
 - `all` -- Full export of all data
 
 ### Rate Limit

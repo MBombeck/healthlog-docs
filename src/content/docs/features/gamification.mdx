@@ -9,13 +9,13 @@ HealthLog keeps users motivated with an achievement system. Progress and milesto
 
 Achievements are **persistent**: once unlocked, they stay unlocked with a stable timestamp, even if the underlying data is later edited or deleted.
 
-## Achievements Page and Dashboard Card (v1.4.15+)
+## Achievements Page and Dashboard Card
 
 A dedicated **Achievements** page (`/achievements`, also reachable from the sidebar) lists every achievement, both locked and unlocked, grouped by category. Locked entries fade to grey with a small lock icon and a progress bar showing `{current} / {target}` so you can see what's near the next milestone; unlocked entries keep the highlighted gradient and show the unlock date.
 
-v1.4.18 adds a **discovery filter**: locked public badges only render once you have data for the underlying metric. So a "log your first 50 weigh-ins" achievement stays out of the list until you log your first weigh-in — the page isn't a wall of grey on day one. Already-unlocked achievements always render so deleting data doesn't make completed badges disappear.
+A **discovery filter** keeps the page quiet: locked public badges only render once you have data for the underlying metric. So a "log your first 50 weigh-ins" achievement stays out of the list until you log your first weigh-in — the page isn't a wall of grey on day one. Already-unlocked achievements always render so deleting data doesn't make completed badges disappear.
 
-The dashboard gains a toggleable **Recent achievements** card that surfaces the latest unlocks at a glance. Hide it from **Settings → Dashboard** if you'd rather keep the dashboard focused on raw metrics. v1.4.16 wires the dashboard preview to the same data source the Achievements page uses, so the latest unlock you see at the top of the dashboard is always the one you'll see at the top of the page when you click through.
+The dashboard carries an optional, toggleable **Recent achievements** card that surfaces the latest unlocks at a glance. Hide it from **Settings → Dashboard** if you'd rather keep the dashboard focused on raw metrics. The dashboard preview reads from the same data source as the Achievements page, so the latest unlock you see at the top of the dashboard is the one you'll see at the top of the page when you click through.
 
 ## Achievement Categories
 
@@ -37,7 +37,7 @@ Milestones for first / 50 / 200 weigh-ins, first / 50 / 200 BP readings, and fir
 | Blood Pressure in Target Range | Consecutive readings in the normal range |
 | Heart Rate in Target Range | Consecutive readings in the normal range |
 
-### Mood (v1.4.18+)
+### Mood
 
 - **First mood entry** — log your first mood.
 - **Mood streak 7** / **mood streak 30** — consecutive days with a mood entry.
@@ -46,9 +46,9 @@ Milestones for first / 50 / 200 weigh-ins, first / 50 / 200 BP readings, and fir
 ### Engagement
 
 - **Login streak** — consecutive days with app usage.
-- **Consistent month** (v1.4.18+) — at least 25 distinct days with any data in a Berlin-local calendar month.
-- **Entry streak 7** / **entry streak 30** (v1.4.18+) — consecutive days with any entry.
-- **Weekend warrior** (v1.4.18+) — four consecutive Sat+Sun pairs with data.
+- **Consistent month** — at least 25 distinct days with any data in a Berlin-local calendar month.
+- **Entry streak 7** / **entry streak 30** — consecutive days with any entry.
+- **Weekend warrior** — four consecutive Sat+Sun pairs with data.
 
 ### Security
 
@@ -58,7 +58,7 @@ Achievements for using passkeys to sign in (security incentive).
 
 Rewards for reporting bugs through the built-in bug report system.
 
-### Hidden (v1.4.18+)
+### Hidden
 
 A small set of Easter-egg achievements that paint as opaque "Hidden achievement" placeholders until unlocked. See [Hidden achievements](/features/achievements-hidden/) for the design rationale and the categories they cover.
 

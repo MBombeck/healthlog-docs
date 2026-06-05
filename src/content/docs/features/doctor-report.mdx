@@ -11,15 +11,15 @@ HealthLog can generate a comprehensive PDF report designed for sharing with heal
 
 The PDF is generated entirely **client-side** using jsPDF. No data is sent to a server during generation.
 
-- Open **Settings → Export** (v1.4.16+; previously a separate top-level link) and click the **Generate Report** button on the doctor-report card.
-- A dialog opens (v1.4.15+) where you pick the date range and, optionally, the practice name.
+- Open **Settings → Export** and click the **Generate Report** button on the doctor-report card.
+- A dialog opens where you pick the date range and, optionally, the practice name.
 - The PDF is downloaded directly to the device.
 
-### Date Range (v1.4.15+)
+### Date Range
 
 Before the PDF is generated, a dialog asks for the period you want covered. Three presets — **Last 90 days**, **Last 6 months**, **Last 12 months** — match the windows physicians ask for most often. You can also enter custom start and end dates by hand. The maximum span is 2 years; the default is the last 90 days.
 
-### Practice / Clinic Name (v1.4.15+)
+### Practice / Clinic Name
 
 The dialog also has an optional **Praxis / Clinic name** field. If you fill it in, the name appears at the top of the cover page above the patient block — handy when you generate one report for your GP and another for your cardiologist. The field is remembered as a per-account preference so the next report pre-fills with whatever you used last; clear it to omit the line entirely.
 
@@ -37,10 +37,10 @@ The report includes a summary of key vital signs for the selected period:
 |--------|---------|
 | Weight | Average, min, max, trend direction |
 | BMI | Current value, classification per WHO (DEGAM age-adjusted bands for 65+) |
-| Blood Pressure | Average Sys/Dia, classification per ESH 2023 |
+| Blood Pressure | Average Sys/Dia, [hypertension](https://en.wikipedia.org/wiki/Hypertension) classification per [ESH](https://www.eshonline.org/) 2023 |
 | Pulse / Heart Rate | Average, min, max |
-| Blood Glucose | Per-context averages (fasting / postprandial / random / bedtime), distribution, time-in-range when available |
-| Oxygen Saturation | Average, min, with personalised thresholds for COPD baselines (BTS / NICE NG115) |
+| Blood Glucose | Per-context averages (fasting / postprandial / random / bedtime), distribution, time-in-range when available ([ADA](https://diabetes.org/) ranges) |
+| Oxygen Saturation | Average, min, with personalised thresholds for COPD baselines (BTS / [NICE NG115](https://www.nice.org.uk/guidance/ng115)) |
 | Body Composition | Body fat %, total body water (kg), bone mass (kg) — labelled as bioimpedance estimates, not DEXA-comparable |
 
 :::note
@@ -78,7 +78,7 @@ BMI values are classified per WHO standards:
 For each active medication, the report shows:
 
 - Medication name, dosage, and schedule
-- **Compliance rate** -- Percentage of scheduled intakes that were confirmed (taken) during the report period
+- **Compliance rate** -- the [adherence](https://en.wikipedia.org/wiki/Adherence_(medicine)) figure: percentage of scheduled intakes that were confirmed (taken) during the report period
 - Missed and skipped intakes count
 
 ### Mood Distribution
