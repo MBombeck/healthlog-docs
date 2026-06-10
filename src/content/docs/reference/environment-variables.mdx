@@ -1,0 +1,133 @@
+---
+title: Environment variables
+description: Every environment variable a HealthLog deployment reads — required core, optional integrations, backups, scaling, and build-time toggles.
+sidebar:
+  order: 3
+---
+
+This reference mirrors `.env.production.example` and `scripts/env-manifest.json`
+in the main repository. The `pnpm check-env` CI step enforces that every variable
+declared required in the manifest has a placeholder in the example file, so the
+two never drift.
+
+:::caution[The compose `environment:` block is a whitelist]
+A variable in `.env` reaches the container **only** if it is also listed under
+`environment:` in `docker-compose.yml`. Docker Compose reads `.env` for `${VAR}`
+substitution at compose-up time, but does not forward arbitrary vars into the
+container. When you add a new optional var, add it to the whitelist too.
+:::
+
+## Core — required for boot
+
+The app refuses to boot without these.
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string. The compose default appends `connection_limit` + `pool_timeout`. |
+| `POSTGRES_PASSWORD` | Password for the bundled `db` service. `openssl rand -hex 32`. |
+| `NEXT_PUBLIC_APP_URL` | Public URL embedded in OAuth redirects, webhook callbacks, deep links. |
+| `APP_URL` | Server-side mirror of the above, used by background workers. Must match. |
+| `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets. 64 hex chars. Required unless `ENCRYPTION_KEYS` is set. |
+| `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer tokens. 64 hex chars. |
+
+## Encryption key map
+
+The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
+
+| Variable | Purpose |
+| --- | --- |
+| `ENCRYPTION_KEYS` | JSON map, e.g. `{"v1":"<hex>","v2":"<hex>"}`. |
+| `ENCRYPTION_ACTIVE_KEY_ID` | The key id new writes use, e.g. `v2`. |
+
+## Session & proxy
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SESSION_COOKIE_SECURE` | tracks `NODE_ENV=production` | Force or disable the cookie `Secure` flag. Set `false` for trusted plain-HTTP LANs. |
+| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. See [reverse proxy](/guides/reverse-proxy/). |
+| `DB_CONNECTION_LIMIT` / `DATABASE_POOL_MAX` | `20` | Per-container Postgres pool ceiling. |
+| `DB_POOL_TIMEOUT` | `20` | Seconds a query waits for a free connection. |
+| `HEALTHLOG_PROCESS_TYPE` | `all` | `all` / `web` / `worker` process split. |
+
+## Withings (optional integration)
+
+| Variable | Purpose |
+| --- | --- |
+| `WITHINGS_CLIENT_ID` / `WITHINGS_CLIENT_SECRET` | OAuth credentials from developer.withings.com. |
+| `WITHINGS_REDIRECT_URI` | OAuth callback URL. |
+| `WITHINGS_WEBHOOK_SECRET` | Path-segment secret hardening the webhook URL. |
+
+## WHOOP (optional)
+
+WHOOP client id/secret are **per-user BYO-keys** in Settings, not env vars.
+
+| Variable | Purpose |
+| --- | --- |
+| `WHOOP_REDIRECT_URI` | Overrides the derived callback URL. |
+| `WHOOP_WEBHOOK_SECRET` | Path segment + HMAC body-signature key. |
+
+## Google Health / Fitbit (optional)
+
+Client id/secret are per-user in Settings.
+
+| Variable | Purpose |
+| --- | --- |
+| `FITBIT_REDIRECT_URI` | Callback URL when its origin differs from `NEXT_PUBLIC_APP_URL`. |
+
+## APNs — iOS push (all-or-none)
+
+Missing any one disables APNs silently.
+
+| Variable | Purpose |
+| --- | --- |
+| `APNS_KEY_ID` / `APNS_TEAM_ID` / `APNS_BUNDLE_ID` | Apple Developer identifiers. |
+| `APNS_KEY` *or* `APNS_KEY_FILE` | The `.p8` contents, or a path to it. (`APNS_KEY_B64` for base64.) |
+
+## Off-host backups (all-or-none)
+
+See [Backups](/guides/backups/).
+
+| Variable | Purpose |
+| --- | --- |
+| `BACKUP_S3_ENDPOINT` / `BACKUP_S3_BUCKET` | Target. |
+| `BACKUP_S3_ACCESS_KEY` / `BACKUP_S3_SECRET_KEY` | Credentials. |
+| `BACKUP_S3_REGION` | Defaults to `auto`. |
+| `BACKUP_ENCRYPTION_KEY` | Separate AES key — **must not** equal `ENCRYPTION_KEY`. |
+| `BACKUP_RETENTION_DAYS` | Defaults to `30`. |
+
+## Deploy webhook & TLS pin (optional)
+
+| Variable | Purpose |
+| --- | --- |
+| `DEPLOY_WEBHOOK_SECRET` | Authenticates `POST /api/internal/deploy-webhook`. |
+| `DEPLOY_LOGS_URL` | Deployment-dashboard URL linked in failure notifications. |
+| `TLS_LEAF_SPKI_PINS` | Known-good leaf SPKI pins for the native-client pin monitor. |
+
+## FHIR (optional)
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `FHIR_MAX_MEDICATION_ADMINISTRATIONS` | `5000` | Per-export ceiling on `MedicationAdministration` rows (bounded 1–50000). |
+
+## Local AI (optional)
+
+| Variable | Purpose |
+| --- | --- |
+| `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Set `true` to let the SSRF guard reach `localhost` / RFC1918 / link-local AI endpoints. |
+| `INSIGHTS_RATE_LIMIT_PER_HOUR` | Bounds `POST /api/insights/generate` per user per hour (default 10). |
+
+## Build-time only (not runtime)
+
+`NEXT_PUBLIC_*` vars are inlined into the client bundle at **build time**. The
+pre-built GHCR image ignores them at runtime, so they are deliberately absent
+from the compose whitelist. Setting them in Coolify's runtime panel has no
+effect.
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_DASHBOARD_SNAPSHOT` | `false` falls back to the legacy four-cell dashboard path. |
+| `NEXT_PUBLIC_APP_VERSION` / `_BUILD_SHA` / `_BUILT_AT` | Stamped from the GHCR tag during CI build; surfaced by `/api/version`. |
+
+Telegram bot token, ntfy settings, Web Push VAPID keys, and error-tracking URLs
+are configured in the **admin panel** and stored encrypted in the database — not
+as environment variables.

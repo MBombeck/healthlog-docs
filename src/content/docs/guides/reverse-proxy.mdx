@@ -1,0 +1,151 @@
+---
+title: Reverse proxy
+description: Front HealthLog with Caddy, Traefik, Nginx Proxy Manager, Coolify, or bare Nginx — TLS termination, forwarded headers, and the WebSocket upgrade.
+sidebar:
+  order: 12
+---
+
+The bundled compose file exposes HealthLog on plain HTTP at `localhost:3000`.
+Production deployments front it with a reverse proxy that terminates TLS, sets
+the forwarded headers the rate-limiter trusts, and preserves the WebSocket
+upgrade the streaming Coach depends on.
+
+## Pre-flight env vars
+
+| Variable | Required for | Notes |
+| --- | --- | --- |
+| `NEXT_PUBLIC_APP_URL` | Every public absolute URL the UI emits | Must match the hostname the proxy serves |
+| `APP_URL` | Server-side absolute URLs from background jobs | Mirror of the above; both must match |
+| `TRUST_PROXY_HOPS` | `X-Forwarded-For` chain trust | Defaults to `1` |
+
+### `TRUST_PROXY_HOPS`
+
+`getClientIp` reads the `X-Forwarded-For` chain from the **right**, counting back
+`TRUST_PROXY_HOPS` entries. This stops a client from rotating `X-Forwarded-For`
+per request to defeat IP-based rate limits.
+
+| Topology | Value |
+| --- | --- |
+| App internet-facing, no proxy | `0` (XFF ignored) |
+| Single proxy (Caddy / Traefik / Nginx / Coolify) | `1` (default) |
+| Cloudflare → your proxy → app | `2` |
+| Cloudflare → Coolify-Tunnel → Coolify → app | `3` |
+
+A wrong count logs a one-shot stderr warning and collapses every anonymous
+caller into one shared rate-limit bucket.
+
+## Caddy
+
+```caddyfile
+your-instance.example.com {
+    encode zstd gzip
+    reverse_proxy localhost:3000 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up Host {host}
+        flush_interval -1
+    }
+}
+```
+
+Caddy handles the WebSocket upgrade automatically; `flush_interval -1` disables
+response buffering so streamed insight events surface without batching.
+
+## Traefik
+
+```yaml
+services:
+  app:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.healthlog.rule=Host(`your-instance.example.com`)"
+      - "traefik.http.routers.healthlog.entrypoints=websecure"
+      - "traefik.http.routers.healthlog.tls.certresolver=letsencrypt"
+      - "traefik.http.services.healthlog.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.healthlog-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.healthlog.middlewares=healthlog-headers"
+```
+
+Behind Cloudflare, set `TRUST_PROXY_HOPS=2`.
+
+## Nginx Proxy Manager
+
+Add a proxy host for `your-instance.example.com`, scheme `http`, forward port
+`3000`. **Enable Websockets Support** (required for streaming Coach). Request a
+Let's Encrypt cert and force SSL. Under Advanced → Custom Nginx Configuration:
+
+```nginx
+proxy_read_timeout 300s;
+```
+
+The 300-second read timeout matters for long-running insight generations —
+anything shorter cuts streamed responses mid-flight.
+
+## Coolify
+
+1. **Domains:** set `https://your-instance.example.com`. Coolify provisions the
+   cert and Traefik labels.
+2. **Environment Variables:** set `NEXT_PUBLIC_APP_URL`, `APP_URL`, and optional
+   secrets.
+3. **Pull policy:** `always`. The bundled compose declares this so Coolify
+   re-checks the GHCR digest instead of reusing the cached `:latest` layer.
+4. **Deploy webhook:** point at `/api/internal/deploy-webhook` with
+   `X-Deploy-Webhook-Secret` = `DEPLOY_WEBHOOK_SECRET`.
+
+:::caution[Do not set the build-time vars as runtime env]
+`NEXT_PUBLIC_APP_VERSION`, `NEXT_PUBLIC_APP_BUILD_SHA`, and
+`NEXT_PUBLIC_APP_BUILT_AT` are injected at **build time** via `--build-arg` and
+baked into the image. Setting them in Coolify's runtime env panel has zero
+effect and becomes a misleading artefact. If you see them there, delete them.
+:::
+
+Coolify-Tunnel adds one hop — pair with `TRUST_PROXY_HOPS=2` (or `3` behind
+Cloudflare).
+
+## Bare Nginx
+
+```nginx
+upstream healthlog { server 127.0.0.1:3000; keepalive 16; }
+
+server {
+    listen 443 ssl http2;
+    server_name your-instance.example.com;
+    ssl_certificate     /etc/letsencrypt/live/your-instance.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-instance.example.com/privkey.pem;
+
+    client_max_body_size 1600M;  # Apple Health export.zip cap is 1.5 GB
+
+    location / {
+        proxy_pass http://healthlog;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+}
+```
+
+`client_max_body_size 1600M` is load-bearing if you support Apple Health uploads
+— Nginx rejects the body before the app sees it otherwise. `proxy_buffering off`
+keeps streamed events flowing.
+
+## Verify the chain
+
+From outside the host, hit `https://your-instance.example.com/api/version` and
+check `docker compose logs app`. The wide-event line should carry a non-null
+client IP matching your source address. A `null` IP or a single `unknown`
+rate-limit bucket means `TRUST_PROXY_HOPS` is higher than the real hop count, or
+the proxy is dropping `X-Forwarded-For`.
+
+## Plain HTTP on a LAN
+
+If you deliberately serve over HTTP on a trusted network (NAS, homelab,
+Tailscale-only), set `SESSION_COOKIE_SECURE=false` so the session, onboarding,
+and OAuth-state cookies stop emitting `Secure` and login works over HTTP. The
+trade-off is explicit: the session cookie crosses the wire unencrypted. **Never
+set this on a host that serves plain HTTP to the open internet.**

@@ -1,0 +1,107 @@
+---
+title: Rotate the encryption key
+description: Rotate the AES-256-GCM key that protects at-rest secrets without downtime, using the versioned key map and the rotation CLI.
+sidebar:
+  order: 10
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+HealthLog encrypts sensitive at-rest data — provider tokens, AI keys,
+notification configs, web-push secrets, VAPID keys — with AES-256-GCM under a
+per-deployment key. A versioned key format lets you rotate the key **without
+downtime** and without re-encrypting every row by hand. For the design rationale,
+see [Encryption at rest](/explanation/encryption-at-rest/).
+
+## The versioned format
+
+| Layout | Marker | Where |
+| --- | --- | --- |
+| Versioned (new) | `<keyId>.<base64(iv ‖ tag ‖ ciphertext)>` | All new writes |
+| Legacy (≤ v1.3.x) | `<base64(iv ‖ tag ‖ ciphertext)>` | Existing rows until rotated |
+
+`<keyId>` matches `[A-Za-z0-9_-]{1,32}` and indexes into the `ENCRYPTION_KEYS`
+JSON map. Decryption tries the versioned format first; a value with no `.` is
+treated as legacy and decrypted under `v1` (the synthetic id for the existing
+`ENCRYPTION_KEY`).
+
+:::caution[Keep the old key until rotation completes]
+Legacy ciphertexts have no key id, so the only way to identify them is "no `.`
+in the value". If you remove the `v1` entry from `ENCRYPTION_KEYS` before every
+legacy row has rotated, those rows can no longer be decrypted. The decrypt path
+refuses to silently fall back to the active key and throws a clear error instead.
+:::
+
+## Rotate from a single key to a new one
+
+<Steps>
+
+1. **Generate the new key:**
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+2. **Update the environment.** Keep the existing `ENCRYPTION_KEY` in place — it
+   still decrypts legacy rows during the transition:
+
+   ```env
+   ENCRYPTION_KEY="<old key, unchanged>"
+   ENCRYPTION_KEYS='{"v1":"<old key>","v2":"<new key>"}'
+   ENCRYPTION_ACTIVE_KEY_ID="v2"
+   ```
+
+   Restart. New writes encrypt under `v2`; existing `v1`-keyed and legacy rows
+   still decrypt.
+
+3. **Run the rotation script** to re-encrypt every existing encrypted column
+   under the new active key:
+
+   ```bash
+   pnpm dlx tsx scripts/rotate-encryption-key.ts v2
+   ```
+
+   It is idempotent — re-running is a no-op for rows already prefixed `v2.`. It
+   rotates `User`, `WithingsConnection`, `AppSettings`, `NotificationChannel`,
+   and `PushSubscription` rows (plus the `CoachMessage.encryptedContent` Bytes
+   column and `IntegrationStatus.lastError`). The summary line reports
+   `scanned` / `rotated` / `errors` per table+field; treat `errors > 0` as a
+   hard failure and re-run after fixing the cause.
+
+4. **Drop the old key (optional, recommended)** once the script reports zero
+   remaining legacy rows:
+
+   ```env
+   ENCRYPTION_KEYS='{"v2":"<new key>"}'
+   ENCRYPTION_ACTIVE_KEY_ID="v2"
+   # ENCRYPTION_KEY can now be removed
+   ```
+
+</Steps>
+
+Adding a third key (v2 → v3) is the same procedure with shifted labels — keep
+`v2` in the map until the script reports zero `v2.`-prefixed rows.
+
+## Rollback
+
+Once the script runs, ciphertexts start with `v2.`. The pre-rotation image
+expects bare base64 and will throw on that prefix. So:
+
+- **Prefer keeping the new image.** The new code reads both formats, so most
+  rollbacks need no undo.
+- If you must run old code, **restore a database backup taken before the
+  rotation**. There is no script to convert `v2.`-prefixed rows back — rotation
+  is forward-only by design.
+
+Run rotation in a window where you have a fresh DB snapshot and the new image has
+been smoke-tested in production for at least 24 hours.
+
+## Troubleshooting
+
+- `Encryption key id 'v1' is not configured` — the DB still has `v1.`-prefixed
+  rows but `v1` was removed. Re-add it, run the script, then remove again.
+- `Found a legacy-format ciphertext but no v1 key is configured` — same cause
+  for legacy bare-base64 rows. Restore `ENCRYPTION_KEY` (or add a `v1` entry)
+  and run the script before removing it.
+- `Refusing to rotate: argv key id ... does not match the currently active id` —
+  pass the same id you set in `ENCRYPTION_ACTIVE_KEY_ID`.

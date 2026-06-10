@@ -1,0 +1,65 @@
+---
+title: Set source priority
+description: When two providers report the same metric, a per-metric source priority decides which reading is canonical. Adjust the ladder per user.
+sidebar:
+  order: 5
+---
+
+When two providers report the same metric — a Withings scale and an Apple Watch
+both logging weight, or HealthKit and Fitbit both reporting steps — HealthLog
+keeps every row as an audit trail but applies a per-metric **source priority** to
+decide which reading is canonical for display and analytics.
+
+This is the practical guide to adjusting that ladder. For the reasoning behind
+the two-ladder design, see
+[Why source priority works the way it does](/explanation/source-priority/).
+
+## The two ladders
+
+HealthLog ranks sources differently depending on the metric class, because the
+right answer differs:
+
+- **Point measurements** (weight, blood pressure, pulse, body fat, body
+  temperature, SpO₂, VO₂ max) pick a single display-preferred source. The
+  default ladder is **`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL`** — a dedicated cuff or
+  scale outranks a wrist estimate.
+- **Cumulative metrics** (steps, active energy, distance, flights, sleep, HRV,
+  resting HR) pick exactly **one source per day** so they are never
+  double-counted. The default ladder is
+  **`APPLE_HEALTH ≻ WITHINGS ≻ MANUAL ≻ IMPORT`** — HealthKit folds multiple
+  sensors into one canonical daily stream, so it is the most complete cumulative
+  source.
+
+The defaults live in `src/lib/validations/source-priority.ts`.
+
+## Adjust the ladder
+
+Open the **Sources** section of `/settings/thresholds`. For each metric (or
+metric class) you can:
+
+- Reorder the source ladder by drag.
+- Set an optional **device-type tie-break** so two devices reporting under the
+  same source resolve deterministically.
+
+Changes are per user and audit-logged. The API surface is
+`GET` / `PATCH /api/auth/me/source-priority`.
+
+## What happens to the losing rows
+
+Nothing is deleted. A reading that loses the priority contest stays in the
+`Measurement` table tagged with its source and drops out of the active display
+and analytics. If you later disconnect the winning source or reorder the ladder,
+the previously-hidden rows resurface — no data was lost.
+
+## Worked example
+
+You sync a Withings scale and also import Apple Health (which received the same
+weighing second-hand via the Health Mate app):
+
+- **Weight** (point): Withings wins for display; the Apple Health row stays as
+  audit trail.
+- **Steps** (cumulative): if a ScanWatch feeds HealthKit, the Apple-Health-
+  aggregated day wins; the Withings step rows stay in the database.
+
+Override either default under the Sources section if your setup differs — for
+instance, if you trust a Fitbit's resting heart rate over a Withings estimate.

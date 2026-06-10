@@ -1,0 +1,74 @@
+---
+title: Data model
+description: An overview of the main Prisma models — Measurement, Medication and the dose ledger, the rollup tier, sessions and tokens, and the encrypted columns.
+sidebar:
+  order: 4
+---
+
+The schema is defined in `prisma/schema.prisma` (61 models). It uses `cuid()`
+primary keys, `snake_case` columns via `@map`, and keeps encrypted columns under
+`*Encrypted` suffixes (plus a few exceptions noted below). This page sketches the
+models you are most likely to touch; the schema file is the full reference.
+
+## Measurement
+
+The single table every vital flows into, regardless of source.
+
+- **Identity:** `(userId, type, measuredAt, source)` is the natural key the
+  upsert path matches on, so a re-sync updates in place rather than duplicating.
+- **`type`** is a `MeasurementType` enum (weight, blood pressure systolic /
+  diastolic, pulse, glucose, body composition family, SpO₂, sleep stage, steps,
+  HRV, and more).
+- **`source`** tags provenance (`MANUAL`, `WITHINGS`, `WHOOP`, `APPLE_HEALTH`,
+  `IMPORT`, …) and drives [source priority](/guides/source-priority/).
+- **`externalId`** carries the upstream identity. A `stats:<HKType>:<date>`
+  prefix marks a cumulative daily aggregate that re-imports overwrite; other
+  prefixes are first-write-wins. Tombstones support offline sync.
+
+## Rollup tier
+
+`MeasurementRollup` pre-aggregates measurements at **DAY / WEEK / MONTH / YEAR**
+granularity. The dashboard and analytics read the rollup first and fall back to
+live SQL only on a coverage miss, which keeps paint time sub-second on years of
+history. A boot-time `rollup-full-backfill` queue handles new accounts. See the
+main repo's `src/lib/rollups/` for the read-swap pattern.
+
+## Medication and the dose ledger
+
+- **`Medication`** holds the schedule: `scheduleType` (`SCHEDULED` / `PRN` /
+  `CYCLIC`), an `rrule` string, `intervalWeeks`, cyclic on/off counts, dose
+  times and windows, route, and supply.
+- The **dose ledger** is the per-slot intake record. Every expected dose becomes
+  a slot with a resolved status — taken on time, taken late, skipped, missed —
+  and the [compliance rate](/explanation/medication-compliance/) is computed
+  from the same slots, never from a parallel counter.
+
+## Auth: sessions, refresh tokens, API tokens
+
+- **`Session`** — Postgres-backed browser sessions, sliding 30-day expiry.
+- **Refresh tokens** — per-device, one-time-use rotation with reuse-detection
+  that revokes the device's token family.
+- **API tokens** — Bearer tokens stored as HMAC-SHA256 hashes (never plaintext),
+  scoped (e.g. `fhir:read`). The mint endpoint hardcodes a narrow scope.
+
+## Cycle
+
+A set of models for menstrual tracking (day logs, periods, cycles, profile,
+predictions). Cycle data carries its own threat model in the main repo.
+
+## Encrypted columns
+
+Sensitive at-rest data is AES-256-GCM-encrypted under the versioned key map.
+Most encrypted columns use a `*Encrypted` suffix — provider OAuth tokens, AI
+keys, notification channel configs, VAPID secrets. Two exceptions worth knowing:
+`CoachMessage.encryptedContent` is a `Bytes` column, and
+`IntegrationStatus.lastError` is encrypted because upstream errors can echo
+secrets. The [rotation script](/guides/encryption-key-rotation/) covers all of
+them. Search `prisma/schema.prisma` for `Encrypted` to enumerate.
+
+## Observability
+
+Background jobs run on `pg-boss` tables in the same database (cron + retry
+semantics live in Postgres, not a separate broker). The `push_attempts` table
+holds 90 days of notification delivery attempts; `worker_status` reports worker
+liveness; the audit log records sensitive operations with IP addresses.

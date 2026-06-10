@@ -1,0 +1,67 @@
+---
+title: Connect the iOS app
+description: Join the TestFlight public beta and point the native SwiftUI client at your self-hosted HealthLog instance for live HealthKit sync.
+sidebar:
+  order: 4
+---
+
+The native SwiftUI client is in public beta via
+[TestFlight](https://testflight.apple.com/join/bucuTBpa). It is built on the
+same API as the web client and speaks against the OpenAPI contract locked in
+[`docs/api/openapi.yaml`](/reference/api-overview/). The code lives in a separate
+repository, [MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
+
+## What the phone unlocks
+
+- **Live HealthKit two-way sync.** Weight, blood pressure, pulse, sleep, steps,
+  and the rest stream from HealthKit into HealthLog as they are recorded —
+  no `export.zip` round-trip.
+- **Reminders with action buttons.** Medication reminders arrive over APNs with
+  taken / skip / snooze buttons that work without opening the app.
+- **An on-device coach** on Apple-Intelligence-capable iPhones.
+
+## Connect
+
+1. Install the beta from [TestFlight](https://testflight.apple.com/join/bucuTBpa).
+2. On first launch, enter your instance's public URL
+   (`https://your-instance.example.com`). The app needs a reachable HTTPS origin
+   — set the [public hostname](/getting-started/first-steps/#point-the-instance-at-a-public-hostname)
+   and a [reverse proxy](/guides/reverse-proxy/) first.
+3. Sign in with your existing account. The app obtains a short-lived access
+   token plus a refresh token; refresh-token rotation is per-device, and
+   reuse-detection revokes the family scoped to that device if a stolen token is
+   replayed.
+4. Grant HealthKit read/write access for the metric types you want synced.
+
+## Push notifications (APNs)
+
+For medication reminders to arrive on the phone, the instance needs APNs
+configured. This is an all-or-none set of environment variables:
+
+| Variable | Notes |
+| --- | --- |
+| `APNS_KEY_ID` | 10-char Key ID from Apple Developer |
+| `APNS_TEAM_ID` | 10-char Team ID |
+| `APNS_BUNDLE_ID` | iOS app bundle id |
+| `APNS_KEY` *or* `APNS_KEY_FILE` | The `.p8` auth key contents, or a path to it |
+
+:::caution[`.p8` key gotchas]
+Paste the `.p8` body through `APNS_KEY_B64` (base64) rather than a raw multiline
+env var — `env_file` mangling of literal newlines is the most common failure.
+The key must be scoped **Sandbox & Production** in the Apple Developer Portal; a
+Sandbox-only key fails with `BadEnvironmentKeyInToken` on production builds.
+:::
+
+If a client manages its own local reminders, it can set `clientManaged: true` on
+`PATCH /api/auth/me/notification-prefs` to suppress server-side
+`MEDICATION_REMINDER` APNs. The cron then skips dose-due pushes for that user and
+emits a `medication_reminder.suppressed_client_managed` annotation per skip.
+
+## Diagnostics
+
+The admin diagnostic endpoint at `/api/admin/notifications/diagnostic` surfaces
+masked device tokens, per-channel state, and the last 20 delivery attempts for
+the calling user — the quickest way to confirm a token registered and a push
+left the building. The `push_attempts` table holds the last 90 days of APNs /
+Web-Push / Telegram / ntfy attempts (channel, event type, result, reason,
+timestamp).

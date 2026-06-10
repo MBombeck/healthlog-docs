@@ -1,0 +1,125 @@
+---
+title: Connect Withings
+description: Link a Withings account over OAuth2 with a push webhook for near-real-time sync of weight, blood pressure, sleep, SpO₂, and activity.
+sidebar:
+  order: 1
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+HealthLog connects to Withings via OAuth2 plus a push webhook for
+near-real-time sync. Once linked, every Body+ scale weighing, BPM
+blood-pressure reading, ScanWatch sleep stage, and activity sample lands in
+HealthLog within seconds — no polling, no third-party relay.
+
+## What gets synced
+
+Withings metric types map into `Measurement` rows tagged `source = WITHINGS`:
+
+| Withings meastype | HealthLog metric |
+| --- | --- |
+| 1 | `WEIGHT` |
+| 5 | `FAT_FREE_MASS` |
+| 9 | `BLOOD_PRESSURE_DIA` |
+| 10 | `BLOOD_PRESSURE_SYS` |
+| 11 | `PULSE` |
+| 54, 35 | `OXYGEN_SATURATION` (ScanWatch / pulse-ox) |
+
+Plus the body-composition family (fat ratio, muscle mass, bone mass, hydration),
+sleep stages, and heart-rate variability via the heart-list endpoint. Activity
+data (steps, active energy, distance, floors) arrives through the
+`user.activity` scope.
+
+## Set it up
+
+<Steps>
+
+1. **Register a Withings developer app.** Sign in at
+   [developer.withings.com](https://developer.withings.com/) and create a new
+   **public-API application** (the free Public tier is enough).
+
+   - **Callback URL:** `https://your-instance.example.com/api/withings/callback`.
+     Withings allows multiple callbacks — add one per environment.
+   - **Scopes:** request `user.metrics` **and** `user.activity`. The first
+     covers weight / BP / heart-list / sleep / SpO₂ / body comp; the second is
+     the steps / energy / distance / floors stream.
+
+   Withings issues a **Client ID** and **Client Secret** — keep the secret out
+   of any log; it grants read access to every linked account's full history.
+
+2. **Wire the credentials into `.env`.**
+
+   ```env
+   WITHINGS_CLIENT_ID="your-client-id"
+   WITHINGS_CLIENT_SECRET="your-client-secret"
+   WITHINGS_REDIRECT_URI="https://your-instance.example.com/api/withings/callback"
+   WITHINGS_WEBHOOK_SECRET="$(openssl rand -hex 32)"
+   ```
+
+   `WITHINGS_WEBHOOK_SECRET` is the path-segment token the webhook handler
+   validates against — a 64-char hex value keeps it indistinguishable from
+   random. Restart the `app` container after saving. Add these to the compose
+   `environment:` whitelist if they are not already there.
+
+   A per-user override is also possible: the Settings UI accepts a
+   client-ID/secret pair scoped to one user, for a shared instance where every
+   user brings their own Withings app.
+
+3. **Link from the Settings page.** Sign in as the target user, open
+   `/settings/integrations/withings`, and click **Connect Withings**. The flow
+   redirects to Withings, exchanges the returned code for an access + refresh
+   token (stored AES-256-GCM-encrypted), subscribes the webhook URL, and
+   triggers an initial sync of the past 30 days. The page then shows
+   **Connected** with the last-sync timestamp.
+
+</Steps>
+
+## The webhook URL
+
+When HealthLog subscribes a newly-linked account, it hands Withings a callback:
+
+```
+https://your-instance.example.com/api/withings/webhook/<WITHINGS_WEBHOOK_SECRET>
+```
+
+Withings cannot add HTTP headers or sign webhook bodies, so the callback URL
+itself is the only authenticity surface. The secret lives in a **path segment**
+(not a query parameter) so it stays out of the `query_string` column most
+reverse proxies log. You do not register this URL in the developer portal —
+HealthLog subscribes it per-user during the OAuth callback. See
+[Webhooks](/reference/webhooks/) for the verification pattern.
+
+## Source-priority interaction
+
+If you run Withings alongside an Apple Health import, the
+[source ladder](/guides/source-priority/) decides what shows. Withings outranks
+Apple Health for **point** measurements where the Withings device is the primary
+sensor (weight, BP, SpO₂, body fat); Apple Health outranks Withings for
+**cumulative** metrics (steps, energy, distance, sleep) because HealthKit folds
+multiple sensors into one canonical daily stream. Losing rows stay in the
+database as an audit trail. Override per user under the Sources section of
+`/settings/thresholds`.
+
+## Troubleshooting
+
+- **`Withings credentials not configured`** — `WITHINGS_CLIENT_ID` or
+  `WITHINGS_CLIENT_SECRET` is missing from the running container. Check
+  `docker compose exec app env | grep WITHINGS`.
+- **`Callback URI mismatch`** — the redirect URL must exactly match an entry in
+  the developer-portal app's callback list, including the `https://` scheme.
+- **Webhook stopped firing.** Subscriptions can lapse after a token revoke.
+  Disconnect and reconnect from the settings page to re-run `Notify.subscribe()`
+  with a fresh URL. Test the inbound path:
+  `curl -I https://your-instance.example.com/api/withings/webhook/<secret>` — a
+  `200` means the secret matches, a `401` means the running container's secret
+  no longer matches the URL Withings holds.
+- **"Reauthorisation required".** Withings revokes refresh tokens on password
+  change or extended inactivity. Click **Connect Withings** again; the next sync
+  catches up the last 30 days.
+
+## Admin probe
+
+`POST /api/integrations/withings/test` (admin-only) runs a read-only round-trip
+against the user's stored credentials and returns the latency. A green test plus
+a stale `lastSyncedAt` usually means the webhook URL Withings holds is out of
+sync — re-subscribe.

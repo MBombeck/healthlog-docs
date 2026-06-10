@@ -1,0 +1,133 @@
+---
+title: API overview
+description: Authentication (session vs Bearer + scopes), the response envelope, idempotency, rate limits, and error codes for the HealthLog REST API.
+sidebar:
+  order: 1
+---
+
+HealthLog exposes a REST API over JSON. The machine-readable **OpenAPI 3.1**
+contract lives at
+[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml)
+in the main repository — it is the source of truth for any client codegen
+(Swift, Kotlin, OpenAPI Generator) and the contract the native iOS client speaks
+against. The spec currently covers the API at version **1.16.0**. CI fails the
+build on drift between the Zod schemas and the YAML, so the contract stays
+honest.
+
+This page documents the cross-cutting conventions. For the endpoint groups, see
+[Endpoints](/reference/api-endpoints/).
+
+## Base URL
+
+```
+https://your-instance.example.com/api
+```
+
+## Authentication
+
+Two methods, with a hard structural boundary between them:
+
+| Method | Used by | Carried as |
+| --- | --- | --- |
+| **Session cookie** | Browser clients | `healthlog_session` cookie (automatic) |
+| **Bearer token** | External / native API clients | `Authorization: Bearer hlk_...` |
+
+- **Session cookies** are Postgres-backed with a sliding 30-day expiry,
+  HttpOnly + SameSite. The cookie path can elevate to admin via
+  `requireAdmin()`.
+- **Bearer tokens** are HMAC-SHA256-hashed under `API_TOKEN_HMAC_KEY` before
+  storage — there is no plaintext path, and the raw `hlk_<hex>` value is shown
+  exactly once at creation. Tokens are scoped (for example `fhir:read` gates the
+  [FHIR API](/reference/fhir-api/)); the user-facing mint endpoint hardcodes a
+  narrow scope so it can never produce a wildcard token.
+
+:::caution[Admin is cookie-only]
+`requireAdmin()` is a cookie-only boundary. A Bearer token — even with `["*"]`
+scope — cannot reach any `/api/admin/*` endpoint. This is structural, not a
+runtime check future code can soften.
+:::
+
+`userId` is never a request-body field. It is always narrowed from the session
+or the Bearer token and feeds the Prisma `where` clause directly.
+
+## Response envelope
+
+Every response is `{ data, error }`, with an optional `meta`:
+
+```json
+{ "data": { "...": "..." }, "error": null }
+```
+
+On error:
+
+```json
+{ "data": null, "error": "Validation failed: password must be at least 12 characters" }
+```
+
+Paginated reads add `meta`:
+
+```json
+{ "data": [], "error": null, "meta": { "total": 142, "limit": 20, "offset": 0 } }
+```
+
+Validation failures (422) return all Zod issues in a multi-issue envelope,
+sanitised against the echoed input.
+
+## Idempotency
+
+Write endpoints (`POST` / `PUT` / `PATCH` / `DELETE`) honour an
+`Idempotency-Key: <uuid>` header. The first request runs and the response is
+cached; a replay with the same key returns the cached response instead of
+re-running the mutation.
+
+- Keys are **user-scoped** — a composite unique index by
+  `userId_key_method_path` means a client cannot replay another user's key.
+- The cache refuses to persist a response body containing secret-shaped patterns
+  (`hlk_`, `hlr_`, `sk-`) even if a future caller wraps an auth endpoint by
+  mistake.
+- A second request arriving while the first is still in flight gets
+  `A request with this Idempotency-Key is already in progress`.
+
+This is what makes the native client's retries safe over flaky mobile networks.
+
+## Rate limits
+
+Protected endpoints return rate-limit headers on every response:
+
+| Header | Meaning |
+| --- | --- |
+| `X-RateLimit-Remaining` | Requests left in the current window |
+| `X-RateLimit-Reset` | ISO-8601 timestamp when the window resets |
+
+Over the limit returns `429`. Limits live in Postgres (a single atomic SQL
+upsert), so multi-instance correctness is structural. The bucket key is
+`<surface>:<identifier>` — `userId` for authenticated routes, the trusted-proxy
+IP for anonymous ones (see [`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).
+
+## HTTP status codes
+
+| Code | Meaning |
+| --- | --- |
+| `200` | Success |
+| `201` | Resource created |
+| `202` | Accepted (async job queued) |
+| `204` | Success, no body |
+| `400` | Bad request |
+| `401` | Not authenticated |
+| `403` | Forbidden |
+| `404` | Not found |
+| `413` | Payload too large (per-route body cap) |
+| `422` | Validation error (multi-issue Zod envelope) |
+| `429` | Rate limit exceeded |
+| `500` | Internal error |
+
+## Example
+
+```bash
+curl -s https://your-instance.example.com/api/auth/me \
+  -H "Authorization: Bearer hlk_..."
+```
+
+```json
+{ "data": { "id": "clx...", "username": "user", "role": "USER" }, "error": null }
+```

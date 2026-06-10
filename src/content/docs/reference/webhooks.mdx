@@ -1,0 +1,81 @@
+---
+title: Webhooks
+description: The inbound webhook surfaces — Withings, WHOOP, Telegram, deploy-result — and the shared-secret + timing-safe + rate-limit verification pattern they all follow.
+sidebar:
+  order: 6
+---
+
+HealthLog accepts inbound webhooks from a few sources. They all authenticate by
+**header or path-segment secret**, not by cookie, and they all follow the same
+verification pattern.
+
+## The shared pattern
+
+Every webhook route enforces, in this order:
+
+1. **Per-source rate limit** — applied *before* secret verification, so a flood
+   of bad-secret requests cannot exhaust resources.
+2. **Shared-secret comparison** with `timingSafeEqual` — constant-time, so the
+   secret cannot be discovered by timing.
+3. For sources that sign bodies (WHOOP), an **HMAC body-signature check** with a
+   freshness window.
+
+There are **no CORS headers** anywhere. Webhook routes accept cross-origin POSTs,
+but they authenticate by header/path secret, not by the browser session — so a
+cross-origin POST cannot ride an authenticated cookie.
+
+## Withings
+
+```
+POST /api/withings/webhook/<WITHINGS_WEBHOOK_SECRET>
+```
+
+Withings cannot add HTTP headers or sign bodies, so the **path-segment secret**
+is the only authenticity surface. It lives in a path segment (not a query
+string) so it stays out of reverse-proxy access logs; the secret is also scrubbed
+from `http.path` / `http.route` in HealthLog's own wide-event logs via a
+redaction registry. HealthLog subscribes this URL per user during the OAuth
+callback — you do not register it in the developer portal. See
+[Connect Withings](/guides/connect-withings/).
+
+## WHOOP
+
+```
+POST /api/whoop/webhook/<WHOOP_WEBHOOK_SECRET>
+```
+
+WHOOP both carries the path-segment secret **and** signs each body
+(`X-WHOOP-Signature` + `X-WHOOP-Signature-Timestamp`, HMAC-SHA256). The handler
+rejects deliveries older than five minutes and validates the signature before
+processing. The signing key on WHOOP's side must equal `WHOOP_WEBHOOK_SECRET`.
+See [Connect WHOOP](/guides/connect-whoop/).
+
+## Telegram
+
+```
+POST /api/telegram/webhook
+```
+
+Carries the bot reminder inline-button callbacks (taken / skip / snooze). Secret-
+authenticated; the bot token and secret are configured in the admin panel and
+stored encrypted. See [Reminder channels](/guides/reminder-channels/).
+
+## Deploy-result webhook
+
+```
+POST /api/internal/deploy-webhook
+```
+
+For a CI/CD dashboard (e.g. Coolify) to report deploy success or failure back to
+the instance. Authenticated by the `X-Deploy-Webhook-Secret` header, compared
+timing-safe against `DEPLOY_WEBHOOK_SECRET`. `DEPLOY_LOGS_URL` is linked in the
+resulting failure notification. See
+[Updates and deploy](/guides/updates-and-deploy/).
+
+## What does not exist
+
+There is **no outbound** user-defined webhook system, and there is no
+`Access-Control-Allow-Origin` header on any route. Outbound egress (provider
+calls, notification delivery) goes through a single guarded `safeFetch` wrapper
+with `redirect: "manual"` and a request timeout — see
+[Privacy architecture](/explanation/privacy-architecture/).

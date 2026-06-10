@@ -1,0 +1,64 @@
+---
+title: The timezone model
+description: How HealthLog stores instants in UTC, renders in your timezone, and computes day boundaries for daily aggregates and compliance windows.
+sidebar:
+  order: 8
+---
+
+Health data is full of "what day did this happen on" questions, and those answers
+depend on a timezone. HealthLog separates **storage** (always UTC) from
+**interpretation** (your timezone), so the same instant is unambiguous in the
+database and correct on your screen.
+
+## Store UTC, render local
+
+Every timestamp — `measuredAt`, an intake's `takenAt`, a session expiry — is
+stored as a UTC instant. UTC has no daylight-saving discontinuities and no
+ambiguity, so it is the only safe storage representation. The display layer
+converts to your configured timezone at render time via the formatter layer
+(`useFormatters()`), which also handles locale-aware numbers, dates, and units.
+
+A **time-format preference** sits on top of this: automatic (follows the
+language), 24-hour, or 12-hour, set once in the profile and applied to every clock
+the app renders. It changes how a time is *shown*, never how it is *stored*.
+
+## Day boundaries are where it gets subtle
+
+A UTC instant is unambiguous, but "which day" it belongs to is not — it depends on
+the observer's timezone. Two places care deeply:
+
+### Cumulative daily aggregates
+
+When an Apple Health import collapses steps into one row per day
+(`stats:<HKType>:<YYYY-MM-DD>`), the day boundary respects your timezone
+preference. A step taken at 00:30 local time belongs to the new local day, not to
+the previous UTC day. The import worker defaults to `Europe/Berlin` when no
+preference is set. Get this wrong and a midnight workout lands on the wrong day's
+total.
+
+### Compliance windows
+
+A [dose window](/explanation/medication-compliance/) like `07:00–09:00` is a
+*local* wall-clock band. Whether a dose was taken "on time" is evaluated in your
+timezone, so the answer does not shift when you cross daylight-saving boundaries
+or travel. A weekly dose's multi-day catch-up reach is likewise computed in local
+days.
+
+## Why a stored preference, not the browser's guess
+
+HealthLog uses your **stored** timezone preference rather than inferring from the
+browser on every request. Background jobs — the nightly briefing, the reminder
+cron, the daily-mean consolidation — have no browser and no request context, so
+they need a durable per-user timezone to compute "today" correctly. A stored
+preference gives every surface, foreground and background, the same answer.
+
+## The practical guarantee
+
+Because storage is UTC and interpretation is an explicit per-user timezone:
+
+- The same reading shows the same wall-clock time on your phone and your laptop.
+- A daily total counts the readings that fall on that local day, not a UTC day.
+- "On time" for a dose means on time where you are, consistently, across DST and
+  travel.
+- Exports and the FHIR API carry the UTC instant, so a downstream system applies
+  its own interpretation without inheriting HealthLog's display choice.

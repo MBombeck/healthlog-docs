@@ -1,0 +1,102 @@
+---
+title: Configure AI providers
+description: Pick OpenAI, Anthropic, ChatGPT via device-OAuth, or a local OpenAI-compatible endpoint for the Coach and insights — BYOK or admin-shared.
+sidebar:
+  order: 8
+---
+
+HealthLog's Coach, daily briefing, weekly report, and per-metric insights run
+through a multi-provider AI client. Pick whichever provider you prefer — there is
+no lock-in. The provider is resolved per user via a fallback chain, so a user
+with a Claude key and an Ollama endpoint can fall back from one to the other
+automatically. For what each provider sees, read
+[Privacy architecture](/explanation/privacy-architecture/).
+
+## Provider matrix
+
+| Provider | Key acquisition | Endpoint | Privacy stance |
+| --- | --- | --- | --- |
+| OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `api.openai.com/v1` | Context sent to OpenAI |
+| Anthropic | [console.anthropic.com](https://console.anthropic.com/settings/keys) | Anthropic default | Context sent to Anthropic |
+| Local | none (your endpoint) | OpenAI-compatible URL you control | Stays on your network |
+| ChatGPT OAuth | sign in with your ChatGPT account | Codex-routed | Via your ChatGPT subscription |
+
+## BYOK vs admin-shared
+
+Two key-provisioning modes coexist:
+
+- **BYOK (bring your own key)** — each user pastes a personal API key into
+  `/settings/ai`. It is AES-256-GCM-encrypted at rest and only decrypted
+  in-process. Cost falls to the user.
+- **Admin-shared** — the admin panel accepts a single OpenAI key. Users without
+  their own key fall back to it. It is the last entry in the chain, so it acts
+  as a safety net rather than the default route.
+
+## The fallback chain
+
+`User.aiProviderChain` is a priority-ordered list, tried top to bottom. The
+default:
+
+1. **ChatGPT OAuth** (covered by a ChatGPT subscription; no per-token cost)
+2. **OpenAI** (the user's own key)
+3. **Anthropic** (the user's own key)
+4. **Local** (self-hosted Ollama / LM Studio / vLLM)
+5. **admin-shared OpenAI** (last-ditch)
+
+Entries the user has no credential for are silently skipped. The first to return
+a non-error completion wins; a 422 fires only when every entry errored. Edit the
+order — or disable an entry without removing it — in `/settings/ai`.
+
+## Local endpoints
+
+Any OpenAI-compatible local endpoint plugs in as the **Local** provider. Data
+stays on your network end to end.
+
+- **Ollama** — `ollama pull qwen2.5:14b-instruct && ollama serve`, base URL
+  `http://localhost:11434/v1`. If HealthLog runs in Docker and Ollama on the
+  host, swap `localhost` for `host.docker.internal` (Mac/Windows) or the LAN IP
+  (Linux).
+- **LM Studio** — start the Local Server (usually `http://localhost:1234/v1`).
+- **vLLM** — `vllm serve ... --api-key your-shared-secret`, base URL
+  `http://<host>:8000/v1`.
+
+:::caution[SSRF guard for local endpoints]
+Local endpoints route through the same outbound-URL validation as every other
+fetch. The guard rejects private-IP targets by default. To allow `localhost`,
+RFC1918, and link-local destinations, set `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` in
+the container environment. Leave it unset on internet-facing instances unless
+you specifically run an internal endpoint.
+:::
+
+Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
+16-24 GB (the BYOK sweet spot), 70B+ for 48 GB+.
+
+## ChatGPT OAuth (Codex)
+
+Routes generations via the `chatgpt.com/backend-api/codex/responses` endpoint the
+official Codex CLI uses — no API key, no per-token billing on top of the ChatGPT
+subscription. In `/settings/ai`, set provider to **ChatGPT OAuth**, click
+**Connect ChatGPT**, and complete the device-code flow (open the shown URL,
+enter the short code). Tokens land AES-256-GCM-encrypted; refresh runs
+automatically. The wire protocol is documented in the repo's
+`docs/codex-protocol-spec.md`.
+
+## Caching and budget
+
+Two caches sit in front of every provider call so budgets stay predictable:
+
+1. **24-hour insight cache** keyed by the measurement snapshot hash and prompt
+   version. A read within 24 hours returns the cached envelope instead of
+   re-billing. Force-regen bypasses it.
+2. **Snapshot LRU** caches per `(userId, scope)` for 60 seconds so a rapid-fire
+   conversation reuses upstream context.
+
+`INSIGHTS_RATE_LIMIT_PER_HOUR` (default 10) bounds `POST /api/insights/generate`
+per user per hour.
+
+## Connection test
+
+`POST /api/ai/test` runs a one-shot probe against the resolved provider and
+returns latency plus the model it routed to. The Settings UI surfaces a **Test
+connection** button per provider; a failed probe returns a localisable
+`errorCode`.

@@ -1,0 +1,48 @@
+---
+title: Invite links
+description: Mint expiring invite links with QR codes when you close open registration, and track who joined when.
+sidebar:
+  order: 11
+---
+
+When you close open registration, new users join by **invite link**. Operators
+mint expiring links from a dedicated admin section and keep a redemption history
+of who joined when.
+
+## Close registration
+
+Registration is on by default (the bundled image ships it enabled). The toggle
+lives in `app_settings.singleton.registrationEnabled`; flip it from the admin
+panel. With registration closed, the public sign-up form is gone and the only
+path to an account is a valid invite.
+
+## Mint an invite
+
+In the admin **Invites** section, create a link. Each invite carries:
+
+- a **status** (active / used / expired / revoked),
+- a **uses** count and an optional cap,
+- an **expiry**,
+- a **redemption history** of who redeemed it and when.
+
+The link and its **QR code are shown exactly once at creation** — copy them
+then. The QR encodes the same redemption URL, handy for onboarding a household
+member from their phone.
+
+The API surface is `GET` / `POST /api/admin/invites` and
+`GET` / `DELETE /api/admin/invites/{id}` (cookie-only admin — Bearer tokens
+cannot reach it).
+
+## Revoke
+
+Revoking an invite disables the link and QR immediately but **keeps the
+redemption history**, so you retain the audit trail of who joined through it.
+Already-created accounts are unaffected — revoking an invite does not remove a
+user who already redeemed it.
+
+## Redeem
+
+A new user opens the invite URL (or scans the QR), lands on a scoped
+registration form, and creates their account. The first-user-becomes-admin rule
+only applies to the very first account on the instance; invited users are always
+regular users.

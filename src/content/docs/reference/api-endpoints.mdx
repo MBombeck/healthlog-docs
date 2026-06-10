@@ -1,0 +1,134 @@
+---
+title: API endpoints
+description: The HealthLog REST API by endpoint group — measurements, medications, insights, cycle, integrations, FHIR, admin — with the OpenAPI spec as the full contract.
+sidebar:
+  order: 2
+---
+
+The API has well over 250 routes. Rather than hand-maintain every one here (which
+would drift), this page documents the **groups** with representative endpoints
+and examples. The authoritative, machine-readable contract is
+[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml)
+— generate clients from it, and treat it as canonical when this page and the spec
+disagree.
+
+All mutations require [authentication](/reference/api-overview/); responses use
+the `{ data, error }` envelope.
+
+## Measurements & health data
+
+The core ingest and read surface. Batch endpoints power the native client.
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `GET` | `/api/measurements` | List (paginated, filterable by type / source / date) |
+| `POST` | `/api/measurements` | Create one measurement |
+| `POST` | `/api/measurements/batch` | Bulk ingest; see the overwrite note below |
+| `POST` | `/api/measurements/by-external-ids` | Resolve rows by external id |
+| `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
+| `GET` | `/api/analytics/range` | Trend summaries over a window |
+| `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
+| `GET` | `/api/devices` | Registered device list |
+
+:::note[Batch overwrite contract]
+`POST /api/measurements/batch` recognises `externalId` values starting with
+`stats:` (e.g. `stats:HKQuantityTypeIdentifierStepCount:YYYY-MM-DD`) as
+**overwrites** — a re-post replaces value / unit / measuredAt / deviceType. Every
+other externalId prefix keeps first-write-wins immutability, because each sample
+is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
+`"inserted"` for a fresh row.
+:::
+
+## Medications
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `GET` / `POST` | `/api/medications` | List / create |
+| `GET` / `PUT` / `DELETE` | `/api/medications/{id}` | Read / update / delete |
+| `POST` | `/api/medications/{id}/intake` | Log a take / skip |
+| `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate |
+| `PUT` | `/api/medications/{id}/cadence` | Update the schedule |
+| `POST` | `/api/medications/extract` | Parse a label into a draft |
+| `POST` | `/api/medications/intake/bulk` | Native bulk intake |
+
+The compliance numbers come from the dose ledger — see
+[Medication compliance](/explanation/medication-compliance/).
+
+## Insights & coach
+
+The largest group. Per-metric status endpoints, the comprehensive payload, the
+SSE coach stream, and the self-context surface.
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `GET` | `/api/insights/comprehensive` | Aggregated insight payload |
+| `POST` | `/api/insights/generate` | Regenerate (rate-limited per hour) |
+| `GET` | `/api/insights/blood-pressure-status` | One per metric (pulse, weight, bmi, mood, …) |
+| `GET` | `/api/insights/correlations` · `/derived` | Correlations, derived metrics (with `/batch`) |
+| `GET` | `/api/dashboard/snapshot` | Single-cell above-the-fold hydration |
+| `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback |
+| `GET` / `PUT` | `/api/coach/about-me` | Encrypted self-context + follow-up questions |
+| `PATCH` | `/api/auth/me/coach-prefs` · `/disable-coach` | Coach prefs and kill switch |
+
+## Cycle (menstrual tracking)
+
+A dedicated group (day logs, periods, calendar, predictions, insights, profile,
+prefs). Cycle data has its own threat model; see the main repo's
+`docs/security/cycle-data-threat-model.md`.
+
+## Auth & account
+
+Registration, password and passkey login, refresh-token rotation, profile,
+avatar, source priority, and the Codex device-OAuth flow.
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `POST` | `/api/auth/login` · `/api/auth/passkey/login-verify` | Password / passkey login |
+| `POST` | `/api/auth/refresh` | Per-device refresh-token rotation |
+| `POST` | `/api/auth/codex/device-start` · `/device-poll` · `/disconnect` | ChatGPT device-OAuth |
+| `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs |
+
+## Integrations
+
+OAuth connect / sync / test / resume for Withings, WHOOP, and Google Health/Fitbit,
+plus the inbound webhooks. See the integration guides
+([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
+[Google Health](/guides/connect-google-health/)) and
+[Webhooks](/reference/webhooks/).
+
+## Export, FHIR & sharing
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `POST` | `/api/export/health-record` | PDF + FHIR R4 bundle, selectable |
+| `GET` | `/api/fhir/{Patient,Observation,MedicationStatement,...}` | Read-only FHIR R4, `fhir:read` scope |
+| `GET` / `POST` / `DELETE` | `/api/share-links` · `/{id}` | Scoped clinician share links |
+
+See the [FHIR read API](/reference/fhir-api/).
+
+## Sync (offline clients)
+
+`GET /api/sync/state` and `GET /api/sync/changes` provide a paginated,
+opaque-cursor delta feed with measurement tombstones so native and offline
+clients reconcile incrementally.
+
+## Admin (cookie-only)
+
+User management, invites, notification diagnostics, backup test, audit log,
+shared AI config. Bearer tokens cannot reach any of these.
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `GET` / `POST` / `DELETE` | `/api/admin/invites` · `/{id}` | [Invite links](/guides/invites/) |
+| `GET` | `/api/admin/notifications/diagnostic` | Masked tokens + last 20 attempts |
+| `POST` | `/api/admin/backup/test` | S3 round-trip probe |
+
+## Meta & health
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `GET` | `/api/version` | Public — `version` + `buildSha` + `builtAt`, no auth |
+| `GET` | `/api/meta/capabilities` | Feature/capability flags for clients |
+
+`/api/version` is what you assert against after a deploy — see
+[deploy verification](/guides/updates-and-deploy/#verify-the-served-version).

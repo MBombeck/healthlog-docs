@@ -1,61 +1,72 @@
 ---
-title: Introduction
-description: HealthLog is a self-hosted, mobile-first health tracking PWA for weight, blood pressure, body fat, sleep, activity, mood, medication management, and more.
+title: What HealthLog is
+description: An overview of HealthLog — a self-hosted health tracking PWA with a native iOS client, device sync, multi-provider AI insights, and a clinician-ready export.
 sidebar:
   order: 1
 ---
 
-## What is HealthLog?
+HealthLog is a self-hosted personal health tracker that runs from a single
+`docker compose up`. It covers the metrics most people actually log — weight,
+blood pressure, pulse, body composition, blood glucose, sleep, mood, menstrual
+cycle, and medication compliance — and brings them together in one dashboard
+with clinical reference ranges, overridable with the targets your clinician set.
 
-HealthLog is a **self-hosted, mobile-first Progressive Web App** (PWA) for comprehensive health tracking. It combines manual vital sign logging with automatic device syncing, smart medication management, and AI-powered insights.
+Try the [live demo](https://demo.healthlog.dev) to see what a working install
+looks like, or jump straight to
+[Self-host in 10 minutes](/getting-started/self-host-in-10-minutes/).
 
-All your data stays on your own infrastructure — no cloud lock-in, no subscriptions, full control.
+## What it does
 
-## Key Features
+- **Every vital on one timeline.** Weight, blood pressure, pulse, glucose,
+  body composition, sleep, SpO₂, mood, and cycle — charted with trends, moving
+  averages, and reference ranges from established guidelines.
+- **Your devices, one server.** Withings and WHOOP sync over OAuth2, Google
+  Health/Fitbit connects experimentally, an Apple Health `export.zip` folds your
+  full history in, and the native iOS app streams HealthKit live. A per-metric
+  [source priority](/guides/source-priority/) decides which reading is canonical
+  when wearables overlap.
+- **Medication tracking that tells the truth.** Flexible schedules (weekly
+  injections, weekday-only, intervals, PRN, cyclic), a configurable intake
+  window per dose, and a traceable dose history where every slot reads taken,
+  late, skipped, or missed — the same ledger the
+  [compliance rate](/explanation/medication-compliance/) is computed from.
+- **AI insights you own.** A daily briefing, health scores, correlations, and a
+  conversational coach grounded in your own measurements. Bring your own OpenAI
+  or Anthropic key, or point at a local endpoint so nothing leaves your network.
+- **Clinician-ready output.** A doctor-report PDF generated client-side, a
+  read-only [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited
+  share links you revoke after the visit.
+- **Private by construction.** AES-256-GCM
+  [encryption at rest](/explanation/encryption-at-rest/) with zero-downtime key
+  rotation, passkey login, server-side sessions, strict CSP, and no third-party
+  tracking anywhere.
 
-- **Vital Sign Tracking** — Weight, blood pressure, heart rate, body fat, sleep, activity, mood
-- **Medication Management** — Schedules, dosages, as-needed medications, compliance analytics
-- **Automated Reminders** — Telegram, ntfy, Web Push notifications
-- **Withings Sync** — Automatic import from smart scales and blood pressure monitors
-- **AI Insights** — OpenAI integration (BYOK), trend analysis, personalized recommendations
-- **Medical Reports as PDF** — Exportable reports with charts and historical data
-- **Gamification** — 38 achievements to reward consistent tracking
-- **Passkey Authentication** — Passwordless login via WebAuthn
-- **Dark-only Dracula Theme** — Easy on the eyes at any time of day
+## Who it is for
 
-## Tech Stack
+HealthLog is built for people who want their health data on their own server —
+a NAS, a homelab, or a small VPS — and who do not want to hand it to a vendor
+cloud to read a seven-day weight trend. It does not ship a sensor and does not
+try to be a ring or a strap; instead it aggregates the readings your devices
+already collect, plus the ones they do not hold (cuff blood pressure,
+finger-stick or CGM glucose, medication intake), and keeps them on hardware you
+control. See [how it compares](/features/#how-it-compares).
 
-| Component | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, React Server Components) |
-| Language | TypeScript (strict mode) |
-| Database | PostgreSQL 16 |
-| ORM | Prisma 7 with PrismaPg Adapter |
-| Styling | Tailwind CSS 4 + shadcn/ui (Dracula Theme) |
-| Client State | TanStack Query 5 |
-| Auth | SimpleWebAuthn v13 (Passkeys) + session-based |
-| Background Jobs | pg-boss v12 |
-| Containerization | Docker + Docker Compose |
+## Status
 
-## Requirements
+Active development — new releases land roughly weekly. Behaviour, API shapes,
+and database schema can change between minor versions; migrations are
+forward-only. If you self-host, pin a tag, take a backup before every upgrade,
+and skim the [changelog](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md)
+before pulling `latest`. The current line is v1.16.
 
-To run HealthLog, you need the following:
+## Licence
 
-- **Docker** and **Docker Compose** (v2+)
-- A **reverse proxy with HTTPS** (e.g., Nginx Proxy Manager, Traefik, Caddy)
-- **PostgreSQL 16** (included in the bundled `docker-compose.yml`)
-- A **domain with a valid SSL certificate** (Passkeys require HTTPS)
+HealthLog is licensed under the
+[PolyForm Noncommercial License 1.0.0](/license/): free to use, self-host, and
+modify for noncommercial purposes. Releases up to and including v1.15.18 were
+published under AGPL-3.0 and remain available under that licence.
 
-:::caution
-Passkeys only work over HTTPS. Running HealthLog without a valid SSL certificate is not supported.
+:::caution[Not medical advice]
+HealthLog is a tracking tool, not a medical device, and nothing it shows is
+medical advice. Discuss your own numbers and targets with a qualified clinician.
 :::
-
-## Links
-
-- [HealthLog Website](https://healthlog.dev) — landing page and project overview
-- [Live Demo](https://demo.healthlog.dev) — try HealthLog without installing
-- [GitHub Repository](https://github.com/MBombeck/HealthLog) — source code and issue tracker
-
-## Next Step
-
-Follow the [Installation Guide](/getting-started/installation/) to set up HealthLog on your server.

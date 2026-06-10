@@ -1,0 +1,101 @@
+---
+title: Track medications
+description: Create a medication, pick a cadence (daily, weekly, rolling, interval, cyclic, PRN), set a dose window, and attribute off-schedule intakes to their slot.
+sidebar:
+  order: 6
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+HealthLog's medication tracking is built on a single recurrence engine and a
+**dose ledger**: every expected dose becomes a slot with an explicit status —
+taken on time, taken late, skipped, or missed. The
+[compliance rate](/explanation/medication-compliance/) reads from the same
+ledger, so the percentage can never disagree with the timeline beneath it.
+
+## Create a medication
+
+Open `/medications` and start the wizard. You set the name, an optional dosage
+and unit, a route of administration (oral / injection / other — injection adds a
+site picker), an optional supply count for the runway estimate, and a schedule.
+
+The detail page that follows is a six-tab layout: **Übersicht** (overview),
+**Zeitplan** (schedule), **Erinnerung** (reminders), **Bestand** (supply),
+**Verlauf** (history), and **Erweitert** (advanced). Reminders live with the
+schedule they gate; charts load on demand.
+
+## Pick a cadence
+
+The schedule discriminator (`MedicationScheduleType`) has three top-level
+shapes, and within `SCHEDULED` the recurrence engine supports several cadences:
+
+| Cadence | How to express it | Compliance denominator |
+| --- | --- | --- |
+| **Daily** | `FREQ=DAILY`, one or more dose times | Every day counts |
+| **Weekday-only** | `FREQ=WEEKLY;BYDAY=MO,WE,FR` | Only the named weekdays |
+| **Every N weeks** | `FREQ=WEEKLY;INTERVAL=2;BYDAY=WE` | The recurring week only |
+| **Rolling interval** | An `intervalWeeks` value anchored to the start date | The recurring slots only |
+| **One-time** | A single dose on a date | That one slot |
+| **As-needed (PRN)** | `scheduleType = PRN` | **Excluded** — never projected, never reminded, never counted |
+| **Cyclic** | `scheduleType = CYCLIC`, N weeks on / M weeks off | Only the on-weeks; the inner cadence applies within them |
+
+The engine accepts RFC-5545 `RRULE` strings directly. A once-weekly GLP-1
+injection, a weekday-only oral dose, and a cyclic on/off plan therefore each
+score against their **real** cadence rather than a daily denominator — see
+[why compliance is cadence-aware](/explanation/medication-compliance/).
+
+:::note[GLP-1 example]
+Once-weekly GLP-1 receptor agonists are a common reason to need weekly cadence.
+The drug class works by mimicking the incretin hormone GLP-1 — glucose-dependent
+insulin secretion, suppressed glucagon, slowed gastric emptying
+([overview on Wikipedia](https://en.wikipedia.org/wiki/GLP-1_receptor_agonist)).
+HealthLog only tracks the dose schedule and intake; it gives no dosing advice.
+:::
+
+## Set a dose window
+
+Each dose time can carry either a point time or an explicit range — for example
+`07:00–09:00`. The default is ±1 hour. The window defines the **on-time band**:
+an intake that lands inside it counts as on time rather than late. Edit the
+window on the **Zeitplan** tab or in the wizard.
+
+This matters because the ledger grades each slot against its window. A take a
+few minutes outside the band reads as late, not missed; a weekly dose taken
+inside its multi-day catch-up window reads as late, not missed.
+
+## Log an intake
+
+Mark a dose taken, skipped, or snoozed from the card, the detail page, or a
+reminder action button. The write path attributes the intake to the slot whose
+window it falls in. A take outside every window records as **ad-hoc** rather than
+snapping to a far-off slot. Marking taken or skipped recomputes the history and
+rate immediately.
+
+Editing a dose's time re-attributes it and is guarded: the picker caps at now,
+rejects timestamps before the medication existed, and warns when the new time
+sits more than 48 hours from the scheduled slot — so a day/month typo cannot
+silently corrupt the today view.
+
+## Attribute an off-schedule dose to its slot
+
+When an intake lands off schedule, the **Verlauf** (history) row shows when the
+dose had been due and offers to **attribute** the intake to that slot. The
+attributed dose is visibly badged, always counted as **taken late** (never
+washed to on-time), and reversible at any time.
+
+This is the manual counterpart to the automatic window matching: use it when you
+logged a dose generically and want it bound to a specific expected slot after the
+fact.
+
+## Reminders
+
+Set reminder times and channels on the **Erinnerung** tab. The dispatcher fans
+each reminder out to whichever channels the user enabled, with late/missed
+escalation. See [Reminder channels](/guides/reminder-channels/) for the channel
+cascade and the per-channel setup.
+
+## Supply and side effects
+
+The **Bestand** tab tracks a supply count and surfaces a runway ("X days left").
+For injections, a site-rotation picker and structured side-effect tracking live
+under the advanced sections.
