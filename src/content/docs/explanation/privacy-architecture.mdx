@@ -1,0 +1,91 @@
+---
+title: Privacy architecture
+description: What leaves your HealthLog instance and when — BYOK AI, guarded egress, no telemetry, no CORS, and the same-origin-by-construction design.
+sidebar:
+  order: 5
+---
+
+HealthLog is built so that, by default, nothing about your health leaves the
+server you run. This page is the honest accounting of every case where data
+*does* cross the boundary, and the controls that keep it minimal.
+
+## The baseline: nothing leaves
+
+- **No telemetry.** HealthLog phones no home. There is no usage analytics beacon,
+  no crash-reporting-by-default, no "anonymous statistics."
+- **No third-party tracking.** No fonts-from-a-CDN, no tag managers, no embedded
+  trackers. The strict Content-Security-Policy (per-request nonce, surgical
+  `connect-src`) makes this enforceable, not just promised.
+- **Same-origin by construction.** There are **no CORS headers** anywhere except
+  the documented webhook routes, and those authenticate by header secret, not by
+  cookie. Adding `Access-Control-Allow-Origin: *` would silently open every
+  authenticated endpoint to cross-origin POST — so it is never added.
+
+## Where data does leave, and why
+
+### AI providers (only when you opt in)
+
+The Coach and insights call an AI provider **only if you configure one**. No model
+call is made without a key you supply. Your choice determines what leaves:
+
+- **OpenAI / Anthropic** see the prompt plus a structured snapshot HealthLog
+  assembles per generation (recent metrics, target ranges, coach history). No raw
+  row export leaves, but the values are visible to the provider for the request's
+  duration, under their retention policy.
+- **Local endpoint** (Ollama / LM Studio / vLLM) keeps everything on your network.
+  With Ollama on the same host, nothing leaves the host at all. The Coach drawer
+  shows a "Local" badge when generation resolved locally, so you can confirm at a
+  glance.
+- **ChatGPT OAuth** routes via OpenAI's Codex endpoint — same data caveat as
+  OpenAI, billed against your ChatGPT subscription instead of API tokens.
+
+This is the BYOK ("bring your own key") principle: the privacy/convenience
+trade-off is yours to make per user, and the local option removes the trade-off
+entirely. See [Configure AI providers](/guides/ai-providers/).
+
+### Device integrations (only what you connect)
+
+When you link Withings, WHOOP, or Google Health, HealthLog calls those vendors'
+APIs to pull *your* data inbound. That is an inbound flow you initiated; the only
+outbound content is the OAuth handshake and sync requests scoped to your account.
+
+### Notifications (only to channels you enable)
+
+A medication reminder leaves the instance only through the channels you turned on
+— APNs to Apple, Telegram to Telegram, ntfy to your ntfy server, Web Push to the
+browser push service. Each delivery is logged in `push_attempts` for 90 days.
+
+## Guarded egress
+
+Every outbound `fetch` from server code goes through a single `safeFetch` wrapper
+with `redirect: "manual"` and a request timeout by default. For any
+operator- or user-supplied host (a local AI endpoint, a notification URL), it can
+pin a connect-time public-host check to defeat DNS-rebinding and
+SSRF-via-redirect. An in-repo lint rule bans raw `fetch(` in server code outside
+the wrapper, so a new egress path cannot skip the guard by accident.
+
+User-supplied URLs are also validated at input time against an `isPublicUrl`
+floor that rejects every private-IP notation class (octal/hex/decimal IPv4,
+IPv4-mapped IPv6, ULA, CGNAT, link-local, loopback, metadata addresses).
+
+## Redaction at the boundary
+
+Secrets are redacted **centrally at the egress boundary** — in the wide-event log
+builder and the error forwarder — not at each call site. Path-segment webhook
+secrets are scrubbed from logged paths; secret-shaped fields are denylisted in
+one place. This means a new handler cannot forget to redact; the boundary does it.
+
+## The honest summary
+
+| Flow | Leaves the instance? | Control |
+| --- | --- | --- |
+| Viewing your own data | No | Stays in your Postgres |
+| AI insights | Only if you set a provider; never with a local one | BYOK, per user |
+| Device sync | Inbound pull you initiated | OAuth, scoped to your account |
+| Notifications | Only to channels you enable | Per-channel opt-in |
+| Telemetry / analytics | No | None exists |
+| Clinician share | Only via a link you create and revoke | Scoped, time-limited |
+
+If you run a local AI endpoint and no device integrations, HealthLog is a closed
+loop: your data is read and written on hardware you control and nothing about it
+crosses the network.

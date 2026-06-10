@@ -1,0 +1,77 @@
+---
+title: Reminder channels
+description: Configure APNs, Telegram, ntfy, and Web Push for medication reminders and proactive nudges, and understand the dispatcher cascade.
+sidebar:
+  order: 7
+---
+
+HealthLog fans medication reminders and proactive coach nudges out to whichever
+channels a user has enabled. One dispatcher
+(`src/lib/notifications/dispatcher.ts`) drives the cascade, with a hard-reject
+classification and a `push_attempts` ledger that retains 90 days of delivery
+attempts per channel.
+
+## The cascade
+
+The dispatcher tries channels in this order: **APNs → Telegram → ntfy → Web
+Push**. Each user's preferences are a per-channel × per-event matrix
+(`GET` / `PUT /api/notifications/preferences`), so a user can route medication
+reminders to Telegram while keeping the daily briefing on Web Push only.
+
+Every attempt writes a `push_attempts` row (channel, event type, result, reason,
+timestamp). A hard reject — an unregistered APNs token, a revoked Telegram chat —
+is classified so the dispatcher stops retrying a dead endpoint instead of
+hammering it.
+
+## Apple Push (APNs)
+
+For the [native iOS app](/getting-started/connect-ios-app/). Reminders arrive
+with taken / skip / snooze action buttons that work without opening the app.
+APNs needs the all-or-none env set (`APNS_KEY_ID`, `APNS_TEAM_ID`,
+`APNS_BUNDLE_ID`, and `APNS_KEY` or `APNS_KEY_FILE`). See the
+[iOS connect guide](/getting-started/connect-ios-app/#push-notifications-apns)
+for the `.p8` gotchas.
+
+## Telegram
+
+Configured in the **admin panel** (the bot token is stored encrypted in the
+database, not in `.env`). Telegram reminders carry inline action buttons; the
+button callback lands on `POST /api/telegram/webhook`, which is
+secret-authenticated. A user links their chat from notification settings.
+
+## ntfy
+
+Self-hostable push. Configured per user in notification settings — point it at a
+public `ntfy.sh` topic or your own ntfy server. Good for a no-account,
+no-vendor push channel.
+
+## Web Push (VAPID)
+
+Browser-native push for the PWA. The VAPID key pair is generated and stored
+(encrypted) in the admin panel. A browser registers via
+`POST /api/notifications/web-push` after the user grants notification
+permission; `GET /api/notifications/vapid` hands the client the public key. Test
+a registration with `POST /api/notifications/web-push/test`.
+
+## Proactive coach nudges
+
+Separate from dose reminders, a nightly pass can send at most one gentle coach
+nudge per week through the same channels — watching four signals (low 7-day
+adherence, blood pressure above its target band, a falling recovery trend, a
+stale self-context). It has its own opt-out and is off whenever the coach is
+disabled. See [Health scores](/explanation/health-scores/) for what the signals
+mean.
+
+## Client-managed reminders
+
+A client that manages its own local reminders can suppress server-side
+`MEDICATION_REMINDER` APNs by setting `clientManaged: true` on
+`PATCH /api/auth/me/notification-prefs`. The cron then skips dose-due pushes for
+that user and annotates each skip
+(`medication_reminder.suppressed_client_managed`).
+
+## Diagnostics
+
+`/api/admin/notifications/diagnostic` surfaces masked device tokens, per-channel
+state, and the last 20 attempts for the calling user — the fastest way to see
+whether a token registered and a push actually left.

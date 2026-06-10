@@ -1,0 +1,67 @@
+---
+title: FHIR read API
+description: A read-only HL7 FHIR R4 REST API gated behind the fhir:read token scope, plus a selectable PDF + FHIR health-record export.
+sidebar:
+  order: 5
+---
+
+HealthLog exposes a read-only **HL7 FHIR R4** REST API so a clinician system can
+pull your record in a standard shape. It is gated behind a dedicated `fhir:read`
+[Bearer token scope](/reference/api-overview/#authentication).
+
+## What FHIR is
+
+FHIR (Fast Healthcare Interoperability Resources) is HL7's healthcare-data
+interoperability standard. Release 4 (**R4**) is the principal production and
+regulatory reference version. It models health data as modular **resources** —
+`Patient`, `Observation`, `MedicationStatement`, and so on — each addressable
+over a RESTful HTTP endpoint, exchanged as JSON. The pull-based, resource-oriented
+design is what lets a third-party EHR request exactly the slice it needs. For
+background, see the [FHIR R4 specification](https://hl7.org/fhir/R4/).
+
+HealthLog implements the read side of this contract for the resources it can
+populate from your own data.
+
+## Endpoints
+
+All require a Bearer token with the `fhir:read` scope.
+
+| Method | Endpoint | Returns |
+| --- | --- | --- |
+| `GET` | `/api/fhir/metadata` | FHIR `CapabilityStatement` |
+| `GET` | `/api/fhir/Patient` | The token user's `Patient` resource |
+| `GET` | `/api/fhir/Observation` | Vitals + labs as LOINC-coded observations |
+| `GET` | `/api/fhir/MedicationStatement` | The medication regimen |
+| `GET` | `/api/fhir/MedicationAdministration` | Logged intake events |
+| `GET` | `/api/fhir/$everything` | A `Bundle` of every resource above |
+
+`MedicationAdministration` rows in `$everything` are bounded by
+`FHIR_MAX_MEDICATION_ADMINISTRATIONS` (default 5000) as a coarse ceiling on the
+serialised Bundle size.
+
+## Health-record export
+
+`POST /api/export/health-record` produces a **selectable** export: an enriched
+clinical PDF, a machine-readable FHIR R4 document Bundle (LOINC-coded
+observations, a BP panel, medication statements, a diagnostic report), or both
+packaged as one zip. The selection chooses date range and per-domain sections.
+Both formats read the same aggregator, so they describe identical numbers.
+
+Optional patient identity (name, insurer, insurance number) on the account feeds
+the report cover and the FHIR `Patient`. An optional AI summary is an explicit
+opt-in section, marked as not clinically validated.
+
+## Shareable clinician record
+
+Separately from the FHIR API, a **share link** gives a clinician a scoped,
+time-limited, read-only `/c/<token>` view that you revoke after the visit
+(`GET` / `POST` / `DELETE /api/share-links`). The two are not wired together — a
+share link does **not** expose the FHIR API
+(`capabilities.share.fhirApi=false`). Each stands on its own.
+
+:::caution[Read-only and not a clinical record system]
+The FHIR API and the export describe your tracked data in a standard shape. They
+are for sharing with a clinician, not for use as a system of record or for any
+automated clinical decision. The optional AI summary is explicitly not clinically
+validated.
+:::

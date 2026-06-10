@@ -1,70 +1,72 @@
 ---
-title: Introduction
-description: HealthLog is a self-hosted, mobile-first health tracking PWA for weight, blood pressure, body fat, sleep, activity, mood, medication management, and more.
+title: What HealthLog is
+description: An overview of HealthLog — a self-hosted health tracking PWA with a native iOS client, device sync, multi-provider AI insights, and a clinician-ready export.
 sidebar:
   order: 1
 ---
 
-## What is HealthLog?
+HealthLog is a self-hosted personal health tracker that runs from a single
+`docker compose up`. It covers the metrics most people actually log — weight,
+blood pressure, pulse, body composition, blood glucose, sleep, mood, menstrual
+cycle, and medication compliance — and brings them together in one dashboard
+with clinical reference ranges, overridable with the targets your clinician set.
 
-HealthLog is a **self-hosted, mobile-first [Progressive Web App](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)** (PWA) for comprehensive health tracking. A PWA is an ordinary website that an installable manifest and a service worker turn into something that launches from the home screen and keeps working offline — so HealthLog feels like a native app without an app-store gatekeeper. It combines manual vital sign logging with automatic device syncing, smart medication management, and AI-powered insights.
+Try the [live demo](https://demo.healthlog.dev) to see what a working install
+looks like, or jump straight to
+[Self-host in 10 minutes](/getting-started/self-host-in-10-minutes/).
 
-All your data stays on your own infrastructure — no cloud lock-in, no subscriptions, full control. HealthLog is free software under the [GNU AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.en.html): you can run, study, modify, and redistribute it, and anyone you offer it to over a network is entitled to the source.
+## What it does
 
-## Key Features
+- **Every vital on one timeline.** Weight, blood pressure, pulse, glucose,
+  body composition, sleep, SpO₂, mood, and cycle — charted with trends, moving
+  averages, and reference ranges from established guidelines.
+- **Your devices, one server.** Withings and WHOOP sync over OAuth2, Google
+  Health/Fitbit connects experimentally, an Apple Health `export.zip` folds your
+  full history in, and the native iOS app streams HealthKit live. A per-metric
+  [source priority](/guides/source-priority/) decides which reading is canonical
+  when wearables overlap.
+- **Medication tracking that tells the truth.** Flexible schedules (weekly
+  injections, weekday-only, intervals, PRN, cyclic), a configurable intake
+  window per dose, and a traceable dose history where every slot reads taken,
+  late, skipped, or missed — the same ledger the
+  [compliance rate](/explanation/medication-compliance/) is computed from.
+- **AI insights you own.** A daily briefing, health scores, correlations, and a
+  conversational coach grounded in your own measurements. Bring your own OpenAI
+  or Anthropic key, or point at a local endpoint so nothing leaves your network.
+- **Clinician-ready output.** A doctor-report PDF generated client-side, a
+  read-only [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited
+  share links you revoke after the visit.
+- **Private by construction.** AES-256-GCM
+  [encryption at rest](/explanation/encryption-at-rest/) with zero-downtime key
+  rotation, passkey login, server-side sessions, strict CSP, and no third-party
+  tracking anywhere.
 
-- **Vital Sign Tracking** — Weight, blood pressure, heart rate, body fat, sleep, activity, mood, blood glucose, oxygen saturation, total body water, bone mass — plus the full set of HealthKit metrics (HRV, VO₂max, resting heart rate, respiratory rate, the walking-quality and body-composition families, audio exposure, and more)
-- **Medication Management** — Flexible recurrence (daily, weekday subsets, bi-weekly, rolling, RRULE, one-time, as-needed, cyclic on/off weeks), route of administration with injection-site tracking, and cadence-aware compliance analytics
-- **Automated Reminders** — Telegram, ntfy, Web Push notifications
-- **Withings Sync** — Automatic import from smart scales, BP monitors, ScanWatch (SpO2), and Body+ (TBW, bone mass)
-- **WHOOP Sync** — OAuth2 import of recovery, strain, sleep, body, and workouts (bring-your-own developer keys)
-- **Google Health / Fitbit Sync** _(experimental)_ — OAuth2 import of activity, health metrics, sleep, and workouts for Fitbit and Pixel wearables (bring-your-own Google Cloud OAuth client)
-- **AI Insights** — Multi-provider (OpenAI / Anthropic Claude / ChatGPT subscription via Codex / local OpenAI-compatible), inline charts in findings, three years of context per metric. The ChatGPT path uses a one-click device-code flow against `auth.openai.com` — no API plan, no separate billing
-- **Health-Record Export** — A doctor handover as an enriched PDF and a machine-readable [HL7 FHIR R4](https://hl7.org/fhir/R4/) bundle (LOINC-coded, UCUM units), with selectable date range and per-domain sections and an optional AI summary
-- **First-Paint Dashboard** — Above-the-fold tiles assemble in one snapshot round-trip; the daily briefing and insight are pre-generated overnight so nothing blocks on the model
-- **Custom Health Targets** — Override any guideline default with the values your clinician set, audit-logged
-- **Customizable Dashboard** — Show / hide / reorder every widget
-- **Built-in Feedback** — Bug, feature, question, or other — with optional GitHub escalation for admins
-- **Native iOS App** — A SwiftUI client in public beta via TestFlight with live Apple Health (HealthKit) two-way sync, local medication reminders, and passkey sign-in. See the [iOS app](/ios/ios-app/) guide
-- **Native API Clients** — Bearer-token + refresh-token flow, Idempotency-Key header support — ready for the iOS app and external automation (n8n, Health Connect)
-- **Gamification** — 59 persistent achievements (six of them hidden Easter-egg badges) to reward consistent tracking
-- **Passkey Authentication** — Passwordless login via [WebAuthn](https://en.wikipedia.org/wiki/WebAuthn): a passkey is a public/private key pair bound to your device, so there is no shared password to phish or leak
-- **Dark-only Dracula Theme** — Easy on the eyes at any time of day
+## Who it is for
 
-## Tech Stack
+HealthLog is built for people who want their health data on their own server —
+a NAS, a homelab, or a small VPS — and who do not want to hand it to a vendor
+cloud to read a seven-day weight trend. It does not ship a sensor and does not
+try to be a ring or a strap; instead it aggregates the readings your devices
+already collect, plus the ones they do not hold (cuff blood pressure,
+finger-stick or CGM glucose, medication intake), and keeps them on hardware you
+control. See [how it compares](/features/#how-it-compares).
 
-| Component | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, React Server Components) |
-| Language | TypeScript (strict mode) |
-| Database | PostgreSQL 16 |
-| ORM | Prisma 7 with PrismaPg Adapter |
-| Styling | Tailwind CSS 4 + shadcn/ui (Dracula Theme) |
-| Client State | TanStack Query 5 |
-| Auth | SimpleWebAuthn v13 (Passkeys) + session-based |
-| Background Jobs | pg-boss v12 |
-| Containerization | Docker + Docker Compose |
+## Status
 
-## Requirements
+Active development — new releases land roughly weekly. Behaviour, API shapes,
+and database schema can change between minor versions; migrations are
+forward-only. If you self-host, pin a tag, take a backup before every upgrade,
+and skim the [changelog](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md)
+before pulling `latest`. The current line is v1.16.
 
-To run HealthLog, you need the following:
+## Licence
 
-- **Docker** and **Docker Compose** (v2+)
-- A **reverse proxy with HTTPS** (e.g., Nginx Proxy Manager, Traefik, Caddy)
-- **PostgreSQL 16** (included in the bundled `docker-compose.yml`)
-- A **domain with a valid SSL certificate** (Passkeys require HTTPS)
+HealthLog is licensed under the
+[PolyForm Noncommercial License 1.0.0](/license/): free to use, self-host, and
+modify for noncommercial purposes. Releases up to and including v1.15.18 were
+published under AGPL-3.0 and remain available under that licence.
 
-:::caution
-Passkeys only work over HTTPS. Running HealthLog without a valid SSL certificate is not supported.
+:::caution[Not medical advice]
+HealthLog is a tracking tool, not a medical device, and nothing it shows is
+medical advice. Discuss your own numbers and targets with a qualified clinician.
 :::
-
-## Links
-
-- [HealthLog Website](https://healthlog.dev) — landing page and project overview
-- [Live Demo](https://demo.healthlog.dev) — try HealthLog without installing
-- [GitHub Repository](https://github.com/MBombeck/HealthLog) — source code and issue tracker
-- [iOS App](/ios/ios-app/) — native SwiftUI client, public beta via TestFlight
-
-## Next Step
-
-Follow the [Installation Guide](/getting-started/installation/) to set up HealthLog on your server.

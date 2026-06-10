@@ -1,0 +1,90 @@
+---
+title: Connect Google Health (Fitbit & Pixel)
+description: Read Fitbit and Pixel Watch data through the Google Health API using your own Google Cloud OAuth client. Experimental.
+sidebar:
+  order: 3
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+:::caution[Experimental]
+Field mapping is still being verified against live Google Health accounts, so
+some values may be missing or change in a future update.
+:::
+
+HealthLog reads Fitbit and Pixel data through the **Google Health API**. The
+OAuth app is therefore a **Google Cloud** OAuth client — not a Fitbit
+developer-console app. Like WHOOP, credentials are brought per user. The internal
+integration key is `fitbit`.
+
+## Set it up
+
+<Steps>
+
+1. **Create a Google Cloud OAuth client.** In
+   [console.cloud.google.com](https://console.cloud.google.com) pick a project,
+   enable the **Google Health API** under APIs & Services, configure the OAuth
+   consent screen, then create an **OAuth 2.0 Client ID** of type **Web
+   application**.
+
+   - **Authorized redirect URI:**
+     `https://your-instance.example.com/api/fitbit/callback`
+
+   Google issues a **Client ID** and **Client Secret**.
+
+2. **Confirm the scopes.** HealthLog requests exactly these read-only scopes:
+
+   ```
+   https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly
+   https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly
+   https://www.googleapis.com/auth/googlehealth.sleep.readonly
+   https://www.googleapis.com/auth/googlehealth.profile.readonly
+   ```
+
+   Location and intraday scopes are deliberately omitted to keep the
+   Restricted-scope review surface minimal. The authorize request sends
+   `access_type=offline` + `prompt=consent` so Google issues a refresh token.
+
+3. **Wire the credentials in Settings.** Sign in as the target user, open
+   **Settings → Integrations → Google Health**, and paste the client ID and
+   secret. They are encrypted AES-256-GCM at rest, not stored in `.env`.
+
+4. **Connect.** Click **Connect with Google Health**. HealthLog exchanges the
+   returned code for tokens, stores them encrypted, and runs an initial sync.
+   There is **no webhook** — Google Health syncs on the safety-net cron pull.
+
+</Steps>
+
+## What imports
+
+Activity (steps, distance, active energy, floors, VO₂ max), health metrics
+(weight, body fat, SpO₂, resting heart rate, HRV, respiratory rate, wrist
+temperature, spot heart rate), per-stage sleep, and exercise workouts.
+
+## Redirect URI is validated strictly
+
+The resolved `redirect_uri` is asserted at connect time to be absolute, `https`
+(or `http` on localhost), to target exactly `/api/fitbit/callback`, and — when
+`FITBIT_REDIRECT_URI` is set alongside `NEXT_PUBLIC_APP_URL` — to share its
+origin. A misconfigured value fails closed rather than redirecting elsewhere.
+
+```env
+# Only when the callback origin differs from NEXT_PUBLIC_APP_URL:
+FITBIT_REDIRECT_URI="https://your-instance.example.com/api/fitbit/callback"
+```
+
+## Caveats
+
+- Because the Google Health API is young and several per-type value fields are
+  not yet fully published, some data types may import nothing until the wire
+  mapping is verified against a live account.
+- Each operator's OAuth client needs Google brand verification plus an annual
+  CASA assessment before it can leave Testing mode.
+- If Google Health and another source both supply the same vital, you may see
+  both values until a future update settles on a single preferred source. See
+  [source priority](/guides/source-priority/).
+
+## Disconnect
+
+The Settings **Disconnect** button revokes the stored tokens and removes the
+connection. Previously synced measurements stay in the database.

@@ -1,0 +1,102 @@
+---
+title: First steps
+description: After your first user lands, add a measurement, set up the admin panel, and point the instance at a public hostname.
+sidebar:
+  order: 3
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Once you have a running instance and a first (admin) user, these are the things
+worth doing before you invite anyone or connect a device.
+
+## Add your first measurement
+
+Open `/measurements` and add a weight or a blood-pressure reading. This confirms
+the data path is wired end to end — the entry lands in the `Measurement` table,
+the dashboard tile updates, and the chart picks it up. If you have years of
+history elsewhere, do not type it in by hand; use a device sync
+([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/)) or an
+[Apple Health import](/guides/import-apple-health/) instead.
+
+## Tour the admin panel
+
+The first user is an admin. Open `/admin` to find:
+
+- **Worker status** — whether the pg-boss job worker is alive and when it last
+  ran a reminder pass.
+- **Audit log** — a viewer over every sensitive operation, with IP addresses.
+- **Optional channels** — configure a Telegram bot, ntfy, Web Push VAPID keys,
+  or a shared AI key here. These are stored encrypted in the database, not in
+  `.env`. See [Reminder channels](/guides/reminder-channels/).
+- **Invites** — mint expiring invite links when you close open registration.
+  See [Invites](/guides/invites/).
+
+`requireAdmin()` is **cookie-only** by construction. A Bearer API token, even
+with `["*"]` scope, cannot reach any `/api/admin/*` endpoint — admin is a
+browser-session boundary, not a token scope.
+
+## Point the instance at a public hostname
+
+Local-only is fine for a single-user trial. For anything more — and to unlock
+OAuth callbacks, webhook deliveries, and Web Push — set the public URL pair
+before restarting:
+
+```env
+NEXT_PUBLIC_APP_URL="https://your-instance.example.com"
+APP_URL="https://your-instance.example.com"
+```
+
+Both must match. `NEXT_PUBLIC_APP_URL` lands in the client bundle and drives
+every absolute URL the UI emits (OAuth redirects, share links, manifest icons);
+`APP_URL` is the server-side mirror used by background jobs that have no request
+context. Restart the app container after editing — the pre-built image reads
+both values at startup, no rebuild needed.
+
+```bash
+docker compose up -d
+```
+
+Then put TLS in front of it: see [Reverse proxy](/guides/reverse-proxy/) for
+copy-paste configs for Caddy, Traefik, Nginx Proxy Manager, Coolify, and bare
+Nginx.
+
+:::caution[Plain HTTP and the session cookie]
+The session cookie carries the `Secure` flag by default under
+`NODE_ENV=production`. On a plain-HTTP origin that is not `localhost`, browsers
+silently drop a `Secure` cookie, so login appears to succeed but the next page
+load 401s. If you deliberately serve HealthLog over HTTP on a trusted LAN or
+Tailscale network, set `SESSION_COOKIE_SECURE=false`. Never do this on a
+host that serves plain HTTP to the open internet.
+:::
+
+## Build-time feature toggles
+
+A few toggles are `NEXT_PUBLIC_*` variables: the framework inlines them into the
+client bundle at **build time**, so the pre-built GHCR image cannot read them at
+runtime. Setting them in `.env` or the compose `environment:` block has no
+effect — they only take hold when you build your own image, which is why they
+are intentionally absent from the compose whitelist.
+
+| Variable | Default | Effect when set |
+| --- | --- | --- |
+| `NEXT_PUBLIC_DASHBOARD_SNAPSHOT` | on | Hydrates every above-the-fold tile from one `GET /api/dashboard/snapshot` cell so the whole strip shares one completion moment. Build with `=false` to fall back to the legacy four-cell path. |
+
+## Next
+
+<Steps>
+
+1. [Connect the iOS app](/getting-started/connect-ios-app/) for live HealthKit
+   sync and reminders with action buttons.
+
+2. Pick a device integration: [Withings](/guides/connect-withings/),
+   [WHOOP](/guides/connect-whoop/), [Google Health](/guides/connect-google-health/),
+   or an [Apple Health import](/guides/import-apple-health/).
+
+3. Set up [medications](/guides/track-medications/) and
+   [reminders](/guides/reminder-channels/).
+
+4. Turn on [off-host backups](/guides/backups/) before you accumulate data
+   worth losing.
+
+</Steps>

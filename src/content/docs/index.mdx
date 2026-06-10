@@ -1,0 +1,59 @@
+---
+title: HealthLog Documentation
+description: Self-hosted, privacy-first health tracking. User and operator documentation for HealthLog — install, integrate devices, and understand how it works.
+template: splash
+hero:
+  tagline: Self-hosted, privacy-first health tracking. Your vitals, your devices, your server.
+  actions:
+    - text: Self-host in 10 minutes
+      link: /getting-started/self-host-in-10-minutes/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/MBombeck/HealthLog
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## What this site covers
+
+HealthLog is a self-hosted personal-health-tracking app — a PWA plus a native
+iOS client — that brings weight, blood pressure, pulse, glucose, body
+composition, sleep, mood, menstrual cycle, and medication tracking onto one
+timeline you own. It runs from a single `docker compose up` on a NAS, homelab,
+or small VPS, syncs from the devices you already own, and keeps everything
+encrypted at rest.
+
+These docs are organised the way the [Diátaxis](https://diataxis.fr/) framework
+suggests: a learning-oriented tutorial to get you running, task-oriented
+how-to guides for specific jobs, factual reference material, and explanation
+pages that cover the reasoning behind the design.
+
+<CardGrid>
+  <Card title="Getting Started" icon="rocket">
+    Stand up an instance, create your first user, and connect the iOS app.
+    Start with [Self-host in 10 minutes](/getting-started/self-host-in-10-minutes/).
+  </Card>
+  <Card title="How-to Guides" icon="setting">
+    Connect Withings, WHOOP, Google Health, or Apple Health; set up
+    medications, reminders, backups, invites, and a reverse proxy.
+  </Card>
+  <Card title="Reference" icon="open-book">
+    The REST API contract, every environment variable, the data model, the
+    FHIR read API, and the webhook surfaces.
+  </Card>
+  <Card title="Explanation" icon="information">
+    Why compliance is cadence-aware, how the wellness scores are built, what
+    leaves your instance and when, and the encryption model.
+  </Card>
+</CardGrid>
+
+:::caution[Not medical advice]
+HealthLog is a tracking and visualisation tool, not a medical device. Nothing
+in this documentation or the app is medical advice. Reference ranges and
+classifications link to the original guideline or source so you can read them
+in context; always discuss your own numbers and targets with a qualified
+clinician.
+:::

@@ -1,0 +1,134 @@
+---
+title: Feature catalogue
+description: The full feature tour for HealthLog v1.16 — metrics, integrations, medications, AI insights, clinician output, privacy — plus how it compares to closed ecosystems.
+sidebar:
+  order: 1
+---
+
+This is the complete feature tour for HealthLog v1.16. For the reasoning behind
+specific designs, follow the links into the
+[explanation](/explanation/medication-compliance/) pages.
+
+## Health metrics
+
+Track weight, blood pressure, pulse, body fat, sleep, steps, blood glucose
+(fasting / postprandial / random / bedtime, mg/dL ↔ mmol/L), total body water,
+bone mass, and pulse oximetry (SpO₂) with interactive trend charts, moving
+averages, and traffic-light ranges based on established guidelines
+([ESH 2023 for blood pressure](/explanation/blood-pressure-targets/), diabetes-
+association guidance for glucose, consensus pulse-oximetry guidance). Every stored
+HealthKit metric has a chart surface — flights climbed, walking speed / step
+length / asymmetry, respiratory rate, the body-composition family, mobility,
+daylight, and more — and a metric/imperial display toggle renders values in your
+preferred units while storage and exports stay canonical SI.
+
+## Custom thresholds
+
+Override the computed default ranges per metric with the targets your clinician
+set. Audit-logged. The doctor-report PDF prints both your target and the standard
+reference.
+
+## Customizable dashboard
+
+Show, hide, and drag-to-reorder every widget; per-user layout with reset-to-
+defaults. The above-the-fold tiles arrive together in a single first-paint
+snapshot, and charts reveal together once their data is in.
+
+## Mood logging
+
+A five-face mood capture (1–5) backed by a structured tag catalogue and rated
+daily-life factors. Pick binary tags across feelings, sleep, health, social,
+work, and hobbies; score rated factors (work, social, sleep quality, stress,
+conflict), with stress and conflict flagged as inverse. Add a free-text note,
+then read it back through trend analytics and a mood-relations surface that
+associates tags and factors with your other metrics.
+
+## Medication compliance
+
+Flexible scheduling driven by a single recurrence engine: time windows,
+day-of-week recurrence, interval weeks, rolling intervals, RFC-5545 RRULE,
+one-time doses, as-needed (PRN), and cyclic on/off plans — so non-daily plans
+[score honestly against their real cadence](/explanation/medication-compliance/).
+Route of administration (oral / injection / other) carries an injection-site
+picker. Take / skip / snooze logging, a traceable dose history, supply runway,
+and structured side-effect tracking. See
+[Track medications](/guides/track-medications/).
+
+## Device integrations
+
+[Withings](/guides/connect-withings/) and [WHOOP](/guides/connect-whoop/) sync
+over OAuth2; [Google Health/Fitbit](/guides/connect-google-health/) connects
+experimentally; an [Apple Health `export.zip`](/guides/import-apple-health/)
+folds your full history in; the native iOS app streams HealthKit live. A
+per-metric [source priority](/guides/source-priority/) decides which reading is
+canonical when devices overlap.
+
+## AI coach + insights
+
+Multi-provider, evidence-grounded insights: per-metric assessments, correlations,
+a daily briefing, a weekly report, a Health Score tile, and a conversational coach
+grounded in your own data — now reading your history longitudinally and able to
+ask up to three follow-up questions from an encrypted self-context. Proactive
+nudges watch a handful of signals and send at most one gentle prompt a week. Pick
+[OpenAI, Anthropic, ChatGPT via Codex, or a local endpoint](/guides/ai-providers/);
+BYOK or admin-shared. Local endpoints keep all data on your network.
+
+## Derived wellness metrics
+
+A [transparent metrics tier](/explanation/health-scores/) computed from your own
+measurements: a fitness-age band, a vascular-age delta, an HRV-balance band, a
+sleep score, daily readiness and recovery scores, and a coincident-deviation
+early-strain flag. Each cites its inputs and degrades to "not enough data" rather
+than fabricating a value.
+
+## Clinician-ready output
+
+A doctor-report PDF generated client-side (locale-aware EN/DE), a read-only
+[HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited share links you
+revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
+
+## Built to be lived in
+
+Installable PWA with offline support and an opaque-cursor sync delta feed;
+medication reminders over [APNs, Telegram, ntfy, and Web Push](/guides/reminder-channels/)
+with late/missed escalation; a sub-second dashboard on years of imported history;
+59 gamification achievements; English and German end to end with a CI-guarded
+translation integrity test. Invite links with QR codes for closed registration.
+
+## Private by construction
+
+[AES-256-GCM encryption at rest](/explanation/encryption-at-rest/) with
+zero-downtime key rotation, passkey login (WebAuthn + Argon2id fallback),
+server-side sessions, strict CSP, HMAC-hashed Bearer tokens, and
+[no third-party tracking anywhere](/explanation/privacy-architecture/).
+
+## How it compares
+
+HealthLog does not ship a sensor and does not try to be a ring or a strap. It
+takes the readings your devices already collect — plus the ones they do not hold,
+like cuff blood pressure, finger-stick or CGM glucose, and medication intake — and
+keeps them on a server you run.
+
+| | HealthLog | Withings web | Apple Health | Oura web | WHOOP web | Fitbit web |
+| --- | --- | --- | --- | --- | --- | --- |
+| Self-hosted | Yes | No | No | No | No | No |
+| Open source | Yes (PolyForm NC) | No | No | No | No | No |
+| Withings sync | OAuth2 | Native | Via shortcut | No | No | No |
+| WHOOP sync | OAuth2 (BYO-keys) | No | No | No | Native | No |
+| Google Health / Fitbit | Experimental | No | No | No | No | Native |
+| Apple Health import | `export.zip` | No | Native | No | No | No |
+| Aggregates many providers | Yes | No | Partial | No | No | No |
+| Multi-source dedup + priority | Per-metric | n/a | Limited | n/a | n/a | n/a |
+| Blood pressure + glucose | First-class | BP only | Manual | No | No | Limited |
+| Medication compliance | Cadence-aware | No | No | No | No | No |
+| Derived wellness metrics | Transparent | Limited | Limited | Closed | Closed | Limited |
+| Custom clinician targets | Yes (audit-logged) | Limited | No | No | No | No |
+| Doctor-report PDF + FHIR | Client-side | No | No | No | No | No |
+| AI insights | Multi-provider BYOK | No | Limited | Subscription | Subscription | Limited |
+| Encrypted at rest | Your host | Vendor cloud | Vendor cloud | Vendor cloud | Vendor cloud | Vendor cloud |
+| Subscription required | No | For some metrics | No | Yes | Yes | For some |
+| Your data leaves device | Never (self-hosted) | Withings cloud | Apple cloud | Oura cloud | WHOOP cloud | Fitbit cloud |
+
+HealthLog is the right fit when you want your wearable and clinical numbers in one
+place that you control, with explainable analytics on top — not when you want a
+closed device that scores you and keeps the data.

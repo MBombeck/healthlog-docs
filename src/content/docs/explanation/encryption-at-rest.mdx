@@ -1,0 +1,74 @@
+---
+title: Encryption at rest
+description: How HealthLog encrypts sensitive at-rest data with AES-256-GCM under a versioned key map, and why every path fails closed rather than writing plaintext.
+sidebar:
+  order: 4
+---
+
+HealthLog encrypts sensitive at-rest data — OAuth tokens, AI provider keys,
+notification channel configs, web-push subscription secrets, VAPID private keys,
+coach messages — with **AES-256-GCM** under a per-deployment key. This page
+explains the model; the operator procedure is in
+[Rotate the encryption key](/guides/encryption-key-rotation/).
+
+## What gets encrypted
+
+Not everything — measurements themselves are not encrypted column-by-column,
+because they are the data you query and chart constantly and they live on a
+database you already control. What *is* encrypted is the class of secrets that
+would let an attacker pivot outward or impersonate you: provider access/refresh
+tokens, BYOK AI keys, VAPID secrets, notification credentials, the coach
+conversation (`CoachMessage.encryptedContent`, a `Bytes` column), and even
+`IntegrationStatus.lastError` (because upstream error strings can echo secrets).
+
+## AES-256-GCM and why GCM
+
+GCM is an authenticated mode: each ciphertext carries an authentication tag, so a
+tampered or truncated value is rejected on decrypt rather than silently producing
+garbage. Each value is encrypted with a random 12-byte IV; the stored layout is
+`iv ‖ tag ‖ ciphertext`, base64-encoded.
+
+## Versioned keys
+
+A key id prefixes every new ciphertext:
+
+```
+<keyId>.<base64(iv ‖ tag ‖ ciphertext)>
+```
+
+`<keyId>` indexes into an `ENCRYPTION_KEYS` JSON map. This is what makes
+**zero-downtime rotation** possible: multiple keys coexist, new writes use the
+active key, and a background script re-wraps old rows on its own schedule while
+the app keeps serving. Legacy ciphertexts (from before versioning) have no `.`
+prefix and are decrypted under the synthetic `v1` id.
+
+## Fail closed, everywhere
+
+The defining property of the crypto layer is that **every failure path throws
+rather than silently writing or returning plaintext.** Missing key, malformed
+JSON, an unknown key id, a legacy ciphertext with no `v1` key configured — each
+raises a clear error instead of degrading to plaintext or guessing.
+
+This is deliberate. A common encryption-at-rest bug is a fallback that, when the
+key is absent, writes the value unencrypted "just this once" — and now half your
+secrets are in the clear and nobody noticed. HealthLog refuses to do that. The
+cost is that a misconfigured key takes the feature down loudly; the benefit is
+that you can never end up with silent plaintext.
+
+The practical corollary for operators: **keep the legacy key in the map until the
+rotation script reports zero remaining rows on it.** Drop it too early and those
+rows become undecryptable — and the app tells you so rather than papering over it.
+
+## What this does and does not protect
+
+- **It protects** the secret columns if someone obtains a database dump, a
+  backup, or read access to the table — the tokens and keys are useless without
+  the encryption key, which lives in the environment, not the database.
+- **It does not protect** against an attacker who has both the database *and* the
+  running environment (they have the key too), and it is not a substitute for the
+  other layers — passkey auth, server-side sessions, strict CSP, rate limits.
+  Encryption at rest is one ring of a layered model, not the whole defence.
+
+Off-host [backups](/guides/backups/) are separately encrypted under a *different*
+key (`BACKUP_ENCRYPTION_KEY`), so a leaked backup bucket does not also leak the
+primary key's protection.

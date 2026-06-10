@@ -1,0 +1,70 @@
+---
+title: Blood-pressure reference ranges
+description: How HealthLog classifies blood pressure against established guidelines (ESH 2023, ACC/AHA), why the two differ, and how clinician-set targets override the defaults.
+sidebar:
+  order: 6
+---
+
+HealthLog charts blood pressure against reference ranges so a reading reads in
+context rather than as a bare number. The defaults follow established clinical
+guidelines, and you can override them with the targets your own clinician set.
+
+:::caution[Not medical advice]
+The classifications below are reproduced from published guidelines for context
+only. They are not a diagnosis and not advice. Blood pressure should be measured
+and interpreted by a clinician across multiple visits; a single home reading does
+not classify you.
+:::
+
+## The default: ESH 2023
+
+HealthLog's default office-BP bands follow the
+[2023 ESH Guidelines for the management of arterial hypertension](https://journals.lww.com/jhypertension/fulltext/2023/12000/2023_esh_guidelines_for_the_management_of_arterial.2.aspx)
+(European Society of Hypertension). In that framework, hypertension is diagnosed
+at an office systolic BP ≥ 140 mmHg or diastolic ≥ 90 mmHg, graded:
+
+| Category | Systolic (mmHg) | | Diastolic (mmHg) |
+| --- | --- | --- | --- |
+| Optimal / normal / high-normal | < 140 | and/or | < 90 |
+| Grade 1 hypertension | 140–159 | and/or | 90–99 |
+| Grade 2 hypertension | 160–179 | and/or | 100–109 |
+| Grade 3 hypertension | ≥ 180 | and/or | ≥ 110 |
+
+(ESH also stages patients by risk factors and organ damage in addition to these
+BP-based grades.)
+
+## Why guidelines differ
+
+The US [2017 ACC/AHA guideline](https://www.acc.org/Latest-in-Cardiology/Articles/2024/02/05/11/43/2023-ESH-Hypertension-Guideline-Update)
+draws the line lower, labelling 130–139/80–89 mmHg as "Stage 1 hypertension"
+where ESH calls a similar range "high-normal." Neither is "wrong" — they reflect
+different thresholds for when a label changes management. HealthLog defaults to
+the ESH 2023 thresholds and lets a clinician override them, rather than picking a
+side for you. A
+[comparison of the two](https://www.jacc.org/doi/10.1016/j.jacadv.2024.101230)
+is worth reading if you want the detail.
+
+## Clinician-set targets override the default
+
+The default bands are a starting point. Under custom thresholds you can replace
+the computed range with the target your clinician actually set for you — for
+instance a tighter target after a cardiac event, or a looser one where strict
+control is not the goal. Overrides are audit-logged, and the doctor-report PDF
+prints **both** your target and the standard reference so the two are never
+confused.
+
+## How the bands feed the scores
+
+The blood-pressure share of the [health score](/explanation/health-scores/) grades
+by *how close* a reading sits to its target band, with recent readings weighted
+more — so being consistently a little high reads as borderline, not a crisis,
+while genuinely high pressure still scores low. A reading slightly over target
+does not collapse the score the way an all-or-nothing rule would.
+
+## Other metrics, same principle
+
+The same "published default, clinician override" model applies to other metrics:
+blood-glucose bands follow established diabetes-association guidance (fasting /
+postprandial / random / bedtime, with mg/dL ↔ mmol/L conversion), and SpO₂ uses
+consensus pulse-oximetry guidance. Each links its source in the app, and each is
+overridable with your clinician's target.

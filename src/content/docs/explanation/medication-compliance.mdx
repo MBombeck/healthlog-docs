@@ -1,0 +1,84 @@
+---
+title: Why compliance is cadence-aware
+description: How HealthLog computes medication compliance from a per-slot dose ledger with on-time / late / missed bands, and why a daily denominator would lie.
+sidebar:
+  order: 1
+---
+
+Medication compliance — sometimes called adherence or, in German, *Therapietreue*
+— is one number people read closely, so it has to be honest. HealthLog computes
+it from a **per-slot dose ledger** and grades each slot against its own cadence
+and window. This page explains why that design exists and how the bands work.
+
+## What adherence means
+
+The World Health Organization's landmark 2003 report defines adherence as
+
+> "the extent to which a person's behaviour — taking medication, following a
+> diet, and/or executing lifestyle changes — corresponds with agreed
+> recommendations from a health-care provider."
+
+That framing — behaviour measured against an *agreed schedule*, not against a
+fixed daily cadence — is exactly why HealthLog cannot just count pills per day.
+The "agreed recommendation" for a once-weekly injection is one dose a week;
+scoring it against seven days would manufacture six phantom misses. (See the WHO
+report [*Adherence to long-term therapies: evidence for action*](https://apps.who.int/iris/bitstream/handle/10665/42682/9241545992.pdf)
+and a [retrospective two decades on](https://www.frontiersin.org/journals/pharmacology/articles/10.3389/fphar.2024.1444012/full).)
+
+## The denominator problem
+
+A naïve compliance metric divides doses taken by *days elapsed*. That number is
+correct only for a once-daily medication. For everything else it is wrong:
+
+- A **weekly** GLP-1 injection scores ~14% even at perfect adherence.
+- A **weekday-only** dose scores low across weekends it was never meant to cover.
+- A **cyclic** plan (N weeks on, M weeks off) is penalised through its off-weeks.
+- An **as-needed (PRN)** medication has no schedule at all, so any denominator is
+  a fiction.
+
+HealthLog's recurrence engine knows each medication's real cadence, so the
+denominator is "doses that were actually due in this window" — not "days." A
+weekly injection taken every week reads 100%, everywhere from the dashboard tile
+to the detail page.
+
+## The dose ledger
+
+Rather than keep a separate compliance counter that can drift from the visible
+history, HealthLog projects every **expected dose** into a slot and resolves each
+slot to a status. The compliance rate is then computed by counting slots, so the
+percentage can never disagree with the timeline beneath it.
+
+| Status | Meaning |
+| --- | --- |
+| **Taken on time** | Logged inside the dose window |
+| **Taken late** | Logged after the window but inside the catch-up reach |
+| **Skipped** | Explicitly skipped by the user |
+| **Missed** | The window (and catch-up reach) closed with no intake |
+| **Upcoming** | Pending — the window has not closed yet |
+
+A key correctness property: a pending dose stays **upcoming** until its window
+actually closes — hours for a daily schedule, days for a weekly one. It is not
+counted as missed the moment its nominal time passes, so the rate stops punishing
+doses that are still takeable.
+
+## The window defines "on time"
+
+Each dose time carries a window — a point time with a default ±1 hour band, or an
+explicit range like `07:00–09:00`. A take inside the window counts as **on time**;
+outside but within the catch-up reach counts as **late**, not missed. A weekly
+injection has a multi-day catch-up reach, so a dose taken a few days late is late,
+not missed. This is the band model in practice: punctuality is graded, not
+binary. See [Track medications](/guides/track-medications/) for how to set it.
+
+## One ledger, eight surfaces
+
+The cadence-aware rate is the single source of truth across every surface that
+shows a percentage — the coach prompt, the blood-pressure status gate, the
+dashboard pillar, the card, the detail page, and more. They all read the same
+`src/lib/analytics/compliance.ts`, so there is no second implementation to drift.
+
+:::note[Tracking, not advice]
+HealthLog tracks whether doses were taken on schedule. It does not advise on
+whether a schedule is right for you, what to do about a missed dose, or anything
+clinical. Those are conversations for your prescriber.
+:::

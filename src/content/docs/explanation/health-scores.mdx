@@ -1,0 +1,81 @@
+---
+title: How the health scores are built
+description: The methodology behind Readiness, Recovery, Sleep, Strain, and the derived metrics — honest about inputs, grounded in HRV and resting-heart-rate research, never a black box.
+sidebar:
+  order: 2
+---
+
+HealthLog computes a transparent tier of derived wellness metrics — a daily
+Readiness and Recovery score, a Sleep score, an early-Strain flag, a fitness-age
+band, a vascular-age delta, and an HRV-balance band — each from your own
+measurements. The design rule is honesty: every score cites its inputs and the
+method behind it, and returns "not enough data" rather than fabricating a number
+when its minimum inputs are missing.
+
+These are **descriptive wellness framings, not clinical or training-grade
+assessments.**
+
+## The signals underneath
+
+Most of the recovery-style scores lean on two physiological signals your wearable
+already records:
+
+- **Heart-rate variability (HRV)**, usually as **RMSSD** (the root mean square of
+  successive differences between heartbeats). RMSSD is a widely used,
+  non-invasive marker of **parasympathetic** (vagal) activity and short-term
+  recovery dynamics. Higher vagally-mediated HRV generally reflects a more
+  adaptable, resilient autonomic state, and higher RMSSD has been associated with
+  better self-reported sleep and lower fatigue and stress. See, for orientation,
+  a [14-day observational study on daily HRV and self-reported wellness](https://pmc.ncbi.nlm.nih.gov/articles/PMC12300306/)
+  and a [narrative review of HRV for monitoring recovery in athletes](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12787763/).
+- **Resting heart rate (RHR)**, which tends to rise with incomplete recovery,
+  illness, or strain.
+
+A recovery score blends today's HRV and RHR against *your own* recent baseline,
+not against a population norm, so it reads the direction of travel for your body.
+
+## Why baseline-relative, not absolute
+
+Absolute HRV varies enormously between people — by age, fitness, genetics, and
+measurement method — so a fixed threshold would mislabel most users. The honest
+approach is to compare each day against a rolling personal baseline: a recovery
+score answers "how does today compare to your normal?", which is the question the
+underlying research supports. The same logic applies to RHR.
+
+## Degrade honestly
+
+Every score has a minimum-input gate. If you have not worn a device long enough
+to establish a baseline, or a night's HRV is missing, the score does not
+guess — it returns "not enough data." A score is only **stored** once its minimum
+inputs are present. The recovery score persists as a daily 0–100 series that the
+dashboard, charts, and native client read without recomputing.
+
+## The derived metrics
+
+| Metric | Built from | Framing |
+| --- | --- | --- |
+| Readiness | Recent HRV, RHR, sleep, recent strain | Daily "how ready are you" band |
+| Recovery | HRV + RHR vs personal baseline | Stored 0–100 daily series |
+| Sleep score | Sleep duration + stage distribution | Band |
+| Strain (early flag) | Coincident deviation across signals | A flag, not a training load |
+| Fitness-age band | VO₂max vs age/sex norms | Re-frame of an existing measurement |
+| Vascular-age delta | Blood-pressure-derived estimate | Delta vs chronological age |
+| HRV balance | HRV trend vs baseline | Band |
+
+Each one re-frames or blends signals you already recorded, cites its inputs, and
+links the method behind it in the app. None of them invent data.
+
+## What they are not
+
+These scores are not a diagnosis, not a training prescription, and not validated
+against clinical endpoints. They are a way to read your own trends. The
+proactive coach nudge that watches "a falling recovery trend" is using the same
+baseline-relative signal — a gentle prompt to look, not an alarm.
+
+:::caution[Not medical or training advice]
+Readiness, Recovery, Strain, and the rest are descriptive framings of your own
+data. Do not treat them as medical guidance or a training plan. Closed
+commercial ecosystems compute similar scores with undisclosed methods; HealthLog's
+differ in being transparent and honestly degrading, not in being clinically
+validated.
+:::

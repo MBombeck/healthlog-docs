@@ -1,0 +1,69 @@
+---
+title: Why source priority works the way it does
+description: The reasoning behind HealthLog's two-ladder source-priority model — data fusion, why cumulative and point metrics differ, and why losing rows are never deleted.
+sidebar:
+  order: 3
+---
+
+When several devices report the same metric, HealthLog does not average them and
+does not silently pick the newest. It applies a per-metric **source priority** —
+a deliberate ranking of which sensor to trust for which metric. This page covers
+the why; for the how-to, see [Set source priority](/guides/source-priority/).
+
+## It is a data-fusion problem
+
+The underlying idea is [data fusion](https://en.wikipedia.org/wiki/Data_fusion):
+combining several imperfect sensors into a single, more reliable estimate, rather
+than blending them blindly. A Withings scale, an Apple Watch, a WHOOP strap, and
+a glucometer each measure different things well and other things poorly. Averaging
+a clinical-grade cuff reading with a wrist estimate would *degrade* the cuff
+reading; the right move is to rank sources by how reliable each is for each
+metric class and take the best one.
+
+## Two ladders, because the failure modes differ
+
+HealthLog ranks sources differently for two metric classes, because "the most
+reliable reading" means something different for each.
+
+### Point measurements — pick the best single sensor
+
+Weight, blood pressure, pulse, body fat, SpO₂, VO₂ max: these are spot readings.
+The right answer is the most accurate instrument. A dedicated scale outranks a
+wrist estimate; a cuff leads blood pressure. The default ladder is
+`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL`. When two devices report the same point
+metric on the same source, an optional device-type tie-break resolves it.
+
+### Cumulative metrics — pick one source per day, never sum
+
+Steps, active energy, distance, flights, sleep, HRV, resting HR: these accumulate
+over a day. The danger here is **double-counting** — if both an Apple Watch and a
+Withings ScanWatch report 8,000 steps, the user did not walk 16,000. So for
+cumulative metrics HealthLog picks exactly **one source per day** and ignores the
+others for that day. HealthKit usually wins (`APPLE_HEALTH ≻ WITHINGS ≻ MANUAL`)
+because iOS already fuses watch and phone motion sensors into one canonical daily
+stream — it has done the fusion for you.
+
+## Losing rows survive
+
+A reading that loses the priority contest is never deleted. It stays in the
+`Measurement` table tagged with its source and simply drops out of the active
+display and analytics. This matters for two reasons:
+
+1. **Auditability.** You can always see what every device reported.
+2. **Reversibility.** Reorder the ladder, or disconnect the winning source, and
+   the previously-hidden rows resurface. No decision is destructive.
+
+## Why per-user, not global
+
+The default ladder encodes typical measurement reliability, but a given user's
+setup can invert it — someone might trust a Fitbit's resting heart rate over a
+Withings estimate, or use a chest strap as their canonical HRV source. So the
+ladder is per-user adjustable. The defaults are a sensible starting point, not a
+verdict.
+
+## Known limitation
+
+Cross-source dedup of two reports of the *same standard vital* is handled by
+priority (one wins display, both persist) rather than by merging them into a
+single fused value. A future direction is true fusion for selected metrics; today
+the model is "rank and pick," which is transparent and reversible by design.

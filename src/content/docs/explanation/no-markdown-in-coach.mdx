@@ -1,0 +1,62 @@
+---
+title: Why the coach renders no markdown
+description: The Coach, briefing, and insights render model output as plain React text — never through a markdown library — to close an XSS class by construction.
+sidebar:
+  order: 7
+---
+
+The Coach, the daily briefing, and the insight write-ups all render the AI
+provider's output as **plain React text children** — never through a markdown
+renderer. There is no markdown library anywhere in the dependency tree, and
+adding one is treated as a security decision, not a UX one.
+
+## The threat
+
+An AI model's output is, from the app's point of view, **untrusted input**. A
+prompt-injected or simply unlucky generation could contain HTML, a `<script>`
+tag, an `<img onerror=...>`, or a `[link](javascript:...)`. If that text were
+passed to a markdown renderer that emits HTML, and the renderer's HTML-allow
+defaults were anything other than fully locked down, the result would be
+**stored / reflected XSS** — script running in the victim's authenticated
+session, against an app that holds their health data.
+
+Markdown libraries are a recurring source of exactly this. Many allow raw HTML
+passthrough by default or have had sanitiser bypasses; "render markdown safely"
+is a moving target that depends on the library version, its config, and its
+transitive sanitiser. The safe default is fragile.
+
+## The design choice
+
+HealthLog sidesteps the entire class by **never converting model output to
+HTML.** The text is rendered as React text children, which React escapes by
+construction — a `<script>` in the string shows up as the literal characters
+`<script>`, not as an executing element. There is no renderer to misconfigure and
+no sanitiser to keep patched, because there is no HTML generation step at all.
+
+The trade-off is deliberate and small: the Coach cannot render bold, bullet
+lists, or links as formatted markup. In exchange, an entire injection class is
+closed by construction rather than mitigated by a library you have to trust and
+keep current.
+
+## The one exception, and why it is safe
+
+There is exactly one `dangerouslySetInnerHTML` in the whole tree: the theme
+bootstrap in the root layout. It is nonce-bound and its content is a **file
+literal** — a fixed string written by the maintainers, never derived from user or
+model input. That is the categorical difference: trusted, constant, author-
+controlled content versus untrusted, variable, model-generated content. The
+former can be inlined safely; the latter never is.
+
+## Why a CSP is not enough on its own
+
+HealthLog also ships a strict Content-Security-Policy with a per-request nonce,
+which would block much inline script even if some slipped through. But CSP is
+defence in depth, not the primary control — a misconfigured `connect-src` or a
+nonce leak should not be the only thing standing between a model hallucination and
+script execution. Not generating the HTML in the first place is the stronger
+guarantee; the CSP is the backstop.
+
+So: no markdown library, model output as plain text, one audited file-literal
+exception. If a future feature genuinely needs formatted coach output, it gets a
+security review of the renderer's allow-list first — it is not a drop-in
+dependency.

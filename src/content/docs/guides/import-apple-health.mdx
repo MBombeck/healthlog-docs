@@ -1,0 +1,109 @@
+---
+title: Import Apple Health
+description: Upload a full Apple Health export.zip and fold its contents into the same timeline as every other source — streaming, idempotent on re-upload.
+sidebar:
+  order: 4
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+HealthLog accepts a full Apple Health `export.zip` and folds the contents into
+the same timeline as every other source. The importer is streaming end to end —
+multi-gigabyte exports never land in V8 heap — and idempotent on the upload's
+SHA-256, so re-uploading the same archive merges instead of duplicating.
+
+## What you need
+
+- An iPhone with the Health app and at least a few months of history.
+- A HealthLog account you can reach from the device or a workstation. The upload
+  goes over your authenticated browser session — no API token to provision.
+- Up to 1.5 GB of upload bandwidth. The parser caps inbound bodies at 1.5 GB.
+
+## Do the import
+
+<Steps>
+
+1. **Generate `export.zip` on the iPhone.** Open **Health → profile picture →
+   Export All Health Data**. iOS packages the archive in a few minutes; share it
+   somewhere you can reach from your instance (AirDrop, iCloud Drive, email).
+   The archive contains `apple_health_export/export.xml` (the canonical record
+   stream) plus auxiliary files the importer ignores.
+
+2. **Upload to HealthLog.** Open **Settings → Export & Import** and drop the
+   `export.zip` onto the Apple Health control. The browser streams the body
+   directly to the server; nothing is buffered into memory on either side. A
+   progress indicator polls the job until it reports imported / skipped counts.
+
+3. **Watch the status.** The job moves through
+   `queued → unpacking → parsing → upserting → done`, with `failed` as a
+   terminal branch. The iOS client polls every two seconds while active; the web
+   UI uses the same cadence. Only the job owner (or the admin who triggered it)
+   can read the status.
+
+</Steps>
+
+## What gets imported
+
+The parser folds four XML element types into the schema:
+
+| XML element | Maps to | Notes |
+| --- | --- | --- |
+| `<Record>` | `Measurement` rows | One row per spot sample. Keyed by `HKMetadataKeyExternalUUID` when present, otherwise a deterministic `sample:<sha256>` fallback so re-imports stay idempotent. |
+| `<Workout>` | `Workout` rows | Activity type + duration + energy + distance. |
+| `<Correlation>` | `Measurement` rows | Compound samples like blood pressure explode into per-metric children. |
+| `<ClinicalRecord>` | `Measurement` rows where the type maps | Only the metric-typed fields are ingested. |
+
+Anything outside the mapped set (workout routes, ECG voltage traces) is counted
+in `progress.records_skipped` but not stored.
+
+### Cumulative types collapse to one row per day
+
+Cumulative quantity types — steps, active energy, distance, flights — collapse
+into **one row per user-local day** to match the iOS daily-aggregation
+convention. The external ID format is `stats:<HKType>:<YYYY-MM-DD>` (e.g.
+`stats:HKQuantityTypeIdentifierStepCount:2026-05-15`). The day boundary respects
+your [timezone preference](/explanation/timezone-model/), defaulting to
+`Europe/Berlin` when none is set.
+
+### Re-import idempotency
+
+Two axes keep re-imports clean:
+
+1. **File-level** — re-uploading the same `export.zip` (same byte SHA-256)
+   short-circuits to the previous job before the parser starts.
+2. **Record-level** — a re-exported archive keeps every record's external ID
+   stable; the upsert path matches on `(userId, externalId)` and updates instead
+   of inserting.
+
+The job result reports `recordsInserted` and `recordsUpdated` separately, so a
+monthly re-import shows fresh data merged without duplicates.
+
+## Source-priority interaction
+
+Apple Health outranks Withings for **cumulative** metrics (steps, energy,
+distance, sleep, HRV, resting HR) because HealthKit folds watch and phone
+sensors into one canonical stream. Withings outranks Apple Health for **point**
+measurements where the Withings device is the primary sensor (weight, BP, SpO₂,
+body fat). The `IMPORT` source tag — the lowest rank — is reserved for legacy
+CSV/JSON imports. See [Source priority](/guides/source-priority/).
+
+## Admin variant
+
+`POST /api/admin/import-apple-health-export` is the cookie-only admin variant
+(Bearer tokens never elevate). The multipart body adds a `userId` field naming
+the target user. The `ImportJob` row carries `triggeredByAdminId`, so the status
+endpoint admits both the target user and the triggering admin. Typical use:
+migrating a household member's history when they cannot run the import
+themselves.
+
+## Failure modes
+
+| Failure | What you see | Recovery |
+| --- | --- | --- |
+| Missing `export.xml` | `Archive is missing the apple_health_export/export.xml member` | Re-export from the iPhone; a partial AirDrop can lose the entry. |
+| Encrypted archive | `Encrypted ZIP entries are not supported` | The file was repacked by a third-party tool — re-export from iOS directly. |
+| Worker down | `503 Background worker is not running` | Check the `app-worker` (or `all`-mode `app`) container and restart. |
+| Rate-limited | `429 Too many import uploads` | Wait sixty seconds; the limit is three uploads per minute per user. |
+
+The wide-event line `import.apple-health.kickoff` captures every attempt with
+upload size, SHA-256, and the resolved `ImportJob` id.

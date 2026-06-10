@@ -1,0 +1,160 @@
+---
+title: Self-host in 10 minutes
+description: A step-by-step tutorial that takes a fresh host from git clone to a running HealthLog instance with a working first user.
+sidebar:
+  order: 2
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+This tutorial takes a fresh host from `git clone` to a running instance with a
+working first user. Budget about ten minutes if Docker is already installed —
+longer if you also want a TLS-fronted public hostname (see
+[Reverse proxy](/guides/reverse-proxy/) for that).
+
+## Prerequisites
+
+- **Docker 24+ with Compose v2.** The bundled `docker-compose.yml` pulls a
+  multi-arch image from GitHub Container Registry (`linux/amd64` +
+  `linux/arm64`), so a Raspberry Pi 5 or an x86 VPS both work unchanged.
+- **2 GB RAM, 10 GB free disk.** The Postgres data volume grows with history;
+  the Apple Health import worker can briefly hold a 1.5 GB upload in `/tmp`.
+- **Outbound HTTPS** to `ghcr.io` for image pulls, plus whichever integration
+  endpoints you enable later.
+- **Optional but recommended:** a reverse proxy that terminates TLS in front of
+  `http://localhost:3000`.
+
+## Walkthrough
+
+<Steps>
+
+1. **Clone the repository.**
+
+   ```bash
+   git clone https://github.com/MBombeck/HealthLog.git
+   cd HealthLog
+   cp .env.example .env
+   ```
+
+   `.env.example` is the canonical reference for every variable the app reads.
+   Anything you do not uncomment falls back to a sane default or disables the
+   optional subsystem.
+
+2. **Generate the three required secrets.** HealthLog refuses to boot without
+   them. Generate with `openssl` and append to `.env`:
+
+   ```bash
+   echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" >> .env
+   echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"     >> .env
+   echo "API_TOKEN_HMAC_KEY=$(openssl rand -hex 32)" >> .env
+   ```
+
+   | Variable | Purpose | Rotation cost |
+   | --- | --- | --- |
+   | `POSTGRES_PASSWORD` | Bundled Postgres password — used by both the `db` service and `DATABASE_URL` | Database restart + connection-string update |
+   | `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets (provider tokens, AI keys, VAPID secrets) | Coordinated; see [key rotation](/guides/encryption-key-rotation/) |
+   | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer API tokens before storage | Invalidates every issued `hlk_*` token |
+
+   Then open `.env` and confirm `DATABASE_URL` carries the password you just
+   generated. The template references the literal string `CHANGE-ME` — replace
+   it with your `POSTGRES_PASSWORD` value.
+
+3. **Bring the stack up.**
+
+   ```bash
+   docker compose up -d
+   ```
+
+   Compose starts two services: `db` (PostgreSQL 16 with a named volume) and
+   `app` (HealthLog on `localhost:3000`). The image runs `prisma migrate deploy`
+   on boot, so the schema lands automatically; later restarts no-op when the
+   database is already current. The first boot pulls a few hundred megabytes;
+   once `docker compose logs -f app` shows the Next.js banner, the instance is
+   live.
+
+4. **Create the first user.** Open `http://localhost:3000` in a browser and
+   register a username, email, and password. **The first user that registers is
+   promoted to admin automatically.** Every subsequent registration creates a
+   regular user.
+
+</Steps>
+
+## The bundled compose file
+
+The compose file is the single source of truth and ships with the repository.
+The shape below is abbreviated; the comments in the real file explain every
+load-bearing line.
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mbombeck/healthlog:latest
+    pull_policy: always          # load-bearing — see note below
+    container_name: healthlog-app
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://healthlog:${POSTGRES_PASSWORD}@db:5432/healthlog?schema=public&connection_limit=${DB_CONNECTION_LIMIT:-20}&pool_timeout=${DB_POOL_TIMEOUT:-20}"
+      NODE_ENV: production
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
+      API_TOKEN_HMAC_KEY: "${API_TOKEN_HMAC_KEY}"
+      NEXT_PUBLIC_APP_URL: "${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
+      APP_URL: "${APP_URL:-http://localhost:3000}"
+      HEALTHLOG_PROCESS_TYPE: "${HEALTHLOG_PROCESS_TYPE:-all}"
+      # … plus the backup, WHOOP, FHIR, deploy-webhook, and TLS-pin vars
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16.14-alpine
+    environment:
+      POSTGRES_USER: healthlog
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: healthlog
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+```
+
+:::note[`pull_policy: always` is load-bearing]
+Without it, Docker keeps a stale `:latest` digest cached on the host and skips
+the registry round-trip on `compose up`. With it, compose re-checks the GHCR
+digest every time and pulls when a fresher manifest exists. The small bandwidth
+cost is the price of digest-correctness.
+:::
+
+The compose `environment:` block is a **whitelist** — variables not listed there
+never reach the container even when `.env` defines them. This is intentional;
+when a guide tells you to set a new variable, it also tells you to add it to the
+whitelist.
+
+## Where to go next
+
+| Next step | Guide |
+| --- | --- |
+| Add a weight or BP and explore the dashboard | [First steps](/getting-started/first-steps/) |
+| Connect the native iOS app | [Connect the iOS app](/getting-started/connect-ios-app/) |
+| Put the instance behind TLS | [Reverse proxy](/guides/reverse-proxy/) |
+| Sync a Withings device | [Connect Withings](/guides/connect-withings/) |
+| Import your Apple Health history | [Import Apple Health](/guides/import-apple-health/) |
+
+## Troubleshooting
+
+- **`app` exits with a Prisma migration error.** The Postgres healthcheck can
+  race the migration on slow disks. Run `docker compose restart app` once the
+  database has stabilised — migrations are idempotent.
+- **Registration shows "registration disabled".** The bundled image ships with
+  registration enabled; the toggle lives in
+  `app_settings.singleton.registrationEnabled` and the admin panel can flip it.
+- **Service unreachable on `localhost:3000`.** Check `docker compose ps` — the
+  `app` healthcheck polls `/api/version` every 30 s and marks the container
+  unhealthy while Postgres is still starting. Tail `docker compose logs db`.
+- **OAuth callbacks loop back to localhost.** Set `APP_URL` and
+  `NEXT_PUBLIC_APP_URL` to the public hostname and restart `app`.
