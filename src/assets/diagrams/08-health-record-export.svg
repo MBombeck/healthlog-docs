@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" font-family="ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif" role="img" aria-labelledby="title desc">
+  <title id="title">Health-record export to an HL7 FHIR R4 bundle</title>
+  <desc id="desc">A single export request reads from the same aggregator the PDF uses. The selected date range and per-domain sections feed one rollup read, which becomes the PDF and the HL7 FHIR R4 document Bundle. The Bundle's Patient resource is built from the optional profile identity fields. Vitals become LOINC-coded Observations (a blood-pressure panel groups systolic and diastolic), medications become MedicationStatements, and a DiagnosticReport ties the Observations together. The optional AI summary is marked not clinically validated. The package format zips the PDF, the FHIR JSON, and a README together.</desc>
+
+  <rect x="0" y="0" width="1200" height="640" fill="#282a36" />
+
+  <text x="600" y="40" fill="#f8f8f2" font-size="22" font-weight="700" text-anchor="middle">Health-record export → HL7 FHIR R4 Bundle</text>
+  <text x="600" y="64" fill="#6272a4" font-size="13" text-anchor="middle">One aggregator read, two interchangeable artefacts: an enriched PDF and a machine-readable FHIR document.</text>
+
+  <!-- Inputs column -->
+  <g>
+    <rect x="40" y="100" width="250" height="200" rx="14" fill="#21222c" stroke="#44475a" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="165" y="124" text-anchor="middle" fill="#6272a4" font-size="13" font-weight="600">Request</text>
+
+    <rect x="60" y="142" width="210" height="44" rx="8" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" />
+    <text x="165" y="162" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">format</text>
+    <text x="165" y="178" text-anchor="middle" fill="#bd93f9" font-size="11">pdf · fhir · package</text>
+
+    <rect x="60" y="196" width="210" height="44" rx="8" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" />
+    <text x="165" y="216" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">range</text>
+    <text x="165" y="232" text-anchor="middle" fill="#bd93f9" font-size="11">date window (≤ 365 days)</text>
+
+    <rect x="60" y="250" width="210" height="40" rx="8" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" />
+    <text x="165" y="275" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">sections (per-domain toggles)</text>
+  </g>
+
+  <!-- Aggregator -->
+  <g>
+    <rect x="370" y="150" width="200" height="120" rx="14" fill="#44475a" stroke="#bd93f9" stroke-width="2" />
+    <text x="470" y="186" text-anchor="middle" fill="#f8f8f2" font-size="14" font-weight="700">Shared aggregator</text>
+    <text x="470" y="208" text-anchor="middle" fill="#6272a4" font-size="11">rollup tier · same read</text>
+    <text x="470" y="228" text-anchor="middle" fill="#6272a4" font-size="11">the PDF consumes</text>
+    <text x="470" y="252" text-anchor="middle" fill="#50fa7b" font-size="11" font-weight="600">identical numbers in both</text>
+  </g>
+
+  <!-- PDF output -->
+  <g>
+    <rect x="650" y="110" width="220" height="90" rx="12" fill="#44475a" stroke="#ffb86c" stroke-width="1.5" />
+    <text x="760" y="140" text-anchor="middle" fill="#f8f8f2" font-size="14" font-weight="700">Enriched PDF</text>
+    <text x="760" y="160" text-anchor="middle" fill="#bd93f9" font-size="11">cover · summary · sparklines</text>
+    <text x="760" y="178" text-anchor="middle" fill="#6272a4" font-size="11">doctor handover</text>
+  </g>
+
+  <!-- FHIR Bundle -->
+  <g>
+    <rect x="650" y="220" width="510" height="360" rx="14" fill="#21222c" stroke="#50fa7b" stroke-width="1.5" />
+    <text x="905" y="246" text-anchor="middle" fill="#50fa7b" font-size="14" font-weight="700">HL7 FHIR R4 document Bundle (application/fhir+json)</text>
+
+    <!-- Patient -->
+    <rect x="670" y="262" width="220" height="64" rx="8" fill="#44475a" stroke="#ff79c6" stroke-width="1.5" />
+    <text x="780" y="286" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">Patient</text>
+    <text x="780" y="304" text-anchor="middle" fill="#bd93f9" font-size="11">full name · insurer · insurance no.</text>
+    <text x="780" y="319" text-anchor="middle" fill="#6272a4" font-size="11">from profile identity fields</text>
+
+    <!-- Observations -->
+    <rect x="670" y="338" width="220" height="100" rx="8" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" />
+    <text x="780" y="362" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">Observations (LOINC-coded)</text>
+    <text x="780" y="382" text-anchor="middle" fill="#bd93f9" font-size="11">weight · pulse · SpO₂ · glucose …</text>
+    <text x="780" y="402" text-anchor="middle" fill="#bd93f9" font-size="11">BP panel groups sys + dia</text>
+    <text x="780" y="420" text-anchor="middle" fill="#6272a4" font-size="11">UCUM units</text>
+
+    <!-- MedicationStatement -->
+    <rect x="910" y="262" width="230" height="64" rx="8" fill="#44475a" stroke="#ffb86c" stroke-width="1.5" />
+    <text x="1025" y="286" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">MedicationStatement[]</text>
+    <text x="1025" y="306" text-anchor="middle" fill="#bd93f9" font-size="11">list · dose · compliance</text>
+
+    <!-- DiagnosticReport -->
+    <rect x="910" y="338" width="230" height="64" rx="8" fill="#44475a" stroke="#bd93f9" stroke-width="1.5" />
+    <text x="1025" y="362" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">DiagnosticReport</text>
+    <text x="1025" y="382" text-anchor="middle" fill="#bd93f9" font-size="11">ties the Observations together</text>
+
+    <!-- AI summary, opt-in -->
+    <rect x="910" y="414" width="230" height="64" rx="8" fill="#44475a" stroke="#ff5555" stroke-width="1.5" stroke-dasharray="3 3" />
+    <text x="1025" y="438" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">AI summary (opt-in)</text>
+    <text x="1025" y="458" text-anchor="middle" fill="#ff5555" font-size="11">marked not clinically validated</text>
+
+    <text x="905" y="510" text-anchor="middle" fill="#6272a4" font-size="11">LOINC + UCUM conventions match the iOS client, so records interchange.</text>
+    <text x="905" y="554" text-anchor="middle" fill="#6272a4" font-size="11">format: package zips the PDF + FHIR JSON + README together.</text>
+  </g>
+
+  <!-- Arrows -->
+  <g stroke="#8be9fd" stroke-width="1.5" fill="none" marker-end="url(#a8-c)"><path d="M290 200 L 370 200" /></g>
+  <g stroke="#ffb86c" stroke-width="1.5" fill="none" marker-end="url(#a8-o)"><path d="M570 190 C 610 175, 620 155, 650 155" /></g>
+  <g stroke="#50fa7b" stroke-width="1.5" fill="none" marker-end="url(#a8-g)"><path d="M570 230 C 610 260, 620 300, 650 300" /></g>
+
+  <defs>
+    <marker id="a8-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8be9fd" /></marker>
+    <marker id="a8-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffb86c" /></marker>
+    <marker id="a8-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#50fa7b" /></marker>
+  </defs>
+</svg>

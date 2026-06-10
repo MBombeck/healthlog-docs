@@ -1,0 +1,65 @@
+---
+title: Comparison Views
+description: How the comparison overlay works — vs. last month / vs. last year — across charts, tiles, and the AI insights surface.
+sidebar:
+  order: 1
+---
+
+A **comparison overlay** turns charts and the insights surface into a "this month vs. last month" view at the flick of a toggle. To keep the default dashboard uncluttered, the overlay lives **only on `/insights`**, folded into the hero meta band. This page covers what the toggle does, where to find it, and what the numbers mean.
+
+## Where the toggle lives
+
+There is one entry point: the `/insights` hero meta band. The three-state segmented control reads *Off / vs. last month / vs. last year* — tap once to flip on the last-month overlay, tap again for last-year, tap a third time to turn it off. The control is touch-friendly (no hover dependency) and writes a per-user preference that survives reload and follows you across devices.
+
+Default is off; nothing changes until you turn it on. The dashboard's per-chart cog menu handles trend, trend-arrow, and target-range overlays separately — see [Dashboard Customization](/features/dashboard-customization/).
+
+## What the overlay actually shows
+
+With the toggle on, three things change.
+
+### 1. The chart gets a dimmed prior-period line
+
+The current period renders in full colour as the primary line. The prior period — last month or last year, depending on which mode you picked — renders as a **dimmed line beneath it**, lower opacity.
+
+The two periods share the **same visible x-axis**. The prior-period series is **forward-shifted** internally: a reading from a year ago renders at the position of "today − 365d + offset", so each prior-period point sits directly under the current-period point it should be compared against. Same time of month, same day of week. The vertical distance between the two lines is the comparison — no eye-balling alignment.
+
+### 2. The headline value picks up a delta callout
+
+On `/insights`, the hero metric value gets a **Δ ±N** chip alongside the toggle. The number is the difference between the current-period mean and the prior-period mean, in the metric's own units. Colour follows the same metric-aware sentiment as the dashboard 7-day trend chips (green for "improvement", orange for "concerning", muted for "neutral").
+
+The two new fields on the data summary (`avg30LastMonth`, `avg30LastYear`) feed the delta computation, so the chart and the headline read from the same source of truth.
+
+### 3. The AI insights surface narrates the comparison
+
+When the toggle is on, the AI summary card narrates the comparison in plain language: "your average BP improved by 4 mmHg vs. last month". The prior-period mean is added to the insight prompt, so the model sees both periods and produces a sentence comparing them. The narration is generated **once per snapshot** with the rest of the insight, so it doesn't double the AI cost when you toggle on and off.
+
+## What "vs. last month" / "vs. last year" mean
+
+- **vs. last month** — the comparison mean is the average over the **30 days before** your current 30-day window. So if you're looking at the last 30 days of weight readings, the prior-period mean is the 30 days before that. Not "the same calendar month last year"; "the equivalent-length window immediately before".
+- **vs. last year** — the comparison mean is the average over the **30 days starting 365 days ago**. So the same time of year, the same 30-day window length, just one calendar year earlier.
+
+Both modes use the same 30-day window length as the current period. That means the comparison stays apples-to-apples even if you don't have a full year of history yet — the older window simply has fewer readings, and the delta is computed from whatever's there.
+
+## When the overlay can't render
+
+Two cases:
+
+- **No prior-period data.** If the prior 30-day window contains zero readings, the overlay line doesn't render and the Δ callout reads "—". The toggle stays on; the moment a single prior-period reading lands (e.g. you backfill a paper diary), the overlay starts showing.
+- **Sparse prior-period data.** If the prior window has fewer than 3 readings, the overlay still renders but the Δ callout shows a small *(low confidence)* tag. Same threshold as the rest of HealthLog's sparse-data handling.
+
+The current period gets its own empty-state handling — a 1- or 2-point chart still renders an explicit empty state — independent of the overlay.
+
+## Performance
+
+The comparison overlays are computed via the same bucket-series helper the dashboard fetcher already uses, so there is **no extra round-trip per chart** when you flip the toggle on. The dashboard fetch returns both the current-period series and the two prior-period means in one response; the chart re-renders client-side without a network call.
+
+The AI insights narration adds the prior-period means to the prompt — that's a small token-budget hit per generation, not a separate request. The cached insight payload includes the narration so toggling the comparison off and back on doesn't trigger a regeneration.
+
+## Reduced motion
+
+The overlay line fade-in respects `prefers-reduced-motion` — for users who've turned reduced motion on, the prior-period line snaps to final state instantly instead of fading in.
+
+## What's not in the comparison overlay
+
+- The comparison is a two-mode split — **last month** and **last year**. There are no quarterly or arbitrary-window modes; the month/year split covers the common "am I trending up or down?" question without a date-range picker.
+- The medication-compliance heatmap doesn't get a prior-period overlay; the heatmap shape doesn't translate well to overlay layering. The compliance chart and the dashboard tile do get the Δ callout normally.

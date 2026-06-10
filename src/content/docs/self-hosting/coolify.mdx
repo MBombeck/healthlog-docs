@@ -1,0 +1,119 @@
+---
+title: Coolify deployment
+description: Run HealthLog on Coolify — the pull_policy gotcha, host-side retag fallback, deploy-webhook secret, and the recurring stale-digest pattern.
+sidebar:
+  order: 5
+---
+
+[Coolify](https://coolify.io/) is the deploy stack HealthLog itself ships on, so the moving parts are well-trodden. This runbook covers the three things that bite first-time operators: the stale-digest pull gotcha, the host-side retag fallback when autodeploy refuses to pull, and the deploy-webhook secret you should set per environment.
+
+import topology from "../../../assets/diagrams/03-self-hosting-topology.svg";
+
+<img src={topology.src} alt="Self-hosting topology: Coolify watches GHCR for new digests and triggers a pull + restart of the app + worker stack" />
+
+## Why Coolify
+
+Coolify gives you Docker-Compose-shaped self-hosting with a UI in front. For HealthLog that means you get the same `docker-compose.yml` the repository ships, plus a deploy webhook, image-watch on a GHCR tag, environment-variable management, and one-click rollback to a previous deploy. The trade-off is that Coolify does its own caching of pull manifests, which is where the stale-digest gotcha lives.
+
+## Initial setup
+
+1. **Create the application** in Coolify as a Docker Compose app. Point it at the public repo (`MBombeck/HealthLog`) or a clone you maintain.
+2. **Pick the branch** — `main` is the release-only branch; `develop` is the active integration branch. Production should track `main`.
+3. **Compose file** — use the repo's `docker-compose.yml` unchanged. The entrypoint already waits for Postgres, runs migrations, and starts the server.
+4. **Environment variables** — paste the required four (`POSTGRES_PASSWORD`, `DATABASE_URL`, `ENCRYPTION_KEY`, `API_TOKEN_HMAC_KEY`) plus any integrations you plan to enable. The `.env.example` in the repo is the canonical list.
+5. **Domain + TLS** — Coolify ships [Traefik](https://doc.traefik.io/traefik/) by default; set your domain and toggle the auto-TLS switch.
+
+## The `pull_policy: always` requirement
+
+HealthLog's `docker-compose.yml` ships with:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mbombeck/healthlog:latest
+    pull_policy: always
+```
+
+This is **load-bearing** for Coolify deploys. Without `pull_policy: always`, Coolify will happily restart the same image [digest](https://docs.docker.com/dhi/core-concepts/digests/) it had last time even after you've published a fresh tag. The explicit `always` policy ships in the repo's compose file; confirm the line is present after every compose-file edit.
+
+## The deploy webhook
+
+Each Coolify application has a unique deploy URL. Wire it into your release pipeline so a fresh tag triggers an auto-pull + restart:
+
+1. In Coolify, open the application → **Webhooks** → copy the **Deploy Webhook URL** (looks like `https://your-coolify.example.com/api/v1/deploy?uuid=...&force=true`).
+2. Store it as a GitHub Actions secret (`COOLIFY_DEPLOY_WEBHOOK_PROD`).
+3. Add a step to the release workflow that `curl`s the URL after the GHCR image push succeeds.
+
+The pre-existing post-publish-verify workflow in the main repo already handles half of this — the missing piece is the secret on the Coolify side, which is intentionally not in version control.
+
+## When autodeploy refuses to pull — the host-side retag fallback
+
+Coolify can hit a cache bug where a new image is published to GHCR but the deploy webhook fires against a stale manifest. The reproducible workaround is a host-side retag:
+
+```bash
+# SSH to the host
+docker pull ghcr.io/mbombeck/healthlog:<version>
+docker tag ghcr.io/mbombeck/healthlog:<version> ghcr.io/mbombeck/healthlog:latest
+# Restart from the Coolify UI
+```
+
+The retag forces Coolify's next compose-up to use the freshly-pulled digest as the canonical `:latest`. Less elegant than autodeploy but reliable when the cache misbehaves.
+
+The cleaner long-term fix is to pin the compose file to an explicit version tag (`ghcr.io/mbombeck/healthlog:<version>`) and bump it per release — that removes Coolify's cache from the path entirely at the cost of one extra commit per release.
+
+## Worker-process split
+
+HealthLog's worker can run in the same container as the web process (the default), or split off into its own service. The split is controlled by `HEALTHLOG_PROCESS_TYPE`:
+
+- `HEALTHLOG_PROCESS_TYPE=all` — single container hosts both. Default. Use for a single-host setup with up to a few hundred users.
+- `HEALTHLOG_PROCESS_TYPE=web` — HTTP only; pg-boss reminders, insight generation, and import jobs **will not run**.
+- `HEALTHLOG_PROCESS_TYPE=worker` — pg-boss workers only; HTTP requests **will not be served**.
+
+For a Coolify deployment with web/worker split, add a second compose service that shares the same image and environment but overrides the process type:
+
+```yaml
+services:
+  app:
+    environment:
+      - HEALTHLOG_PROCESS_TYPE=web
+  app-worker:
+    image: ghcr.io/mbombeck/healthlog:latest
+    pull_policy: always
+    environment:
+      - HEALTHLOG_PROCESS_TYPE=worker
+    # share env, depends_on, etc.
+```
+
+Both services pick up the same database, the same encryption keys, and the same registered pg-boss queues. Scaling them independently is then a Coolify replica-count toggle.
+
+## Resource sizing
+
+Coolify exposes per-service CPU and memory caps. Sensible starting points:
+
+| Service | CPU | Memory | Notes |
+| ------- | --- | ------ | ----- |
+| `app` (web) | 1 vCPU | 512 MB | Bumps under chart render or AI Coach streaming; 1 GB if you serve > 50 concurrent users. |
+| `app-worker` | 0.5 vCPU | 512 MB | Apple Health import worker spikes to 800 MB on a 1 GB `export.zip`; bump to 1 GB if your users are heavy importers. |
+| `postgres` | 1 vCPU | 1 GB | Comfortable for a few thousand `Measurement` rows per day; bump to 2 GB if you enable `pg_stat_statements` or `pg-boss` queue depth grows past a few thousand jobs. |
+
+## Backups
+
+Two layers:
+
+- **Coolify-native daily snapshot** of the `postgres` volume. Set the retention policy in the Coolify UI; this covers the local disaster recovery case.
+- **HealthLog-native off-host weekly backup** to an [S3](https://docs.aws.amazon.com/s3/)-compatible bucket (R2, B2, MinIO, AWS). Configure in the admin panel — see [Admin → Backups](/admin/backups/). [AES-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode)-encrypted on the way out; the encryption key never leaves the host.
+
+Restore drills are part of the operator manual — see [Ops → Backup & Restore](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/backup-restore.md) in the main repo.
+
+## Logs and observability
+
+Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth) — the wide-event log lines are pre-formatted for Loki's structured-log path.
+
+Glitchtip and Umami land in the admin-panel monitoring section; both honour the SSRF guard and only emit when explicitly configured.
+
+## Common Coolify gotchas
+
+- **`unrs-resolver` build script blocked** — Coolify 4.x on pnpm 11 needs `--ignore-scripts` plus an `onlyBuiltDependencies` list for `sharp` and `unrs-resolver`. The repo's Dockerfile already has the flags; if you fork the build, copy them across verbatim.
+- **`/tmp` wiped between deploys** — the worker writes Apple Health import temp files to `/tmp`. Coolify wipes the host's `/tmp` between deploys, so an import in flight during a deploy will fail mid-stream. Acceptable; the user can re-upload (and the SHA-256 dedup short-circuits) the same archive. If you want it bulletproof, mount a named volume at `/tmp/healthlog-imports`.
+- **Coolify webhook secret in the URL** — Coolify's deploy URL includes the UUID and `force=true` as query params. Treat it as a secret; do not commit it.
+- **Edge-host clones disappearing** — on some hosts the source clone in `/tmp` gets wiped, breaking later deploys. The repo's compose entries auto-clone if the source directory is missing; verify your compose file includes that fallback.

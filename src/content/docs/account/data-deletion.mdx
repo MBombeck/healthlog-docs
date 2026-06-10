@@ -1,0 +1,112 @@
+---
+title: Data deletion — what gets removed
+description: Exactly which models are deleted by the admin "Wipe all data" action and by passkey-based account deletion, and what survives both.
+sidebar:
+  order: 1
+---
+
+HealthLog has two distinct deletion paths, and they affect different sets of data. This page enumerates every model touched by each path so you can pick the right one with confidence — and so you know what you've still got after.
+
+## Two deletion paths
+
+| Path | Scope | Triggered by | Confirm string | What stays |
+|------|-------|--------------|----------------|------------|
+| **Wipe all data** (admin only) | Health + integration data of every user on the instance | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | User accounts, passkeys, sessions, audit log |
+| **Delete account** | One user, including the account itself | `/settings/account` → "Delete account" | `DELETE_ACCOUNT` | Audit-log entries that reference other users still survive (the row's `userId` is purged but the audit row itself remains for the rest of the audit trail) |
+
+The instance-wide wipe is meant for refurbishing a self-hosted box — handing the URL to someone else, repurposing the database, or starting over after a botched import. The per-account deletion is the one a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure).
+
+## What "Wipe all data" deletes
+
+The admin "Wipe all data" action at `/admin/danger-zone` runs `DELETE /api/admin/data` with body `{ "confirm": "DELETE ALL" }`. It's rate-limited (5/min/IP), requires the admin role, and audit-logs the intent **before** the transaction starts — so the trail describing "an admin is about to wipe data" survives even if the operation crashes mid-way.
+
+Inside a single Postgres transaction:
+
+- **Measurements** — every weight, blood pressure, glucose, SpO₂, sleep, activity, body-composition entry, for every user.
+- **Medication intake events** — every confirmed / late / missed / skipped record.
+- **Medications** — definitions, schedules, reminder phases (cascaded via the medication FK).
+- **API tokens** — both Bearer (`hlk_*`) and refresh tokens.
+- **Withings connections** — OAuth credentials, callback registrations.
+- **Auth challenges** — pending passkey-registration / -login challenges.
+- **Notification channels** — Telegram, ntfy, Web Push (cascades to per-channel preferences via the FK).
+- **Push subscriptions** — every device's Web Push endpoint registration.
+- **Telegram-scheduled deletions** — the queue of sent reminder messages waiting to be auto-deleted by the bot.
+- **Mood entries** — every mood log row.
+
+Then, in the same transaction, the per-user fields on the `User` row are cleared:
+
+- `heightCm`, `dateOfBirth`, `gender`
+- `insightsPrivacyMode` resets to `aggregated`
+- `insightsCachedAt`, `insightsCachedText` — wipes the cached AI summary
+- `telegramBotToken`, `telegramChatId`, `telegramEnabled` — clears any remaining encrypted Telegram credentials on the user row itself (the channel rows above are already gone)
+- `withingsClientIdEncrypted`, `withingsClientSecretEncrypted`
+- `onboardingCompletedAt` — set to `null`, so users land on the onboarding wizard again on next login
+
+### What "Wipe all data" preserves
+
+- **User accounts** — `users` rows are not deleted; everyone can still log in.
+- **Passkeys + Sessions** — sign-in credentials survive so admins don't lock themselves out by clicking the button.
+- **Audit log** — preserved. The audit log's whole point is to outlive the data it documents; a wipe creates `admin.data.clear.start` and `admin.data.clear` rows that anchor the trail.
+- **App settings** — the `AppSettings` singleton (registration flag, notification globals, VAPID keys, GitHub PAT, etc.) is admin-level config and is **not** in the wipe scope.
+- **Feedback** — bug reports remain so admins can review the inbox without losing context.
+- **Achievements** — `UserAchievement` rows are not in the wipe scope. (If you want a true clean-slate experience for every user, follow up with a `DELETE FROM user_achievements;` on the database.)
+- **Data backups** — `DataBackup` rows survive a wipe so you can roll back if you wiped by mistake. Restore one via `/admin/backups` to undo.
+
+## What "Delete account" deletes
+
+A user-initiated `DELETE /api/settings/account` with body `{ "confirm": "DELETE_ACCOUNT" }` removes the user's account and everything attached to it.
+
+The handler:
+
+1. **Refuses last-admin deletion.** If the user is the only admin on the instance, the request fails with `400 The last admin account cannot be deleted` so you can never lock the instance out of its own admin panel.
+2. **Audit-logs the intent** as `user.account.delete` before doing anything destructive, so the trail predates the deletion.
+3. **Destroys every active session** for the user — the device that initiated the delete is signed out; every other browser, tab, and native client is signed out on the next request.
+4. **Explicitly purges PII-bearing rows** that schema-level `onDelete: SetNull` would otherwise keep:
+   - `Feedback` rows (free-text symptom descriptions, attached system info)
+   - `AuditLog` rows attached to the user (IP addresses, login geo)
+5. **Deletes the `User` row.** Postgres `ON DELETE CASCADE` then takes care of every model that holds a foreign key back to the user:
+   - Passkeys, sessions, auth challenges
+   - Measurements, mood entries
+   - Medications, medication schedules, reminder phase configs, intake events, Telegram reminder messages
+   - API tokens, refresh tokens
+   - Withings connections, integration status snapshots
+   - Notification channels (and their per-channel preferences via the channel FK)
+   - Push subscriptions, Telegram scheduled deletions
+   - Data backups (own snapshots are wiped so a recovered DB doesn't leak the user's history through a rebuild)
+   - Idempotency keys, devices, achievements
+
+### Why GDPR-clean and what it means
+
+`Feedback` and `AuditLog` use `onDelete: SetNull` rather than `Cascade` because the rows themselves are operationally useful even after the user is gone — admin tooling, security forensics, longitudinal bug tracking. Without an extra purge step, the row would survive with `userId = null` but still carry the user's IP address, free-text bug description, and login city. An explicit `deleteMany({ where: { userId } })` runs on account deletion so it is genuinely complete erasure (right to erasure) and not just disconnection.
+
+After the deletion completes the audit log gets a `settings.account.delete` Wide-Event annotation under the *successor* admin's namespace (anonymous if no admin is online), so the trail records that *someone deleted that account* without keeping any of the deleted account's PII.
+
+### What "Delete account" preserves
+
+- **App settings** — never user-bound to begin with.
+- **Other users' audit-log entries** — the deleted user's `AuditLog` rows are purged, but rows that mention them as a *target* (e.g. "Admin X force-logged-out user Y") stay because they belong to the actor's audit trail, not the deleted user's.
+- **The instance itself** — deleting the last non-admin doesn't tear anything down; the app keeps running.
+
+## Backups and the right to be forgotten
+
+If your instance has off-host S3 backups configured ([Scaling & Operations](/self-hosting/scaling/)), the user's data still exists in those snapshots until the bucket lifecycle policy expires them. That is by design — backups are the floor against accidental deletion — but if a user invokes Art. 17, you may also need to:
+
+1. Identify any in-database `DataBackup` rows for that user — `onDelete: Cascade` on the FK takes care of those automatically when the user is deleted.
+2. Purge the equivalent objects from S3 (the worker holds `PutObject` + `GetObject` only, so this is an operator action, not an in-app one).
+3. Note in your records that the bucket-side purge happened, so the next audit shows the steps were taken.
+
+The HealthLog code never auto-prunes off-host backups — that's intentional ([Scaling & Operations](/self-hosting/scaling/) explains why a compromised worker must not be able to wipe your backup history).
+
+## Public Privacy Policy page
+
+Every HealthLog instance serves a public Privacy Policy at `/privacy` — reachable without an account so app-store reviewers, prospective users, and self-hosted-instance visitors can read it before signing up. The page was added so the iOS build could clear App Store Connect submission, but it doubles as the canonical DSGVO / GDPR transparency surface for every deployment:
+
+- **EU GDPR / DSGVO data-subject rights** are enumerated explicitly — right of access (Art. 15), rectification (Art. 16), erasure / "right to be forgotten" (Art. 17), restriction (Art. 18), data portability (Art. 20), and objection (Art. 21) — each cross-linked to the in-app surface that fulfils it.
+- **Apple HealthKit quantity-type list** is disclosed in full so reviewers and users see exactly which HealthKit categories the upcoming iOS app reads — body mass, blood pressure systolic + diastolic, blood glucose, heart rate, oxygen saturation, body fat percentage, lean body mass, BMI, HRV SDNN, sleep analysis, resting heart rate, step count, active energy burned, flights climbed, walking + running distance, VO₂ max, and body temperature.
+- The page renders from `/privacy` on every instance (self-hosted + demo), is statically generated, and contains zero per-user data.
+
+## Related pages
+
+- [Backup structure and restore](/admin/backups/) — what's in a snapshot, how restore works, security considerations
+- [Self-Hosting → Scaling](/self-hosting/scaling/) — off-host S3 backups, encryption-key rotation
+- [Security](/security/) — auth, encryption, audit trail

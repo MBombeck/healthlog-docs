@@ -1,0 +1,107 @@
+---
+title: "Native API Clients"
+description: "Bearer-token issuance, refresh-token rotation, idempotency keys, and device registration for the iOS app and external automation."
+sidebar:
+  order: 11
+---
+
+The web PWA uses cookie sessions; native clients (the HealthLog iOS app, n8n, Health Connect bridges, custom shortcuts) authenticate with [bearer tokens](https://datatracker.ietf.org/doc/html/rfc6750) — an opaque credential sent in the `Authorization: Bearer …` header that the server resolves to a user on every request. Both flows share the same handlers, so every protected route accepts either credential.
+
+## Token Issuance
+
+`POST /api/auth/login` and `POST /api/auth/passkey/login-verify` return a bearer token in the response body when the request opts in as a native client.
+
+A request opts in by sending **either**:
+
+- `X-Client-Type: native` header, **or**
+- `User-Agent` starting with `HealthLog-iOS/`
+
+The browser flow is unchanged: without one of those signals you get only the session cookie.
+
+### Response shape (native)
+
+```json
+{
+  "data": {
+    "user": { "id": "clx...", "username": "alice", "role": "USER" },
+    "token": "hlk_a1b2c3d4...",
+    "refreshToken": "hlr_z9y8x7w6...",
+    "expiresIn": 86400
+  }
+}
+```
+
+The raw `hlk_<64-hex>` and `hlr_<64-hex>` values are returned **exactly once**. Default access-token lifetime is 24 hours; refresh tokens rotate.
+
+## Refresh-Token Rotation
+
+Access tokens are short-lived; a long-lived **refresh token** mints new ones without re-prompting for credentials. HealthLog uses [rotating refresh tokens](https://datatracker.ietf.org/doc/html/rfc6749#section-10.4) — each refresh consumes the old token and issues a fresh one, so a leaked token is single-use.
+
+`POST /api/auth/refresh` exchanges a refresh token for a fresh access + refresh pair.
+
+```bash
+curl -s -X POST https://your-instance.example.com/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken": "hlr_z9y8x7w6..."}'
+```
+
+**Reuse-detection**: presenting the same refresh token a second time revokes **every** refresh token for the user. The legitimate device gets a forced re-login; the attacker holding a stolen token is now locked out. Send `revoke: true` on a normal logout to mark both the refresh row and its paired access token as revoked.
+
+A stable `errorCode` on the refresh response lets a client tell a **revoked family** (the device must re-authenticate) apart from a **transient failure** (retry is safe), so the app doesn't bounce a user to login on a network blip.
+
+## Offline Sync Delta Feed
+
+The full sync contract — domains, identity keys, the opaque cursor, tombstones, and per-domain conflict rules — lives on the dedicated [Offline sync contract](/api/sync/) page. This section is the bearer-client quick reference.
+
+After a client has done its first full backfill, it stays current with an incremental delta feed instead of re-pulling everything.
+
+```
+GET /api/sync/state     — handshake: "should I sync?" + the sync window / retention
+GET /api/sync/changes   — paginated measurement deltas since the last cursor
+```
+
+`GET /api/sync/changes` pages over an **opaque keyset cursor** — echo it back, never parse it. Each page carries `upserts` (live rows) and `tombstones` (soft-deleted rows, keyed on `externalId`). **Apply tombstones before upserts within a page.** A `cursorExpired: true` response means the cursor has aged out past the retention window — re-initialise with a clean backfill. Default page size is 200, hard cap 500. The delta feed is a catch-up mechanism, never a replacement for the first-pair backfill.
+
+```bash
+curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limit=200" \
+  -H "Authorization: Bearer hlk_..."
+```
+
+The two measurement-delete routes now **soft-delete** (write a tombstone) rather than hard-deleting, so a deletion on one device propagates to the others as a tombstone instead of silently re-syncing. Tombstones are pruned past a retention window keyed to the refresh-token lifetime. A single-resource GET or PUT against a tombstoned row returns as deleted. The full response envelopes are in the [OpenAPI spec](/api/overview/).
+
+## Idempotency-Key Header
+
+An [idempotent](https://en.wikipedia.org/wiki/Idempotence) request can be safely retried without changing the result beyond the first attempt — essential for a mobile client on a flaky network that can't tell a lost request from a lost response. HealthLog implements the [`Idempotency-Key` HTTP header](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header) convention (an IETF draft, still the canonical reference for the pattern).
+
+`POST` / `PUT` / `PATCH` / `DELETE` handlers honour an `Idempotency-Key: <8-128 chars>` header. Re-sending the same key for the same `(userId, method, path)` within 24 hours replays the original response with `X-Idempotent-Replay: true`.
+
+```bash
+curl -X POST https://your-instance.example.com/api/measurements \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "WEIGHT", "value": 78.4, "takenAt": "2026-05-09T07:15:00Z"}'
+```
+
+**Not cached**: 401, 403, 408, 429, any 5xx, and any response body containing a token prefix (`hlk_`, `hlr_`, `sk-`, `sk-ant-`). Validation 4xx (e.g. 422) **is** cached, so a broken retry doesn't re-hit the database.
+
+## Device Registration
+
+Native clients register their push-notification handle through `POST /api/devices`.
+
+```bash
+curl -X POST https://your-instance.example.com/api/devices \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Content-Type: application/json" \
+  -d '{"platform": "ios", "token": "<APNs-token>"}'
+```
+
+If the same APNs / FCM token is already registered to a **different** account, the request is rejected with `409 Conflict` instead of silently transferring ownership. APNs / FCM tokens aren't a secret, so trusting wire input would let anyone who learns a token redirect another user's pushes. The denial is audit-logged.
+
+## Token Storage (Server-Side)
+
+Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [external-ingest](/api/external-ingest/) token verification.
+
+:::tip
+For long-running automation (n8n, Home Assistant, Health Connect bridges), prefer a long-lived API token created from **Settings → API & Tokens** instead of the 24-hour access tokens — same auth header, no refresh dance.
+:::

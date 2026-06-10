@@ -1,0 +1,267 @@
+---
+title: "Offline Sync Contract"
+description: "How a native client keeps a local copy of measurements, mood, and medication intakes current: backfill, the incremental delta feed, the opaque cursor, tombstones, and per-domain conflict rules."
+sidebar:
+  order: 12
+---
+
+import syncFlow from "../../../assets/diagrams/09-sync-delta-feed.svg";
+
+The web PWA reads live or shows an offline indicator — it keeps no local write
+store. A native client (the [iOS app](/ios/ios-app/)) does hold a local copy,
+and this page is the contract it follows to keep that copy in step with the
+server. The wire shapes here are served by `/api/sync/state` and
+`/api/sync/changes`; the full envelopes are in the
+[OpenAPI spec](/api/overview/). Authentication is the bearer-token flow from
+[Native API clients](/api/native-clients/).
+
+<img src={syncFlow.src} alt="Offline sync flow: a client does a one-time full backfill through the list and batch endpoints, then stays current by calling GET /api/sync/state and draining GET /api/sync/changes page by page with an opaque cursor; each page carries tombstones applied before upserts; a cursor older than the retention horizon returns cursorExpired and the client re-initialises with a clean backfill." />
+
+## The three sync domains
+
+The delta feed serves three independent domains. Each carries the user-owned
+rows for one part of the record:
+
+| Domain | Backs | Carries on the wire |
+|---|---|---|
+| `measurements` | Every health metric (weight, blood pressure, glucose, HealthKit metrics, …) | `type`, `value`, `unit`, `measuredAt`, `source`, `notes` |
+| `mood` | Mood entries | `date`, `mood`, `score`, `tags`, `note`, `moodLoggedAt`, `source` |
+| `intakes` | Medication intake events (a dose taken or skipped) | `medicationId`, `scheduledFor`, `takenAt`, `skipped`, `source` |
+
+The domains are walked independently — each has its own watermark in the cursor
+(see below), because each table changes at its own rate and a client may adopt
+them at different times.
+
+## Identity keys differ by domain — and why
+
+Every synced row needs a stable key the client can dedup and reconcile on. The
+key is **not** the same across domains, and the difference is deliberate:
+
+| Domain | Identity key | Why |
+|---|---|---|
+| `measurements` | `externalId` — a UUID string for a single sample, or `stats:<id>:<YYYY-MM-DD>` for a per-day cumulative total | A HealthKit sample already carries a device-minted UUID that is stable across every device that sees it. Keying on that UUID means the same reading from the phone, a re-sync, and an `export.zip` import all resolve to one row instead of duplicating. |
+| `mood` | The server `id` (a cuid) | A mood entry is **minted on the server**. The client may create an optimistic local placeholder, but it discards that the moment the server returns the canonical row, so there is no client-stable id to key on — the server `id` is the only cross-device handle. |
+| `intakes` | The server `id` (a cuid) | Same as mood: an intake event is server-minted. The bulk-insert dedup hint (`idempotencyKey`) prevents a double-POST but is **not** an identity — it is not stable across devices, so tombstones and reconciliation key on the server `id`. |
+
+For measurements the client mirrors rows by `externalId`; for mood and intakes
+it mirrors by server `id`. Tombstones (below) follow the same key per domain.
+
+## Versioning and timestamps
+
+Three fields drive convergence. Every served row carries them:
+
+- **`syncVersion`** — a monotonically increasing integer bumped on every write
+  to the row, including a soft-delete. The client keeps its mirror's version
+  monotonic by it, and on the editable domain it is the conflict tiebreaker
+  (higher version wins).
+- **`updatedAt`** — the server-side last-touched timestamp. It is the primary
+  key the cursor walks: a soft-delete bumps `updatedAt`, so a deletion shows up
+  in the same `updatedAt`-ordered scan as a normal edit.
+- **`deletedAt`** — `null` for a live row, an ISO timestamp for a soft-deleted
+  one. A row whose `deletedAt` is set is a [**tombstone**](https://en.wikipedia.org/wiki/Tombstone_(data_store))
+  — a deletion marker that survives in the feed so offline replicas learn the
+  row is gone; everything else is an upsert.
+
+## Pull, push, and the handshake
+
+There are three moving parts, and they do not overlap:
+
+### Push — the batch endpoints
+
+A client sends its local rows up through the existing write endpoints —
+`POST /api/measurements/batch`, `POST /api/mood-entries/bulk`,
+`POST /api/medications/intake/bulk`. These are the same endpoints documented on
+the per-domain API pages; there is no separate "sync push" route.
+
+### Pull — `GET /api/sync/changes`
+
+The incremental, read-only catch-up feed. It returns every row that changed
+since the cursor, split per domain into `upserts` and `tombstones`. It pages
+over an opaque cursor (next section). The page size is `limit` — default `200`,
+hard cap `500` — applied **per domain**.
+
+```bash
+curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limit=200" \
+  -H "Authorization: Bearer hlk_..."
+```
+
+```json
+{
+  "data": {
+    "serverNow": "2026-05-31T09:00:00.000Z",
+    "cursor": "<opaque-token>",
+    "hasMore": false,
+    "cursorExpired": false,
+    "changes": {
+      "measurements": {
+        "upserts": [
+          {
+            "id": "clx...", "externalId": "9b2e...", "type": "WEIGHT",
+            "value": 81.5, "unit": "kg", "measuredAt": "2026-05-30T07:30:00.000Z",
+            "source": "HEALTHKIT", "notes": null, "syncVersion": 1,
+            "updatedAt": "2026-05-30T07:31:00.000Z"
+          }
+        ],
+        "tombstones": [
+          { "id": "clx...", "externalId": "1a7c...", "syncVersion": 2,
+            "deletedAt": "2026-05-30T08:00:00.000Z",
+            "updatedAt": "2026-05-30T08:00:00.000Z" }
+        ]
+      },
+      "mood": { "upserts": [], "tombstones": [] },
+      "intakes": { "upserts": [], "tombstones": [] }
+    }
+  },
+  "error": null
+}
+```
+
+`hasMore` is `true` while **any** domain still has rows past the page; the
+returned `cursor` advances every domain that returned rows. When `hasMore` is
+`false` the client is caught up as of `serverNow`.
+
+The delta feed is **incremental only** — it is a catch-up mechanism, never a
+substitute for the first-pair backfill. A freshly paired client must do the
+backfill through the list + batch endpoints first.
+
+### Handshake — `GET /api/sync/state`
+
+The lightweight "should I sync?" endpoint. The client calls it on pair, on
+foreground, and before opening a fresh anchored query window. It returns the
+sync window, the tombstone-retention horizon, the user's timezone, and per-domain
+live / tombstoned counts so the client can decide whether to drain its outbox,
+ask for a refresh, or stay quiet. It also returns `serverNow` for clock-skew
+correction.
+
+```json
+{
+  "data": {
+    "userId": "clx...",
+    "timezone": "Europe/Berlin",
+    "lastSyncedAt": "2026-05-30T22:00:00.000Z",
+    "serverNow": "2026-05-31T09:00:00.000Z",
+    "measurements": { "lastUpdatedAt": "2026-05-30T07:31:00.000Z", "liveCount": 142, "tombstonedCount": 3 },
+    "mood":         { "lastUpdatedAt": null, "liveCount": 0, "tombstonedCount": 0 },
+    "intakes":      { "lastUpdatedAt": null, "liveCount": 0, "tombstonedCount": 0 },
+    "sync": { "incrementalWindowDays": 60, "tombstoneRetentionDays": 75 }
+  },
+  "error": null
+}
+```
+
+## The opaque cursor
+
+`GET /api/sync/changes` pages over an **opaque keyset cursor**. Keyset (a.k.a.
+seek) [pagination](https://en.wikipedia.org/wiki/Pagination) walks the result
+set by the last row's `(updatedAt, id)` rather than a numeric `OFFSET`, so it
+stays correct and fast even as rows are inserted mid-scan. The client echoes the
+cursor back verbatim and **never parses it**.
+
+Internally the cursor carries one independent `(updatedAt, id)` high-water mark
+per domain. A per-domain keyset is mandatory rather than a single shared
+timestamp: a backfill writes hundreds of rows in the same millisecond, so a
+bare-timestamp watermark would skip or double-count rows that share a tick — the
+`id` tie-breaker makes each domain's ordering total.
+
+The encoding is deliberately opaque so the **server can change the keyset
+encoding without a client release**. Nothing on the client depends on the
+current format; a token the server no longer recognises simply decodes to
+"start fresh" and the client re-initialises cleanly. For the same reason, a
+garbage or truncated cursor is never an error — it is treated as a clean initial
+sync.
+
+### `cursorExpired` → clean re-init
+
+If the cursor predates the **tombstone-retention horizon**, the response sets
+`cursorExpired: true` and returns empty change sets. The client must then drop
+its cursor and do a clean full backfill.
+
+The reason is correctness, not housekeeping: a deletion older than the retention
+horizon may already have been pruned, so an incremental delta from that far back
+could silently miss it. Retention is keyed to the native refresh-token lifetime
+plus a margin (`tombstoneRetentionDays` on `/api/sync/state`), so a device that
+was offline no longer than its refresh window is always inside the safe range —
+expiry only fires when a device has been away long enough that re-pairing is
+expected anyway.
+
+## Tombstones
+
+The user-facing delete routes on every served domain **soft-delete**: they set
+`deletedAt` and bump `syncVersion` rather than removing the row. A deletion then
+travels the same delta feed as any edit, surfacing as a tombstone in the page's
+`tombstones` array.
+
+This exists because an offline client must learn about deletions. A hard delete
+leaves no trace for the next pull to carry, so a row deleted on one device would
+silently re-sync from another that still holds it. The soft-delete makes the
+deletion a first-class, replayable fact.
+
+Two rules:
+
+- **Apply tombstones before upserts within each domain page.** A delete and a
+  later re-insert can both fall inside the same page; applying tombstones first
+  prevents the delete from wiping a row the re-insert just added.
+- Tombstone identity follows the domain's identity key: measurements key on
+  `externalId`, mood and intakes key on the server `id`.
+
+A single-resource `GET` or `PUT` against a tombstoned row reports it as deleted.
+
+## Conflict resolution per domain
+
+Convergence uses [optimistic concurrency control](https://en.wikipedia.org/wiki/Optimistic_concurrency_control):
+clients write freely without locks and conflicts are detected after the fact via
+`syncVersion`, rather than holding a lock across an offline window. The default
+resolution is **silent server-wins** — there is no merge prompt. The rules
+differ by domain because the domains have different mutability:
+
+| Domain / class | Rule | What the client sees |
+|---|---|---|
+| Measurements — sample class (UUID `externalId`) | First-write-wins, **immutable**. A re-post of an existing sample is a no-op. | Per-entry status `duplicate`; treat as success and advance. |
+| Measurements — `stats:*` cumulative | **Server-overwrite**: the latest per-day total replaces the stored value. | Per-entry status `updated`. |
+| Mood | **Last-write-wins by `syncVersion`** — the higher version wins, the loser's edit is dropped. | A 409 returns the **full current server row** in the body, so the client replaces its local row in one step. |
+| Intakes | **Immutable.** An intake is a recorded fact; a correction is a tombstone plus a fresh insert, not an in-place edit. | First-write-wins; correct by deleting (tombstone) and re-inserting. |
+
+Why the split: a single sample reading and an intake event are facts that do not
+change, so immutability is the correct model and there is no conflict to
+resolve. A cumulative `stats:*` row is a running total that legitimately grows
+through the day, so the latest total must overwrite. A mood entry is genuinely
+editable, so it needs last-write-wins plus the full winning row on the wire — for
+the immutable domains a per-entry status (and the echoed `syncVersion`) is
+enough, but an editable domain needs the winning content so the client does not
+have to make a second round-trip to fetch it.
+
+## Authentication and token lifetimes
+
+Sync clients authenticate with the bearer-token flow in
+[Native API clients](/api/native-clients/). Refresh tokens rotate **per device**
+and are one-time-use: presenting a consumed refresh token revokes the whole
+refresh family for that device. The refresh response carries a stable
+`errorCode` so the client can tell a terminal re-auth from a transient blip
+without string-matching the human-readable message:
+
+| `errorCode` | Meaning | Client action |
+|---|---|---|
+| `auth.refresh.reuse` | A consumed token was presented again — the family is now revoked (stolen-token signal). | Terminal — re-pair. |
+| `auth.refresh.revoked` | The family was revoked out of band (explicit logout, or reuse detected on another device). | Terminal — re-pair. |
+| `auth.refresh.invalid` | Token not found or expired. | Drop the token and re-authenticate. |
+
+The native access token defaults to a 24-hour lifetime; the native refresh
+token lives 60 days (`incrementalWindowDays` on `/api/sync/state`). A device
+offline longer than the refresh window re-pairs with a full backfill — which is
+exactly the window the tombstone-retention horizon is sized to cover.
+
+## Domain readiness
+
+The **server side of all three domains is complete and tested** — measurements,
+mood, and intakes all carry the sync columns, surface tombstones, and serve the
+delta feed today. The iOS consumer adopts **measurements first** and the other
+domains on its own schedule; mood and intakes are server-ready ahead of the
+multi-domain client, so the contract is locked and exercised before that client
+lands. Adoption pacing is an iOS-side roadmap decision, not a server gap.
+
+## Related
+
+- [Native API clients](/api/native-clients/) — bearer issuance, refresh rotation, idempotency, device registration.
+- [iOS app](/ios/ios-app/) — the native client that speaks this contract.
+- [PWA & offline support](/features/pwa-offline/) — why the web app reads live and keeps no local write store.
+- [Measurements](/api/measurements/), [Mood](/api/mood/), [Medications](/api/medications/) — the per-domain read/write endpoints used for backfill and push.
