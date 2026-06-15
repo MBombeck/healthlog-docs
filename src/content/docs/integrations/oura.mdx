@@ -1,0 +1,74 @@
+---
+title: Oura integration
+description: OAuth2 setup for the Oura ring — bring-your-own developer app, the daily/personal scopes, the metrics that sync including readiness, and troubleshooting.
+sidebar:
+  order: 7
+---
+
+HealthLog connects to an Oura account over [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) against the Oura API v2. You bring your own developer app: the Oura **Client ID** and **Client Secret** are pasted into Settings (or set as server env vars) and stored AES-256-GCM-encrypted at rest. HealthLog never ships a shared credential.
+
+Once linked, the ring's sleep (with stage hypnogram), heart rate, respiratory rate, activity, blood-oxygen and **daily readiness** flow in. Oura readiness ranks below WHOOP but above Polar and the computed proxy as a recovery source — see [Recovery and readiness](/methodology/recovery/).
+
+## What gets synced
+
+The Oura client (`src/lib/oura/client.ts`) reads from the Oura v2 user collections and maps:
+
+- **Sleep** — the `sleep` detail records carry a 5-minute hypnogram; light maps to HealthLog's CORE stage, plus efficiency, HRV and resting (lowest) heart rate.
+- **Daily readiness** — the headline readiness score with its temperature-deviation and balance contributors.
+- **Daily activity** — steps, energy, distance.
+- **Daily SpO₂** — average overnight blood-oxygen saturation.
+- **Daily sleep** — the headline Sleep Score (distinct from the `sleep` detail).
+
+Imported rows are tagged `source = OURA` and pass through the [source-priority](/concepts/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's.
+
+## OAuth scopes
+
+HealthLog requests:
+
+```
+daily personal
+```
+
+`daily` covers sleep, readiness and activity; `personal` is the profile information used to anchor the sync. Both are read-only.
+
+## 1. Register an Oura developer app
+
+1. Sign in at [cloud.ouraring.com/oauth/applications](https://cloud.ouraring.com/oauth/applications) and **create a new application**.
+2. **Redirect URI:** `https://your-instance.example.com/api/oura/callback`. It must match exactly.
+3. Save. Oura issues a **Client ID** and **Client Secret**.
+
+## 2. Wire the credentials into HealthLog
+
+```env
+OURA_CLIENT_ID="your-client-id"
+OURA_CLIENT_SECRET="your-client-secret"
+OURA_REDIRECT_URI="https://your-instance.example.com/api/oura/callback"
+```
+
+`OURA_REDIRECT_URI` is optional — when unset it is derived from `NEXT_PUBLIC_APP_URL` as `<app-url>/api/oura/callback`. Restart the `app` container after saving. A per-user credential override is also available from the Settings UI.
+
+## 3. Connect from Settings
+
+1. Sign in as the target user and open **Settings → Integrations → Oura**.
+2. Click **Connect Oura** and grant the `daily` and `personal` scopes.
+3. Oura redirects back to `/api/oura/callback`; HealthLog exchanges the code, stores the token encrypted, and runs an initial sync.
+
+## Readiness as a recovery source
+
+Oura's daily readiness is read as a recovery source. The resolver ranks recovery **WHOOP ≻ Oura ≻ Polar ≻ computed proxy**, so an Oura reading wins over the server-computed proxy and over a Polar device on the same day, but yields to a WHOOP strap. The eight readiness contributors are the *why* behind the headline number. See [Recovery and readiness](/methodology/recovery/).
+
+## Troubleshooting
+
+### Sleep stages do not appear
+
+The hypnogram comes from the `sleep` detail collection. A night that only produced a `daily_sleep` summary has no per-stage timeline — the breakdown shows once the detail record syncs.
+
+### Callback URI mismatch
+
+The redirect URI in the Oura application must match the one HealthLog sends exactly, including the `/api/oura/callback` path.
+
+## Related
+
+- [Source priority](/concepts/source-priority/)
+- [Recovery and readiness](/methodology/recovery/)
+- [Sleep debt and chronotype](/methodology/chronotype/)

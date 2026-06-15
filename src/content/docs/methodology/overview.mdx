@@ -1,0 +1,29 @@
+---
+title: Why we compute it this way
+description: An index of HealthLog's computed-method explainers — each grounded in the primary literature, each honest about its limits, and each computed once on the server so one number means one thing everywhere.
+sidebar:
+  order: 0
+---
+
+HealthLog computes a number of derived and clinical figures from your own data. None of them is invented to fill a gap, every one names the published method behind it, and each holds a confident reading back behind a "still learning" state until it has the data to support it. Every figure here is computed **once on the server** and read the same way on the dashboard, the coach, the doctor-report, the exports and the companion app — the companion app renders the output, it never recomputes it.
+
+These pages explain *why* each metric is computed the way it is, with citations to the methodology — never to a product.
+
+## Glucose
+
+- **[The glucose clinical panel](/methodology/glucose-clinical/)** — time-in-range on the 2019 consensus bands, GMI, an estimated A1C, and the coefficient of variation, with the spot-vs-CGM honesty contract.
+- **[Glycemic risk indices](/methodology/glycemic-risk/)** — the LBGI / HBGI symmetrized risk model and the J-index, and why a non-linear risk transform reads hypos and hypers more fairly than an average.
+
+## Sleep and recovery
+
+- **[Sleep debt and chronotype](/methodology/chronotype/)** — a rolling shortfall against age-based need, and an MCTQ chronotype with social jetlag read from your own free-day sleep.
+- **[Recovery and readiness](/methodology/recovery/)** — why a connected device's native recovery is canonical, the computed proxy is the fallback, and how the readiness blend is built.
+
+## Medications and the score
+
+- **[Medication compliance, cadence-aware](/methodology/medication-compliance/)** — adherence measured against the doses that were actually due.
+- **[The health score](/methodology/health-score/)** — four pillars, a graded blood-pressure score, and weight that redistributes rather than zeroes.
+
+## See also
+
+The **[derived metrics methodology](/concepts/derived-metrics/)** page covers the wider wellness tier — fitness age, vascular-age delta, HRV balance, the sleep score, and the early-strain flag — with the published standard behind each.

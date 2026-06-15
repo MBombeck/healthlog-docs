@@ -1,0 +1,82 @@
+---
+title: Fitbit / Google Health integration
+description: Experimental OAuth2 setup for syncing Fitbit and Pixel data through Google's Health API — bring-your-own Google Cloud OAuth client, requested scopes, supported metrics, and the brand-verification / CASA requirement.
+sidebar:
+  order: 4
+  badge:
+    text: Experimental
+    variant: caution
+---
+
+:::note
+HealthLog reads **Fitbit and Pixel** data through Google's Health API. This page is reached from the in-app Fitbit integration card. The OAuth client you create is a Google Cloud client, not a fitbit.com developer app.
+:::
+
+:::caution[Experimental]
+The Google Health API is young, and several per-type value fields are not yet fully published. Some data types may import nothing until the wire mapping has been verified against a live account. Treat this connection as experimental: confirm what actually lands in your timeline before relying on it.
+:::
+
+HealthLog connects to **Fitbit and Pixel** devices through Google's Health API over OAuth2. Like the WHOOP integration, you bring your own OAuth client: the Google Cloud Client ID and Client Secret are pasted into Settings and stored encrypted at rest. HealthLog never ships a shared application credential, so each operator's data stays under their own Google Cloud project.
+
+## What gets synced
+
+The Fitbit client (`src/lib/fitbit/client.ts`) reads from `https://health.googleapis.com/v4` and maps three families of data into HealthLog:
+
+- **Activity and fitness** — steps, distance, active energy, floors climbed, VO₂ max, and exercise workouts (interval sessions).
+- **Health metrics and measurements** — weight, body fat, SpO₂, resting heart rate, HRV, respiratory rate, wrist temperature, and spot heart rate.
+- **Sleep** — per-stage sleep sessions.
+
+Imported rows are tagged `source = FITBIT` and pass through the same [source-priority](/concepts/source-priority/) resolver as every other provider, so a Fitbit step total never double-counts against an Apple Health or Withings reading for the same day.
+
+## OAuth scopes
+
+HealthLog requests four read-only Google Health scopes:
+
+| Scope | Covers |
+| ----- | ------ |
+| `googlehealth.activity_and_fitness.readonly` | Steps, distance, energy, floors, VO₂ max, workouts |
+| `googlehealth.health_metrics_and_measurements.readonly` | Weight, body fat, SpO₂, heart rate, HRV, respiratory rate, temperature |
+| `googlehealth.sleep.readonly` | Per-stage sleep sessions |
+| `googlehealth.profile.readonly` | Account profile used to anchor the sync |
+
+Location and similar broad scopes are deliberately omitted to keep the review surface minimal. Every scope above is a **Restricted** Google scope.
+
+## Before you start: brand verification and CASA
+
+Because every requested scope is Restricted, your Google Cloud OAuth client must clear Google's review process before it can leave Testing mode and authorise an arbitrary account:
+
+1. **Brand verification** of the OAuth consent screen.
+2. An **annual CASA (Cloud Application Security Assessment)** for the client requesting Restricted health scopes.
+
+Until that review is complete, the client works only for test users you add to the consent screen in Testing mode — which is enough to evaluate the integration on your own account, but not to onboard others.
+
+## 1. Create a Google Cloud OAuth client
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create (or pick) a project and enable the **Health** API for it.
+2. Configure the **OAuth consent screen**. Add the four scopes above. While in Testing mode, add your own Google account as a test user.
+3. Create an **OAuth 2.0 Client ID** of type *Web application*.
+4. **Authorised redirect URI:** `https://your-instance.example.com/api/fitbit/callback`. This must match exactly. If you set the `FITBIT_REDIRECT_URI` environment variable it overrides the default; otherwise HealthLog uses `<NEXT_PUBLIC_APP_URL>/api/fitbit/callback`.
+
+## 2. Paste the credentials into HealthLog
+
+Open **Settings → Integrations** and enter the Client ID and Client Secret. They are encrypted with AES-256-GCM before they touch the database. HealthLog reads them back only to run the OAuth handshake and refresh the token server-side.
+
+## 3. Connect
+
+Click **Connect** for Google Health / Fitbit. HealthLog redirects you to Google's consent page (the user id never travels in the OAuth `state` parameter — a random nonce backed by a short-lived ledger row carries it instead). After you grant access, control returns to **Settings → Integrations** with the connection live.
+
+## Sync, test, and resume
+
+The connection exposes the same controls as WHOOP:
+
+- **Test** — probe the saved connection without importing anything.
+- **Sync** — pull recent data incrementally, or run a full-history backfill.
+- **Resume** — recover a connection after a revoked grant without re-entering credentials.
+
+All three run server-side over `safeFetch`, with the token refreshed automatically when it nears expiry.
+
+## Troubleshooting
+
+- **A data type imports nothing.** Expected for some types while the API is young — the value field for that type may not yet be published. The connection itself can still be healthy.
+- **`access_denied` on the consent screen.** The account is not a test user on a Testing-mode client, or brand verification has not completed. Add the account as a test user or finish the review.
+- **Token refresh fails after a while.** Re-grant access from the consent screen; the refresh token can be revoked from the Google account's security settings.

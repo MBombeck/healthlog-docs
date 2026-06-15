@@ -1,0 +1,78 @@
+---
+title: The glucose clinical panel
+description: Why HealthLog reads time-in-range, GMI, an estimated A1C and the coefficient of variation the way it does — the consensus bands and formulas, each cited to the primary literature, and why a spot-reading panel says so.
+sidebar:
+  order: 1
+---
+
+Beneath the glucose chart, HealthLog reads a small clinical panel: **time-in-range** on the consensus bands, the **glucose management indicator (GMI)**, an **estimated A1C**, and the **coefficient of variation** with an instability flag. Behind an advanced view sit the [glycemic risk indices](/methodology/glycemic-risk/). This page explains where each number comes from and why it is computed that way — the methodology, not any product.
+
+Every figure here is computed once on the server and read the same way on the dashboard, the coach, the doctor-report and the companion app. The companion app renders the output; it never recomputes it. Keeping the clinical math in one literature-locked place is the whole point — one number means one thing everywhere.
+
+:::note[All values are stored in mg/dL]
+HealthLog stores glucose canonically in mg/dL and converts once, at the point a value is served, to the unit you chose. If you read in mmol/L every surface shows the converted value; the formulas below take mg/dL because that is the unit the literature defines them in.
+:::
+
+## Time-in-range (TIR) and the consensus bands
+
+Time-in-range is the share of your readings that fall in the target band, with the out-of-range readings split into low and high sub-bands. HealthLog uses the **2019 international consensus** band edges:
+
+| Band | Range (mg/dL) | Goal |
+| --- | --- | --- |
+| Very low (level 2) | < 54 | < 1% |
+| Low (level 1) | 54–69 | low + very-low < 4% |
+| **Target (in range)** | **70–180** | **> 70%** |
+| High (level 1) | 181–250 | high + very-high < 25% |
+| Very high (level 2) | > 250 | < 5% |
+
+These edges and goals are not HealthLog's invention — they are the consensus targets from Battelino et al., *Clinical Targets for Continuous Glucose Monitoring Data Interpretation* (Diabetes Care 2019, [DOI 10.2337/dci19-0028](https://doi.org/10.2337/dci19-0028)). The 70–180 mg/dL target band and the >70% goal are the headline numbers a clinician reads; the 54 and 250 cut points separate the clinically urgent extremes from the merely out-of-range.
+
+### Why a spot-reading panel says it is one
+
+The same consensus paper sets the bar for a *time*-based report: roughly 14 days of CGM data with at least 70% of possible readings present. Manual spot readings — a fasting value here, a post-meal value there — cannot meet that bar. So HealthLog is explicit: with sparse spot data, time-in-range is a **percent of readings**, not a percent of time, and the panel labels it a spot-reading estimate. Connect a [Nightscout CGM stream](/integrations/nightscout/) and the density crosses the threshold; the estimate caveat comes off and the panel reads a true percent of time.
+
+Below a minimum of readings over a minimum span of days, the panel holds back entirely with a calm "still learning" state rather than asserting a confident share off thin data. A burst of readings inside one day cannot stand in for two weeks of behaviour, so both a count *and* a span are required.
+
+## Glucose Management Indicator (GMI)
+
+GMI translates your mean glucose into the A1C-like percentage a CGM report would show:
+
+```
+GMI(%) = 3.31 + 0.02392 × mean glucose (mg/dL)
+```
+
+This is the regression from Bergenstal et al., *Glucose Management Indicator (GMI): A New Term for Estimating A1C From Continuous Glucose Monitoring* (Diabetes Care 2018, [DOI 10.2337/dc18-1581](https://doi.org/10.2337/dc18-1581)). GMI was introduced precisely because the older "estimated A1C" label over-promised agreement with a lab A1C; GMI is the CGM-native sibling and is preferred when the data is dense.
+
+## Estimated A1C (eA1C)
+
+For spot/SMBG data HealthLog also reads an estimated A1C from the ADAG study's mean-glucose relationship, inverted:
+
+```
+eAG = 28.7 × A1C − 46.7   ⇒   eA1C(%) = (mean glucose + 46.7) / 28.7
+```
+
+This is the A1C-Derived Average Glucose (ADAG) relationship from Nathan et al. (Diabetes Care 2008, [DOI 10.2337/dc08-0545](https://doi.org/10.2337/dc08-0545)). HealthLog prefers eA1C for spot data and GMI for a CGM stream — same idea, two regressions fit on different data, each used where it is honest.
+
+## Coefficient of variation (CV) and the instability flag
+
+Two people can share a mean glucose and live very differently: one steady, one swinging. The **coefficient of variation** is the standard way to separate them:
+
+```
+CV(%) = standard deviation / mean × 100
+```
+
+HealthLog flags a series as **unstable when CV ≥ 36%** — the variability cutoff from Monnier et al. (Diabetes Care 2017, [DOI 10.2337/dc16-1769](https://doi.org/10.2337/dc16-1769)), the value the consensus interpretation also adopts. Below 36% the glucose is considered stable; at or above it, the swings are wide enough to matter regardless of the average.
+
+## What the panel deliberately does not do
+
+The dense-stream indices — MAGE, CONGA, MODD, ADRR, AGP, the time-weighted mean — need ordered, closely-spaced samples. The panel does not assume them, so it does not compute them off spot data where they would be meaningless. As CGM coverage matures these become available; until then the panel stays within what the data can actually support.
+
+## Honesty, not decoration
+
+Every clinical number here is gated. A panel built from a handful of readings says so; a panel that has not yet seen enough readings over enough days says "still learning" instead of asserting; and a CGM stream lifts both caveats. The point is the same one that runs through the whole app: a number that invents confidence it has not earned is worse than no number.
+
+## Related
+
+- [Glycemic risk indices](/methodology/glycemic-risk/) — LBGI / HBGI and the J-index behind the advanced view.
+- [Nightscout integration](/integrations/nightscout/) — connect a CGM stream to make the panel a percent-of-time report.
+- [Blood glucose](/features/glucose/) — the feature surface.

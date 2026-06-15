@@ -1,0 +1,77 @@
+---
+title: Sleep debt and chronotype
+description: Why HealthLog reads sleep debt as a rolling shortfall and your chronotype from mid-sleep on free days — the MCTQ method, social jetlag, and the sub-linear recovery curve, each cited to the literature.
+sidebar:
+  order: 3
+---
+
+The sleep page reads two things beyond the nightly score: a rolling **sleep debt** against your age-based need, and an **MCTQ chronotype** with your mid-sleep, social jetlag and a type band. Both are computed once on the server from the same per-night data the rest of the app uses, and both hold a confident reading back behind a "still learning" state until enough nights are recorded. This page is about *why* they are computed the way they are.
+
+## Sleep debt
+
+Sleep debt is the running shortfall between how much sleep you **need** and how much you actually got, accumulated over a rolling two-week window.
+
+### Only undersleep accrues; catch-up pays it down
+
+Per night the deficit is `max(0, need − asleep)`. A short night adds to the debt; a long night does **not** mint a "credit" that cancels future shortfalls. This is a deliberate, evidence-based asymmetry: recovery sleep does not repay a deficit minute-for-minute. Van Dongen et al., *The Cumulative Cost of Additional Wakefulness* (Sleep 2003, [PMID 12683469](https://pubmed.ncbi.nlm.nih.gov/12683469/)), showed the recovery curve is sub-linear — you cannot fully bank a weekend lie-in against a week of short nights.
+
+Instead, catch-up pays the running debt **down through the window**: as a deficit night ages out of the rolling 14-night window it stops contributing, so a stretch of full nights drains the debt toward zero. Fourteen nights is long enough that one bad night does not dominate and short enough that month-old debt does not haunt a current reading.
+
+### Why caps
+
+Two caps keep the number honest:
+
+- A **per-night deficit cap of 180 minutes (3 h)** — the largest single-night shortfall that still reads as plausibly slept rather than a missing-stage artefact — so one catastrophic or mis-recorded night cannot swamp a fortnight of otherwise-fine sleep.
+- A **cumulative cap** — beyond a point more debt is not more actionable; the message ("you are deeply under-slept") is the same, so the figure does not run away into meaningless territory.
+
+### Your need is age-based
+
+The shortfall is measured against an age-based sleep need, the same single need table the nightly sleep score uses (Hirshkowitz et al., *National Sleep Foundation's sleep time duration recommendations*, Sleep Health 2015). There is no second need table — one source of truth for "how much you need", two framings of `need − actual`: the nightly score is the single-night view, sleep debt is the rolling cumulative.
+
+Below a minimum of tracked nights the debt stays in "still learning" — a one-night window would read a single rough night as a fortnight of debt.
+
+## Chronotype (MCTQ)
+
+Your chronotype is *when* your body clock wants to sleep, independent of how much. HealthLog reads it from your own observed sleep — not a questionnaire — following the **Munich ChronoType Questionnaire (MCTQ)** method of Roenneberg, Wirz-Justice & Merrow (*J Biol Rhythms* 2003) and Roenneberg et al. (*Sleep Med Rev* 2007).
+
+### Mid-sleep on free days is the marker
+
+The MCTQ chronotype marker is **MSF — mid-sleep on free days**: the clock-time midpoint of your sleep on days without an alarm. Free days are used because a work alarm truncates your natural sleep and hides your real phase; on a free day your body picks its own midpoint.
+
+```
+MSF   = circular mean of free-day sleep midpoints
+```
+
+The mean is *circular* because clock time wraps at midnight — averaging 23:30 and 00:30 must give 00:00, not noon.
+
+### The sleep-corrected mid-sleep (MSFsc)
+
+People who are sleep-deprived on work days sleep *longer* on free days, which shifts their free-day midpoint later and would over-state how late their chronotype really is. The MSFsc correction removes that oversleep:
+
+```
+MSFsc = MSF − ½ · (SD_free − SD_week)   when SD_free > SD_week, else MSF
+```
+
+where SD_free and SD_week are average sleep durations on free and on all days (Roenneberg 2007). When there is no oversleep there is no debt rebound and MSFsc = MSF.
+
+The corrected mid-sleep is then banded into the standard MCTQ chronotype types (early through late, around the population's ~04:00 MSFsc mode). A type is only asserted once enough free-day nights are recorded — MCTQ needs a real sample of alarm-free sleep before it will name a type.
+
+## Social jetlag
+
+Social jetlag is the gap between your body clock and your social clock — how far your work-day sleep is shifted from your free-day sleep:
+
+```
+SJL = | MSF_work − MSF_free |   (computed circularly)
+```
+
+It is the misalignment Roenneberg's group named: a large social jetlag means your week pulls your sleep timing away from where your body would place it, the chronobiological equivalent of flying across time zones every week. HealthLog surfaces it in minutes alongside your chronotype so the number has context.
+
+## Honesty, as everywhere
+
+Both readings degrade to "still learning" rather than guessing: sleep debt needs a minimum of tracked nights, the chronotype needs a minimum of free-day nights, and social jetlag needs both work-day and free-day midpoints before it is shown.
+
+## Related
+
+- [Derived metrics methodology](/concepts/derived-metrics/) — the sleep score and the wider wellness tier.
+- [Recovery and readiness](/methodology/recovery/)
+- [Sleep insights](/features/sleep-insights/) — the feature surface.

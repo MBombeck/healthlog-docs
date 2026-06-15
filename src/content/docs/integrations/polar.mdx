@@ -1,0 +1,68 @@
+---
+title: Polar integration
+description: OAuth2 setup for Polar AccessLink — bring-your-own developer app, the read_all scope, the metrics that sync, recovery ranking, and troubleshooting.
+sidebar:
+  order: 6
+---
+
+HealthLog connects to a Polar account through the [Polar AccessLink API](https://www.polar.com/accesslink-api/) over [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749). You bring your own developer app: the Polar **Client ID** and **Client Secret** are pasted into Settings (or set as server env vars) and stored AES-256-GCM-encrypted at rest. HealthLog never ships a shared credential.
+
+Once linked, Polar sleep, heart rate, respiratory rate, activity and the **Nightly Recharge** recovery band flow in. Recovery from a Polar device ranks below WHOOP and Oura but above the computed proxy — see [Recovery and readiness](/methodology/recovery/).
+
+## What gets synced
+
+The Polar client (`src/lib/polar/client.ts`) reads from `https://www.polaraccesslink.com` and maps sleep (with stages), heart-rate and resting heart rate, respiratory rate, activity (steps, energy, distance) and the Nightly Recharge recovery reading into HealthLog. Imported rows are tagged `source = POLAR` and pass through the [source-priority](/concepts/source-priority/) resolver.
+
+## OAuth scope
+
+HealthLog requests a single scope:
+
+```
+accesslink.read_all
+```
+
+`accesslink.read_all` grants every read collection so the user grants once and every sync resource is covered. HealthLog never writes back to Polar.
+
+## 1. Register a Polar developer app
+
+1. Sign in at [admin.polaraccesslink.com](https://admin.polaraccesslink.com/) and **create a new client**.
+2. **Redirect URI / OAuth2 callback:** `https://your-instance.example.com/api/polar/callback`. It must match exactly.
+3. Save. Polar issues a **Client ID** and **Client Secret**.
+
+## 2. Wire the credentials into HealthLog
+
+```env
+POLAR_CLIENT_ID="your-client-id"
+POLAR_CLIENT_SECRET="your-client-secret"
+POLAR_REDIRECT_URI="https://your-instance.example.com/api/polar/callback"
+```
+
+`POLAR_REDIRECT_URI` is optional — when unset it is derived from `NEXT_PUBLIC_APP_URL` as `<app-url>/api/polar/callback`. Restart the `app` container after saving. A per-user credential override is also available from the Settings UI if you prefer every user to bring their own Polar app.
+
+## 3. Connect from Settings
+
+1. Sign in as the target user and open **Settings → Integrations → Polar**.
+2. Click **Connect Polar** and authorise on Polar's `flow.polar.com` consent screen.
+3. Polar redirects back to `/api/polar/callback`; HealthLog exchanges the code for a token, stores it encrypted, and runs an initial sync.
+
+Subsequent syncs run on a schedule.
+
+## Recovery ranking
+
+Polar's Nightly Recharge is read as a recovery source. The resolver ranks recovery **WHOOP ≻ Oura ≻ Polar ≻ computed proxy**, so a Polar reading wins over the server-computed proxy but yields to a WHOOP or Oura device on the same day. See [Recovery and readiness](/methodology/recovery/).
+
+## Troubleshooting
+
+### Callback URI mismatch
+
+The redirect URI in the Polar admin client must match the one HealthLog sends exactly, including the `/api/polar/callback` path and the `https://` scheme.
+
+### Data lands a day late
+
+Polar publishes some collections on its own daily cadence. The scheduled sync catches up on the next pass; recovery and sleep resolve onto the correct night.
+
+## Related
+
+- [Source priority](/concepts/source-priority/)
+- [Recovery and readiness](/methodology/recovery/)
+- [Sleep debt and chronotype](/methodology/chronotype/)

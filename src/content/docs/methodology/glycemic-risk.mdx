@@ -1,0 +1,56 @@
+---
+title: Glycemic risk indices (LBGI, HBGI, J-index)
+description: The science behind the advanced glucose indices — Kovatchev's symmetrized blood-glucose risk model and Wojcicki's J-index — and why a non-linear risk transform reads hypo- and hyperglycemia more fairly than a raw average.
+sidebar:
+  order: 2
+---
+
+Behind the [clinical glucose panel](/methodology/glucose-clinical/)'s advanced view sit three indices that read glycemic *risk* rather than glycemic *level*: the **Low** and **High Blood Glucose Indices** (LBGI / HBGI) and the **J-index**. They exist because a plain average treats a value of 40 mg/dL and a value of 400 mg/dL as symmetric departures from a midpoint — and clinically they are not.
+
+## Why a risk transform, not a raw average
+
+Glucose is measured on a scale where the dangerous low range (down to ~20 mg/dL) is numerically narrow and the dangerous high range (up to ~600 mg/dL) is numerically wide. Average a day's readings and a single severe low barely moves the mean, while it may be the most important event of the day. Kovatchev's insight was to **symmetrize** the glucose scale first — map raw glucose through a transform that makes a hypo and a hyper of equal clinical severity sit equally far from the safe centre — and only then measure risk.
+
+## The symmetrization function
+
+Each reading is transformed by:
+
+```
+f(BG) = 1.509 × ( (ln BG)^1.084 − 5.381 )
+```
+
+This is the symmetrizing transform from Kovatchev et al. (Diabetes Care 1997, [DOI 10.2337/diacare.20.11.1655](https://doi.org/10.2337/diacare.20.11.1655)). After it, the safe centre of the glucose range sits at `f(BG) = 0`, low readings produce a negative `f`, and high readings a positive `f`, with equal-severity excursions equally far from zero.
+
+## LBGI and HBGI
+
+Per reading, the **risk** is:
+
+```
+r(BG) = 10 × f(BG)²
+```
+
+The squared term makes risk grow steeply as a reading moves toward either extreme. The risk is then split by branch — the low branch keeps only readings where `f < 0`, the high branch only where `f > 0` — and averaged across **all** readings (in-range readings contribute zero):
+
+- **LBGI** = mean of the low-branch risks → exposure to hypoglycemia.
+- **HBGI** = mean of the high-branch risks → exposure to hyperglycemia.
+
+This is the LBGI / HBGI risk model from Kovatchev et al. (Diabetes Care 2006, [DOI 10.2337/dc06-1085](https://doi.org/10.2337/dc06-1085)). A high LBGI is a warning that low excursions are frequent or severe even if the average looks fine; HBGI does the same for highs. Reading the two separately is the point — they answer different clinical questions.
+
+## J-index
+
+The **J-index** rolls mean and variability into one number:
+
+```
+J = 0.001 × ( mean + SD )²
+```
+
+where mean and SD are in mg/dL. It is the index from Wojcicki, *"J"-index. A new proposition of the assessment of current glucose control in diabetic patients* (Horm Metab Res 1995, [DOI 10.1055/s-2007-979906](https://doi.org/10.1055/s-2007-979906)). Because it adds the standard deviation before squaring, a series that is both high *and* swinging scores worse than one that is merely high — a single figure that rewards steadiness as well as level.
+
+## How HealthLog presents them
+
+These three sit behind the advanced view, not on the headline panel, because they are interpretive rather than everyday numbers. Like everything in the glucose panel they are computed once on the server from mg/dL readings and read identically across every surface, and they inherit the same "still learning" gate — a risk index off two readings is not asserted.
+
+## Related
+
+- [The glucose clinical panel](/methodology/glucose-clinical/) — TIR, GMI, eA1C and CV.
+- [Nightscout integration](/integrations/nightscout/)

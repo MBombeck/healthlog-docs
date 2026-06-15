@@ -1,0 +1,72 @@
+---
+title: Nightscout integration
+description: Connect a self-hosted Nightscout CGM instance — the URL + token model, the two auth modes, the public-host SSRF floor and the private/LAN opt-in, and what continuous glucose unlocks.
+sidebar:
+  order: 8
+---
+
+[Nightscout](https://nightscout.github.io/) is a self-hosted continuous-glucose-monitor (CGM) dashboard that many people already run on Railway, Heroku, Fly or a box at home. HealthLog connects to it as a **client**: it pulls sensor glucose values (SGV) off your existing Nightscout instance and folds the dense CGM stream into the [clinical glucose panel](/methodology/glucose-clinical/). No OAuth, no developer app — just a **URL and a token** you paste once.
+
+Continuous glucose is what makes the clinical panel meaningful. A panel built from a handful of spot readings is honest about being a spot-reading *estimate*; a CGM stream at roughly 288 readings a day reads time-in-range as a true *percent of time*. Connecting Nightscout is the way to get there without a manual entry every few minutes.
+
+## What gets synced
+
+The Nightscout client (`src/lib/nightscout/client.ts`) reads `GET /api/v1/entries.json?type=sgv` and maps each SGV entry to a `BLOOD_GLUCOSE` measurement tagged `source = NIGHTSCOUT`. Only `sgv` rows are pulled — meter BG and calibration rows are filtered upstream and re-checked on parse. Glucose is stored canonically in mg/dL and converted once at the point it is served, so the unit you chose shows everywhere.
+
+## What you must create
+
+Nothing on a developer portal. You need two things from your running Nightscout:
+
+1. **The base URL** of your instance, e.g. `https://your-cgm.example.com`.
+2. **A token** — either a Nightscout **access token** (a role-scoped token minted under *Admin Tools → Subjects* in modern Nightscout) or your classic `API_SECRET`.
+
+A fully public, token-less Nightscout instance works too — the URL alone is the configured marker. But a public instance exposes your glucose to anyone with the link, so a token (and a non-public instance) is the safer default.
+
+## Two auth modes
+
+Nightscout accepts the secret two ways, and HealthLog supports both:
+
+| Mode | How it sends | Use it for |
+| --- | --- | --- |
+| **token** (default) | `?token=<value>` query param | A role-scoped access token, or a raw secret on a modern instance |
+| **header** | `api-secret` header carrying the SHA-1 hex of the secret | A classic `API_SECRET` setup |
+
+Default to **token** — it works for both role tokens and a raw secret on modern instances. Switch to **header** mode only for an older instance that expects the hashed `api-secret` header.
+
+## 1. Enter the connection in Settings
+
+1. Sign in and open **Settings → Integrations → Nightscout**.
+2. Paste your instance **URL** and **token**.
+3. Pick the auth mode if the default does not connect.
+4. Save. HealthLog runs an initial pull and schedules ongoing syncs.
+
+## Public vs. private (LAN) instances
+
+Outbound calls to Nightscout go through HealthLog's egress guard with `requirePublicHost: true` **by default** — a host that resolves to a private, loopback or link-local address is refused, which is the SSRF floor for any user-supplied host.
+
+If your Nightscout runs on a LAN box or behind a private address, flip the **Allow private host** opt-in on the same settings card. This relaxes the public-host pin for your connection only. Treat it as a deliberate self-hoster choice: it lets HealthLog dial a private address, so only enable it for a host you control.
+
+## Security notes
+
+- The token is stored AES-256-GCM-encrypted at rest and is kept out of any recorded error.
+- Redirects are pinned to manual with a request timeout, so a redirect cannot bounce the call to an unintended host.
+- Only `type=sgv` rows are requested and the parse re-checks the type, so non-glucose Nightscout documents never reach the measurement table.
+
+## Troubleshooting
+
+### Nothing imports
+
+- Confirm the URL is reachable from the server and returns JSON at `<url>/api/v1/entries.json?count=1&type=sgv`.
+- If the instance needs auth, confirm the token is set and try the other auth mode.
+- For a LAN instance, confirm **Allow private host** is on — otherwise the public-host floor refuses the call.
+
+### The clinical panel still says "still learning"
+
+The panel holds back time-in-range / GMI / eA1C until enough readings over enough days have accrued. A fresh CGM connection sharpens it within a day or two as the stream fills in. See [the glucose clinical panel](/methodology/glucose-clinical/).
+
+## Related
+
+- [The glucose clinical panel](/methodology/glucose-clinical/) — TIR, GMI, eA1C, CV and the advanced risk indices.
+- [Glycemic risk indices](/methodology/glycemic-risk/) — LBGI / HBGI and the J-index.
+- [Blood glucose](/features/glucose/) — the feature page.
+- [Source priority](/concepts/source-priority/)
