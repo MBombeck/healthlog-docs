@@ -1,0 +1,82 @@
+---
+title: Blood pressure
+description: How to read systolic and diastolic pressure, the conflicting US and European thresholds, the derived metrics, and when a reading warrants a clinician.
+sidebar:
+  order: 2
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Blood pressure is the force exerted by circulating blood against the artery wall, written as two numbers in millimetres of mercury (mmHg): the systolic peak as the heart contracts over the diastolic trough as it refills. It is reported as a category, not a single reading — a value means little until it is taken correctly and averaged over time.
+
+## What it measures
+
+A blood-pressure reading captures two phases of one cardiac cycle. The **systolic** number is the pressure at the moment the left ventricle ejects blood into the aorta; the **diastolic** number is the residual pressure while the heart relaxes and fills. A meaningful value comes from a standardised seated office reading or a validated home or ambulatory average — never a single isolated measurement, which is too noisy to categorise.
+
+## Why it matters
+
+Blood pressure is the single best-evidenced modifiable cardiovascular risk factor. Risk of stroke, heart attack, heart failure, chronic kidney disease and vascular dementia rises continuously from roughly 115/75 mmHg upward, with no clean threshold below which risk vanishes. In a large meta-analysis, each increment of about 20/10 mmHg roughly doubled cardiovascular mortality.[^lewington2002] That continuous relationship is why guidelines describe bands rather than a single pass/fail line, and why trends matter more than any one reading.
+
+## How to read your numbers
+
+Major guideline bodies agree that disease begins at 140/90 mmHg in the office, but they disagree on what to call the numbers below it. Both frameworks are shown — the band a given number falls into depends on which guideline you follow.
+
+{/* IMAGE: Blood-pressure category chart — systolic (y-axis) vs diastolic (x-axis) grid shading the ACC/AHA and ESC bands side by side. Alt: "Blood-pressure categories plotted by systolic and diastolic value under the US and European frameworks." */}
+
+| Category | Range (mmHg) | Source |
+|---|---|---|
+| Normal (US) | &lt;120 and &lt;80 | ACC/AHA, 2017[^accaha2017] |
+| Elevated (US) | 120–129 and &lt;80 | ACC/AHA, 2017[^accaha2017] |
+| Stage 1 hypertension (US) | 130–139 or 80–89 | ACC/AHA, 2017[^accaha2017] |
+| Stage 2 hypertension (US) | ≥140 or ≥90 | ACC/AHA, 2017[^accaha2017] |
+| Non-elevated (Europe) | &lt;120 and &lt;70 | ESC, 2024[^esc2024] |
+| Elevated (Europe, new entity) | 120–139 or 70–89 | ESC, 2024[^esc2024] |
+| Hypertension (Europe) | ≥140 or ≥90 | ESC, 2024[^esc2024] |
+| Hypertension (diagnostic line) | ≥140/90 office | WHO, 2021[^who2021] |
+
+The widely cited ESC/ESH 2018 grading adds finer bands below the disease line — optimal (&lt;120/&lt;80), normal (120–129/80–84) and high-normal (130–139/85–89) — then Grade 1 (140–159/90–99), Grade 2 (160–179/100–109) and Grade 3 (≥180/≥110) hypertension.[^escesh2018]
+
+Out-of-office readings run lower than the office equivalents: home-monitoring hypertension is approximately ≥135/85 mmHg, and a 24-hour ambulatory mean of approximately ≥130/80 mmHg.[^escesh2018]
+
+<Aside type="note" title="US versus European thresholds">
+ACC/AHA 2017 labels 130–139/80–89 mmHg "Stage 1 hypertension"; the ESC calls the identical numbers "Elevated." Both put the disease line at 140/90 office. ESC 2024 additionally introduced an "Elevated 120–139/70–89" band and a treated systolic target of 120–129 mmHg. Where these frameworks disagree, the difference is one of labelling and treatment intensity, not of the underlying continuous risk. Know which guideline a displayed band represents.
+</Aside>
+
+### Derived metrics
+
+- **Pulse pressure (PP) = systolic − diastolic.** About 40 mmHg is typical at rest (120/80 gives a PP of 40). A wide pulse pressure (roughly ≥60 mmHg) in middle-aged and older adults is an independent marker of large-artery stiffening and higher cardiovascular risk, and can also reflect aortic regurgitation, hyperthyroidism, anaemia and ageing arteries. A narrow pulse pressure (roughly ≤25 mmHg, or under 25% of systolic) can accompany low stroke volume, tachycardia or aortic stenosis. Treat it as a "discuss with a clinician" signal, not a diagnosis.[^statpearlspp2023]
+- **Mean arterial pressure (MAP) ≈ diastolic + ⅓ × (systolic − diastolic).** The diastole-weighted average perfusion pressure, with a normal resting band of roughly 70–100 mmHg. The conventional organ-perfusion floor of about 60 mmHg is an acute-care concept, not a consumer self-alarm threshold.[^statpearlsmap2023]
+- **Arterial stiffness and vascular age.** Stiffer arteries propagate the pressure wave faster and widen pulse pressure. Carotid-femoral pulse-wave velocity above 10 m/s is the European marker of hypertension-mediated organ damage.[^escesh2018] That cut-off is European; the ACC/AHA do not enshrine an equivalent single consumer number. Estimated "vascular age" re-expresses stiffness as an artery age relative to your own — a proxy, not interchangeable with clinical tonometry.
+
+## What changes it
+
+Technique dominates accuracy more than any physiological factor. A reliable reading needs five minutes of seated rest, back and feet supported, the correct cuff size, the arm at heart level, and no talking, caffeine or smoking beforehand. Validated upper-arm oscillometric cuffs outperform wrist and optical devices. White-coat elevation (high in clinic, normal at home) and masked hypertension (the reverse) both exist, which is why out-of-office averages matter.
+
+On the lifestyle side, the effects are modest but real and additive. Weight loss tracks at roughly −1 mmHg systolic per kilogram lost in overweight and hypertensive adults.[^accaha2017] A DASH-style eating pattern is associated with a 5–11 mmHg systolic reduction, and the WHO recommends under 2000 mg sodium (under 5 g salt) per day.[^whosodium2023] Targets individualise by age, frailty, diabetes, kidney disease, pregnancy and cardiovascular history — frame these as context, never as a prescription.
+
+## When to act
+
+<Aside type="caution" title="When a reading warrants attention">
+A single high reading is not an emergency — confirm before acting. On a reading of **≥180 systolic and/or ≥120 diastolic**, wait at least a minute and re-measure. If it remains ≥180/120 **without** symptoms, this is severe hypertension: contact your health professional as soon as possible. If it is ≥180/120 **with** any of chest pain, breathlessness, neurological or vision change, or severe headache, treat it as a hypertensive emergency and call emergency services.[^accaha2017] [^aha2024acute]
+
+At the low end, most low blood pressure is benign. Treat it as a concern when **symptomatic** — dizziness, fainting, confusion, blurred vision — or with shock signs such as cold clammy skin, rapid breathing and a weak rapid pulse, which warrant emergency care. An orthostatic drop is ≥20 systolic or ≥10 diastolic within three minutes of standing.[^statpearlshypo2024]
+
+Chronic Stage 2 hypertension (for example a steady 140/90) is not an alert — it is a reason to talk with a clinician about management, not to seek urgent care. This is general guidance, not medical advice, and individual variation is wide.
+</Aside>
+
+## How it connects to other metrics
+
+Blood pressure rarely moves alone. It tracks body weight and dietary sodium over weeks, so a falling systolic average often shadows sustained weight loss or a lower-salt eating pattern — read as a likely contributor, not proof of cause. Pulse pressure and arterial stiffness link the daily number to longer-term vascular ageing. Pressure and pulse are distinct: a normal blood pressure with a persistently high or irregular [resting heart rate](/knowledge/resting-heart-rate/) still warrants attention on its own terms. For how baseline-relative interpretation works across all of these signals — and why your personal trend usually beats the population band — see the [recovery methodology](/methodology/recovery/) and how graded readings feed the [health score](/methodology/health-score/).
+
+## References
+
+[^lewington2002]: Lewington S, et al. — Age-specific relevance of usual blood pressure to vascular mortality, *The Lancet*, 2002. https://doi.org/10.1016/S0140-6736(02)11911-8
+[^accaha2017]: American College of Cardiology / American Heart Association — Guideline for the Prevention, Detection, Evaluation, and Management of High Blood Pressure in Adults, 2017. https://doi.org/10.1161/HYP.0000000000000065
+[^esc2024]: European Society of Cardiology — Guidelines for the management of elevated blood pressure and hypertension, *European Heart Journal*, 2024. https://doi.org/10.1093/eurheartj/ehae178
+[^escesh2018]: European Society of Cardiology / European Society of Hypertension — Guidelines for the management of arterial hypertension, *European Heart Journal*, 2018. https://doi.org/10.1093/eurheartj/ehy339
+[^who2021]: World Health Organization — Guideline for the pharmacological treatment of hypertension in adults, 2021. https://www.who.int/publications/i/item/9789240033986
+[^statpearlspp2023]: StatPearls / NCBI — Physiology, Pulse Pressure (NBK482408), 2023. https://www.ncbi.nlm.nih.gov/books/NBK482408/
+[^statpearlsmap2023]: StatPearls / NCBI — Physiology, Mean Arterial Pressure (NBK538226), 2023. https://www.ncbi.nlm.nih.gov/books/NBK538226/
+[^aha2024acute]: American Heart Association — Scientific Statement on the Management of Elevated Blood Pressure in the Acute Care Setting, 2024. https://doi.org/10.1161/HYP.0000000000000238
+[^statpearlshypo2024]: StatPearls / NCBI — Hypotension, 2024. https://www.ncbi.nlm.nih.gov/books/NBK499961/
+[^whosodium2023]: World Health Organization — Sodium reduction fact sheet, 2023. https://www.who.int/news-room/fact-sheets/detail/sodium-reduction

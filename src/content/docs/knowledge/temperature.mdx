@@ -1,0 +1,63 @@
+---
+title: Body temperature
+description: Why normal temperature is a range rather than 37 °C, how measurement site and time of day shift it, and the fever and hypothermia thresholds that matter.
+sidebar:
+  order: 11
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Body temperature is your internal thermal state, held within a narrow band by the hypothalamus. It is a primary vital sign and the main marker of infection and inflammation. Fever is a regulated host response — the body raising its own set point — while a low temperature can signal exposure, sepsis, endocrine failure or intoxication.
+
+## Why it matters
+
+A rising temperature is one of the clearest signs that the body is mounting a response to infection. A *low* core temperature is, if anything, more sinister in an unwell person — it is a recognised feature of severe sepsis as well as of cold exposure. Older and immunocompromised people can have serious infection with a blunted, absent, or even low temperature, so a normal reading never rules infection out on its own.
+
+## How to read your numbers
+
+The familiar 37.0 °C (98.6 °F) figure is an oral-equivalent *mean*, not a fixed set point. A 2019 systematic review put the population mean lower, at 36.59 °C, with a normal oral range of about 35.7–37.4 °C.[^jgim] Normal is a distribution, and it is personal and time-of-day-dependent.
+
+| Category | Value (°C / °F) | Source |
+|---|---|---|
+| Population mean (oral-equivalent) | 36.59 °C (97.9 °F); normal oral ~35.7–37.4 °C (96.3–99.3 °F) | *J Gen Intern Med*, 2019 [^jgim] |
+| Fever | oral ≥38.0 °C (100.4 °F) | CDC; StatPearls/NIH, 2023 [^cdc] [^fever] |
+| High-grade / adult seek-care | ~39.1–41 °C; commonly cited ≥39.4 °C (103 °F) | StatPearls/NIH, 2023 [^fever] |
+| Hypothermia (core) | &lt;35 °C (95 °F); mild 32–35, moderate 28–32, severe &lt;28 | StatPearls/NIH, 2023 [^hypothermia] |
+| Hyperthermia / heat stroke | core >40 °C (104 °F) with CNS dysfunction | StatPearls/NIH, 2023 [^fever] |
+
+Measurement **site** changes the number by up to ~1 °C, so always tag and compare like with like. Approximate site offsets: rectal ~37.04 °C, tympanic ~36.64 °C, oral ~36.57 °C, axillary ~35.97 °C.[^jgim] The most common error is comparing a forehead reading one day with an oral reading the next.
+
+## What changes it
+
+Temperature follows a daily (circadian) rhythm — a swing of about 0.5 °C, with the nadir around 04:00–08:00 and the peak around 18:00–20:00. An evening reading that looks "high" may simply be the normal diurnal peak. In menstruating people, basal body temperature sits lower in the follicular phase and rises ~0.3–0.5 °C in the luteal phase under progesterone; that rise *confirms* ovulation has already happened rather than predicting it.[^acog] See the [menstrual cycle](/knowledge/menstrual-cycle/) article for how this temperature shift maps onto the cycle.
+
+<Aside type="note" title="Wrist and ring temperature is a deviation, not a thermometer">
+Consumer wrist or ring "skin temperature" is not core body temperature. It is the nightly *deviation* from your own multi-night baseline, and it has no authoritative clinical reference range — the device-defined "normal" band (often around ±0.5 to ±1 °C) is a relative cue only. It can hint at a sub-febrile shift before symptoms, but any fever concern must be confirmed against an oral reading of ≥38 °C.
+</Aside>
+
+## When to act
+
+<Aside type="caution" title="Temperature warning signs">
+A fever is an oral temperature ≥38.0 °C (100.4 °F).[^cdc] In adults, the accompanying symptoms and duration usually matter more than the exact number, but seek care for a fever around ≥39.4 °C (103 °F), or for any fever with breathlessness, chest pain, severe headache, confusion, a stiff neck or a rash. A fever in an infant under 3 months always needs urgent assessment. Suspected hypothermia (core &lt;35 °C / 95 °F) or heat stroke (core >40 °C / 104 °F with confusion or collapse) is an emergency — call emergency services. General guidance, not medical advice; individual variation is wide.
+</Aside>
+
+## How it connects
+
+Temperature is one corner of the early-illness triad: a small rise in body or skin temperature tends to move together with a rising resting heart rate (which climbs roughly 8.5–10 bpm per +1 °C) and a falling HRV under sympathetic activation.[^jgim] Read with a rising overnight [respiratory rate](/knowledge/respiratory-rate/), the concordance of these signals raises confidence that the body is under strain — which is precisely when HealthLog softens training and readiness prompts rather than pushing them.
+
+<CardGrid>
+  <Card title="Respiratory rate" icon="information">
+    A rising temperature alongside a higher overnight [respiratory rate](/knowledge/respiratory-rate/) strengthens the early-illness picture.
+  </Card>
+  <Card title="Recovery and readiness" icon="heart">
+    How temperature deviation feeds the early-warning logic behind [recovery and readiness](/methodology/recovery/).
+  </Card>
+</CardGrid>
+
+## References
+
+[^jgim]: Obermeyer et al., "Normal Body Temperature: A Systematic Review," *Journal of General Internal Medicine* (Open Forum Infect Dis / systematic review), 2019. https://doi.org/10.1093/ofid/ofx032
+[^cdc]: US Centers for Disease Control and Prevention — Fever definition (≥100.4 °F / 38.0 °C). https://www.cdc.gov/quarantine/air/managing-sick-travelers/definitions.html
+[^fever]: StatPearls / NIH — "Physiology, Fever," 2023. National Library of Medicine. https://www.ncbi.nlm.nih.gov/books/NBK562334/
+[^hypothermia]: StatPearls / NIH — "Hypothermia," 2023. National Library of Medicine. https://www.ncbi.nlm.nih.gov/books/NBK545239/
+[^acog]: American College of Obstetricians and Gynecologists — Basal body temperature and the menstrual cycle. https://www.acog.org/womens-health/faqs/fertility-awareness-based-methods-of-family-planning

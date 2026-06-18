@@ -1,0 +1,122 @@
+---
+title: Blood glucose and HbA1c
+description: How to read fasting, post-meal, HbA1c and time-in-range numbers in both unit systems, what shifts them, and the floors that warrant medical attention.
+sidebar:
+  order: 5
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Glucose is the body's primary circulating fuel, and the amount in your blood at any moment reflects a balance struck by diet, activity, hormones and — when it is present — insulin. HealthLog tracks it three ways, because each answers a different question.
+
+## What the numbers measure
+
+- **Fasting plasma glucose (FPG)** — a single reading after at least 8 hours without caloric intake. It captures your baseline when no recent meal is in play.
+- **Postprandial glucose** — a reading after eating, classically 2 hours into a standardised 75 g oral glucose tolerance test (OGTT). It captures how quickly your system clears a carbohydrate load.
+- **HbA1c (glycated haemoglobin)** — the fraction of haemoglobin that has bound glucose, integrated over the ~2–3 month lifespan of a red blood cell. It is the long-run average, not a snapshot.
+
+A continuous glucose monitor adds a fourth view: thousands of interstitial readings a day, summarised as **time in range** rather than a single value.
+
+<Aside type="note" title="Plasma vs fingerstick">
+Diagnostic thresholds are defined on venous plasma. A capillary fingerstick meter reads slightly below venous plasma, so treat home-meter numbers as oriented to — not identical to — the lab cut-points below.
+</Aside>
+
+## Why it matters
+
+Persistently raised glucose marks prediabetes and is central to diagnosing and managing type-2 diabetes.[^ada2025] Chronic hyperglycaemia drives both microvascular damage (eyes, kidneys, nerves) and macrovascular disease, and the window where lifestyle change still prevents progression opens long before symptoms do — which is the entire case for tracking it early.
+
+## How to read your numbers
+
+All thresholds below are general screening and management references, not a diagnosis. A single abnormal reading never diagnoses anything: the ADA requires a repeat abnormal test on a separate day for confirmation.[^ada2025]
+
+### Fasting plasma glucose
+
+| Category | Range (mg/dL · mmol/L) | Source |
+|---|---|---|
+| Normal (ADA) | &lt;100 · &lt;5.6 | ADA, 2025[^ada2025] |
+| Prediabetes / IFG (ADA) | 100–125 · 5.6–6.9 | ADA, 2025[^ada2025] |
+| Prediabetes / IFG (WHO) | 110–125 · 6.1–6.9 | WHO/IDF, 2006[^who2006] |
+| Diabetes (confirmed) | ≥126 · ≥7.0 | ADA 2025; WHO/IDF 2006[^ada2025][^who2006] |
+
+The lower bound of the prediabetes band is where the two bodies disagree — ADA opens it at 100 mg/dL, WHO at 110. The diabetes threshold (≥126 mg/dL) is shared. For non-pregnant adults already living with diabetes, the ADA preprandial **target** is 80–130 mg/dL (4.4–7.2 mmol/L).[^ada2025]
+
+### Postprandial / 2-hour OGTT
+
+ADA and WHO/IDF use identical 2-hour cut-points here.
+
+| Category | Range (mg/dL · mmol/L) | Source |
+|---|---|---|
+| Normal | &lt;140 · &lt;7.8 | ADA 2025; WHO/IDF 2006[^ada2025][^who2006] |
+| Impaired glucose tolerance (IGT) | 140–199 · 7.8–11.0 | ADA 2025; WHO/IDF 2006[^ada2025][^who2006] |
+| Diabetes | ≥200 · ≥11.1 | ADA 2025; WHO/IDF 2006[^ada2025][^who2006] |
+
+A random plasma glucose ≥200 mg/dL with classic symptoms is independently diagnostic.[^ada2025] The ADA peak-postprandial **target** for adults with diabetes is &lt;180 mg/dL (&lt;10.0 mmol/L), measured 1–2 hours after a meal.
+
+### HbA1c
+
+| Category | Range (% · mmol/mol) | Source |
+|---|---|---|
+| Normal | &lt;5.7 · &lt;39 | ADA, 2025[^ada2025] |
+| Prediabetes | 5.7–6.4 · 39–46 | ADA, 2025[^ada2025] |
+| Diabetes (confirmed) | ≥6.5 · ≥48 | ADA 2025; WHO 2011[^ada2025][^who2011] |
+
+WHO endorses the ≥6.5% diabetes cut-off but does not define a formal prediabetes HbA1c band — a difference of scope, not a contradiction.[^who2011] The ADA management **target** for most non-pregnant adults with diabetes is &lt;7.0% (&lt;53 mmol/mol); ≤6.5% for selected low-risk individuals; and a deliberately looser &lt;8.0% (&lt;64 mmol/mol) where life expectancy is limited, comorbidity is extensive, or hypoglycaemia risk is high.[^ada2025]
+
+### Continuous glucose monitoring — time in range
+
+| Metric | Target (most non-pregnant adults with diabetes) | Source |
+|---|---|---|
+| Time in Range 70–180 mg/dL (3.9–10.0 mmol/L) | >70% (~16.8 h/day) | Battelino et al., 2019[^battelino] |
+| Time Below Range &lt;70 / &lt;54 mg/dL | &lt;4% / &lt;1% | Battelino et al., 2019[^battelino] |
+| Time Above Range >180 / >250 mg/dL | &lt;25% / &lt;5% | Battelino et al., 2019[^battelino] |
+| Coefficient of variation | ≤36% (stable glucose) | Battelino et al., 2019[^battelino] |
+
+As orientation, a time in range near 70% corresponds roughly to an HbA1c near 7%. Older or high-risk adults work to a relaxed >50% in range with &lt;1% below 70 mg/dL; pregnancy in type-1 diabetes uses a tighter 63–140 mg/dL band with >70% in range.[^battelino] These figures assume diabetes management — they are not a non-diabetic "optimisation" target.
+
+<Aside type="note" title="CGM caveats">
+Time-in-range metrics are valid only with adequate sensor wear (at least 14 days at ≥70% active data). A device's glucose management indicator (GMI) is an estimate of, not a substitute for, a lab HbA1c.
+</Aside>
+
+{/* IMAGE: A 24-hour ambulatory glucose profile band chart — median line with 25–75th and 5–95th percentile shading, with the 70–180 mg/dL target band highlighted. Alt: "Daily glucose profile showing the spread of readings against the target range." */}
+
+### Converting between units
+
+- Glucose: **mg/dL ÷ 18.0 = mmol/L**.
+- HbA1c: **mmol/mol = (% − 2.15) × 10.929**; **% = mmol/mol × 0.09148 + 2.152**.
+
+## What changes your numbers
+
+Glucose responds to far more than the last meal. Acute illness, physical or emotional stress, corticosteroids and a recent carbohydrate load all push readings up, sometimes sharply and temporarily. Sleep and meal timing matter too: even one night of partial sleep deprivation measurably lowers insulin sensitivity, and glucose tolerance falls across the day so that an identical meal produces a higher spike in the evening than the morning.[^cross] A poor night or a late, large dinner is a plausible contributor to an isolated next-morning fasting anomaly — not a diagnosis of anything.
+
+Targets themselves individualise. Generally healthy adults aim for HbA1c &lt;7%; frail older adults with limited life expectancy work to a less stringent 7.5–8%, because avoiding hypoglycaemia outranks chasing a low number.[^cross] Medication shapes the picture too: metformin monotherapy does not cause hypoglycaemia, whereas insulin and sulfonylureas can.[^cross]
+
+<Aside type="caution" title="When HbA1c can mislead">
+HbA1c is unreliable wherever red-cell turnover or haemoglobin is altered — haemolytic or iron-deficiency anaemia, recent transfusion, pregnancy, haemoglobinopathies, erythropoietin therapy, advanced kidney disease. When HbA1c and direct glucose readings disagree in these settings, the glucose reading takes precedence.[^ada2025]
+</Aside>
+
+## When to act
+
+<Aside type="caution" title="Low glucose — act on the number">
+A glucose **&lt;70 mg/dL (&lt;3.9 mmol/L)** is a hypoglycaemia alert regardless of symptoms: treat with fast-acting carbohydrate and re-check in 15 minutes. **&lt;54 mg/dL (&lt;3.0 mmol/L)** is clinically significant and needs immediate action. Any episode requiring help from another person is severe by definition — and is defined by the impairment, not by a number.[^redflags]
+</Aside>
+
+<Aside type="caution" title="Very high glucose — do not be falsely reassured by a single number">
+Sustained very high glucose (commonly ≥250–300 mg/dL) with symptoms such as excessive thirst, frequent urination, vomiting, dehydration, fast breathing or altered thinking is a reason to seek care promptly. Diabetic ketoacidosis can occur at glucose as low as 200 mg/dL, and roughly one in ten cases is euglycaemic (under 200) — so a glucose figure alone cannot rule it out. If you feel unwell, a "normal-looking" reading is not an all-clear.[^redflags]
+</Aside>
+
+The everyday signals — a fasting reading that has crept into the prediabetes band, an HbA1c trending upward — are matters for an unhurried conversation with a clinician, not an alarm. A meaningful change in serial HbA1c is roughly half a percentage point or more; smaller wobbles sit inside normal assay and biological variation.[^cross]
+
+## How this connects to your other metrics
+
+Glucose does not move in isolation. Weight is the most actionable lever most people have: a sustained 5–10% loss meaningfully improves glycaemia alongside blood pressure and lipids. Central fat in particular tracks with insulin resistance, which is why the [body-composition](/knowledge/body-composition/) and [weight and BMI](/knowledge/weight-bmi/) pages are worth reading alongside this one. Sleep regularity and meal timing feed back into your morning fasting number.
+
+For how HealthLog turns your readings into the in-app glucose surfaces and risk framing, see the [glucose clinical methodology](/methodology/glucose-clinical/) and [glycemic risk methodology](/methodology/glycemic-risk/).
+
+## References
+
+[^ada2025]: American Diabetes Association — Standards of Care in Diabetes, 2025/2026 (ch. 2 Diagnosis; ch. 6 Glycemic Goals). https://diabetesjournals.org/care/issue/48/Supplement_1
+[^who2006]: World Health Organization / International Diabetes Federation — Definition and Diagnosis of Diabetes Mellitus and Intermediate Hyperglycaemia, 2006. https://www.who.int/publications/i/item/definition-and-diagnosis-of-diabetes-mellitus-and-intermediate-hyperglycaemia
+[^who2011]: World Health Organization — Use of Glycated Haemoglobin (HbA1c) in the Diagnosis of Diabetes Mellitus, 2011. https://www.who.int/publications/i/item/use-of-glycated-haemoglobin-(-hba1c)-in-the-diagnosis-of-diabetes-mellitus
+[^battelino]: Battelino T, et al. — Clinical Targets for Continuous Glucose Monitoring Data Interpretation, *Diabetes Care* 2019;42(8):1593–1603. https://diabetesjournals.org/care/article/42/8/1593/36184
+[^cross]: American Diabetes Association — Standards of Care in Diabetes, 2025/2026 (individualised targets, medication effects); Spiegel & Van Cauter, *J Appl Physiol*, 2005 (sleep and insulin sensitivity). https://diabetesjournals.org/care/issue/48/Supplement_1
+[^redflags]: American Diabetes Association — Standards of Care in Diabetes: Glycemic Goals and Hypoglycemia, 2024–2026; ADA/EASD Hyperglycemic Crises in Adults Consensus Report, 2024. https://diabetesjournals.org/care/issue/48/Supplement_1

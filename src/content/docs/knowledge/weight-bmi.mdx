@@ -1,0 +1,99 @@
+---
+title: Weight, BMI and waist measures
+description: How to read body weight, BMI and waist-based adiposity proxies, why BMI is a screening tool not a verdict, what shifts them, and the weight changes that warrant care.
+sidebar:
+  order: 6
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Body weight is the simplest health number to record and one of the easiest to over-read. A single figure on a scale conflates fat, muscle, bone and water, and it swings a kilogram or two across a day on hydration alone. The skill is in reading the trend and the distribution, not the morning number.
+
+## What the numbers measure
+
+- **Body weight** — total body mass. Useful as a trend; uninformative about composition.
+- **BMI** — weight (kg) divided by height squared (m²). A population-level proxy for adiposity, designed to screen groups rather than verdict on individuals.
+- **Waist circumference (WC), waist-to-hip ratio (WHR), waist-to-height ratio (WHtR)** — proxies for central and visceral fat, which predicts cardiometabolic risk independently of BMI.
+
+## Why it matters
+
+Weight and its distribution are practical signals of energy balance and sit at the centre of managing obesity, type-2 diabetes, hypertension and dyslipidaemia. A sustained 5–10% weight loss meaningfully improves glycaemia, blood pressure and lipids, and ≥10–15% yields greater cardiometabolic benefit.[^nih1998] Central fat is more metabolically harmful than peripheral fat — which is why a waist tape often tells you more than the scale.[^who2008]
+
+## How to read your numbers
+
+### BMI
+
+| Category | Range (kg/m²) | Source |
+|---|---|---|
+| Underweight | &lt;18.5 | WHO, 2000[^who2000] |
+| Normal | 18.5–24.9 | WHO, 2000[^who2000] |
+| Overweight | 25.0–29.9 | WHO, 2000[^who2000] |
+| Obesity class I / II / III | 30.0–34.9 / 35.0–39.9 / ≥40.0 | WHO, 2000[^who2000] |
+| Asian-population increased risk / obesity | ≥23 / ≥27.5 | WHO, 2004[^who2004] |
+
+<Aside type="note" title="BMI is a screening tool, not a diagnosis">
+BMI does not measure body fat. It misclassifies muscular people as falsely high and sarcopenic older adults as falsely low, and it ignores where fat sits. The cut-offs are also ancestry-sensitive: Asian populations carry higher cardiometabolic risk at lower BMI, so the WHO 2004 consultation flags increased risk from ≥23 kg/m², and the ADA screens for diabetes from BMI ≥23 in Asian-American adults.[^who2004][^ada2025] Read BMI as one input among several, never as a standalone verdict.
+</Aside>
+
+The 2025 *Lancet Diabetes & Endocrinology* Commission on Clinical Obesity argues this point formally: BMI alone over- and under-diagnoses obesity and should be confirmed with a body-fat or anthropometric measure such as waist circumference.[^lancet2025] HealthLog treats BMI accordingly — as a starting band, paired with the waist and [body-composition](/knowledge/body-composition/) views.
+
+### Body weight
+
+There is no universal healthy absolute weight. A healthy range is derived from height via BMI 18.5–24.9.[^nih1998] For intervention in adults with overweight or obesity, an initial 5–10% loss over about six months is the recommended first goal.[^nih1998]
+
+### Waist circumference and ratios
+
+The thresholds below are for European-origin populations; ancestry-specific cut-offs are lower (commonly ≥90 cm for men and ≥80 cm for women in Asian populations).
+
+| Measure | Increased risk | Substantially increased | Source |
+|---|---|---|---|
+| WC, men | >94 cm | >102 cm | WHO 2008; NIH/NHLBI 1998[^who2008][^nih1998] |
+| WC, women | >80 cm | >88 cm | WHO 2008; NIH/NHLBI 1998[^who2008][^nih1998] |
+| WHR | men >0.90 / women >0.85 | — | WHO, 2008[^who2008] |
+| WHtR | ≥0.5 (keep your waist under half your height) | — | NICE[^nice] |
+
+The waist-to-height ratio is the most portable of these: keep your waist under half your height, and it holds across sexes and ancestries.[^nice]
+
+<Aside type="note" title="Measure the waist consistently">
+Waist circumference is technique-sensitive. Use the midpoint between the lowest rib and the top of the hip bone (iliac crest), and standardise breathing phase and tape tension between readings. A casual measurement varies by centimetres.
+</Aside>
+
+{/* IMAGE: A simple line diagram of a torso showing the WC landmark (midpoint between lowest rib and iliac crest) and the WHtR concept (waist = half of height). Alt: "Where to place the tape for waist circumference, and the waist-under-half-height rule." */}
+
+## What changes your numbers
+
+Day-to-day weight moves 1–2 kg on food, fluid and glycogen alone, which is noise, not signal — use a 7-day moving average to see the trend. Body-fat percentage at a given BMI rises with age, so an unchanged BMI across decades can mask a shift from muscle to fat. Ancestry shifts the risk a given BMI or waist represents, as the tables above note.
+
+Cardiovascular risk is multiplicative across blood pressure, lipids, central adiposity, glucose, activity, smoking and alcohol — it does not stack additively, and no single number is destiny.[^who_cvd] HealthLog teaches how the factors interact but deliberately does not produce a percent-risk score, which is regulated clinical-decision territory.
+
+## When to act
+
+<Aside type="caution" title="Rapid gain — possible fluid retention">
+An unexpected gain of more than 2 kg in 3 days (or more than 0.5 kg/day) is the one weight signal warranting prompt clinical attention in people with cardiac risk, because it can reflect fluid retention rather than fat.[^esc] Confirm with a re-weigh on consistent conditions before acting.
+</Aside>
+
+<Aside type="caution" title="Unintentional loss">
+Unintentional weight loss of ≥5% over 6–12 months is clinically significant and worth discussing with a clinician. Loss of more than 5% in a month, or more than 10% over six months, is more urgent.[^aafp] "Unintentional" is the operative word — deliberate loss on a managed plan is a different story.
+</Aside>
+
+Routine fluctuation, a slow planned loss, or a BMI sitting just inside the overweight band are matters for coaching and habit, not alerts.
+
+## How this connects to your other metrics
+
+Weight is a lever on almost everything else HealthLog tracks. Roughly 1 mmHg of systolic blood pressure falls per kilogram lost in overweight or hypertensive adults, and a 5–10% loss improves glycaemia and lipids together.[^cross] Because BMI cannot see composition, it pairs naturally with the [body-composition](/knowledge/body-composition/) page — the two answer different halves of the same question. Glucose and central adiposity travel together; see [blood glucose and HbA1c](/knowledge/glucose-hba1c/).
+
+For how these figures feed HealthLog's composite scoring, see the [health-score methodology](/methodology/health-score/).
+
+## References
+
+[^who2000]: World Health Organization — Obesity: Preventing and Managing the Global Epidemic (Technical Report Series 894), 2000. https://www.who.int/publications/i/item/WHO_TRS_894
+[^who2004]: WHO Expert Consultation — Appropriate body-mass index for Asian populations and its implications for policy and intervention strategies, *Lancet* 2004;363:157–163. https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(03)15268-3/fulltext
+[^who2008]: World Health Organization — Waist Circumference and Waist–Hip Ratio: Report of a WHO Expert Consultation, 2008 (published 2011). https://www.who.int/publications/i/item/9789241501491
+[^nih1998]: National Institutes of Health / NHLBI — Clinical Guidelines on the Identification, Evaluation, and Treatment of Overweight and Obesity in Adults, 1998. https://www.nhlbi.nih.gov/health-topics/clinical-guidelines-on-identification-evaluation-and-treatment-overweight-and-obesity-adults
+[^ada2025]: American Diabetes Association — Standards of Care in Diabetes, 2025 (ch. 8; Asian-American BMI screening ≥23). https://diabetesjournals.org/care/issue/48/Supplement_1
+[^nice]: National Institute for Health and Care Excellence — Obesity: identification, assessment and management; waist-to-height ratio guidance. https://www.nice.org.uk/guidance/cg189
+[^lancet2025]: Rubino F, et al. — Definition and diagnostic criteria of clinical obesity, *Lancet Diabetes & Endocrinology* Commission, 2025. https://www.thelancet.com/journals/landia/article/PIIS2213-8587(24)00316-4/fulltext
+[^esc]: European Society of Cardiology — Heart Failure Association daily-weight guidance. https://www.escardio.org/Guidelines
+[^aafp]: Bosch X, et al., *Mayo Clin Proc*; American Academy of Family Physicians — Unintentional Weight Loss, 2021. https://www.aafp.org/pubs/afp/issues/2021/0915/p277.html
+[^who_cvd]: World Health Organization — Cardiovascular diseases (CVDs) fact sheet; NIH/NHLBI Heart-Healthy Living. https://www.who.int/news-room/fact-sheets/detail/cardiovascular-diseases-(cvds)
+[^cross]: ACC/AHA — Guideline for the Prevention, Detection, Evaluation, and Management of High Blood Pressure in Adults, 2017 (weight–BP relationship). https://www.ahajournals.org/doi/10.1161/HYP.0000000000000065

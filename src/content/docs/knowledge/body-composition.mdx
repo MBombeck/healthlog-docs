@@ -1,0 +1,93 @@
+---
+title: Body composition
+description: How to read body-fat percentage, visceral fat, lean mass and the rest a smart scale reports, why the bands are conventions not standards, and where to trust the trend.
+sidebar:
+  order: 7
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Body composition splits your weight into its parts — how much is fat, how much is lean tissue, where the fat sits, how much is water and bone. It answers the question a scale weight cannot: two people at the same BMI can carry very different amounts of fat, and the difference matters more than the shared number.
+
+## What the numbers measure
+
+- **Body-fat percentage** — fat mass as a fraction of total mass.
+- **Visceral fat** — fat packed around the abdominal organs, the component most tightly linked to metabolic disease.
+- **Lean / muscle / fat-free mass** — everything that is not fat.
+- **Total body water and bone mass** — supporting estimates, best read as stability over time.
+
+These are measured by DXA (the practical reference), bioelectrical impedance (consumer scales and wearables), skinfolds, or hydrostatic and air-displacement methods.
+
+<Aside type="note" title="Consumer impedance is an estimate">
+Bioelectrical-impedance scales can err by several percentage points and drift with hydration, recent meals, recent exercise and electrode placement. DXA is the reference method. Read a smart scale for its trend on consistent conditions, not for a single decimal.
+</Aside>
+
+## Why it matters
+
+Composition captures the adiposity that BMI misses, distinguishing a muscular frame from a fatty one at the same weight. Visceral fat is the part most strongly tied to type-2 diabetes, hypertension and cardiovascular disease.[^vat] At the other end, very low body fat — especially in women — impairs hormonal and reproductive function, so lower is not simply better.
+
+## How to read your numbers
+
+### Body-fat percentage
+
+<Aside type="caution" title="These bands are fitness conventions, not a health standard">
+The body-fat categories below are fitness-industry conventions aligned with ACE and ACSM. They are **not** a WHO or CDC standard the way the BMI cut-offs are. Treat them as orientation, and remember that a percentage only means anything once fat mass is divided by body weight.
+</Aside>
+
+| Category | Men | Women | Source |
+|---|---|---|---|
+| Essential | 2–5% | 10–13% | ACE; ACSM[^ace][^acsm] |
+| Athletes | 6–13% | 14–20% | ACE; ACSM[^ace][^acsm] |
+| Fitness | 14–17% | 21–24% | ACE; ACSM[^ace][^acsm] |
+| Acceptable / average | 18–24% | 25–31% | ACE; ACSM[^ace][^acsm] |
+| Obesity | ≥25% | ≥32% | ACE; ACSM[^ace][^acsm] |
+
+Women carry more essential fat than men, which is why the bands are sex-specific. Sustained body fat below roughly 14% in women or 6% in men is hazardous, and below about 17% can disrupt menstruation.[^ace] As with BMI, body-fat percentage at a given weight rises with age.
+
+### Visceral fat
+
+There are two separate literatures here, and conflating them produces nonsense numbers.
+
+- **Imaging (CT/MRI/DXA), measured in cm²** — a visceral-fat area above roughly 100 cm² is a widely cited increased-risk threshold, with ~160 cm² often cited as high-risk. The cut-off is ancestry-dependent (lower in Asian populations) and there is no single universal value.[^vat]
+- **Consumer-scale "visceral fat rating", a unitless index** — typically on a ~1–59 scale, with roughly 1–12 treated as healthy and 13 and above as elevated by common convention. This rating is **not** a cm² value and does not convert to one.
+
+<Aside type="note" title="Keep the rating and the area apart">
+A scale's visceral-fat rating and an imaging cm² figure measure related things on incomparable scales. Track the rating against its own past values; do not read it as square centimetres.
+</Aside>
+
+### Lean, muscle and fat-free mass
+
+There is no clean universal "normal kilograms" band — lean mass is height-, sex- and frame-dependent. The honest framing is trend over time against your own baseline, not a population cut-off. Clinical sarcopenia cut-points exist (the appendicular skeletal-muscle mass index in the EWGSOP2 consensus), but they are protocol-specific and DXA/BIA-dependent, which makes them a "discuss with a clinician" pointer rather than a consumer tile.[^ewgsop2]
+
+### Total body water and bone mass
+
+As rough adult orientation, total body water runs about 50–65% of body weight in men and 45–60% in women, lower as fat mass rises — and these are estimates, not measurements.[^tbw] Bone mass from a consumer scale is a low-precision figure best read for stability; DXA is the real tool for bone density, and you should not read osteoporosis into a scale number.
+
+{/* IMAGE: A stacked-bar breakdown of total body mass into fat mass, lean mass, body water and bone, with a callout separating visceral from subcutaneous fat. Alt: "How total weight divides into fat, lean tissue, water and bone, with visceral fat highlighted." */}
+
+## What changes your numbers
+
+Composition shifts slowly where it counts and quickly where it does not. Fat and lean mass change over weeks of diet and training; the day-to-day wobble a scale reports is mostly hydration and measurement variance. Body-fat bands shift upward with age at any given weight. Because impedance readings move with how recently you ate, drank or trained, take them under consistent conditions — same time of day, similar hydration — or the trend dissolves into noise.
+
+The 2025 *Lancet Diabetes & Endocrinology* Commission elevates body-fat and anthropometric measures to confirm clinical and preclinical obesity alongside BMI — formal recognition that composition adds what a single weight cannot.[^lancet2025]
+
+## When to act
+
+<Aside type="caution" title="Read trends, escalate symptoms — not a scale decimal">
+No single body-composition reading from a consumer device warrants an alarm; the measurement error is too large. The signals worth a clinician's attention are persistent ones with context — a sustained drop in muscle mass with weakness or falls in an older adult, or very low body fat with loss of menstruation. Sarcopenia and bone-density concerns are clinical assessments (DXA and protocol-specific cut-points), not figures to self-diagnose from a scale.[^ewgsop2]
+</Aside>
+
+## How this connects to your other metrics
+
+Body composition is the companion to scale weight: where [weight and BMI](/knowledge/weight-bmi/) give you a fast, reliable trend that cannot see inside, composition shows what the weight is made of. Visceral fat is the thread linking this page to metabolic health — it tracks with insulin resistance and raised glucose, so it is worth reading alongside [blood glucose and HbA1c](/knowledge/glucose-hba1c/). Together with waist measures, composition is how HealthLog follows the 2025 Commission's guidance to confirm adiposity beyond BMI alone.
+
+For how these inputs feed HealthLog's composite scoring, see the [health-score methodology](/methodology/health-score/).
+
+## References
+
+[^ace]: American Council on Exercise — Percent Body Fat Norms / body-fat categories. https://www.acefitness.org/resources/everyone/tools-calculators/percent-body-fat-calculator/
+[^acsm]: American College of Sports Medicine — ACSM's Guidelines for Exercise Testing and Prescription. https://www.acsm.org/education-resources/books/guidelines-exercise-testing-prescription
+[^vat]: Peer-reviewed visceral-adipose-tissue imaging-threshold literature, 2014–2025 (CT/MRI/DXA VAT-area risk thresholds, ancestry-dependent). https://pubmed.ncbi.nlm.nih.gov/?term=visceral+adipose+tissue+threshold+cardiometabolic+risk
+[^ewgsop2]: Cruz-Jentoft AJ, et al. — Sarcopenia: revised European consensus on definition and diagnosis (EWGSOP2), *Age and Ageing* 2019;48(1):16–31. https://academic.oup.com/ageing/article/48/1/16/5126243
+[^tbw]: Watson PE, et al. — Total body water volumes for adult males and females, *Am J Clin Nutr* 1980; ICRP Publication 89 (Reference Man). https://pubmed.ncbi.nlm.nih.gov/6986753/
+[^lancet2025]: Rubino F, et al. — Definition and diagnostic criteria of clinical obesity, *Lancet Diabetes & Endocrinology* Commission, 2025. https://www.thelancet.com/journals/landia/article/PIIS2213-8587(24)00316-4/fulltext
