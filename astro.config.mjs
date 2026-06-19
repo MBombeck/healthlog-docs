@@ -39,6 +39,7 @@ export default defineConfig({
 				{
 					label: 'How-to Guides',
 					items: [
+						{ slug: 'guides', label: 'Overview' },
 						{ slug: 'guides/connect-withings' },
 						{ slug: 'guides/connect-whoop' },
 						{ slug: 'guides/connect-google-health' },
@@ -57,6 +58,7 @@ export default defineConfig({
 				{
 					label: 'Reference',
 					items: [
+						{ slug: 'reference', label: 'Overview' },
 						{ slug: 'reference/api-overview' },
 						{ slug: 'reference/api-endpoints' },
 						{ slug: 'reference/environment-variables' },
@@ -68,6 +70,7 @@ export default defineConfig({
 				{
 					label: 'Explanation',
 					items: [
+						{ slug: 'explanation', label: 'Overview' },
 						{ slug: 'explanation/medication-compliance' },
 						{ slug: 'explanation/health-scores' },
 						{ slug: 'explanation/source-priority' },
