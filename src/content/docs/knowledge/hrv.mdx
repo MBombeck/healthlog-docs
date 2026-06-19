@@ -1,0 +1,63 @@
+---
+title: Heart-rate variability
+description: What beat-to-beat variability reveals about autonomic balance, why only your own trend is meaningful, the orientation reference values, and how it feeds recovery.
+sidebar:
+  order: 4
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Heart-rate variability (HRV) is the beat-to-beat variation in the interval between heartbeats, measured in milliseconds. A healthy heart does not tick like a metronome — the tiny fluctuations between beats are a non-invasive window onto the balance of the autonomic nervous system.
+
+## What it measures
+
+The raw signal is the variation in the R–R or N–N interval. Two families of measures describe it. **Time-domain** measures include SDNN (overall variability) and RMSSD, which tracks parasympathetic (vagal) tone and is the measure most consumer wearables approximate overnight. **Frequency-domain** measures split the signal into spectral bands — very-low, low and high frequency. These conventions were standardised by the ESC/NASPE Task Force in 1996.[^escnaspe1996]
+
+## Why it matters
+
+HRV is a window onto autonomic balance. Higher variability generally indicates strong vagal tone, good recovery and adaptability; chronically low HRV is associated with stress, poor recovery, overtraining, inflammation and depression, and — in clinical populations such as post-heart-attack and heart-failure patients — with worse prognosis.[^escnaspe1996] For everyday use it is best read as a personal recovery and stress trend, not as a diagnostic number.
+
+## How to read your numbers
+
+There is no universal "normal" HRV. Between-person variation dwarfs within-person variation, so cross-person comparison is misleading and only your own trend against your own baseline is meaningful. The values below are orientation only.
+
+| Measure | Value | Source |
+|---|---|---|
+| Short-term (~5-min, supine healthy) SDNN | ~50 ± 16 ms | ESC/NASPE Task Force, 1996[^escnaspe1996] |
+| Short-term RMSSD | ~42 ± 15 ms | ESC/NASPE Task Force, 1996[^escnaspe1996] |
+| 24-h SDNN prognostic bands | >100 ms healthy; 50–100 ms compromised; &lt;50 ms high-risk | ESC/NASPE Task Force, 1996[^escnaspe1996] |
+| 24-h SDNN normative | ~141 ± 39 ms (not comparable to a morning wearable reading) | ESC/NASPE Task Force, 1996[^escnaspe1996] |
+| Nightly RMSSD by age | ~55–105 ms (teens and 20s) → ~25–45 ms (60+) | Umetani et al., 1998[^umetani1998] |
+| Spectral bands | VLF &lt;0.04 Hz; LF 0.04–0.15 Hz; HF 0.15–0.40 Hz | ESC/NASPE Task Force, 1996[^escnaspe1996] |
+
+A short, supine five-minute clinical recording, a 24-hour Holter average and an overnight wrist reading are **not interchangeable** — recording length, posture, breathing rate and time of day all shift the value, and absolute numbers are not comparable across devices. HRV declines strongly with age; men run slightly higher than women until around 50, after which the two converge.
+
+<Aside type="note" title="Day-to-day noise versus a real change">
+Single-night swings of about ±10% are routine. Track a 7-day rolling average rather than reacting to one night. In sports-science terms, the smallest worthwhile change is roughly 0.5 × the within-person standard deviation of your log-transformed baseline; smaller moves are trivial. A rising coefficient of variation together with a falling mean points toward fatigue or overreaching. These are athlete-monitoring conventions — informational, never a clinical alarm.[^mdpisensors2026]
+</Aside>
+
+## What changes it
+
+HRV is sensitive to a long list of inputs: posture, breathing rate, time of day, the last meal, alcohol, caffeine, illness, sleep and acute stress. Alcohol acutely suppresses HRV in a dose-dependent way, strongest the night of and the morning after — often when heart rate and blood pressure still look normal.[^quintana2021] Acute mental stress lowers HRV through vagal withdrawal, and chronically low HRV tracks accumulated allostatic load.[^thayer2009] Atrial fibrillation and frequent ectopic beats invalidate standard HRV interpretation entirely.
+
+<Aside type="caution" title="What HRV is not">
+**LF/HF does not validly quantify "sympathovagal balance."** Low-frequency power is not a clean sympathetic marker, and the ratio rests on an oversimplified linear model.[^billman2013] Do not read LF/HF as a stress score; prefer HF power or RMSSD as the vagal-tone signal. Likewise, vendor **recovery, readiness and "stress" scores** are device-specific composites benchmarked against the wearer's own rolling baseline, with no clinical reference range and inputs that are often non-independent. Treat HRV and everything derived from it as a wellness signal, not a diagnosis — a low HRV alone must never escalate to a clinical alarm. This is general guidance, not medical advice.
+</Aside>
+
+## When to act
+
+HRV on its own is not a red-flag metric — its day-to-day swing is too large and too individual to alarm on. Its value at the edge of safety is as one signal in a cluster. A sustained drop below your personal baseline, **together with** a rising resting heart rate and a higher overnight respiratory rate, is a soft early-illness or overreach signal that preceded symptomatic infection in a meaningful fraction of cases in pre-symptomatic studies.[^mishra2020] Read concordance of two or three signals as a gentle "your body may be under strain" note and a reason to ease training — not as a diagnosis, and never as an urgent alert.
+
+## How it connects to other metrics
+
+HRV is the parasympathetic counterpart to [resting heart rate](/knowledge/resting-heart-rate/): as recovery degrades, variability falls while the resting rate climbs, and the two together drive the [recovery methodology](/methodology/recovery/). HealthLog prefers a connected device's native recovery score when one exists and computes a baseline-relative readiness proxy otherwise — the [recovery page](/methodology/recovery/) explains why the native measurement wins and how the proxy is built. A one-night HRV dip after logged alcohol or a high-stress day is expected and benign-recoverable; the signal worth watching is the *sustained* multi-day decline that, alongside a rising resting heart rate and respiratory rate, points toward illness or overreach. Lead with your personal baseline; the population orientation values are only a secondary sanity band, and HealthLog waits for several valid readings before showing a "your baseline" figure at all.
+
+## References
+
+[^escnaspe1996]: ESC / NASPE Task Force — Heart Rate Variability: Standards of Measurement, Physiological Interpretation, and Clinical Use, *Circulation / European Heart Journal*, 1996. https://doi.org/10.1161/01.CIR.93.5.1043
+[^umetani1998]: Umetani K, et al. — Twenty-four hour time domain heart rate variability and heart rate: relations to age and gender over nine decades, *Journal of the American College of Cardiology*, 1998. https://doi.org/10.1016/S0735-1097(97)00554-8
+[^mdpisensors2026]: Heart-rate-variability monitoring review, *Sensors* (MDPI), 2026. https://www.mdpi.com/journal/sensors
+[^quintana2021]: Quintana DS, Karpyak VM, et al. — Alcohol and heart-rate variability, *Scientific Reports*, 2021. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8225621/
+[^thayer2009]: Thayer JF, Lane RD — Neurovisceral integration model of autonomic regulation, 2009. https://doi.org/10.1016/j.neubiorev.2008.08.004
+[^billman2013]: Billman GE — The LF/HF ratio does not accurately measure cardiac sympatho-vagal balance, *Frontiers in Physiology*, 2013. https://doi.org/10.3389/fphys.2013.00026
+[^mishra2020]: Mishra T, et al. — Pre-symptomatic detection of infection from wearable data, *Nature Biomedical Engineering*, 2020. https://doi.org/10.1038/s41551-020-00640-6

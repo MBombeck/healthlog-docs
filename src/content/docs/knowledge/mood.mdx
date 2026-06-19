@@ -1,0 +1,104 @@
+---
+title: Mood and wellbeing
+description: How to read a daily mood scale and the validated WHO-5, PHQ-9 and GAD-7 screens, what shifts them, and the firm line between a screening signal and a diagnosis.
+sidebar:
+  order: 14
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Mood is easy to log and surprisingly informative once you have enough of it: patterns, triggers and correlations with sleep, activity, cycle and stress emerge that no single day reveals. This page explains how to read a daily mood scale and the four validated instruments HealthLog supports — and where the firm line sits between a screening signal and a diagnosis.
+
+<Aside type="caution">
+The validated questionnaires here are **screening tools, not diagnoses**. A positive screen is a prompt to talk to a professional, never a conclusion. If you are thinking about harming yourself, contact your local emergency number or a crisis line now — in many countries you can dial or text a national suicide-and-crisis line. This page cannot replace urgent help.
+</Aside>
+
+## What it is
+
+Mood logging is subjective self-report of affective state, often a simple ordinal scale such as 1–5. Alongside it sit four structured, validated instruments: the **WHO-5** Well-Being Index, the **PHQ-9** (depression), the **GAD-7** (anxiety) and the **PSS-10** (perceived stress). The single-item scale is fast and good for spotting trends; the validated screens are repeatable severity measures with published interpretation.
+
+## Why it matters
+
+A daily mood entry reveals patterns and triggers and correlates with sleep, activity, cycle, medication and stress — often giving an early signal of declining wellbeing before it is obvious day to day. The validated screens turn that into something structured you can track over time and share with a clinician.
+
+## How to read your scores
+
+### WHO-5 Well-Being Index (0–100%)
+
+A score of **50% or below (raw ≤12) indicates poor wellbeing** and warrants further depression screening. A fall of 10 percentage points or more is a clinically meaningful change.[^who5]
+
+| Band | Reading |
+| --- | --- |
+| 72–100% | High wellbeing |
+| 52–68% | Moderate |
+| 32–48% | Low |
+| ≤50% (raw ≤12) | Screen-positive — consider further screening |
+
+### PHQ-9 (depression; 0–27)
+
+The standard action threshold is a total of **10 or above**, which carries about 88% sensitivity and specificity for major depression.[^phq9]
+
+| Score | Severity |
+| --- | --- |
+| 0–4 | Minimal |
+| 5–9 | Mild |
+| 10–14 | Moderate |
+| 15–19 | Moderately severe |
+| 20–27 | Severe |
+
+<Aside type="caution">
+PHQ-9 item 9 asks about self-harm and suicidal thoughts. **Any non-zero answer is a flag at any total score** and should prompt immediate crisis-resource signposting and professional contact — never an algorithmic dismissal.[^phq9]
+</Aside>
+
+### GAD-7 (anxiety; 0–21)
+
+The standard threshold for probable generalised anxiety disorder is **10 or above** (about 89% sensitivity, 82% specificity).[^gad7]
+
+| Score | Severity |
+| --- | --- |
+| 0–4 | Minimal |
+| 5–9 | Mild |
+| 10–14 | Moderate |
+| 15–21 | Severe |
+
+### PSS-10 (perceived stress; 0–40)
+
+The developers deliberately publish **no clinical cut-off** — perceived stress is a continuous construct, not a diagnosis. The bands below are descriptive and normative (US-derived, population mean roughly 15–16), useful for tracking your own trend rather than crossing a line.[^pss]
+
+| Score | Band |
+| --- | --- |
+| 0–13 | Low |
+| 14–26 | Moderate |
+| 27–40 | High |
+
+## What changes it
+
+Self-report is sensitive to time of day, recent events, recall and how a question is framed, so the single most useful habit is consistency: same scale, same time of day. Mood moves with sleep, physical activity, the menstrual cycle, medication, alcohol, acute stress and life load — which is exactly why the correlations are informative once you have a baseline. A poor night's sleep or a high-stress day is a plausible contributor to a low mood entry, not proof of anything clinical.
+
+## When to act
+
+<Aside type="caution">
+Treat every threshold here as a **screen, not a diagnosis**. A WHO-5 at or below 50%, a PHQ-9 or GAD-7 at or above 10, or a clear downward trend in your own scores is a reason to speak with a clinician — not a verdict. Any positive answer to PHQ-9 item 9, or a very low wellbeing score, should prompt crisis-resource signposting and prompt professional contact. If you are in immediate danger, contact emergency services or a crisis line now.
+</Aside>
+
+A single-item daily scale is not a validated diagnostic instrument — read it for trend only. The validated screens are widely concordant (WHO-5 screen-positive at ≤50%, PHQ-9 and GAD-7 action thresholds at ≥10), but concordant screens are still screens.
+
+## How it connects
+
+<CardGrid>
+  <Card title="Sleep" icon="moon">
+    Mood and [sleep](/knowledge/sleep/) move together in both directions — a run of short or irregular nights often precedes a dip, and a low mood disrupts sleep.
+  </Card>
+  <Card title="Recovery" icon="heart">
+    Recent mood feeds the computed [readiness proxy](/methodology/recovery/) as one of its baseline-deviation components.
+  </Card>
+</CardGrid>
+
+This is general guidance, not medical advice, and individual variation is wide. Validated screens are repeatable severity measures, not diagnoses — positive results should prompt professional evaluation.
+
+## References
+
+[^who5]: WHO-5 Well-Being Index — scoring, the ≤50% screen-positive threshold and the 10-point meaningful-change rule — WHO, 1998; Topp CW, et al., *Psychotherapy and Psychosomatics*, 2015. https://doi.org/10.1159/000376585
+[^phq9]: PHQ-9 severity bands, the ≥10 action threshold and item-9 self-harm flag — Kroenke K, Spitzer RL, Williams JBW, *Journal of General Internal Medicine*, 2001 https://doi.org/10.1046/j.1525-1497.2001.016009606.x; depression-screening recommendation — US Preventive Services Task Force, 2023 https://doi.org/10.1001/jama.2023.9297.
+[^gad7]: GAD-7 severity bands and the ≥10 threshold for probable generalised anxiety disorder — Spitzer RL, Kroenke K, Williams JBW, Löwe B, *Archives of Internal Medicine*, 2006. https://doi.org/10.1001/archinte.166.10.1092
+[^pss]: Perceived Stress Scale (PSS-10), continuous construct with no formal clinical cut-off — Cohen S, Kamarck T, Mermelstein R, *Journal of Health and Social Behavior*, 1983 https://doi.org/10.2307/2136404; US normative data — Cohen S, Janicki-Deverts D, 2012.

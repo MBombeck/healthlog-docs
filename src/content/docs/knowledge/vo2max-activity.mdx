@@ -1,0 +1,106 @@
+---
+title: VO₂max and activity
+description: How to read aerobic fitness, weekly activity minutes and daily steps against age- and sex-adjusted standards, what shifts them, and when a change warrants attention.
+sidebar:
+  order: 12
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Cardiorespiratory fitness is one of the most durable predictors of long-term health, and it is one of the few you can move. This page explains what VO₂max measures, how weekly activity and daily steps map onto the evidence, and how to read your own numbers against standards that adjust for age and sex rather than a single fixed target.
+
+## What VO₂max is
+
+VO₂max is the maximal rate at which your body can take up and use oxygen during incremental exercise, expressed in millilitres of oxygen per kilogram of body mass per minute (mL·kg⁻¹·min⁻¹). It is the best single laboratory index of aerobic fitness. A device on your wrist does not measure it — it produces a *model estimate* from the relationship between your heart rate and movement, so treat a wearable VO₂max as a trend line, not a calibrated value.
+
+Activity is the behaviour underneath the number: how many minutes you spend at each intensity each week, how many muscle-strengthening sessions you complete, and how many steps you take.
+
+## Why it matters
+
+Cardiorespiratory fitness is an independent, graded predictor of all-cause and cardiovascular mortality. Each one-MET increment (roughly 3.5 mL·kg⁻¹·min⁻¹ of additional fitness) is associated with about a 10–25% lower mortality risk.[^aha2016] Accumulated aerobic minutes combined with resistance training carry the strongest dose-response evidence in all of preventive medicine — for reduced cardiovascular disease, type-2 diabetes, several cancers, depression and death from any cause.[^who2020][^hhs2018]
+
+## How to read your VO₂max
+
+VO₂max is interpreted as a **percentile within your own age and sex band**, never against a fixed number. Men test roughly 15–20% higher than women at the same age, and fitness declines with age, so a value that is excellent at 60 would be below average at 25. The table below shows the 50th-percentile (median) value by decade from the FRIEND Registry, the reference dataset underpinning the widely used fitness categories.[^friend2015]
+
+| Age band | Men (mL·kg⁻¹·min⁻¹) | Women (mL·kg⁻¹·min⁻¹) |
+| --- | --- | --- |
+| 20–29 | 48.0 | 37.6 |
+| 30–39 | 42.4 | 30.2 |
+| 40–49 | 37.8 | 26.7 |
+| 50–59 | 32.6 | 23.4 |
+| 60–69 | 28.2 | 20.0 |
+| 70–79 | 24.4 | 18.3 |
+
+Within each age and sex band, fitness is graded by percentile: below the 20th is Very Poor to Poor, 20th–39th Fair, 40th–59th Average, 60th–79th Good, 80th–94th Excellent, and 95th or above Superior.[^acsm] Untrained fitness falls about 10% per decade after age 30; regular aerobic training roughly halves that decline to about 5% per decade.[^friend2015]
+
+<Aside type="note">
+Cycle-ergometer (stationary-bike) tests typically read about 10–15% lower than treadmill tests, and wearable estimates carry meaningful error. Compare like with like, and read your own trend over weeks rather than one figure against the table.
+</Aside>
+
+## How to read your activity
+
+The weekly activity target is identical across the WHO 2020, US HHS 2018 and AHA guidelines. The 2018/2020 revisions also dropped the old rule that exercise had to come in ten-minute bouts — any duration now counts toward the total.[^who2020][^hhs2018]
+
+| Target | Amount |
+| --- | --- |
+| Moderate-intensity aerobic | 150–300 min/week |
+| Vigorous-intensity aerobic | 75–150 min/week (1 vigorous min ≈ 2 moderate) |
+| Muscle-strengthening | ≥2 days/week, all major muscle groups |
+| Older adults | add multicomponent/balance training ≥3 days/week |
+
+Benefit continues to accrue beyond 300 minutes of moderate or 150 minutes of vigorous activity per week — the upper figure is a strong floor, not a ceiling.
+
+### Steps per day
+
+There is no official WHO or HHS step target; the evidence comes from observational cohorts. Mortality risk falls progressively up to roughly **6,000–8,000 steps/day for adults aged 60 and over** and **8,000–10,000 for adults under 60**, after which the curve flattens.[^paluch2022] Crossing about 7,000 steps a day is associated with substantially lower mortality than staying below it,[^paluch2021] and dose-response benefit continues to around 12,000 steps a day.[^saintmaurice2020] The familiar "10,000 steps" figure is a 1960s pedometer marketing slogan, not a research finding.
+
+### Intensity zones
+
+Intensity is relative to your own fitness. The ACSM classifies it by percentage of maximum heart rate (%HRmax), percentage of heart-rate reserve (%HRR, the Karvonen method) or perceived effort.
+
+| Intensity | %HRmax | %HRR | Effort / talk test |
+| --- | --- | --- | --- |
+| Light | 57–63% | 30–39% | — |
+| Moderate | 64–76% | 40–59% | talk but not sing |
+| Vigorous | 77–95% | 60–89% | only a few words at a time |
+| Near-maximal | ≥96% | ≥90% | — |
+
+Heart-rate reserve is HRmax − resting HR; target HR = (intensity × HRR) + resting HR. A population estimate of maximum heart rate is about 208 − (0.7 × age),[^tanaka2001] or the older 220 − age — both are crude, and a tested maximum beats either. Beta-blockers blunt heart rate and break every HR-based zone; the talk test or perceived effort is the fallback.[^acsm]
+
+## What changes it
+
+Aerobic fitness rises with consistent training and falls with detraining, age, illness, altitude, anaemia and several cardiac and pulmonary conditions. The training principles that move it safely are unglamorous: about 24–48 hours of recovery between sessions stressing the same muscle group, resistance work at least twice a week per muscle group, and progressive overload that changes one variable at a time in small steps (a soft, non-official rule of thumb is no more than about 10% per week).[^acsm] Rest is part of the program, not a break from it.
+
+<Aside type="caution">
+Genuine overtraining is a *cluster* that must co-occur over about a week — a persistently elevated resting heart rate, suppressed [heart-rate variability](/methodology/recovery/), poor sleep, declining performance and low mood together — and it overlaps heavily with ordinary illness, stress and life load.[^meeusen2013] A single off day means little. If fitness is falling alongside breathlessness, chest pain or unexplained fatigue, that is a clinician conversation, not a training adjustment.
+</Aside>
+
+Two related cautions on the numbers themselves: wearable active-energy ("calories burned") estimates commonly carry ±20–30% error and should be read as motivational trend, not a basis for eating decisions — particularly for anyone with disordered-eating risk.[^who2020] And hydration follows thirst and body-mass change, not a universal millilitres-per-hour figure; intakes much above ~0.8 L/h raise the risk of dilutional hyponatraemia, so more is not safer.[^acsmfluid]
+
+## How it connects
+
+<CardGrid>
+  <Card title="Resting heart rate" icon="heart">
+    Aerobic training lowers [resting heart rate](/knowledge/resting-heart-rate/); a trained endurance athlete sitting at 40 bpm is fit, not bradycardic.
+  </Card>
+  <Card title="Health Score" icon="approve-check">
+    Fitness and activity feed the [Health Score methodology](/methodology/health-score/) as one of its weighted pillars.
+  </Card>
+</CardGrid>
+
+This is general guidance, not medical advice, and individual variation is wide. Reference standards are population percentiles, not personal prescriptions — read them as a sanity band around your own trend.
+
+## References
+
+[^friend2015]: VO₂max reference standards by age and sex, from the Fitness Registry and the Importance of Exercise National Database — Kaminsky LA, et al., *Mayo Clinic Proceedings*, 2015. https://doi.org/10.1016/j.mayocp.2015.07.026
+[^aha2016]: Cardiorespiratory fitness as a clinical vital sign; ~10–25% lower mortality per 1-MET increment — Ross R, et al., American Heart Association Scientific Statement, *Circulation*, 2016. https://doi.org/10.1161/CIR.0000000000000461
+[^acsm]: Fitness categories, FITT framework, intensity zones and resistance-training progression — American College of Sports Medicine, *Guidelines for Exercise Testing and Prescription*, 10th/11th ed., 2018/2021. https://www.acsm.org/education-resources/books/guidelines-exercise-testing-prescription
+[^who2020]: 150–300 min/week moderate or 75–150 vigorous, plus muscle-strengthening ≥2 days/week — WHO Guidelines on Physical Activity and Sedentary Behaviour, 2020 (Bull FC, et al., *Br J Sports Med*). https://www.who.int/publications/i/item/9789240015128
+[^hhs2018]: Physical activity dose-response and the dropped 10-minute-bout rule — US Department of Health and Human Services, Physical Activity Guidelines for Americans, 2nd ed., 2018. https://health.gov/our-work/nutrition-physical-activity/physical-activity-guidelines
+[^paluch2022]: Step-count mortality plateau at ~6,000–8,000 (older) and ~8,000–10,000 (younger) steps/day — Paluch AE, et al., *Lancet Public Health*, 2022. https://doi.org/10.1016/S2468-2667(21)00302-9
+[^paluch2021]: ≥7,000 vs &lt;7,000 steps/day and mortality — Paluch AE, et al., *JAMA Network Open*, 2021. https://doi.org/10.1001/jamanetworkopen.2021.24516
+[^saintmaurice2020]: Continued dose-response benefit through ~12,000 steps/day — Saint-Maurice PF, et al., *JAMA*, 2020. https://doi.org/10.1001/jama.2020.1382
+[^tanaka2001]: Maximum heart rate ≈ 208 − 0.7 × age — Tanaka H, Monahan KD, Seals DR, *Journal of the American College of Cardiology*, 2001. https://doi.org/10.1016/S0735-1097(00)01054-8
+[^meeusen2013]: Overtraining syndrome as a diagnosis of exclusion and a marker cluster — Meeusen R, et al., joint ECSS/ACSM consensus statement, *Medicine & Science in Sports & Exercise*, 2013. https://doi.org/10.1249/MSS.0b013e318279a10a
+[^acsmfluid]: Fluid replacement, hydrate to thirst, hyponatraemia risk above ~0.8 L/h — Sawka MN, et al., ACSM Position Stand: Exercise and Fluid Replacement, *Med Sci Sports Exerc*, 2007. https://doi.org/10.1249/mss.0b013e31802ca597

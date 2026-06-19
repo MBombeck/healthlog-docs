@@ -1,0 +1,83 @@
+---
+title: Health knowledge
+description: Guideline-backed background on every metric HealthLog tracks — what each number means, how to read your own, and when a reading is worth a clinician's attention.
+sidebar:
+  order: 1
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+HealthLog records a lot of numbers. This section explains what each one means: what the metric is, why it matters, how to read your own values against guideline reference ranges, what moves it, and when a reading is worth a clinician's attention. Every range and claim is cited to a primary source — a recognised guideline body or peer-reviewed study, named with its year — and linked in each article's References section.
+
+<Aside type="note" title="General guidance, not medical advice">
+These articles describe population-level reference ranges and the physiology behind them. They are general education, not a diagnosis or a treatment plan. Reference ranges vary with age, sex, ancestry, altitude, medication, and underlying conditions, and your personal normal can sit outside a textbook band for good reasons. Where a reading crosses a recognised safety threshold, each article says so and points you to a clinician — but only a clinician who can examine you can interpret your numbers in context.
+</Aside>
+
+## Cardiovascular
+
+<CardGrid>
+  <Card title="Blood pressure" icon="heart">
+    Systolic and diastolic categories, where the US and European thresholds differ, and the hypertensive-crisis line that needs urgent care. [Read →](/knowledge/blood-pressure/)
+  </Card>
+  <Card title="Resting heart rate" icon="heart">
+    What a resting pulse reflects, the normal adult band, athletic bradycardia, and when a sustained rise or an irregular rhythm is worth checking. [Read →](/knowledge/resting-heart-rate/)
+  </Card>
+  <Card title="Heart-rate variability" icon="random">
+    The beat-to-beat variation that tracks autonomic balance, why it is intensely personal, and how it folds into recovery. [Read →](/knowledge/hrv/)
+  </Card>
+</CardGrid>
+
+## Metabolic and body
+
+<CardGrid>
+  <Card title="Glucose and HbA1c" icon="approve-check">
+    Fasting glucose, the oral glucose tolerance test, HbA1c, and time-in-range — in both mg/dL and mmol/L. [Read →](/knowledge/glucose-hba1c/)
+  </Card>
+  <Card title="Weight and BMI" icon="bars">
+    What BMI screens for and where it breaks down, plus waist-based measures that add what BMI misses. [Read →](/knowledge/weight-bmi/)
+  </Card>
+  <Card title="Body composition" icon="bars">
+    Body-fat percentage, lean mass, and visceral fat — what the bands mean and why they are conventions, not a single standard. [Read →](/knowledge/body-composition/)
+  </Card>
+</CardGrid>
+
+## Sleep, respiration, and temperature
+
+<CardGrid>
+  <Card title="Sleep" icon="moon">
+    Duration by age, sleep architecture, efficiency, regularity, and sleep debt. [Read →](/knowledge/sleep/)
+  </Card>
+  <Card title="Blood oxygen (SpO₂)" icon="information">
+    The normal saturation band, what altitude and lung disease do to it, and the hypoxaemia floor. [Read →](/knowledge/spo2/)
+  </Card>
+  <Card title="Respiratory rate" icon="information">
+    Normal breathing rates by age, and the rate that earns a place in sepsis and deterioration scores. [Read →](/knowledge/respiratory-rate/)
+  </Card>
+  <Card title="Body temperature" icon="information">
+    Why normal is a distribution rather than 37.0 °C, plus the fever and hypothermia thresholds. [Read →](/knowledge/temperature/)
+  </Card>
+</CardGrid>
+
+## Fitness, cycle, and mood
+
+<CardGrid>
+  <Card title="VO₂max and activity" icon="rocket">
+    Cardiorespiratory fitness against age and sex norms, and the weekly activity that moves it. [Read →](/knowledge/vo2max-activity/)
+  </Card>
+  <Card title="Menstrual cycle" icon="seti:clock">
+    The four phases, what a typical cycle looks like, and when a change is worth raising with a clinician. [Read →](/knowledge/menstrual-cycle/)
+  </Card>
+  <Card title="Mood" icon="comment">
+    Validated well-being and screening scales, what their bands signal, and where they end and diagnosis begins. [Read →](/knowledge/mood/)
+  </Card>
+</CardGrid>
+
+## How this connects to the rest of HealthLog
+
+These articles cover the *general* meaning of each metric. For how HealthLog *computes and blends* its own derived numbers from your data, see the methodology section:
+
+- [Derived metrics](/methodology/overview/) — how the wellness scores are built.
+- [Recovery and readiness](/methodology/recovery/) — how resting heart rate, HRV, sleep, and respiratory rate combine.
+- [Health score](/methodology/health-score/) — the composite and its inputs.
+- [Glucose clinical view](/methodology/glucose-clinical/) and [glycemic risk](/methodology/glycemic-risk/).
+- [Chronotype](/methodology/chronotype/) — circadian timing from your sleep pattern.

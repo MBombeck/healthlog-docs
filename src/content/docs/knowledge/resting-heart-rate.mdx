@@ -1,0 +1,65 @@
+---
+title: Resting heart rate
+description: What resting pulse reveals about autonomic balance and fitness, the normal and athlete ranges, what shifts it, and when an irregular or extreme rate warrants a clinician.
+sidebar:
+  order: 3
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Resting heart rate is the number of beats per minute when you are completely at rest — ideally measured on waking, before rising. It reflects the baseline balance between sympathetic (accelerating) and parasympathetic, or vagal (slowing), drive to the sinoatrial node, the heart's natural pacemaker.
+
+## What it measures
+
+The pulse is the palpable expansion of an artery with each beat. In normal sinus rhythm without a pulse deficit, the peripheral pulse equals the heart rate, so the two are interchangeable for everyday tracking. A true resting value needs a standardised context — not a reading taken after climbing stairs or during a stressful moment.
+
+## Why it matters
+
+A lower resting heart rate generally reflects better aerobic fitness and more efficient cardiac function. A higher one independently predicts all-cause and cardiovascular mortality across large cohorts, with risk rising roughly continuously above about 60–70 bpm.[^aha2024hr] Trends carry more information than any single reading: a persistent, unexplained rise can flag illness, overtraining, dehydration, stress or deconditioning, while an irregular pulse is the everyday prompt to screen for atrial fibrillation.
+
+## How to read your numbers
+
+| Category | Range | Source |
+|---|---|---|
+| Normal adult resting | 60–100 bpm | AHA, 2024[^aha2024hr] |
+| Endurance athletes (benign) | 40–60 bpm | AHA, 2024[^aha2024hr] |
+| Bradycardia | &lt;60 bpm (often normal in athletes and sleep; symptomatic concern usually &lt;50, especially &lt;40) | ACC/AHA/HRS, 2019[^accahahrs2019] |
+| Tachycardia (resting) | >100 bpm | ACC/AHA/HRS, 2019[^accahahrs2019] |
+| Alternative risk-tracking band | 50–90 bpm tracks mortality risk better than the classic 60–100 (some evidence) | observational cohort literature[^palatini1999] |
+
+Some evidence argues that a 50–90 bpm band tracks mortality risk better than the classic 60–100, but the 2019 ACC/AHA/HRS guideline retains the &lt;60 and >100 bpm clinical boundaries.[^accahahrs2019] [^palatini1999]
+
+Children run higher (newborns roughly 100–160 bpm, narrowing through adolescence). There is no strong sex split, though women average a few bpm higher than men.
+
+### Irregular-rhythm and atrial-fibrillation awareness
+
+Atrial fibrillation is the most common sustained irregular rhythm; it raises stroke risk and is often intermittent and asymptomatic. An irregular-rhythm signal is a **screening prompt, not a diagnosis** — confirmation needs an ECG. The US Preventive Services Task Force concluded in 2022 that the evidence is insufficient to recommend for or against population screening of asymptomatic adults, because wearable, cuff and pulse-device evidence remains immature.[^uspstf2022] A single irregular reading is common and often benign; a recurring pattern is worth showing a clinician, and only a medical evaluation can confirm a rhythm problem.
+
+## What changes it
+
+Resting heart rate is highly state-dependent. Caffeine, nicotine, alcohol, fever, dehydration, anxiety, recent activity, heat and pregnancy (which raises it by roughly 7–20 bpm) all push it up, as do stimulants and decongestants; beta-blockers lower it, and hyperthyroidism raises it. Standardise the context before comparing readings.
+
+Interpretation also depends on who you are. A low resting rate in a trained endurance athlete is fitness, not a problem — resting bradycardia around 40 bpm, dropping below 30 during sleep, is normal in that group, and the low-rate caveat should not fire unless symptoms accompany it.[^aha2025athlete] Beta-blockers blunt both resting and exercise heart rate, which invalidates age-predicted maximum and percentage-of-maximum zones.[^jacc2008] Optical wrist sensors are reasonable at rest but degrade with motion, darker skin tones, tattoos and poor fit; in an arrhythmia a pulse deficit means the peripheral pulse can read below the true heart rate. This is general guidance, and individual variation is wide.
+
+## When to act
+
+<Aside type="caution" title="When an extreme or irregular rate warrants attention">
+Always exclude exertion, sleep, an athletic baseline and known medication effects first, and read from a resting source — never a workout-polluted pulse.
+
+A sustained **resting rate below 50 bpm while awake in a non-athlete, accompanied by dizziness, fainting or breathlessness**, is the meaningful bradycardia flag.[^accahahrs2019] A sustained **resting rate above 100–120 bpm at rest** is cautionary; a sustained rate at or above 150 bpm is urgent-tier and warrants emergency assessment.[^aha2024hr]
+
+For rhythm, a single irregular reading is usually benign noise. A recurring irregular pattern is worth raising with a clinician, who can confirm it with an ECG. These are general guidance, not medical advice; do not self-diagnose from a consumer reading.
+</Aside>
+
+## How it connects to other metrics
+
+Resting heart rate is one half of the autonomic picture; [heart-rate variability](/knowledge/hrv/) is the other, and they tend to move in opposite directions — as recovery worsens, the resting rate drifts up while variability falls. That pairing is the backbone of the [recovery methodology](/methodology/recovery/): a sustained rise of about 5–10 bpm above your 2–4 week baseline, especially alongside a variability drop and a higher overnight respiratory rate, is the soft early-illness or overreach signal documented across pre-symptomatic studies. Single-signal moves are noisy; concordance of two or three raises confidence. Resting heart rate is distinct from [blood pressure](/knowledge/blood-pressure/) — a normal pressure with a persistently elevated pulse still merits attention — and as a graded signal it contributes to the [health score](/methodology/health-score/). Throughout, lead with your personal baseline and treat the population range as a secondary sanity band.
+
+## References
+
+[^aha2024hr]: American Heart Association — All About Heart Rate (Pulse) / Target Heart Rates, 2024. https://www.heart.org/en/health-topics/high-blood-pressure/the-facts-about-high-blood-pressure/all-about-heart-rate-pulse
+[^accahahrs2019]: American College of Cardiology / American Heart Association / Heart Rhythm Society — Guideline on the Evaluation and Management of Patients With Bradycardia and Cardiac Conduction Delay, 2019. https://doi.org/10.1161/CIR.0000000000000628
+[^uspstf2022]: US Preventive Services Task Force — Screening for Atrial Fibrillation: Recommendation Statement, *JAMA*, 2022. https://doi.org/10.1001/jama.2021.23732
+[^palatini1999]: Palatini P, et al. — Heart rate as a predictor of mortality, *Hypertension*, 1999. https://doi.org/10.1161/01.HYP.33.1.44
+[^aha2025athlete]: American Heart Association — *Circulation*, athlete cardiovascular adaptation guidance, 2025. https://www.ahajournals.org/journal/circ
+[^jacc2008]: Beta-blockade and heart-rate response — *Journal of the American College of Cardiology*, 2008. https://www.jacc.org/

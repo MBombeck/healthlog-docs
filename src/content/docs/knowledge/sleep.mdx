@@ -1,0 +1,105 @@
+---
+title: Sleep
+description: How to read sleep duration, efficiency, stage architecture, debt and regularity — what the evidence supports, and why regularity rivals duration.
+sidebar:
+  order: 8
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Sleep is not a single number. It is total time asleep, how continuous that time was, the architecture of stages within it, the debt that accumulates when you fall short, and — increasingly recognised as the strongest signal of all — how regular your timing is from night to night. Useful targets are habitual amounts and patterns, not the verdict on one night.
+
+## Why it matters
+
+Both short and long habitual sleep carry risk: the association with mortality is U-shaped, not "more is always better." Chronically sleeping under seven hours as an adult links to obesity, type-2 diabetes, hypertension, cardiovascular disease, impaired immunity, depression, accidents and raised all-cause mortality.[^aasm-srs] And duration is not the whole story — in a large cohort, the *regularity* of sleep timing predicted mortality at least as strongly as how long people slept.[^windred]
+
+## How to read your numbers
+
+### Duration by age
+
+Recommended sleep changes across the lifespan. These are population guidance ranges, not personal prescriptions — individual need varies and is partly genetic.
+
+| Age group | Recommended per 24 h | Source |
+|---|---|---|
+| Newborn (0–3 mo) | 14–17 h | NSF, 2015 [^nsf] |
+| Infant (4–11 mo) | 12–15 h | NSF, 2015 [^nsf] |
+| Toddler (1–2 yr) | 11–14 h | NSF, 2015 [^nsf] |
+| Preschool (3–5 yr) | 10–13 h | NSF, 2015 [^nsf] |
+| School-age (6–13 yr) | 9–11 h | NSF, 2015 [^nsf] |
+| Teen (14–17 yr) | 8–10 h | NSF, 2015 [^nsf] |
+| Adult (18–64 yr) | 7–9 h | NSF, 2015 [^nsf] |
+| Older adult (65+ yr) | 7–8 h | NSF, 2015 [^nsf] |
+| Adult consensus | ≥7 h/night regularly (no upper bound endorsed) | AASM & SRS, 2015 [^aasm-srs] |
+
+The lower older-adult band reflects typically reduced sleep with age, not a lesser need for restorative sleep. Pregnancy, illness and recovery all shift need upward.
+
+### Sleep efficiency
+
+Efficiency is total sleep time divided by time in bed, as a percentage. A healthy floor is commonly cited at 85% (some labs use 80%), with roughly 85–90% a healthy average.[^aasm-manual] Counter-intuitively, efficiency above ~95% can indicate sleep debt or insufficient time in bed rather than excellent sleep. Efficiency declines with age — about 3% per decade from around 40 — and that decline is normal, not pathology.
+
+### Stage architecture
+
+A healthy adult night cycles through stages roughly every 90–110 minutes, four to six times, with deep sleep front-loaded early and REM weighted later.[^statpearls-sleep] Typical laboratory proportions:
+
+| Stage | Typical share of the night |
+|---|---|
+| N1 (lightest) | ~2–5% |
+| N2 | ~45–50% (largest share) |
+| N3 (deep / slow-wave) | ~15–25% |
+| REM | ~20–25% |
+
+{/* IMAGE: A hypnogram across one night — y-axis Wake/REM/N1/N2/N3, x-axis ~8 hours — showing deep sleep concentrated in the first cycles and REM periods lengthening toward morning. Alt text: "Hypnogram showing sleep stages across a night, with deep sleep early and longer REM periods toward waking." */}
+
+Stage proportions are strongly age-dependent: N3 is highest in children and adolescents and declines from the twenties onward, while infants spend roughly half the night in REM.
+
+<Aside type="note" title="Wearable stages are estimates">
+Consumer wearables estimate sleep stages with only fair-to-moderate agreement against laboratory polysomnography (kappa roughly 0.21–0.53). Total sleep time is far more trustworthy than the deep/REM/light split.[^aasm-cst] Treat a wearable "deep sleep %" as a rough trend for yourself over time, not as a clinical N3 measurement. Trackers also tend to overestimate total sleep and misclassify wake — time in bed is not sleep time.
+</Aside>
+
+### Sleep debt
+
+Sleep debt is a derived, relative construct with no formal numeric guideline: the running sum, over a window of typically 7–14 days, of (need − actual) per day. Its absolute value depends entirely on the individual need you assume. Recovery is partial and nonlinear — a single long weekend sleep does not fully reverse several nights of restriction.[^nsf]
+
+### Sleep regularity
+
+Regularity is captured by the Sleep Regularity Index (SRI): the probability of being in the same state (asleep or awake) at any two points 24 hours apart, averaged over about a week. It runs 0 (random) to 100 (perfectly regular) — roughly 94 for a regular sleeper, ~70 for slightly irregular, ~34 for highly irregular.[^phillips] In UK Biobank, higher regularity was associated with markedly lower all-cause mortality across the most-regular quintiles, predicting mortality more strongly than duration.[^windred] There is no universal good/bad cutoff — read it as a personal trend.
+
+## What changes it
+
+Several behaviours have evidence behind them and form the core of sleep hygiene:[^cdc] consistent bed and wake times including weekends; bright morning daylight with dim evenings and a dark bedroom; screens off at least 30 minutes before bed; avoiding afternoon and evening caffeine (its effect can last up to ~8 hours), nicotine, alcohol and large late meals; a cool, quiet, dark room; regular exercise but not in the hour before bed; and naps kept to 20–30 minutes and earlier in the day.
+
+Your circadian timing — chronotype — also matters, and it is not a health target. It runs on a morning-lark to night-owl spectrum, with most people intermediate, and it shifts across life: latest around 19–21 years, advancing earlier with age.[^horne] There is no "better" chronotype; the goal is aligning your schedule with your phase. See the [chronotype methodology](/methodology/chronotype/) for how HealthLog estimates yours.
+
+## When to act
+
+<Aside type="caution" title="When sleep is the symptom">
+Persistently unrefreshing sleep, loud snoring with witnessed pauses in breathing, gasping awakenings, or pronounced daytime sleepiness can point to a sleep disorder such as obstructive sleep apnoea and are worth raising with a clinician — wearable-flagged nocturnal [SpO₂](/knowledge/spo2/) dips can be an early hint. Sudden or severe insomnia, or sleep changes alongside low mood, are also reasons to seek assessment. This page is general guidance, not medical advice; individual variation is wide.
+</Aside>
+
+Night-shift work deserves a calm mention rather than alarm: the IARC classified night-shift work as "probably carcinogenic to humans" (Group 2A) in 2019, which reflects the strength of the evidence, not the size of any individual's risk.[^iarc]
+
+## How it connects
+
+Sleep is upstream of much of the rest of your data. A poor night measurably lowers next-day insulin sensitivity, making short sleep a plausible contributor to an isolated [glucose](/knowledge/glucose-hba1c/) anomaly. Sleep adequacy and overnight [respiratory rate](/knowledge/respiratory-rate/) both feed the readiness blend, and a sustained rise in respiratory rate or resting heart rate with falling HRV is part of the early-illness picture.
+
+<CardGrid>
+  <Card title="Chronotype" icon="moon">
+    Your circadian phase and how HealthLog estimates it — see the [chronotype methodology](/methodology/chronotype/).
+  </Card>
+  <Card title="Recovery and readiness" icon="heart">
+    How sleep adequacy folds into the [readiness blend](/methodology/recovery/) alongside RHR, HRV and respiratory rate.
+  </Card>
+</CardGrid>
+
+## References
+
+[^nsf]: National Sleep Foundation — Hirshkowitz et al., "National Sleep Foundation's sleep time duration recommendations," *Sleep Health*, 2015. https://www.sleephealthjournal.org/article/S2352-7218(15)00015-7/fulltext
+[^aasm-srs]: American Academy of Sleep Medicine & Sleep Research Society — Watson et al., joint consensus on recommended adult sleep duration, *SLEEP / J Clin Sleep Med*, 2015. https://jcsm.aasm.org/doi/10.5664/jcsm.4758
+[^aasm-manual]: American Academy of Sleep Medicine — Manual for the Scoring of Sleep and Associated Events (sleep-efficiency and staging definitions). https://aasm.org/clinical-resources/scoring-manual/
+[^statpearls-sleep]: StatPearls / NIH — "Physiology, Sleep Stages." National Library of Medicine. https://www.ncbi.nlm.nih.gov/books/NBK526132/
+[^aasm-cst]: American Academy of Sleep Medicine — Position Statement on the use of consumer sleep technology, *J Clin Sleep Med*, 2018. https://jcsm.aasm.org/doi/10.5664/jcsm.7128
+[^phillips]: Phillips et al., "Irregular sleep/wake patterns are associated with poorer academic performance and delayed circadian and sleep/wake timing," *Scientific Reports*, 2017. https://www.nature.com/articles/s41598-017-03171-4
+[^windred]: Windred et al., "Sleep regularity is a stronger predictor of mortality risk than sleep duration," *SLEEP* (UK Biobank), 2023/24. https://doi.org/10.1093/sleep/zsad253
+[^cdc]: US Centers for Disease Control and Prevention — Sleep and sleep hygiene guidance, 2024. https://www.cdc.gov/sleep/about/index.html
+[^horne]: Horne & Östberg, "A self-assessment questionnaire to determine morningness-eveningness in human circadian rhythms," *Int J Chronobiol*, 1976. https://pubmed.ncbi.nlm.nih.gov/1027738/
+[^iarc]: IARC Monographs Volume 124 — Night shift work, International Agency for Research on Cancer, 2019. https://publications.iarc.fr/593

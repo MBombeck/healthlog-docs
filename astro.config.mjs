@@ -79,6 +79,25 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Health Knowledge',
+					items: [
+						{ slug: 'knowledge' },
+						{ slug: 'knowledge/blood-pressure' },
+						{ slug: 'knowledge/resting-heart-rate' },
+						{ slug: 'knowledge/hrv' },
+						{ slug: 'knowledge/glucose-hba1c' },
+						{ slug: 'knowledge/weight-bmi' },
+						{ slug: 'knowledge/body-composition' },
+						{ slug: 'knowledge/sleep' },
+						{ slug: 'knowledge/spo2' },
+						{ slug: 'knowledge/respiratory-rate' },
+						{ slug: 'knowledge/temperature' },
+						{ slug: 'knowledge/vo2max-activity' },
+						{ slug: 'knowledge/menstrual-cycle' },
+						{ slug: 'knowledge/mood' },
+					],
+				},
+				{
 					label: 'Reference material',
 					items: [
 						{ slug: 'features' },

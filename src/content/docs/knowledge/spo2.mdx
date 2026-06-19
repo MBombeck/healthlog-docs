@@ -1,0 +1,66 @@
+---
+title: Blood oxygen (SpO₂)
+description: How to read peripheral oxygen saturation, the bands that matter, why altitude and chronic lung disease shift the floor, and the device-accuracy caveats.
+sidebar:
+  order: 9
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+SpO₂ is the percentage of haemoglobin in your blood that is carrying oxygen, estimated non-invasively by pulse oximetry — the light sensor in a fingertip clip or a wrist wearable. It approximates arterial saturation (SaO₂) and stands in, at the bedside, for how well oxygen is moving from your lungs into your blood.
+
+## Why it matters
+
+SpO₂ is a core vital sign and the everyday proxy for tissue oxygen delivery. A meaningful fall signals impaired gas exchange — pneumonia, a COPD or asthma exacerbation, pulmonary embolism, heart failure, or sleep-disordered breathing — and repeated nocturnal dips are part of how sleep apnoea is screened.[^statpearls] It is not a "higher is always better" number: in patients on supplemental oxygen, over-oxygenation (hyperoxia) is itself harmful.[^bts]
+
+## How to read your numbers
+
+| Category | Range | Source |
+|---|---|---|
+| Healthy adult, room air, sea level | 95–100% (most readings 96–99%) | StatPearls/NIH, 2023 [^statpearls] |
+| Mild hypoxaemia | 91–94% | StatPearls/NIH, 2023 [^statpearls] |
+| Clinically significant hypoxaemia | &lt;90% | WHO; StatPearls/NIH, 2023 [^who] |
+| Sustained &lt;88% | common chronic-oxygen-eligibility criterion | StatPearls/NIH, 2023 [^statpearls] |
+| On supplemental O₂ (most acutely ill adults) | target 94–98% | BTS, 2017 [^bts] |
+| At risk of hypercapnic failure (e.g. COPD) | target 88–92% | BTS, 2017 [^bts] |
+| At altitude (~2,500 m) | normal ~90% | StatPearls/NIH, 2023 [^statpearls] |
+
+Above roughly 98%, more saturation adds no benefit — there is no goal to chase past the normal band.
+
+## What changes it
+
+SpO₂ drifts down mildly with age. Two contexts shift the floor enough that the healthy 95–100% band simply does not apply. At **altitude**, lower ambient oxygen pressure means ~90% can be normal around 2,500 m. In **chronic lung disease** such as COPD, the personal baseline is lower and the accepted oxygen target is 88–92%, not 94–98% — applying a flat sub-90% alarm to these users over-fires.[^bts] HealthLog reads sustained runs against your own baseline rather than a single population threshold for exactly this reason.
+
+<Aside type="note" title="Wearable SpO₂ is wellness-grade">
+Optical SpO₂ from a wrist or finger wearable is wellness-grade and sensitive to motion, cold or poor perfusion, nail polish and ambient light; accuracy is roughly ±2–4%.[^statpearls] A single low reading is often an artefact — retake when warm, still and well-perfused. Sustained runs, not isolated dips, are the signal.
+</Aside>
+
+<Aside type="caution" title="Pulse oximetry and skin pigmentation">
+Pulse oximeters can overestimate true oxygen saturation in people with darker skin pigmentation — so-called occult hypoxaemia — roughly three times more often in Black than in White patients, per the US FDA Medical Devices Advisory Committee.[^fda] If you have darker skin, weigh symptoms (breathlessness, confusion) more heavily and do not let a reassuring SpO₂ number override how you feel.
+</Aside>
+
+## When to act
+
+<Aside type="caution" title="Low oxygen warning signs">
+A sustained SpO₂ below 92% on room air, or any breathlessness, warrants assessment — WHO treats below 90% as a clinically significant danger floor.[^who] SpO₂ can stay near-normal early in carbon-monoxide poisoning, so do not let a normal reading reassure you if there is a possible exposure. If you (or someone with you) are markedly short of breath, confused, or have bluish lips or skin, call emergency services. For people with COPD or who live at altitude, the meaningful band is lower and personal — discuss your own target with a clinician. General guidance, not medical advice; individual variation is wide.
+</Aside>
+
+## How it connects
+
+A low SpO₂ rarely travels alone. Overnight desaturations often accompany disrupted [sleep](/knowledge/sleep/) and are part of the sleep-apnoea picture, and a falling SpO₂ alongside a rising [respiratory rate](/knowledge/respiratory-rate/) strengthens the case that the lungs are under strain rather than the reading being noise. Persistent dips feed the same early-warning logic that the [recovery and readiness](/methodology/recovery/) blend draws on.
+
+<CardGrid>
+  <Card title="Respiratory rate" icon="information">
+    A rising breathing rate with a falling SpO₂ is a stronger signal than either alone — see [respiratory rate](/knowledge/respiratory-rate/).
+  </Card>
+  <Card title="Recovery and readiness" icon="heart">
+    How sustained respiratory and oxygen signals fold into the [readiness blend](/methodology/recovery/).
+  </Card>
+</CardGrid>
+
+## References
+
+[^statpearls]: StatPearls / NIH — "Pulse Oximetry," 2023. National Library of Medicine. https://www.ncbi.nlm.nih.gov/books/NBK470348/
+[^bts]: British Thoracic Society — Guideline for oxygen use in healthcare and emergency settings, 2017. https://www.brit-thoracic.org.uk/quality-improvement/guidelines/emergency-oxygen/
+[^who]: World Health Organization — Pulse oximetry and hypoxaemia guidance. https://www.who.int/teams/maternal-newborn-child-adolescent-health-and-ageing/child-health/pulse-oximetry
+[^fda]: US Food and Drug Administration, Medical Devices Advisory Committee — Pulse-oximeter performance and skin pigmentation, February 2024. https://www.fda.gov/medical-devices/safety-communications/pulse-oximeter-accuracy-and-limitations-fda-safety-communication

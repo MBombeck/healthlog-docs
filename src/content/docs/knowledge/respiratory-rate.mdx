@@ -1,0 +1,65 @@
+---
+title: Respiratory rate
+description: How to read your breathing rate, the bands and escalation cutoffs that matter, and why an overnight rise above your own baseline is an early illness signal.
+sidebar:
+  order: 10
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Respiratory rate is the number of complete breaths you take per minute at rest. Clinically it is counted over 30–60 seconds; wearables estimate it overnight from chest-wall motion, subtle modulation of the optical pulse signal, or the coupling between heart and breath. It is one of the most sensitive and earliest signs of clinical deterioration — and, historically, one of the most poorly recorded vital signs.
+
+## Why it matters
+
+Breathing rate rises (tachypnoea) with fever, infection, sepsis, metabolic acidosis, pain, anxiety, an asthma or COPD exacerbation, pulmonary embolism and heart failure. It falls (bradypnoea) with central-nervous-system or respiratory depression from opioids and sedatives, severe hypothyroidism, or rising intracranial pressure.[^statpearls] An elevated *overnight baseline* is an early, non-specific signal that something is brewing — which is what makes the trend, rather than any single count, the useful part.
+
+## How to read your numbers
+
+| Category | Range | Source |
+|---|---|---|
+| Normal resting adult | 12–20 breaths/min | American Lung Association; StatPearls/NIH, 2023 [^ala] [^statpearls] |
+| Tachypnoea | >20/min | StatPearls/NIH, 2023 [^statpearls] |
+| Sepsis-screening threshold (qSOFA) | ≥22/min | Sepsis-3, *JAMA*, 2016 [^sepsis3] |
+| Common concern cutoff | ≥25/min | clinical convention |
+| Highest-risk scoring (NEWS2) | ≤8 or ≥25/min | RCP, 2017 [^news2] |
+| Bradypnoea | &lt;12/min | StatPearls/NIH, 2023 [^statpearls] |
+
+Children breathe faster: newborns around 30–60/min, infants 24–40, toddlers 20–30, school-age 18–25, and adolescents approaching the adult 12–20. Trained endurance athletes sit at the low end of the adult band.
+
+## What changes it
+
+Respiratory rate is highly state-dependent — talking, movement, emotion, recent activity, even the awareness of being measured, all shift it. It is only meaningful truly at rest or asleep, which is why overnight wearable estimates are more useful than a daytime spot reading. That estimate is an average over the night, not a clinical count, and it degrades with motion or arrhythmia.
+
+The most informative way to read it is **against your own baseline**. A trend of roughly +3 breaths/min above your nightly baseline can flag deterioration and often beats any absolute number — and it is infection-generic, not tied to one illness.[^natarajan] In a study of symptomatic individuals, about a third had at least one night with respiratory rate ≥3/min above baseline within a 7-day onset window.[^miller]
+
+<Aside type="note" title="The delta is the signal">
+Because resting rates vary between people, HealthLog leads with deviation from your personal overnight baseline and uses the 12–20/min population band only as a secondary sanity check. A rate that is normal for the population can still be a real rise for you.
+</Aside>
+
+## When to act
+
+<Aside type="caution" title="Breathing-rate warning signs">
+A breathing rate above 25/min with breathlessness, confusion or a low [SpO₂](/knowledge/spo2/), or any rate at the extreme ends of scoring tools (≤8 or ≥25/min), needs prompt attention.[^news2] Tachypnoea is sensitive but non-specific, so weigh it with how you feel and your other signs. Slow breathing (bradypnoea) — especially opioid-related respiratory depression — is an emergency: if someone is breathing very slowly, is hard to rouse, or has bluish lips, call emergency services. General guidance, not medical advice; individual variation is wide.
+</Aside>
+
+## How it connects
+
+Respiratory rate is one of the earliest movers in the early-illness picture. A sustained overnight rise tends to travel with a rising resting heart rate, a falling HRV, and a small rise in skin or body [temperature](/knowledge/temperature/) — the concordance of two or three of these raises confidence far more than any one alone.[^statpearls] Read alongside a falling [SpO₂](/knowledge/spo2/), it points more specifically at the lungs.
+
+<CardGrid>
+  <Card title="Blood oxygen (SpO₂)" icon="information">
+    A rising respiratory rate with a falling [SpO₂](/knowledge/spo2/) is a stronger respiratory signal than either alone.
+  </Card>
+  <Card title="Recovery and readiness" icon="heart">
+    Respiratory-rate stability against baseline is one component of the [readiness blend](/methodology/recovery/).
+  </Card>
+</CardGrid>
+
+## References
+
+[^statpearls]: StatPearls / NIH — "Tachypnea," 2023. National Library of Medicine. https://www.ncbi.nlm.nih.gov/books/NBK541062/
+[^ala]: American Lung Association — Vital signs and respiratory rate. https://www.lung.org/lung-health-diseases/how-lungs-work
+[^sepsis3]: Singer et al., "The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3)," *JAMA*, 2016. https://doi.org/10.1001/jama.2016.0287
+[^news2]: Royal College of Physicians — National Early Warning Score (NEWS2), 2017. https://www.rcp.ac.uk/improving-care/resources/national-early-warning-score-news-2/
+[^natarajan]: Natarajan et al., "Assessment of physiological signs associated with COVID-19 measured using wearable devices," *npj Digital Medicine*, 2021. https://www.nature.com/articles/s41746-020-00363-7
+[^miller]: Miller et al., "Analyzing changes in respiratory rate to predict the risk of COVID-19 infection," *PLOS ONE*, 2020. https://doi.org/10.1371/journal.pone.0243693
