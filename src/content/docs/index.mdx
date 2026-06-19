@@ -34,21 +34,40 @@ pages that cover the reasoning behind the design.
 <CardGrid>
   <Card title="Getting Started" icon="rocket">
     Stand up an instance, create your first user, and connect the iOS app.
-    Start with [Self-host in 10 minutes](/getting-started/self-host-in-10-minutes/).
+    Begin with the [introduction](/getting-started/introduction/), then
+    [self-host in 10 minutes](/getting-started/self-host-in-10-minutes/),
+    [first steps](/getting-started/first-steps/), and
+    [connect the iOS app](/getting-started/connect-ios-app/).
   </Card>
   <Card title="How-to Guides" icon="setting">
-    Connect Withings, WHOOP, Google Health, or Apple Health; set up
-    medications, reminders, backups, invites, and a reverse proxy.
+    Task-oriented walkthroughs: connect [Withings](/guides/connect-withings/),
+    [WHOOP](/guides/connect-whoop/), [Google Health](/guides/connect-google-health/)
+    or [Apple Health](/guides/import-apple-health/); set up
+    [medications](/guides/track-medications/), [reminders](/guides/reminder-channels/),
+    [backups](/guides/backups/), [invites](/guides/invites/), and a
+    [reverse proxy](/guides/reverse-proxy/).
   </Card>
   <Card title="Reference" icon="open-book">
-    The REST API contract, every environment variable, the data model, the
-    FHIR read API, and the webhook surfaces.
+    Factual specs: the [REST API overview](/reference/api-overview/) and
+    [endpoints](/reference/api-endpoints/), every
+    [environment variable](/reference/environment-variables/), the
+    [data model](/reference/data-model/), the [FHIR read API](/reference/fhir-api/),
+    and the [webhook surfaces](/reference/webhooks/).
   </Card>
   <Card title="Explanation" icon="information">
-    Why compliance is cadence-aware, how the wellness scores are built, what
-    leaves your instance and when, and the encryption model.
+    The reasoning behind the design:
+    [cadence-aware compliance](/explanation/medication-compliance/), how the
+    [health scores](/explanation/health-scores/) are built,
+    [what leaves your instance](/explanation/privacy-architecture/), and the
+    [encryption model](/explanation/encryption-at-rest/).
   </Card>
 </CardGrid>
+
+<LinkCard
+  title="Health Knowledge"
+  description="Plain-language, guideline-backed explainers for every metric HealthLog tracks — blood pressure, glucose, HRV, sleep, VO₂max and more, each with its sources."
+  href="/knowledge/"
+/>
 
 :::caution[Not medical advice]
 HealthLog is a tracking and visualisation tool, not a medical device. Nothing
