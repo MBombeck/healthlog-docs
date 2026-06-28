@@ -1,11 +1,11 @@
 ---
-title: "Scaling & Operations"
-description: "Worker / web split, encryption-key rotation, off-host S3 backups."
+title: Scaling
+description: Split the web and worker processes into separate containers so each scales independently, and where the dedicated backup and key-rotation runbooks live.
 sidebar:
   order: 4
 ---
 
-For single-user self-hosts, the bundled `docker-compose.yml` is enough — a single container runs the web app and the pg-boss worker side by side. Three operations features matter once you grow past that:
+For single-user self-hosts, the bundled `docker-compose.yml` is enough — a single container runs the web app and the pg-boss worker side by side. Once you grow past that, the worker / web split below lets each scale independently. Two related operations tasks have their own runbooks: [encrypted off-host backups](/guides/backups/) and [encryption-key rotation](/guides/encryption-key-rotation/).
 
 ## Worker / Web Split
 
@@ -22,65 +22,23 @@ Run **at most one** worker per database — pg-boss serializes through Postgres 
 ```yaml title="docker-compose.scale.yml"
 services:
   app-web:
-    image: ghcr.io/mbombeck/healthlog:1.12.10
+    image: ghcr.io/mbombeck/healthlog:latest
     environment:
       HEALTHLOG_PROCESS_TYPE: web
       # ... rest of env
 
   app-worker:
-    image: ghcr.io/mbombeck/healthlog:1.12.10
+    image: ghcr.io/mbombeck/healthlog:latest
     environment:
       HEALTHLOG_PROCESS_TYPE: worker
       # ... rest of env
 ```
 
-## Encryption-Key Rotation
+Pin both services to the same explicit version tag in production so a deploy can never split the two across releases. See [Updates and deploy](/guides/updates-and-deploy/) for the full process-type matrix and the post-deploy version check.
 
-[Key rotation](https://en.wikipedia.org/wiki/Key_management) — periodically retiring an old encryption key for a fresh one — limits how much data a single compromised key can expose. `ENCRYPTION_KEYS` is a JSON map of versioned keys; `ENCRYPTION_ACTIVE_KEY_ID` selects which key encrypts new writes. Old data keeps decrypting under its original key.
+## Related operations runbooks
 
-```bash
-# Initial setup
-ENCRYPTION_KEYS='{"v1":"<64-hex>"}'
-ENCRYPTION_ACTIVE_KEY_ID=v1
+The two operations tasks that pair with scaling have dedicated guides — keep to them so there is one canonical set of instructions:
 
-# Add a new key, keep the old one for decryption
-ENCRYPTION_KEYS='{"v1":"<64-hex>","v2":"<new-64-hex>"}'
-ENCRYPTION_ACTIVE_KEY_ID=v2
-
-# Re-encrypt every encrypted column under v2
-pnpm tsx scripts/rotate-encryption-key.ts v2
-```
-
-After the rotation script completes, you can drop `v1` from `ENCRYPTION_KEYS`. The legacy single-key `ENCRYPTION_KEY` env var still works as a transparent fallback for installs that haven't migrated to the JSON map yet.
-
-:::danger
-**Never remove a key from `ENCRYPTION_KEYS` until you have re-encrypted every row under another key.** Encrypted columns include Withings tokens, AI provider keys, VAPID private key, GitHub bug-report PAT, moodLog webhook secret, and notification credentials. Removing the only key that can decrypt a row makes that row permanently unreadable.
-:::
-
-Walk-through and rollback notes live in `docs/ops/encryption-key-rotation.md` in the repo.
-
-## Off-Host S3 Backups
-
-The pg-boss `data-backup` queue runs a weekly backup (Sundays 03:00 Europe/Berlin) of every user's data as encrypted JSON. The backup can additionally be uploaded to any [S3](https://docs.aws.amazon.com/s3/)-compatible bucket (Cloudflare R2, Backblaze B2, MinIO, AWS).
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BACKUP_S3_ENDPOINT` | Base URL of the S3-compatible service (e.g. `https://<account>.r2.cloudflarestorage.com`, `https://s3.eu-central-1.amazonaws.com`) | — |
-| `BACKUP_S3_BUCKET` | Target bucket name | — |
-| `BACKUP_S3_ACCESS_KEY` | Access key | — |
-| `BACKUP_S3_SECRET_KEY` | Secret key | — |
-| `BACKUP_S3_REGION` | Bucket region (`auto` for Cloudflare R2, real region for AWS S3) | `auto` |
-| `BACKUP_RETENTION_DAYS` | Days before objects are pruned (best-effort; prefer a bucket lifecycle rule) | `30` |
-| `BACKUP_ENCRYPTION_KEY` | 64-hex / base64 32-byte payload-encryption key — **separate** from `ENCRYPTION_KEY` | — |
-
-Setting any of these without the rest disables the backup silently — keep the block all-or-none.
-
-The IAM grant is intentionally **`PutObject` + `GetObject` only**. Retention is the bucket's lifecycle-rule job, not the worker's — a compromised worker cannot wipe the backup history.
-
-The admin "Backup target" connection-test button on the integrations panel validates the configuration end-to-end (endpoint reachable, credentials valid, bucket writable).
-
-Restore script + step-by-step doc: `docs/ops/backup-restore.md` in the repo.
-
-:::tip
-For single-user self-hosts the in-database weekly backup is enough for accidental-delete recovery, but a database-level `pg_dump` to off-host storage is still the right floor — see [Updates](/self-hosting/updates/) for the cron one-liner.
-:::
+- [Backups and restore](/guides/backups/) — encrypted daily off-host backups to any S3-compatible bucket, and the restore procedure.
+- [Encryption-key rotation](/guides/encryption-key-rotation/) — the versioned-key map, the rotation script, and the fail-closed rules for dropping a retired key.

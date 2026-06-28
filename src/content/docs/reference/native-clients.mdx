@@ -51,23 +51,23 @@ A stable `errorCode` on the refresh response lets a client tell a **revoked fami
 
 ## Offline Sync Delta Feed
 
-The full sync contract — domains, identity keys, the opaque cursor, tombstones, and per-domain conflict rules — lives on the dedicated [Offline sync contract](/api/sync/) page. This section is the bearer-client quick reference.
+The full sync contract — domains, identity keys, the opaque cursor, tombstones, and per-domain conflict rules — lives on the dedicated [Offline sync contract](/reference/sync/) page. This section is the bearer-client quick reference.
 
 After a client has done its first full backfill, it stays current with an incremental delta feed instead of re-pulling everything.
 
 ```
-GET /api/sync/state     — handshake: "should I sync?" + the sync window / retention
-GET /api/sync/changes   — paginated measurement deltas since the last cursor
+GET /reference/sync/state     — handshake: "should I sync?" + the sync window / retention
+GET /reference/sync/changes   — paginated measurement deltas since the last cursor
 ```
 
-`GET /api/sync/changes` pages over an **opaque keyset cursor** — echo it back, never parse it. Each page carries `upserts` (live rows) and `tombstones` (soft-deleted rows, keyed on `externalId`). **Apply tombstones before upserts within a page.** A `cursorExpired: true` response means the cursor has aged out past the retention window — re-initialise with a clean backfill. Default page size is 200, hard cap 500. The delta feed is a catch-up mechanism, never a replacement for the first-pair backfill.
+`GET /reference/sync/changes` pages over an **opaque keyset cursor** — echo it back, never parse it. Each page carries `upserts` (live rows) and `tombstones` (soft-deleted rows, keyed on `externalId`). **Apply tombstones before upserts within a page.** A `cursorExpired: true` response means the cursor has aged out past the retention window — re-initialise with a clean backfill. Default page size is 200, hard cap 500. The delta feed is a catch-up mechanism, never a replacement for the first-pair backfill.
 
 ```bash
-curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limit=200" \
+curl -s "https://your-instance.example.com/reference/sync/changes?cursor=<opaque>&limit=200" \
   -H "Authorization: Bearer hlk_..."
 ```
 
-The two measurement-delete routes now **soft-delete** (write a tombstone) rather than hard-deleting, so a deletion on one device propagates to the others as a tombstone instead of silently re-syncing. Tombstones are pruned past a retention window keyed to the refresh-token lifetime. A single-resource GET or PUT against a tombstoned row returns as deleted. The full response envelopes are in the [OpenAPI spec](/api/overview/).
+The two measurement-delete routes now **soft-delete** (write a tombstone) rather than hard-deleting, so a deletion on one device propagates to the others as a tombstone instead of silently re-syncing. Tombstones are pruned past a retention window keyed to the refresh-token lifetime. A single-resource GET or PUT against a tombstoned row returns as deleted. The full response envelopes are in the [OpenAPI spec](/reference/api-overview/).
 
 ## Idempotency-Key Header
 
@@ -100,7 +100,7 @@ If the same APNs / FCM token is already registered to a **different** account, t
 
 ## Token Storage (Server-Side)
 
-Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [external-ingest](/api/external-ingest/) token verification.
+Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [external-ingest](/reference/api-endpoints/) token verification.
 
 :::tip
 For long-running automation (n8n, Home Assistant, Health Connect bridges), prefer a long-lived API token created from **Settings → API & Tokens** instead of the 24-hour access tokens — same auth header, no refresh dance.

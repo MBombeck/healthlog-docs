@@ -29,7 +29,7 @@ These edges and goals are not HealthLog's invention — they are the consensus t
 
 ### Why a spot-reading panel says it is one
 
-The same consensus paper sets the bar for a *time*-based report: roughly 14 days of CGM data with at least 70% of possible readings present. Manual spot readings — a fasting value here, a post-meal value there — cannot meet that bar. So HealthLog is explicit: with sparse spot data, time-in-range is a **percent of readings**, not a percent of time, and the panel labels it a spot-reading estimate. Connect a [Nightscout CGM stream](/integrations/nightscout/) and the density crosses the threshold; the estimate caveat comes off and the panel reads a true percent of time.
+The same consensus paper sets the bar for a *time*-based report: roughly 14 days of CGM data with at least 70% of possible readings present. Manual spot readings — a fasting value here, a post-meal value there — cannot meet that bar. So HealthLog is explicit: with sparse spot data, time-in-range is a **percent of readings**, not a percent of time, and the panel labels it a spot-reading estimate. Connect a [Nightscout CGM stream](/guides/connect-nightscout/) and the density crosses the threshold; the estimate caveat comes off and the panel reads a true percent of time.
 
 Below a minimum of readings over a minimum span of days, the panel holds back entirely with a calm "still learning" state rather than asserting a confident share off thin data. A burst of readings inside one day cannot stand in for two weeks of behaviour, so both a count *and* a span are required.
 
@@ -74,6 +74,6 @@ Every clinical number here is gated. A panel built from a handful of readings sa
 ## Related
 
 - [Glycemic risk indices](/methodology/glycemic-risk/) — LBGI / HBGI and the J-index behind the advanced view.
-- [Nightscout integration](/integrations/nightscout/) — connect a CGM stream to make the panel a percent-of-time report.
-- [Blood glucose](/features/glucose/) — the feature surface.
+- [Nightscout integration](/guides/connect-nightscout/) — connect a CGM stream to make the panel a percent-of-time report.
+- [Blood glucose](/knowledge/glucose-hba1c/) — the feature surface.
 - Health knowledge: [glucose and HbA1c](/knowledge/glucose-hba1c/) — what the diagnostic thresholds and time-in-range targets mean.

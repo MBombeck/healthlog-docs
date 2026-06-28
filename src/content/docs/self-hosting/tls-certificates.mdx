@@ -15,7 +15,7 @@ You almost never deal with certificates by hand. The reverse proxy in front of H
 - **Traefik** — set a `certresolver` (e.g. `letsencrypt`) on the router label.
 - **nginx** — pair with `certbot` for issuance and renewal.
 
-The [Reverse Proxy](/self-hosting/reverse-proxy/) guide has copy-paste examples for all three. Make sure `APP_URL` matches the public HTTPS domain you terminate on — passkey registration and OAuth redirects depend on it.
+The [Reverse Proxy](/guides/reverse-proxy/) guide has copy-paste examples for all three. Make sure `APP_URL` matches the public HTTPS domain you terminate on — passkey registration and OAuth redirects depend on it.
 
 ```bash
 APP_URL=https://health.example.com
@@ -33,7 +33,7 @@ If you self-host on your own domain with a normal Let's Encrypt (or any CA-issue
 
 ## Optional: pin your own domain (advanced)
 
-If you are security-conscious and want the same MITM hardening that the managed cloud gets, you can pin your own domain — but this requires rebuilding the iOS app, so it is strictly optional and only worthwhile if you are already re-signing the client under your own bundle-id (for example because you also configured [APNs push](/features/notifications/#apns-apple-push)).
+If you are security-conscious and want the same MITM hardening that the managed cloud gets, you can pin your own domain — but this requires rebuilding the iOS app, so it is strictly optional and only worthwhile if you are already re-signing the client under your own bundle-id (for example because you also configured [APNs push](/guides/reminder-channels/)).
 
 The pinning host list is being exposed as a build configuration in the iOS project:
 
@@ -58,6 +58,6 @@ Own-domain pinning via `HLPinnedHosts` is an optional, advanced build-time setti
 
 ## Related
 
-- [Reverse Proxy](/self-hosting/reverse-proxy/) — TLS termination + Let's Encrypt
+- [Reverse Proxy](/guides/reverse-proxy/) — TLS termination + Let's Encrypt
 - [Certificate Pinning](/security/certificate-pinning/) — how and why the iOS app pins
-- [Self-Hosting Security](/security/self-hosting/) — the broader hardening checklist
+- [Self-Hosting Security](/explanation/privacy-architecture/) — the broader hardening checklist
