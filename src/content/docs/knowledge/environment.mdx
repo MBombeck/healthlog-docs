@@ -1,0 +1,64 @@
+---
+title: Environment and your readings
+description: How heat, altitude and air quality move your vital signs — why a higher resting heart rate, a lower SpO₂ or a rougher night can be the environment talking, and how to read your data in context rather than in a vacuum.
+sidebar:
+  order: 24
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Your body does not take its readings in a sealed laboratory. The air temperature, the altitude and the quality of the air you breathe all push on heart rate, breathing, blood oxygen and sleep — sometimes enough to look like a health event when it is really the weather, a mountain or a smoky sky. Reading your numbers *against their environment* is what separates a real signal from an expected response to where you are.
+
+## Why it matters
+
+A summer heatwave, a trip into the mountains or a day of wildfire haze can each move the same metrics HealthLog tracks for illness and recovery — and if you read those moves without the context, you can mistake a normal physiological adjustment for a problem, or miss a real problem hidden in an "expected" shift. Knowing which way the environment pushes each signal lets you keep the right things on your watchlist and discount the rest.
+
+- **Heat** raises resting heart rate and disrupts sleep through thermoregulation.[^cross][^cdc]
+- **Altitude** lowers SpO₂ and raises respiratory rate and heart rate until you acclimatise.[^spo2][^wms]
+- **Air quality** (fine particulate matter, PM2.5) adds cardiorespiratory strain.[^who]
+
+## How to read your numbers
+
+These are orientation cues for context, not diagnostic thresholds. The point is to recognise the *direction* the environment pushes each signal so you can read your own data fairly.
+
+| Environment | Typical effect on your readings | Source |
+|---|---|---|
+| Heat / hot, humid conditions | resting and overnight heart rate rise; sleep fragments | CDC/NIOSH; cross-metric physiology [^cdc][^cross] |
+| Altitude ~2,500 m | SpO₂ around ~90% is expected; resting heart rate and breathing rate rise | StatPearls/NIH; WMS [^spo2][^wms] |
+| Higher altitude, first days before acclimatising | SpO₂ lower still, heart rate and respiratory rate elevated; recovery looks suppressed | WMS, 2019 [^wms] |
+| Poor air quality, PM2.5 above WHO guideline (24-h mean 15 µg/m³) | added cardiorespiratory strain; symptoms in sensitive groups | WHO, 2021 [^who] |
+
+<Aside type="note" title="Read the trend against its context, not in a vacuum">
+A resting heart rate that climbs during a heatwave, an SpO₂ that reads lower the day you arrive in the mountains, or a poor recovery score after a night of smoke are usually the environment talking — not the early-illness picture. The same numbers in a stable, sea-level, clean-air setting would deserve more attention. Note where you were and what the conditions were so a context-driven move does not masquerade as a health event, and so a genuine signal is not waved away as "just the weather".
+</Aside>
+
+## What changes it
+
+The size of each effect depends on dose and on you. Heat strain scales with temperature, humidity and exertion, and acclimatises only partly over days to a couple of weeks; the overnight heart-rate lift is largest on the hottest, most humid nights and in poorly cooled bedrooms. Altitude effects grow with elevation and with how fast you ascend, and they ease over several days as the body acclimatises — which is exactly why a slow ascent is the standard advice.[^wms] Air-pollution strain depends on the concentration, how long you are exposed and how active you are while breathing it, and it weighs more heavily on people with existing heart or lung conditions, older adults, children and pregnant people.[^who] Consumer optical SpO₂ is wellness-grade and degrades with cold, poor perfusion and motion, so a single low reading at altitude is often part artefact — the sustained run is the signal.[^spo2]
+
+## When to act
+
+<Aside type="caution" title="When the environment is making you ill, not just shifting a number">
+Environmental strain can cross from "expected shift" into emergency. Heat with confusion, fainting, a very high body temperature, or hot dry skin can be heat stroke — a medical emergency; move to cool, hydrate and call for help.[^cdc] At altitude, worsening breathlessness at rest, a cough with frothy or pink sputum, severe headache, vomiting, confusion or unsteadiness can signal high-altitude pulmonary or cerebral oedema, which require descent and urgent care.[^wms] During poor air quality, new or worsening chest tightness, wheeze or breathlessness — especially with a heart or lung condition — warrants prompt attention. General guidance, not medical advice; individual variation is wide.
+</Aside>
+
+## How this connects
+
+Environment touches several of the daily signals tracked elsewhere. Heat is one of the most common reasons a [resting heart rate](/knowledge/resting-heart-rate/) drifts up without illness, and it is a frequent culprit behind a rougher night in [sleep](/knowledge/sleep/). Altitude is the textbook non-illness reason for a lower [SpO₂](/knowledge/spo2/) and a higher [respiratory rate](/knowledge/respiratory-rate/) — the same directions that, at sea level, would point toward the lungs. Reading these together with their context is the throughline: a signal that travels with the weather, the elevation or the air quality is usually the environment, not your physiology failing.
+
+<CardGrid>
+  <Card title="Resting heart rate" icon="heart">
+    Heat is a common non-illness reason a [resting heart rate](/knowledge/resting-heart-rate/) drifts upward — context first.
+  </Card>
+  <Card title="Blood oxygen (SpO₂)" icon="information">
+    A lower [SpO₂](/knowledge/spo2/) and higher [respiratory rate](/knowledge/respiratory-rate/) at altitude are expected, not alarming on their own.
+  </Card>
+</CardGrid>
+
+## References
+
+[^who]: World Health Organization — "WHO Global Air Quality Guidelines: particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide, sulfur dioxide and carbon monoxide," 2021. https://www.who.int/publications/i/item/9789240034228
+[^cdc]: US CDC / NIOSH — "Heat Stress" and heat-related illness guidance. https://www.cdc.gov/niosh/topics/heatstress/
+[^wms]: Luks AM, et al. — "Wilderness Medical Society Clinical Practice Guidelines for the Prevention and Treatment of Acute Altitude Illness: 2019 Update," *Wilderness & Environmental Medicine*, 2019. https://doi.org/10.1016/j.wem.2019.04.006
+[^spo2]: StatPearls / NIH — "Pulse Oximetry," 2023. https://www.ncbi.nlm.nih.gov/books/NBK470348/
+[^cross]: AASM/SRS Joint Consensus, 2015; Plews/Buchheit et al., *Frontiers in Physiology*, 2014 — heart rate rises with body and ambient temperature and sleep fragments with heat. https://doi.org/10.3389/fphys.2014.00073

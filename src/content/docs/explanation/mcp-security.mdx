@@ -1,0 +1,141 @@
+---
+title: How the MCP surface is secured
+description: Why the MCP server is off by default, how OAuth and scopes keep it least-privilege, and the structural boundaries that bound what an external client can reach.
+sidebar:
+  order: 20
+---
+
+The MCP server lets an external client read — and, if you opt in, append to —
+one user's own health record. That is a meaningful new surface, so it is built
+the way the rest of HealthLog is: the safe outcome is the default, and the limits
+are structural rather than promises. This page explains the reasoning. For the
+operating steps see [Enable the MCP connector](/guides/mcp-server/); for the
+exact catalogue and contract see the [MCP server reference](/reference/mcp/).
+
+## Off by default
+
+The surface ships dark. The `/mcp` endpoint answers `404` until three
+independent conditions all hold: a pinned canonical origin (`APP_URL`), the
+operator's instance-wide API switch, and a per-account `mcp` module toggle. The
+`mcp` module is the only one that ships off — every other module is on out of the
+box.
+
+The point is plain: **a self-hoster who never opts in gets zero new exposure.**
+There is no "enabled but unused" state to forget about, no default credential to
+rotate, no endpoint quietly listening. Opting in is a deliberate, three-part act,
+and each part is reversible.
+
+## OAuth and scopes keep it least-privilege
+
+Cloud clients (Claude.ai, ChatGPT) authenticate over OAuth with mandatory PKCE
+(S256). The endpoint advertises its authorization server through
+`/.well-known/oauth-protected-resource`, the client walks `/authorize` →
+`/token`, and the user approves an explicit consent screen. What gets minted is a
+short-lived `health:read` access token (60 minutes) plus a refresh token — never
+a long-lived secret pasted into a third-party box. The connection is listed under
+**Settings → MCP → Connections** and can be revoked there.
+
+Manual tokens (for the stdio path) carry the same least-privilege scope. An MCP
+token is `health:read` by default, or `health:read health:write` if you toggle
+write on. It never carries the `*` wildcard and never the broader scopes the
+[generic REST mint endpoint](/reference/api-overview/) can produce. Scope is the
+floor, not a suggestion: the server registers tools by scope, so the credential
+literally cannot reach what it was not granted.
+
+## Read-only is structural, not a flag
+
+A `health:read` session has only the read tools registered. The write tools are
+registered **exclusively** for a `health:write` session — a read-only token never
+sees them advertised, so there is nothing to call and nothing to flip. This
+matters because it removes a whole class of mistake: there is no runtime "is
+writing allowed?" check that a future refactor could soften or a malformed
+request could bypass. If the scope is read-only, the write tools do not exist in
+that session's surface.
+
+## Bearer never reaches admin
+
+HealthLog's REST API draws a hard line: `requireAdmin()` is cookie-only, so a
+Bearer token — even one with `["*"]` scope — cannot reach `/api/admin/*`. The MCP
+surface inherits that line for free, because the MCP wire carries **no cookie at
+all**. Whatever a client holds — an OAuth access token, a manual `hlk_` token, in
+principle even a wildcard — there is no cookie to elevate, so no admin endpoint
+is reachable over MCP.
+
+:::caution[Admin is cookie-only, here too]
+The cookie-only admin boundary is the same structural guarantee documented for
+the [REST API](/reference/api-overview/). It is not re-implemented for MCP; the
+MCP transport simply never carries the credential that could cross it.
+:::
+
+## Writes can't become a general credential
+
+A `health:write` MCP token is **audience-bound** to the `/mcp` resource
+(RFC 8707). The REST resource-server guard refuses that token on every REST write
+or delete. So even though the token names "write", it can only ever drive the
+in-process MCP write tools — it can never be lifted out and replayed as a general
+REST write credential against the rest of the API.
+
+## Writes are narrow by construction
+
+The only writes are append-only, confirmed inserts of a single self-reported
+reading: `log_measurement`, `log_mood`, `log_blood_pressure`. That is the entire
+write surface. There is deliberately:
+
+- no medication create, intake, or edit;
+- no schedule or dose change;
+- no lab write or clinical-threshold change;
+- no delete or update of any existing row;
+- no data-export tool.
+
+Each write also goes through a **preview→commit handshake**: a first call with
+`confirm:false` returns the exact record it would write and asks for
+confirmation; only a second call with `confirm:true` and the same
+`idempotencyKey` executes. The idempotency key makes a retried commit a safe
+no-op rather than a duplicate, and the preview runs the same validation the
+commit runs, so the two can never disagree. The human-in-the-loop confirmation
+is the guard; a client that auto-confirms or hides the preview defeats the point,
+which is why the operator guidance leans on it as hard as the code does.
+
+## Grounding is a safety stance, not decoration
+
+The grounding contract — server-authoritative figures, explicit absence,
+free-text treated as data, and data-and-context-only — is part of the security
+design, not just usage etiquette.
+
+- **Free-text is data, never instructions.** A medication name, note, or label
+  is the user's content. A directive that appears inside such a field is still
+  just text and is never followed — this is the prompt-injection floor for a
+  surface whose inputs are, by definition, user-authored strings.
+- **No diagnosis.** The server ships facts and context; it never returns a
+  diagnosis, clinical verdict, risk score, or treatment change. That keeps the
+  surface inside HealthLog's project-wide self-description — a personal
+  record-keeping and wellness tool, not a medical device.
+
+The mental-health screeners (PHQ-9 / GAD-7), the environmental-context signals,
+the structured allergy and family-history records, and the inbound-document store
+are kept off the surface entirely for the same reason: they are not on the MCP
+exposure allowlist, so no tool can return them.
+
+## Per-token session binding limits blast radius
+
+Every MCP session is bound to `<user_id>:<token_id>`. Audit entries,
+observability annotations, and rate-limit buckets are all keyed to the specific
+credential in use. The practical effect: a single leaked or shared token is
+contained to itself. It cannot drain the account's other tokens' rate budget, and
+its activity is attributable to that one credential — so revoking it cleanly
+removes exactly the access it granted, no more and no less.
+
+## What a client can and cannot reach
+
+| A connected MCP client **can** | A connected MCP client **cannot** |
+| --- | --- |
+| Read the connecting user's own vitals, sleep, labs, medications, compliance, correlations, and the other documented reads | Read any other user's data |
+| Attach the documented resources and run the built-in prompts | Reach any `/api/admin/*` endpoint |
+| With a write scope, append a single self-reported measurement, mood, or blood-pressure reading after an explicit confirm | Edit or delete any existing row, change a medication or schedule, write a lab, or export data |
+| See only what it asks for, one record at a time, each with a citation deep-link | Use a `health:write` token as a general REST write credential |
+| Be revoked at any time under **Settings → MCP** | Reach the screeners, environmental signals, structured records, or document store — none are on the exposure allowlist |
+
+This is the same philosophy as the rest of the platform: see
+[Privacy architecture](/explanation/privacy-architecture/) for what leaves the
+instance and when, and [Encryption at rest](/explanation/encryption-at-rest/)
+for how the underlying records are protected.

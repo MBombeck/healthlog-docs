@@ -1,0 +1,74 @@
+---
+title: Record allergies and family history
+description: How to keep structured, encrypted allergy and family-history records, what surfaces in the doctor-report PDF and FHIR export, and what is deliberately out of scope.
+sidebar:
+  order: 21
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Two pieces of context a clinician always asks for do not fit a chart: what you
+react to, and what runs in your family. HealthLog keeps both as **structured,
+encrypted records** so they travel with the rest of your data into the
+doctor-report PDF and the FHIR export — rather than living in a note you have to
+remember to mention.
+
+## Allergies
+
+An allergy record is structured rather than free-text:
+
+- **Substance** — what you react to.
+- **Reaction** — what happens.
+- **Severity** — how serious it is.
+
+To add one, open the records section and enter each field; editing an existing
+record updates it in place. Keeping the three fields separate is what lets the
+record map cleanly into the FHIR export below.
+
+## Family history
+
+Family history is recorded **condition-by-relative** — a condition paired with
+the relative it applies to — so the picture is structured rather than a
+paragraph. Enter and edit entries the same way as allergies.
+
+## Encrypted at rest
+
+Both records are **encrypted at rest**, like the rest of your sensitive data.
+They are stored under the same AES-256-GCM scheme described in
+[encryption at rest](/explanation/encryption-at-rest/) — there is no plaintext
+copy.
+
+## What surfaces where
+
+<CardGrid>
+  <Card title="Doctor-report PDF" icon="document">
+    Your allergies and family history appear in the clinician-ready PDF, so the
+    context a clinician asks for is already on the page you hand them.
+  </Card>
+  <Card title="FHIR export" icon="seti:default">
+    Allergies map to the FHIR <code>AllergyIntolerance</code> resource in the
+    read-only <a href="/reference/fhir-api/">FHIR API</a>, so a clinician's
+    system can read them in a standard shape.
+  </Card>
+</CardGrid>
+
+## Kept off the AI surface
+
+These structured records are **not exposed to the Coach or MCP**. They are not on
+the AI exposure allowlist and do not resolve through any read tool — they are
+yours to surface to a clinician, not data streamed to a model. This matches the
+deliberate exclusions in the [privacy architecture](/explanation/privacy-architecture/).
+
+:::note[Immunizations are out of scope]
+HealthLog does not keep immunization records. That is a deliberate scope
+decision, not an oversight — there is no vaccination log to fill in.
+:::
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Inbound documents" href="/guides/inbound-documents/" />
+  <LinkCard title="Encryption at rest" href="/explanation/encryption-at-rest/" />
+  <LinkCard title="FHIR API" href="/reference/fhir-api/" />
+  <LinkCard title="Privacy architecture" href="/explanation/privacy-architecture/" />
+</CardGrid>
