@@ -15,7 +15,7 @@ Several devices report their own overnight recovery or readiness, and HealthLog 
 WHOOP  ≻  Oura  ≻  Polar  ≻  computed proxy
 ```
 
-A device's native recovery is ground truth when you wear it: it is measured against that device's own all-night baseline with sensors HealthLog does not have. The computed proxy is the fallback for a day with no native recovery signal. This ladder is read straight off the single [source-priority](/concepts/source-priority/) list, so adding a future recovery source updates one list and every surface inherits the new rank.
+A device's native recovery is ground truth when you wear it: it is measured against that device's own all-night baseline with sensors HealthLog does not have. The computed proxy is the fallback for a day with no native recovery signal. This ladder is read straight off the single [source-priority](/explanation/source-priority/) list, so adding a future recovery source updates one list and every surface inherits the new rank.
 
 ### Why a wake-day key matters
 
@@ -31,7 +31,7 @@ The present components are weighted and the weights **renormalise over only the 
 | --- | --- |
 | Resting heart rate | Elevation above your personal baseline |
 | HRV | Suppression below your personal baseline |
-| Sleep adequacy | The night's [sleep score](/concepts/derived-metrics/) folded in |
+| Sleep adequacy | The night's [sleep score](/explanation/health-scores/) folded in |
 | Respiratory rate | Stability against baseline |
 | Mood | Recent mood aggregate |
 
@@ -47,8 +47,8 @@ The computed readiness is a descriptive wellness framing — not a training-reco
 
 ## Related
 
-- [Source priority](/concepts/source-priority/) — the one ladder that ranks recovery sources.
-- [Derived metrics methodology](/concepts/derived-metrics/) — the readiness and recovery entries in context.
-- [WHOOP](/integrations/whoop/) · [Oura](/integrations/oura/) · [Polar](/integrations/polar/) — the native-recovery sources.
-- [Recovery insights](/features/recovery/) — the in-app surface.
+- [Source priority](/explanation/source-priority/) — the one ladder that ranks recovery sources.
+- [Derived metrics methodology](/explanation/health-scores/) — the readiness and recovery entries in context.
+- [WHOOP](/guides/connect-whoop/) · [Oura](/guides/connect-oura/) · [Polar](/guides/connect-polar/) — the native-recovery sources.
+- [Recovery insights](/methodology/recovery/) — the in-app surface.
 - Health knowledge: [resting heart rate](/knowledge/resting-heart-rate/), [HRV](/knowledge/hrv/), and [sleep](/knowledge/sleep/) — the guideline background on the markers this blend reads.

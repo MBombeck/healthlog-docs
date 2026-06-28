@@ -1,0 +1,77 @@
+---
+title: Longevity lab markers
+description: How to read the blood markers that track long-term cardiovascular, metabolic and kidney trajectory — ApoB and non-HDL, Lp(a), hs-CRP, HbA1c with fasting glucose and insulin, and eGFR — as trends interpreted with a clinician, not a single screenshot.
+sidebar:
+  order: 20
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Most routine blood panels are read once and forgotten. A small set of markers is worth more attention because they track the slow-moving trajectories that decide long-term cardiovascular, metabolic and kidney health — the things a single bad night's sleep cannot move, but a decade of habits can. This page covers the ones that repay repeat testing: ApoB and non-HDL cholesterol, Lp(a), high-sensitivity CRP, HbA1c with fasting glucose and insulin, and eGFR. None of them is a verdict on its own; each is a coordinate on a curve you read over years.
+
+## Why it matters
+
+These markers map onto the conditions that account for most preventable shortening of healthy life: atherosclerotic cardiovascular disease, type-2 diabetes and chronic kidney disease. They tend to drift slowly and silently, so a number caught early — and watched as a trend — gives the longest runway to change course. The point of tracking them is not to chase a perfect screenshot but to see the direction of travel and to bring a clinician a series, not a snapshot.
+
+- **ApoB / non-HDL cholesterol** count the atherogenic particles that drive plaque, often more faithfully than LDL-C alone.[^esceas]
+- **Lp(a)** is a largely inherited, independent risk factor — measured once in a lifetime for most people.[^esceas]
+- **hs-CRP** is a low-grade-inflammation signal that adds to cardiovascular risk assessment.[^pearson]
+- **HbA1c, fasting glucose and fasting insulin** describe where you sit on the glucose-metabolism curve, years before a diagnosis.[^ada]
+- **eGFR** is the standard estimate of kidney filtration and the backbone of staging kidney health.[^kdigo]
+
+## How to read your numbers
+
+These bands are orientation, not targets to optimise toward in isolation. Lipid goals in particular are set by your overall cardiovascular risk, not by a universal "normal", and every interval is assay- and lab-dependent.
+
+| Marker | Orientation band | Source |
+|---|---|---|
+| Non-HDL cholesterol | desirable roughly &lt;130 mg/dL (&lt;3.4 mmol/L); lower the higher your risk | ESC/EAS, 2019/2021 [^esceas] |
+| LDL-C (risk-driven, not a fixed normal) | low risk &lt;116 (&lt;3.0); high &lt;70 (&lt;1.8); very-high &lt;55 mg/dL (&lt;1.4 mmol/L) | ESC/EAS, 2019/2021 [^esceas] |
+| ApoB | broadly tracks LDL/non-HDL goals; lower with higher risk (e.g. &lt;100, &lt;80, &lt;65 mg/dL by risk tier) | ESC/EAS, 2019/2021 [^esceas] |
+| Lp(a) | risk rises progressively; commonly flagged above ~50 mg/dL (~125 nmol/L) | ESC/EAS, 2019/2021 [^esceas] |
+| hs-CRP (cardiovascular tertiles) | low &lt;1.0; average 1.0–3.0; high >3.0 mg/L | Pearson et al., CDC/AHA, 2003 [^pearson] |
+| HbA1c | normal &lt;5.7%; prediabetes 5.7–6.4%; diabetes ≥6.5% | ADA, 2026 [^ada] |
+| Fasting glucose | normal &lt;100; impaired 100–125; diabetes ≥126 mg/dL | ADA, 2026 [^ada] |
+| Fasting insulin | no diagnostic cut-off; read as a trend toward or away from insulin resistance | see note [^insulin] |
+| eGFR | G1 ≥90; G2 60–89; G3a 45–59; G3b 30–44; G4 15–29; G5 &lt;15 mL/min/1.73m² | KDIGO, 2024 [^kdigo] |
+
+<Aside type="note" title="Particle count beats cholesterol concentration">
+LDL-C measures the *cholesterol carried* by LDL particles; ApoB counts the *particles themselves* (one ApoB per atherogenic particle). When the two disagree — common in insulin resistance, high triglycerides or low HDL — ApoB and non-HDL track risk more faithfully than LDL-C. Non-HDL needs no fasting and no extra test; it is simply total cholesterol minus HDL.[^esceas]
+</Aside>
+
+<Aside type="note" title="Lp(a): the one-time inherited test">
+Lp(a) is set largely by genetics and changes little across life, so most people need it measured only once. A high value does not move much with diet or statins, but it sharpens overall risk assessment and makes the case for managing every other modifiable factor — ApoB, blood pressure, glucose — more aggressively.[^esceas] Report it in the unit your lab uses (mg/dL or nmol/L); the two do not convert cleanly.
+</Aside>
+
+## What changes it
+
+hs-CRP is an acute-phase reactant: a cold, a recent injury, a hard workout or a flare of any inflammatory condition can lift it transiently, so the cardiovascular interpretation uses the **average of two readings at least two weeks apart with no acute infection**, and a value above 10 mg/L is set aside as likely acute and repeated.[^pearson] HbA1c reflects roughly the prior three months of glucose and is distorted by anything that changes red-cell turnover (anaemia, recent blood loss, some haemoglobin variants, pregnancy). Fasting markers require a genuine fast and a consistent time of day. eGFR shifts with hydration, muscle mass and certain medications, and an older result calculated with a race-adjusted equation is not comparable to a current race-free one.[^kdigo]
+
+Because lab assays themselves vary, a "meaningful change" between two draws is larger than most people assume — the reference change value, not the population reference interval, decides whether a move is real. A number can sit inside the normal band and still represent a true personal shift, and the reverse.[^esceas]
+
+## When to act
+
+<Aside type="caution" title="Read the trend with a clinician, not a screenshot">
+A single out-of-band lab result is a prompt to repeat and discuss, not to self-diagnose or self-medicate. Fasting glucose ≥126 mg/dL or HbA1c ≥6.5% on two occasions, an eGFR that is falling across draws or sits below 60, a markedly elevated ApoB/non-HDL with other risk factors, or a high Lp(a) all warrant a conversation with a clinician who can see the whole picture and order confirmatory testing.[^ada][^kdigo][^esceas] Never start, stop or change a medication on the strength of a tracked number alone. General guidance, not medical advice; reference intervals are assay- and lab-dependent and individual variation is wide.
+</Aside>
+
+## How this connects
+
+These labs are the slow-trajectory counterpart to the daily signals elsewhere in HealthLog. HbA1c and fasting glucose are the lab anchors for the day-to-day picture in [blood glucose and HbA1c](/knowledge/glucose-hba1c/); central adiposity and blood pressure move with the same metabolic current, so read them alongside [blood pressure](/knowledge/blood-pressure/). Cardiorespiratory fitness is one of the strongest modifiers of long-term risk, which is why these markers pair naturally with [VO₂max and activity](/knowledge/vo2max-activity/).
+
+<CardGrid>
+  <Card title="Glucose and HbA1c" icon="information">
+    HbA1c, fasting glucose and insulin are the lab view of the same metabolic trajectory tracked day-to-day in [glucose and HbA1c](/knowledge/glucose-hba1c/).
+  </Card>
+  <Card title="Fitness as a risk modifier" icon="heart">
+    Cardiorespiratory fitness shifts the risk every one of these markers represents — see [VO₂max and activity](/knowledge/vo2max-activity/).
+  </Card>
+</CardGrid>
+
+## References
+
+[^esceas]: Mach F, et al. — "2019 ESC/EAS Guidelines for the management of dyslipidaemias," *European Heart Journal*, 2020 (reaffirmed in the 2021 ESC CVD Prevention guideline). https://doi.org/10.1093/eurheartj/ehz455
+[^pearson]: Pearson TA, et al. — "Markers of Inflammation and Cardiovascular Disease: Application to Clinical and Public Health Practice (CDC/AHA Statement)," *Circulation*, 2003. https://doi.org/10.1161/01.CIR.0000052939.59093.45
+[^ada]: American Diabetes Association — "Classification and Diagnosis of Diabetes: Standards of Care in Diabetes," 2026. https://diabetesjournals.org/care/issue/48/Supplement_1
+[^kdigo]: Kidney Disease: Improving Global Outcomes (KDIGO) — "2024 Clinical Practice Guideline for the Evaluation and Management of CKD," *Kidney International*, 2024. https://kdigo.org/guidelines/ckd-evaluation-and-management/
+[^insulin]: Fasting insulin has no agreed diagnostic threshold and is interpreted as a trend (rising fasting insulin with normal glucose suggests early insulin resistance). The lineage of inflammation-as-risk testing traces to Ridker et al. and the JUPITER trial. Ridker PM, et al. — "Rosuvastatin to Prevent Vascular Events in Men and Women with Elevated C-Reactive Protein (JUPITER)," *New England Journal of Medicine*, 2008. https://doi.org/10.1056/NEJMoa0807646

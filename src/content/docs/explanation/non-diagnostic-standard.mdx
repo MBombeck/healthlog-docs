@@ -1,0 +1,103 @@
+---
+title: Non-diagnostic standard
+description: The canonical stance — HealthLog is a personal health record-keeping and wellness tool, not a medical device. It describes your data and leaves clinical judgement to a clinician.
+sidebar:
+  order: 20
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+This is the page the rest of the project points at. One line governs how
+HealthLog, its Coach, its briefing and insights, the README, these docs, and the
+website all describe themselves:
+
+> HealthLog is a personal health record-keeping and wellness tool. It is not a
+> medical device and does not diagnose, treat, cure, or prevent any disease.
+
+Everything below is the working-out of that sentence. It exists so the same
+framing holds everywhere, with no surface quietly drifting into the language of a
+diagnosis.
+
+## What this is, and what this is not
+
+<CardGrid>
+  <Card title="What HealthLog is" icon="approve-check">
+    A place to log, visualise, and export your own health data. It charts your
+    numbers against guideline reference ranges, finds patterns across them, and
+    hands you — and your clinician — a clear record. It helps you keep track.
+  </Card>
+  <Card title="What HealthLog is not" icon="error">
+    A medical device. It does not diagnose a condition, prescribe or change a
+    treatment, calculate a clinical risk score, or tell you that a reading means
+    you are ill. It never replaces a consultation, and it never claims to.
+  </Card>
+</CardGrid>
+
+The distinction is not a disclaimer bolted on at the end. It is a design
+constraint that shapes what each surface is allowed to say.
+
+## A screen is not a diagnosis
+
+HealthLog supports validated self-checks — the PHQ-9 and GAD-7 questionnaires
+sit beside [mood tracking](/knowledge/mood/) as an opt-in addition. These are
+**screening instruments**, not verdicts. A PHQ-9 total places you in a severity
+band that researchers and clinicians use to decide whether a conversation is
+worth having; it is not a diagnosis of depression, and HealthLog never presents
+it as one.
+
+The right way to read a score is the way a clinician reads it: a structured,
+repeatable number you record over time and hand to someone who can examine you.
+The value of the instrument is the trend and the conversation it starts — not a
+label the app applies on your behalf.
+
+:::caution[A flagged self-harm item is handled with care]
+PHQ-9 item 9 asks about thoughts of self-harm. When it is flagged, HealthLog
+surfaces a supportive crisis-resource note — calmly, never casually, and never
+auto-interpreted into a conclusion. The app points you toward help; it does not
+assess risk, and it does not decide what the answer means.
+:::
+
+## The Coach describes; it never concludes
+
+The conversational Coach, the daily briefing, and the insight cards all narrate
+your data. They report what a number is, how it compares to your usual range,
+and what changed. They do not cross the line into "you have," "this is caused
+by," or "you should take." That boundary is enforced, not merely encouraged —
+see [why the Coach renders plain text](/explanation/no-markdown-in-coach/) and
+[the proactive Coach nudge](/explanation/proactive-coach/) for how the same
+restraint shapes its outreach.
+
+The MCP surface follows the identical rule: it ships data and context, never a
+diagnosis or treatment change, and several signals (the mental-health screeners,
+environmental context, structured records, inbound documents) are kept off it
+entirely. The assistant narrates the facts and leaves clinical judgement to your
+clinician.
+
+## Where the standard applies
+
+The same framing governs every surface where the project speaks:
+
+- **Coach copy** — chat replies, the briefing, insight narratives, and proactive
+  nudges describe data and never diagnose.
+- **The app UI** — status cards, charts, and reference bands present context, and
+  point you to a clinician where a reading crosses a recognised safety line.
+- **README and docs** — including the [health knowledge base](/knowledge/),
+  which cites guidelines for context but is general education, not advice.
+- **The website** — the public framing matches the in-app one, word for word
+  where it counts.
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Privacy architecture" href="/explanation/privacy-architecture/" />
+  <LinkCard title="The proactive Coach nudge" href="/explanation/proactive-coach/" />
+  <LinkCard title="Log clinical signals" href="/guides/clinical-signals/" />
+  <LinkCard title="Health knowledge" href="/knowledge/" />
+</CardGrid>
+
+:::caution[Not medical advice]
+HealthLog and its Coach describe your own recorded data and reproduce
+guideline reference ranges for context. Nothing in the app — or in these docs —
+is a diagnosis, a treatment plan, or medical advice. Only a clinician who can
+examine you can interpret your numbers in context.
+:::

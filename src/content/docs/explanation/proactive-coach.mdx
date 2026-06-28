@@ -1,0 +1,96 @@
+---
+title: The proactive Coach nudge
+description: At most a gentle morning check-in — never an alert, never a nag. How it is generated, what disciplines its cadence, and why it never quotes your own notes back.
+sidebar:
+  order: 23
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Most apps that reach out to you are trying to pull you back in. The proactive
+Coach is built to do the opposite: to say one warm, useful thing in the morning
+when there is genuinely something to say, and otherwise to stay quiet.
+
+It is **a gentle check-in, not an alert.** No red badges, no urgency, no streak
+guilt. A calm morning note phrased as an invitation — and, often, nothing at
+all.
+
+## What triggers it
+
+The nudge watches a small set of signals — the same kinds of trends the
+[health scores](/explanation/health-scores/) and insights already surface, such
+as recovery picking up or blood pressure settling. When one of them has moved in
+a way worth a sentence, the nudge has something to open with. When nothing has
+genuinely changed, it has nothing to say, and so it says nothing.
+
+## The discipline behind it
+
+Generation is a **scheduled morning job**, and that timing is deliberate:
+
+<CardGrid>
+  <Card title="Scheduled, not reactive" icon="information">
+    The nudge is composed by a morning job — never warmed on a page visit, never
+    generated when a screen mounts. Opening the app does not trigger an outreach;
+    the only thing that does is the morning schedule.
+  </Card>
+  <Card title="A morning frame" icon="sun">
+    Running early makes a "good morning" framing safe and keeps the note to one
+    calm moment in the day rather than an interruption whenever you happen to
+    look.
+  </Card>
+</CardGrid>
+
+This matches a standing rule across HealthLog: generation happens on a schedule
+or by an explicit button, never on mount, so a provider is never saturated by
+people simply browsing.
+
+## Cadence and anti-nag
+
+The nudge is governed by suppression rules whose whole purpose is to make it rare
+enough to be welcome:
+
+- **At most one a day.** Never more.
+- **Never two days running on the same focus.** It will not repeat the same theme
+  morning after morning.
+- **Suppressed when there is nothing genuine to say.** No manufactured nudge to
+  hit a cadence. Silence is the default, not the failure case.
+- **Suppressed when you already engaged the Coach recently.** If you have talked
+  to the Coach in roughly the last day, it holds back — you do not need an
+  unprompted check-in on top of a conversation you just had.
+
+There is no streak to keep, no guilt for a quiet stretch, no notification sent
+just to be seen.
+
+## How it reads
+
+The message is a **wellness prompt phrased as an invitation, not an imperative**.
+It is localized to your language, opens with a greeting, and offers — never
+orders — to take a closer look together. Something closer to "if you like, I can
+show you what's behind it" than "you need to check this."
+
+:::caution[It never quotes your own notes back]
+The nudge references the **focus category** — the kind of thing it noticed — not
+your private words. It does not interpolate your decrypted self-context sentences
+back at you verbatim. You will see "your recovery has been picking up," not your
+own note read aloud. This is a deliberate guard, not an incidental one.
+:::
+
+And, like everything else the Coach says, it **describes, never diagnoses**. It
+points at a trend and offers a conversation; it does not tell you what a trend
+means for your health. That boundary is the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/).
+
+## Where it arrives
+
+The nudge is delivered over the same channels as your other notifications — push,
+Telegram, and the rest — in your own language. To choose where it lands, see
+[reminder channels](/guides/reminder-channels/).
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Non-diagnostic standard" href="/explanation/non-diagnostic-standard/" />
+  <LinkCard title="How the health scores are built" href="/explanation/health-scores/" />
+  <LinkCard title="Reminder channels" href="/guides/reminder-channels/" />
+  <LinkCard title="No markdown in Coach" href="/explanation/no-markdown-in-coach/" />
+</CardGrid>

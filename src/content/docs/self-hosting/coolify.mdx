@@ -18,7 +18,7 @@ Coolify gives you Docker-Compose-shaped self-hosting with a UI in front. For Hea
 ## Initial setup
 
 1. **Create the application** in Coolify as a Docker Compose app. Point it at the public repo (`MBombeck/HealthLog`) or a clone you maintain.
-2. **Pick the branch** — `main` is the release-only branch; `develop` is the active integration branch. Production should track `main`.
+2. **Pick the branch** — `main` is the single release trunk and is always deployable. Production should track `main` (or, more conservatively, a pinned release tag).
 3. **Compose file** — use the repo's `docker-compose.yml` unchanged. The entrypoint already waits for Postgres, runs migrations, and starts the server.
 4. **Environment variables** — paste the required four (`POSTGRES_PASSWORD`, `DATABASE_URL`, `ENCRYPTION_KEY`, `API_TOKEN_HMAC_KEY`) plus any integrations you plan to enable. The `.env.example` in the repo is the canonical list.
 5. **Domain + TLS** — Coolify ships [Traefik](https://doc.traefik.io/traefik/) by default; set your domain and toggle the auto-TLS switch.
@@ -101,7 +101,7 @@ Coolify exposes per-service CPU and memory caps. Sensible starting points:
 Two layers:
 
 - **Coolify-native daily snapshot** of the `postgres` volume. Set the retention policy in the Coolify UI; this covers the local disaster recovery case.
-- **HealthLog-native off-host weekly backup** to an [S3](https://docs.aws.amazon.com/s3/)-compatible bucket (R2, B2, MinIO, AWS). Configure in the admin panel — see [Admin → Backups](/admin/backups/). [AES-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode)-encrypted on the way out; the encryption key never leaves the host.
+- **HealthLog-native off-host weekly backup** to an [S3](https://docs.aws.amazon.com/s3/)-compatible bucket (R2, B2, MinIO, AWS). Configure in the admin panel — see [Admin → Backups](/guides/backups/). [AES-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode)-encrypted on the way out; the encryption key never leaves the host.
 
 Restore drills are part of the operator manual — see [Ops → Backup & Restore](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/backup-restore.md) in the main repo.
 

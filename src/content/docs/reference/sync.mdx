@@ -10,12 +10,12 @@ import syncFlow from "../../../assets/diagrams/09-sync-delta-feed.svg";
 The web PWA reads live or shows an offline indicator — it keeps no local write
 store. A native client (the [iOS app](/ios/ios-app/)) does hold a local copy,
 and this page is the contract it follows to keep that copy in step with the
-server. The wire shapes here are served by `/api/sync/state` and
-`/api/sync/changes`; the full envelopes are in the
-[OpenAPI spec](/api/overview/). Authentication is the bearer-token flow from
-[Native API clients](/api/native-clients/).
+server. The wire shapes here are served by `/reference/sync/state` and
+`/reference/sync/changes`; the full envelopes are in the
+[OpenAPI spec](/reference/api-overview/). Authentication is the bearer-token flow from
+[Native API clients](/reference/native-clients/).
 
-<img src={syncFlow.src} alt="Offline sync flow: a client does a one-time full backfill through the list and batch endpoints, then stays current by calling GET /api/sync/state and draining GET /api/sync/changes page by page with an opaque cursor; each page carries tombstones applied before upserts; a cursor older than the retention horizon returns cursorExpired and the client re-initialises with a clean backfill." />
+<img src={syncFlow.src} alt="Offline sync flow: a client does a one-time full backfill through the list and batch endpoints, then stays current by calling GET /reference/sync/state and draining GET /reference/sync/changes page by page with an opaque cursor; each page carries tombstones applied before upserts; a cursor older than the retention horizon returns cursorExpired and the client re-initialises with a clean backfill." />
 
 ## The three sync domains
 
@@ -69,11 +69,11 @@ There are three moving parts, and they do not overlap:
 ### Push — the batch endpoints
 
 A client sends its local rows up through the existing write endpoints —
-`POST /api/measurements/batch`, `POST /api/mood-entries/bulk`,
-`POST /api/medications/intake/bulk`. These are the same endpoints documented on
+`POST /reference/api-endpoints/batch`, `POST /api/mood-entries/bulk`,
+`POST /reference/api-endpoints/intake/bulk`. These are the same endpoints documented on
 the per-domain API pages; there is no separate "sync push" route.
 
-### Pull — `GET /api/sync/changes`
+### Pull — `GET /reference/sync/changes`
 
 The incremental, read-only catch-up feed. It returns every row that changed
 since the cursor, split per domain into `upserts` and `tombstones`. It pages
@@ -81,7 +81,7 @@ over an opaque cursor (next section). The page size is `limit` — default `200`
 hard cap `500` — applied **per domain**.
 
 ```bash
-curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limit=200" \
+curl -s "https://your-instance.example.com/reference/sync/changes?cursor=<opaque>&limit=200" \
   -H "Authorization: Bearer hlk_..."
 ```
 
@@ -124,7 +124,7 @@ The delta feed is **incremental only** — it is a catch-up mechanism, never a
 substitute for the first-pair backfill. A freshly paired client must do the
 backfill through the list + batch endpoints first.
 
-### Handshake — `GET /api/sync/state`
+### Handshake — `GET /reference/sync/state`
 
 The lightweight "should I sync?" endpoint. The client calls it on pair, on
 foreground, and before opening a fresh anchored query window. It returns the
@@ -151,7 +151,7 @@ correction.
 
 ## The opaque cursor
 
-`GET /api/sync/changes` pages over an **opaque keyset cursor**. Keyset (a.k.a.
+`GET /reference/sync/changes` pages over an **opaque keyset cursor**. Keyset (a.k.a.
 seek) [pagination](https://en.wikipedia.org/wiki/Pagination) walks the result
 set by the last row's `(updatedAt, id)` rather than a numeric `OFFSET`, so it
 stays correct and fast even as rows are inserted mid-scan. The client echoes the
@@ -179,7 +179,7 @@ its cursor and do a clean full backfill.
 The reason is correctness, not housekeeping: a deletion older than the retention
 horizon may already have been pruned, so an incremental delta from that far back
 could silently miss it. Retention is keyed to the native refresh-token lifetime
-plus a margin (`tombstoneRetentionDays` on `/api/sync/state`), so a device that
+plus a margin (`tombstoneRetentionDays` on `/reference/sync/state`), so a device that
 was offline no longer than its refresh window is always inside the safe range —
 expiry only fires when a device has been away long enough that re-pairing is
 expected anyway.
@@ -233,7 +233,7 @@ have to make a second round-trip to fetch it.
 ## Authentication and token lifetimes
 
 Sync clients authenticate with the bearer-token flow in
-[Native API clients](/api/native-clients/). Refresh tokens rotate **per device**
+[Native API clients](/reference/native-clients/). Refresh tokens rotate **per device**
 and are one-time-use: presenting a consumed refresh token revokes the whole
 refresh family for that device. The refresh response carries a stable
 `errorCode` so the client can tell a terminal re-auth from a transient blip
@@ -246,7 +246,7 @@ without string-matching the human-readable message:
 | `auth.refresh.invalid` | Token not found or expired. | Drop the token and re-authenticate. |
 
 The native access token defaults to a 24-hour lifetime; the native refresh
-token lives 60 days (`incrementalWindowDays` on `/api/sync/state`). A device
+token lives 60 days (`incrementalWindowDays` on `/reference/sync/state`). A device
 offline longer than the refresh window re-pairs with a full backfill — which is
 exactly the window the tombstone-retention horizon is sized to cover.
 
@@ -261,7 +261,7 @@ lands. Adoption pacing is an iOS-side roadmap decision, not a server gap.
 
 ## Related
 
-- [Native API clients](/api/native-clients/) — bearer issuance, refresh rotation, idempotency, device registration.
+- [Native API clients](/reference/native-clients/) — bearer issuance, refresh rotation, idempotency, device registration.
 - [iOS app](/ios/ios-app/) — the native client that speaks this contract.
-- [PWA & offline support](/features/pwa-offline/) — why the web app reads live and keeps no local write store.
-- [Measurements](/api/measurements/), [Mood](/api/mood/), [Medications](/api/medications/) — the per-domain read/write endpoints used for backfill and push.
+- [PWA & offline support](/reference/sync/) — why the web app reads live and keeps no local write store.
+- [Measurements](/reference/api-endpoints/), [Mood](/reference/api-endpoints/), [Medications](/reference/api-endpoints/) — the per-domain read/write endpoints used for backfill and push.

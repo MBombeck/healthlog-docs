@@ -11,7 +11,7 @@ The dashboard ships with a sensible default layout, but the right order depends 
 
 A cold dashboard load no longer staggers tile by tile. The above-the-fold strip is assembled in a single round-trip from `GET /api/dashboard/snapshot`, which reads the tile data from the rollup tier plus the pre-generated daily briefing, so the tiles arrive together. It is a pure data read — no language model is reachable from that path. On a rollup-coverage miss the heavy slice comes back as deferred rather than blocking the strip, and the snapshot plus the analytics queries poll on a shared interval so an open dashboard picks up new readings without a manual reload.
 
-The daily briefing and the comprehensive insight are warmed **overnight** by a budget-gated background job, so opening `/insights` is a cache read instead of a synchronous model call. If the cache is cold (a brand-new account, or before the first nightly run), the page shows a *preparing* state rather than blocking the request. See [Background Jobs](/architecture/background-jobs/) for the schedule.
+The daily briefing and the comprehensive insight are warmed **overnight** by a budget-gated background job, so opening `/insights` is a cache read instead of a synchronous model call. If the cache is cold (a brand-new account, or before the first nightly run), the page shows a *preparing* state rather than blocking the request. See [Background Jobs](/reference/data-model/) for the schedule.
 
 ## Customize the Layout
 

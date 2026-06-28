@@ -1,0 +1,100 @@
+---
+title: Log clinical signals
+description: How to record the opt-in clinical signals — PHQ-9 and GAD-7 self-checks, grip strength, a 0–10 pain score, and waist measurements — alongside your existing tracking.
+sidebar:
+  order: 20
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+HealthLog's clinical signals are **opt-in and additive**. They sit beside your
+existing tracking rather than replacing it — turn on the ones that fit how you
+manage your health, ignore the rest. Each is added through one
+[signal registry](/explanation/signal-registry/), so once you record a reading it
+shows up on its own detail page, in the correlations, in the doctor-report PDF,
+and in the [FHIR export](/reference/fhir-api/) together.
+
+:::caution[These are self-checks and measurements, not diagnoses]
+The instruments below are validated screening and tracking tools. A score is a
+structured number you repeat over time and hand to a clinician — not a verdict
+the app applies. See the [non-diagnostic standard](/explanation/non-diagnostic-standard/).
+:::
+
+## PHQ-9 and GAD-7 self-checks
+
+The PHQ-9 (depression) and GAD-7 (anxiety) are validated questionnaires. Each
+item scores **0–3**; the items sum to a total, and the total falls in a published
+severity band.
+
+- **They sit beside [mood tracking](/knowledge/mood/), never replace it.** Mood is
+  your day-to-day log; the questionnaires are a periodic structured check. Both
+  stay; they are not silently merged.
+- **Item-level answers are encrypted** at rest, like the rest of your sensitive
+  data — see [encryption at rest](/explanation/encryption-at-rest/).
+- **It is opt-in.** Nothing about the screeners appears unless you choose to use
+  them.
+
+To record one, open the self-check, answer each item, and HealthLog computes the
+total and band. The result charts as a trend so you can see it move between
+checks rather than as a single snapshot.
+
+:::caution[A flagged item 9 is handled supportively]
+PHQ-9 item 9 asks about thoughts of self-harm. When it is flagged, HealthLog
+shows a supportive crisis-resource note — calmly, and never auto-interpreted into
+a conclusion. The screeners are deliberately kept off the Coach and MCP surface;
+item content and totals are never exposed to a model.
+:::
+
+## Grip strength
+
+Grip strength, taken with a hand dynamometer, is a simple, repeatable marker.
+Record the reading, and HealthLog trends it against age- and sex-based reference
+norms so a single number reads in context. See
+[grip strength](/knowledge/grip-strength/) for what the bands mean.
+
+## Pain (0–10 NRS)
+
+For anyone managing pain, the 0–10 Numeric Rating Scale is the standard. Log a
+score, optionally **per region**, and HealthLog keeps it as a **trend rather than
+a snapshot** — the shape over days and weeks is what tells you whether something
+is improving. See [pain](/knowledge/pain/) for how the scale is used.
+
+## Waist and body measurements
+
+Waist circumference adds what BMI misses. Record it with **consistent technique**
+(same point, same time of day, relaxed), and where your height is known HealthLog
+derives the **waist-to-height ratio** and charts both against clinical bands. See
+[waist circumference](/knowledge/waist-circumference/).
+
+## Longevity labs
+
+The longevity lab panel — markers like ApoB, Lp(a), and hs-CRP — is **entered as
+biomarkers**, not as a separate signal type. Key in (or scan) the values and they
+ride the existing labs and biomarker-detail rails, with reference bounds from the
+curated catalogue. See [the longevity lab panel](/knowledge/longevity-labs/).
+
+## Where they show up
+
+<CardGrid>
+  <Card title="Charts and detail pages" icon="bars">
+    Each signal gets the shared detail layout — stats, a chart, its reference
+    band, an adjustable target, and the full value table.
+  </Card>
+  <Card title="Doctor-report PDF and FHIR" icon="document">
+    Recorded signals flow into the clinician-ready PDF and the read-only
+    <a href="/reference/fhir-api/">FHIR export</a>, so they travel with the rest
+    of your record.
+  </Card>
+</CardGrid>
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Non-diagnostic standard" href="/explanation/non-diagnostic-standard/" />
+  <LinkCard title="The signal registry" href="/explanation/signal-registry/" />
+  <LinkCard title="Mood" href="/knowledge/mood/" />
+  <LinkCard title="Grip strength" href="/knowledge/grip-strength/" />
+  <LinkCard title="Pain" href="/knowledge/pain/" />
+  <LinkCard title="Waist circumference" href="/knowledge/waist-circumference/" />
+  <LinkCard title="Longevity lab panel" href="/knowledge/longevity-labs/" />
+</CardGrid>

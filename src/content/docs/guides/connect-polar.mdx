@@ -1,5 +1,5 @@
 ---
-title: Polar integration
+title: Connect Polar
 description: OAuth2 setup for Polar AccessLink — bring-your-own developer app, the read_all scope, the metrics that sync, recovery ranking, and troubleshooting.
 sidebar:
   order: 6
@@ -11,7 +11,7 @@ Once linked, Polar sleep, heart rate, respiratory rate, activity and the **Night
 
 ## What gets synced
 
-The Polar client (`src/lib/polar/client.ts`) reads from `https://www.polaraccesslink.com` and maps sleep (with stages), heart-rate and resting heart rate, respiratory rate, activity (steps, energy, distance) and the Nightly Recharge recovery reading into HealthLog. Imported rows are tagged `source = POLAR` and pass through the [source-priority](/concepts/source-priority/) resolver.
+The Polar client (`src/lib/polar/client.ts`) reads from `https://www.polaraccesslink.com` and maps sleep (with stages), heart-rate and resting heart rate, respiratory rate, activity (steps, energy, distance) and the Nightly Recharge recovery reading into HealthLog. Imported rows are tagged `source = POLAR` and pass through the [source-priority](/explanation/source-priority/) resolver.
 
 ## OAuth scope
 
@@ -63,6 +63,6 @@ Polar publishes some collections on its own daily cadence. The scheduled sync ca
 
 ## Related
 
-- [Source priority](/concepts/source-priority/)
+- [Source priority](/explanation/source-priority/)
 - [Recovery and readiness](/methodology/recovery/)
 - [Sleep debt and chronotype](/methodology/chronotype/)

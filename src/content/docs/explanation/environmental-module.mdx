@@ -1,0 +1,95 @@
+---
+title: The environmental module
+description: An opt-in, off-by-default module that folds weather, daylight, and temperature in as influence signals correlated with your mood, sleep, and vitals.
+sidebar:
+  order: 22
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Some of what your body does has nothing to do with what your body did. Mood
+sinks through a dark winter; blood pressure and pulse drift up in a heatwave.
+When a pattern in your own data has no obvious cause, the cause is sometimes
+outside the window.
+
+The environmental module gives those patterns somewhere to point. It is **opt-in
+and off by default** — nothing about the weather is recorded unless you turn it
+on.
+
+## What it adds
+
+When enabled, the module folds in a small set of environmental measures as
+**influence signals** — context correlated with your mood, sleep, and vitals
+rather than health readings in their own right:
+
+- weather conditions and **temperature**,
+- **daylight hours** and sunshine,
+- **precipitation**,
+- **barometric pressure**.
+
+These join the [correlation engine](/explanation/health-scores/) through the
+[signal registry](/explanation/signal-registry/), so the influence relationships
+surface the same way any other driver does — winter darkness against mood, heat
+against blood pressure and pulse — with the usual descriptive, never-causal
+framing. For the physiology behind those links, see
+[environment and your health](/knowledge/environment/).
+
+## How v1 sources the data
+
+The first version keeps the moving parts deliberately small:
+
+<CardGrid>
+  <Card title="A fixed public weather source" icon="cloud-download">
+    Conditions come from a single public weather API (Open-Meteo). The call goes
+    out through HealthLog's egress guard — a fixed, known host, not a
+    user-supplied one — so it follows the same outbound rules as every other
+    fetch the app makes.
+  </Card>
+  <Card title="A home location you set" icon="map-pin">
+    You set a home location once. The module attaches weather for that place to
+    your days. There is no background location tracking and no silent inference
+    of where you are.
+  </Card>
+  <Card title="Travel and manual override" icon="random">
+    Travelling, or filling in a gap? A travel or manual override lets you record a
+    different location for a stretch of days, including backfilling past days so
+    a trip lines up with how you actually felt.
+  </Card>
+</CardGrid>
+
+## A conservative location posture
+
+Location is the sensitive part of weather, so the module treats it conservatively
+by design. **You** set a home location; the app does not derive one. There is no
+silent tracking, no coarse-location guess from your network, no continuous
+position feed. The override is something you reach for deliberately, not a sensor
+running in the background.
+
+Later stages — coarse location from the iOS client, or a bedroom-temperature feed
+from a home-automation setup — are separate, opt-in follow-ups, not part of this
+first version.
+
+## Kept off the AI surface in v1
+
+The environmental signals (`ENV_*` — temperature, sunshine, daylight,
+precipitation, barometric pressure) are **not exposed to the Coach or MCP** in
+v1. They are real registry signals — charted, correlated, exportable — but they
+do not resolve through any AI read tool. This matches the deliberate exclusions
+described in [the signal registry](/explanation/signal-registry/) and the
+[privacy architecture](/explanation/privacy-architecture/): being defined is not
+the same as being streamed to a model.
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Environment and your health" href="/knowledge/environment/" />
+  <LinkCard title="The signal registry" href="/explanation/signal-registry/" />
+  <LinkCard title="Privacy architecture" href="/explanation/privacy-architecture/" />
+  <LinkCard title="How the health scores are built" href="/explanation/health-scores/" />
+</CardGrid>
+
+:::note
+Correlations between an influence signal and how you feel are descriptive, not
+causal. A link between short winter days and lower mood is context worth knowing,
+not a diagnosis — see the [non-diagnostic standard](/explanation/non-diagnostic-standard/).
+:::

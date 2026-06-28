@@ -1,0 +1,82 @@
+---
+title: Inbound documents
+description: Upload the documents you're handed — discharge letters, lab reports — and have HealthLog extract the facts they state for you to review and confirm. It transcribes; it never interprets.
+sidebar:
+  order: 22
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+You leave an appointment with paper: a discharge letter, a lab report, a printout
+of values. Inbound documents let you upload those and have HealthLog **read out
+the facts they state** — values, codes, dates — so they can join your record
+without you retyping every line.
+
+The boundary is the important part. HealthLog **transcribes what a document
+says.** It does not read between the lines, draw a conclusion, or diagnose
+anything from the document. It tells you what is written, and leaves what it
+means to you and your clinician.
+
+## What it does
+
+Upload a document, and the pipeline reads it to extract the structured facts it
+contains — the kind of data that fits your record:
+
+- measured **values** (and their units),
+- **codes** (lab analytes, diagnoses as written),
+- **dates**.
+
+Those extracted facts are proposed back to you. The document itself is also
+stored, so you keep the original alongside whatever you accept from it.
+
+## Review, then confirm
+
+Nothing lands in your record automatically. The flow is **review-then-confirm**:
+
+<CardGrid>
+  <Card title="You approve each fact" icon="approve-check">
+    The extracted facts are shown for you to check against the document before
+    anything is saved. You confirm what is correct; you are the gate, not the
+    pipeline.
+  </Card>
+  <Card title="Fail-closed on low confidence" icon="error">
+    When the extraction is not confident enough about a value, it does not guess
+    and quietly save it. It fails closed — a low-confidence read is held back for
+    your attention, not written behind your back.
+  </Card>
+</CardGrid>
+
+Confirmed facts flow into the existing structured stores — the same ones behind
+[allergies, family history, and lab values](/guides/structured-records/) — so an
+extracted reading behaves like one you keyed in yourself.
+
+## It never interprets or diagnoses
+
+This is the firm line. The pipeline reports the facts a document **states**; it
+does not interpret them, and the Coach never diagnoses from them. A discharge
+letter's wording is transcribed, not analysed into a verdict. This is the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/) applied to
+documents: data and facts in, never a conclusion out.
+
+## Privacy
+
+Inbound documents reuse HealthLog's existing scan rails — the same OCR/vision
+pipeline used elsewhere in the app — to read what is on the page.
+
+- Documents are handled **for extraction**, not streamed to a model to be
+  interpreted. The job is to pull out the stated facts, not to hand a letter to
+  an assistant for an opinion.
+- The **document store is off the AI/MCP surface.** It is not on the exposure
+  allowlist and does not resolve through any read tool. The pipeline extracts
+  facts for you to confirm in-app rather than exposing the documents to a model.
+
+For the full picture of what does and does not leave your instance, see the
+[privacy architecture](/explanation/privacy-architecture/).
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Non-diagnostic standard" href="/explanation/non-diagnostic-standard/" />
+  <LinkCard title="Record allergies and family history" href="/guides/structured-records/" />
+  <LinkCard title="Privacy architecture" href="/explanation/privacy-architecture/" />
+</CardGrid>

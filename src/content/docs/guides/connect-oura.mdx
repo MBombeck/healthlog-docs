@@ -1,5 +1,5 @@
 ---
-title: Oura integration
+title: Connect Oura
 description: OAuth2 setup for the Oura ring — bring-your-own developer app, the daily/personal scopes, the metrics that sync including readiness, and troubleshooting.
 sidebar:
   order: 7
@@ -19,7 +19,7 @@ The Oura client (`src/lib/oura/client.ts`) reads from the Oura v2 user collectio
 - **Daily SpO₂** — average overnight blood-oxygen saturation.
 - **Daily sleep** — the headline Sleep Score (distinct from the `sleep` detail).
 
-Imported rows are tagged `source = OURA` and pass through the [source-priority](/concepts/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's.
+Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's.
 
 ## OAuth scopes
 
@@ -69,6 +69,6 @@ The redirect URI in the Oura application must match the one HealthLog sends exac
 
 ## Related
 
-- [Source priority](/concepts/source-priority/)
+- [Source priority](/explanation/source-priority/)
 - [Recovery and readiness](/methodology/recovery/)
 - [Sleep debt and chronotype](/methodology/chronotype/)
