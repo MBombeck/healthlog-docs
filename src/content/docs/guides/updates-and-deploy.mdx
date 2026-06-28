@@ -62,7 +62,7 @@ SHA so a deployment can prove what is running. Always confirm after a deploy:
 ```bash
 # Asserts the targets serve the expected version, prints each buildSha,
 # exits non-zero on mismatch after a bounded retry loop.
-pnpm dlx tsx scripts/assert-deploy.ts 1.16.0
+pnpm dlx tsx scripts/assert-deploy.ts <version>   # e.g. the tag you deployed
 ```
 
 Pass `--only=prod` / `--only=demo` for a single target, or

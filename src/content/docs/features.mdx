@@ -1,12 +1,14 @@
 ---
 title: Feature catalogue
-description: The full feature tour for HealthLog v1.16 — metrics, integrations, medications, AI insights, clinician output, privacy — plus how it compares to closed ecosystems.
+description: The capability tour for HealthLog — metrics, clinical signals, integrations, medications, AI insights, clinician output, privacy — plus how it compares to closed ecosystems.
 sidebar:
   order: 1
 ---
 
-This is the complete feature tour for HealthLog v1.16. For the reasoning behind
-specific designs, follow the links into the
+A capability tour of what HealthLog does. For exactly what shipped in a given
+release, read the
+[changelog](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md); for
+the reasoning behind specific designs, follow the links into the
 [explanation](/explanation/medication-compliance/) pages.
 
 ## Health metrics
@@ -54,11 +56,29 @@ picker. Take / skip / snooze logging, a traceable dose history, supply runway,
 and structured side-effect tracking. See
 [Track medications](/guides/track-medications/).
 
+## Clinical signals, records and documents
+
+Opt-in and additive to the everyday metrics:
+[validated mental-wellbeing self-checks](/guides/clinical-signals/) (PHQ-9,
+GAD-7) that sit beside mood tracking with calm crisis-resource handling, grip
+strength, a 0–10 pain score, waist and body measurements, and a longevity
+[lab panel](/knowledge/longevity-labs/). Each is added through one
+[signal registry](/explanation/signal-registry/), so a new signal wires into
+charts, correlations, the Coach, the FHIR map and the API at once. Structured
+[allergies and family history](/guides/structured-records/) are encrypted at
+rest, and [inbound documents](/guides/inbound-documents/) you are handed are read
+to extract the facts they state for you to confirm — transcribed, never
+interpreted. (Immunization records are deliberately out of scope.) An opt-in
+[environmental module](/explanation/environmental-module/) folds weather,
+daylight and temperature in as influence signals.
+
 ## Device integrations
 
-[Withings](/guides/connect-withings/) and [WHOOP](/guides/connect-whoop/) sync
-over OAuth2; [Google Health/Fitbit](/guides/connect-google-health/) connects
-experimentally; an [Apple Health `export.zip`](/guides/import-apple-health/)
+[Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
+[Oura](/guides/connect-oura/) and [Polar](/guides/connect-polar/) sync over
+OAuth2; [Fitbit and Pixel](/guides/connect-google-health/) connect
+experimentally; a [Nightscout](/guides/connect-nightscout/) instance streams
+continuous glucose; an [Apple Health `export.zip`](/guides/import-apple-health/)
 folds your full history in; the native iOS app streams HealthKit live. A
 per-metric [source priority](/guides/source-priority/) decides which reading is
 canonical when devices overlap.
@@ -68,10 +88,15 @@ canonical when devices overlap.
 Multi-provider, evidence-grounded insights: per-metric assessments, correlations,
 a daily briefing, a weekly report, a Health Score tile, and a conversational coach
 grounded in your own data — now reading your history longitudinally and able to
-ask up to three follow-up questions from an encrypted self-context. Proactive
-nudges watch a handful of signals and send at most one gentle prompt a week. Pick
+ask up to three follow-up questions from an encrypted self-context.
+[Proactive check-ins](/explanation/proactive-coach/) watch a handful of signals
+and send at most one gentle prompt, suppressed when there is nothing genuine to
+say. Pick
 [OpenAI, Anthropic, ChatGPT via Codex, or a local endpoint](/guides/ai-providers/);
-BYOK or admin-shared. Local endpoints keep all data on your network.
+BYOK or admin-shared. Local endpoints keep all data on your network. An
+off-by-default [MCP connector](/guides/mcp-server/) can open your own record to
+an external assistant over OAuth — read-only unless you opt into narrow,
+confirmed writes.
 
 ## Derived wellness metrics
 

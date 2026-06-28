@@ -10,7 +10,7 @@ contract lives at
 [`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml)
 in the main repository — it is the source of truth for any client codegen
 (Swift, Kotlin, OpenAPI Generator) and the contract the native iOS client speaks
-against. The spec currently covers the API at version **1.16.0**. CI fails the
+against. The spec carries the version of the release it ships with; CI fails the
 build on drift between the Zod schemas and the YAML, so the contract stays
 honest.
 
