@@ -145,3 +145,68 @@ encryption key. `scripts/rotate-encryption-key.ts` re-encrypts the text and
 re-derives the tokens from it in the same pass, so content search keeps matching
 after a rotation. Keep the old key in `ENCRYPTION_KEYS` until the script reports
 zero remaining rows on it.
+
+## Sharing documents with a clinician
+
+A share link exposes a read-only, time-boxed view of your record at a public
+`/c/<token>` URL. A link can also carry a hand-picked set of your stored
+documents, so a clinician can open your MRI report or discharge letter on the
+spot without an account.
+
+### How to share
+
+1. Open **Settings → Sharing** and start a new link. Give it a label (e.g. the
+   clinic's name), a reporting window, and an expiry (up to 90 days — no link
+   lives forever).
+2. Under **Attach documents**, choose the files to include. Search your vault
+   and tap to select up to 50 documents. The set is frozen when you create the
+   link: you cannot add or remove documents afterwards — revoke and re-share to
+   change what is exposed.
+3. Create the link. The next screen shows the link, a passphrase, and a QR code
+   **exactly once**. Capture them now — only their hashes are stored, so they
+   cannot be recovered later.
+
+### The QR code
+
+The QR encodes the link *and* the passphrase together (the passphrase rides in
+the URL fragment, which never leaves the browser). A clinician can scan it to
+open the shared record — and its documents — on their own device in one step.
+It is shown only once, alongside the link and passphrase text so you can also
+share them by hand.
+
+### Expiry and revocation
+
+Every link expires on the date you set and can be revoked at any time from the
+active list in **Settings → Sharing**. Revoking or letting a link expire cuts
+off access immediately — including to the attached documents. A recipient who
+already opened the record cannot pull any file afterward; each document fetch
+re-checks the link's live state before anything is read.
+
+### What a recipient sees
+
+Documents show as a metadata list (title, date, size). Images and PDFs preview
+inline; other formats (Office files, text, and similar) download as an opaque
+file. Only the exact documents you attached to *this* link are reachable — no
+other part of your vault is exposed, and the link cannot reach a document you
+later delete.
+
+### The EXIF/metadata limit
+
+When a shared **JPEG, PNG, or WebP** image is served, HealthLog strips embedded
+camera metadata — EXIF, XMP, and GPS location — on the way out, so a recipient
+does not inadvertently receive where or when a photo was taken. Your stored
+original is never modified; the strip applies only to the served copy. This
+covers the common phone-photo formats. **PDF, TIFF, HEIC/HEIF, and Office
+documents are not stripped** and pass through as stored — review those
+documents before attaching them if embedded metadata is a concern.
+
+### The privacy model of a public link
+
+The link's only credential is the unguessable token in its URL, backed by a
+separate passphrase you share out-of-band. Anyone holding both can view the
+record until it expires or you revoke it, so treat the QR and passphrase like a
+key. The link is never indexed by search engines, never cached by shared
+proxies, and the token is kept out of referrers. Documents are stored encrypted
+at rest and decrypted only at the moment they are served through this one
+token-scoped route; the passphrase, token, and any served bytes are never
+written to logs.
