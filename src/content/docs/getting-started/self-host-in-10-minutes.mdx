@@ -147,6 +147,9 @@ whitelist.
 
 ## Troubleshooting
 
+The recurring operator problems have their own page —
+[Troubleshooting & FAQ](/self-hosting/troubleshooting/). First-boot classics:
+
 - **`app` exits with a Prisma migration error.** The Postgres healthcheck can
   race the migration on slow disks. Run `docker compose restart app` once the
   database has stabilised — migrations are idempotent.

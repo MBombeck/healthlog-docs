@@ -61,6 +61,29 @@ Two thumbs at the bottom of the card. Tap the up-thumb for "this was useful", th
 
 The mutation is **optimistic** — the UI updates immediately and writes through to localStorage so the verdict survives a refresh while the backend mutation is in flight. If the mutation fails, the local state rolls back.
 
+## Per-metric assessments interpret, they don't enumerate
+
+Since v1.27.13 the per-metric assessment answers "where does this sit?" rather
+than listing numbers back at you. For metrics with an established general
+reference — resting heart rate, SpO₂, respiratory rate, body temperature,
+sleep duration, waist, pulse-wave velocity, BMI, visceral-fat rating — the
+assessment states which **guideline band** the current value falls in, each
+band drawn from a **cited primary source**, plus what that band means in plain
+words. The trend is judged by position: a shift near a band boundary leads the
+text; movement deep inside a healthy band is a footnote, not a headline.
+
+Two rules keep this honest:
+
+- **The band position is computed server-side** and handed to the model as
+  context. The model states it; it never computes it — the same
+  server-authoritative principle as the confidence score above.
+- **Metrics without an established general band say so** and are interpreted
+  against your own baseline instead of a fabricated norm.
+
+And, as everywhere else, a band is a description, not a verdict — the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/) applies to
+every assessment sentence.
+
 ## What "low confidence" actually means
 
 When the meter shows below 25, the heuristic that produced it is one of:

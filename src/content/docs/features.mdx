@@ -56,28 +56,34 @@ picker. Take / skip / snooze logging, a traceable dose history, supply runway,
 and structured side-effect tracking. See
 [Track medications](/guides/track-medications/).
 
-## Clinical signals, records and documents
+## Clinical signals and records
 
 Opt-in and additive to the everyday metrics:
 [validated mental-wellbeing self-checks](/guides/clinical-signals/) (PHQ-9,
-GAD-7) that sit beside mood tracking with calm crisis-resource handling, grip
-strength, a 0–10 pain score, waist and body measurements, and a longevity
+GAD-7, WHO-5, and the Sleep Condition Indicator — official wording, published
+severity bands, calm crisis-resource handling), grip strength, a 0–10 pain
+score, waist and body measurements, and a longevity
 [lab panel](/knowledge/longevity-labs/). Each is added through one
 [signal registry](/explanation/signal-registry/), so a new signal wires into
 charts, correlations, the Coach, the FHIR map and the API at once. Structured
 [allergies and family history](/guides/structured-records/) are encrypted at
-rest, and [inbound documents](/guides/inbound-documents/) you are handed are read
-to extract the facts they state for you to confirm — transcribed, never
-interpreted. (Immunization records are deliberately out of scope.) An opt-in
+rest and print in the doctor report. (Immunization records are deliberately out
+of scope.) An opt-in
 [environmental module](/explanation/environmental-module/) folds weather,
-daylight and temperature in as influence signals.
+daylight and temperature in as influence signals. **Custom metrics** let you
+define your own measurement — name, unit, optional target range — and log and
+chart it alongside the built-ins; custom definitions stay private to your
+account and deliberately stay out of device sync, FHIR export, and AI
+insights.
 
 ## Device integrations
 
 [Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Oura](/guides/connect-oura/) and [Polar](/guides/connect-polar/) sync over
-OAuth2; [Fitbit and Pixel](/guides/connect-google-health/) connect
-experimentally; a [Nightscout](/guides/connect-nightscout/) instance streams
+OAuth2; [Fitbit and Pixel](/guides/connect-google-health/) connect through
+Google Health, with the [classic Fitbit API](/guides/connect-fitbit/)
+alongside until its September 2026 retirement; a
+[Nightscout](/guides/connect-nightscout/) instance streams
 continuous glucose; an [Apple Health `export.zip`](/guides/import-apple-health/)
 folds your full history in; the native iOS app streams HealthKit live. A
 per-metric [source priority](/guides/source-priority/) decides which reading is
@@ -108,7 +114,7 @@ than fabricating a value.
 
 ## Clinician-ready output
 
-A doctor-report PDF generated client-side (locale-aware EN/DE), a read-only
+A doctor-report PDF generated client-side (rendered in your UI language), a read-only
 [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited share links you
 revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
 
@@ -117,8 +123,12 @@ revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
 Installable PWA with offline support and an opaque-cursor sync delta feed;
 medication reminders over [APNs, Telegram, ntfy, and Web Push](/guides/reminder-channels/)
 with late/missed escalation; a sub-second dashboard on years of imported history;
-59 gamification achievements; English and German end to end with a CI-guarded
-translation integrity test. Invite links with QR codes for closed registration.
+gamification achievements; six display languages (English, German, Spanish,
+French, Italian, Polish) end to end with a CI-guarded translation integrity
+test — an explicit language choice sticks everywhere, and the automatic setting
+follows your system language. Invite links with QR codes for closed
+registration. Light and dark themes share one token system, so both stay
+readable without a separate design.
 
 ## Private by construction
 
@@ -140,7 +150,7 @@ keeps them on a server you run.
 | Open source | Yes (PolyForm NC) | No | No | No | No | No |
 | Withings sync | OAuth2 | Native | Via shortcut | No | No | No |
 | WHOOP sync | OAuth2 (BYO-keys) | No | No | No | Native | No |
-| Google Health / Fitbit | Experimental | No | No | No | No | Native |
+| Google Health / Fitbit | BYO Google client | No | No | No | No | Native |
 | Apple Health import | `export.zip` | No | Native | No | No | No |
 | Aggregates many providers | Yes | No | Partial | No | No | No |
 | Multi-source dedup + priority | Per-metric | n/a | Limited | n/a | n/a | n/a |

@@ -1,0 +1,131 @@
+---
+title: Troubleshooting & FAQ
+description: The problems self-hosters actually hit — login loops on plain HTTP, stale images despite an update, key-rotation mistakes, silent APNs, OAuth callbacks on the wrong host — and their fixes.
+sidebar:
+  order: 8
+---
+
+The recurring problems from real deployments, with the fix and the reason.
+Each entry links the page that covers the subsystem in depth.
+
+## Login succeeds, next page load is signed out (plain HTTP)
+
+**Symptom.** Registration or login appears to work, but the very next request
+behaves as if you were never signed in.
+
+**Cause.** Under `NODE_ENV=production` the session cookie carries the `Secure`
+flag, and browsers silently drop `Secure` cookies on a plain-HTTP origin that
+is not `localhost`.
+
+**Fix.** Either put TLS in front of the instance (see
+[reverse proxy](/guides/reverse-proxy/)) or — only for a trusted LAN, Tailscale,
+or VPN-only deployment — set `SESSION_COOKIE_SECURE=false` in `.env` **and**
+make sure it is listed in the compose `environment:` whitelist. Never disable it
+on a host that serves plain HTTP to the open internet.
+
+## `docker compose up` "updates" but the version does not change
+
+**Symptom.** You pull an update, restart, and `/api/version` still reports the
+old build.
+
+**Cause.** Without `pull_policy: always`, Docker re-uses the stale `:latest`
+digest it has cached and never asks the registry whether a newer manifest
+exists.
+
+**Fix.** Keep the `pull_policy: always` line from the bundled
+`docker-compose.yml` — it is load-bearing, not a nicety. After any deploy,
+verify with `curl -s localhost:3000/api/version`: it returns `version`,
+`buildSha`, and `builtAt`, which is the only trustworthy signal that the new
+image is actually running. See [updates and deploy](/guides/updates-and-deploy/).
+
+## A variable is set in `.env` but the app ignores it
+
+**Cause.** The compose `environment:` block is a **whitelist**. Compose reads
+`.env` for `${VAR}` substitution, but does not forward arbitrary variables into
+the container.
+
+**Fix.** Add the variable to the `environment:` block of the `app` service,
+then `docker compose up -d`. The
+[environment-variable reference](/reference/environment-variables/) marks which
+variables ship on the whitelist.
+
+Related: `NEXT_PUBLIC_*` toggles are inlined at **build time** — setting them at
+runtime against the pre-built GHCR image has no effect at all.
+
+## Decryption errors after rotating encryption keys
+
+**Symptom.** After a key rotation, some rows fail to decrypt or the app throws
+on boot.
+
+**Cause.** A key was removed from the `ENCRYPTION_KEYS` map while rows encrypted
+under it still existed. HealthLog fails closed on an unknown key id — it will
+never silently return plaintext or garbage.
+
+**Fix.** Restore the legacy key entry to the map (its id is embedded in each
+encrypted value), then run the rotation script until it reports **zero
+remaining rows** on the old key. Only then remove the entry. The full playbook
+is in [encryption key rotation](/guides/encryption-key-rotation/).
+
+## iOS push notifications never arrive
+
+Work through these in order:
+
+1. **All-or-none env set.** APNs needs `APNS_KEY_ID`, `APNS_TEAM_ID`,
+   `APNS_BUNDLE_ID`, and the key itself. Missing any one disables APNs
+   silently.
+2. **Use `APNS_KEY_B64`.** Paste the `.p8` as base64, not as a raw PEM body —
+   deployment panels that write `env_file` entries mangle literal newlines, and
+   a mangled key fails in non-obvious ways.
+3. **Key scope.** The `.p8` must be scoped **"Sandbox & Production"** in the
+   Apple Developer Portal. A Sandbox-only key fails with
+   `BadEnvironmentKeyInToken` on production builds.
+4. **Delivery ledger.** The admin notification diagnostic
+   (`/api/admin/notifications/diagnostic`) shows the channel state and the last
+   20 delivery attempts for the calling user, with masked tokens — the
+   fastest way to see whether APNs is rejecting or simply not attempting.
+
+## OAuth callbacks land on `localhost` or the wrong host
+
+**Cause.** `NEXT_PUBLIC_APP_URL` / `APP_URL` still point at
+`http://localhost:3000`, so every derived redirect URI does too.
+
+**Fix.** Set both to the public origin, restart, and make sure the redirect URI
+registered at the provider matches the app's callback path **exactly** — e.g.
+`/api/google-health/callback` for
+[Google Health](/guides/connect-google-health/), `/api/withings/callback` for
+[Withings](/guides/connect-withings/). A single trailing slash or an `http`
+scheme mismatch is enough for the provider to refuse the flow.
+
+## The dashboard briefing / insights are empty
+
+The daily briefing and the comprehensive insight are **pre-generated
+overnight** by a budget-gated job — never on page visit. On a brand-new account
+(or before the first nightly run) the page shows a *preparing* state; that is
+by design, not a failure. Configure a provider under **Settings → AI** and give
+the nightly job one cycle, or use the explicit generate button where offered.
+See [how AI insights work](/insights/how-it-works/).
+
+## The app shows the wrong language
+
+The display language resolves in a fixed order: an explicit choice you made
+(**Settings → Account → Language**) wins everywhere and sticks permanently —
+it is persisted on your profile and in a server-set, year-long cookie. If you
+never chose, the app is in **automatic** mode and follows the browser/system
+language. If the app used to revert to another language after about a week,
+that was a pre-v1.27.11 cookie-lifetime bug — update, pick the language once,
+and it holds.
+
+## Postgres migration errors on first boot
+
+The Postgres healthcheck can race the migration on slow disks. Migrations are
+idempotent — run `docker compose restart app` once the database has settled.
+
+## Where to look when something else breaks
+
+- `docker compose logs -f app` — the app logs structured wide events; errors
+  carry a request id.
+- `/api/version` — confirms exactly which build is serving.
+- The **admin panel** — worker status shows whether the pg-boss job worker is
+  alive; the audit log shows sensitive operations.
+- [GitHub issues](https://github.com/MBombeck/HealthLog/issues) — search first;
+  the classics above account for most reports.
