@@ -1,0 +1,54 @@
+---
+title: Coach plans
+description: Turn a Coach conversation into a standing if-then plan — proposed by the Coach, activated only by you, reviewed on a date you can see.
+sidebar:
+  order: 24
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+A coach plan is a durable, personal if-then intention that comes out of a Coach
+conversation: a cue, an action, and optionally a target — "if it's 21:30, then
+start winding down; target: lights out by 23:00." Plans give a conversation a
+shape you can keep, instead of advice that scrolls away.
+
+## Proposed, never self-activated
+
+When a conversation converges on something worth keeping, the Coach writes it
+as a **proposal**. A proposal card appears in the conversation with two
+choices:
+
+- **Accept** — the plan becomes active and starts counting.
+- **Decline** — the plan is removed; nothing is kept.
+
+Only your tap activates a plan. The Coach cannot activate, edit, or resurrect
+one on its own, and declined proposals never feed back into what the Coach
+knows about you. Accepted plans do — an active plan is part of the context the
+Coach reasons with, which is the point: it remembers what you two agreed.
+
+## The plans page
+
+**Coach → Plans** lists everything in three groups:
+
+- **Proposed** — waiting for your accept/decline.
+- **Standing** — active plans, plus any that have reached their review date.
+- **Past** — met, ended, or reviewed plans.
+
+From there you can mark a plan met, end it, or remove it. A plan created with
+a review date comes back for review when the date arrives — the pattern is a
+small self-experiment: agree on a change, run it for a few weeks, then look at
+what happened.
+
+## Privacy
+
+The cue, action, and target of every plan are encrypted at rest, like the rest
+of your sensitive content. Plans live on your instance and go nowhere else.
+
+## Related
+
+<CardGrid>
+  <LinkCard title="The proactive Coach nudge" href="/explanation/proactive-coach/" />
+  <LinkCard title="Non-diagnostic standard" href="/explanation/non-diagnostic-standard/" />
+  <LinkCard title="AI providers" href="/guides/ai-providers/" />
+  <LinkCard title="Encryption at rest" href="/explanation/encryption-at-rest/" />
+</CardGrid>

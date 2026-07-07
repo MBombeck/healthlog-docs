@@ -1,6 +1,6 @@
 ---
 title: Log clinical signals
-description: How to record the opt-in clinical signals — PHQ-9 and GAD-7 self-checks, grip strength, a 0–10 pain score, and waist measurements — alongside your existing tracking.
+description: How to record the opt-in clinical signals — PHQ-9, GAD-7, WHO-5, and SCI self-checks, grip strength, a 0–10 pain score, and waist measurements — alongside your existing tracking.
 sidebar:
   order: 20
 ---
@@ -20,11 +20,28 @@ structured number you repeat over time and hand to a clinician — not a verdict
 the app applies. See the [non-diagnostic standard](/explanation/non-diagnostic-standard/).
 :::
 
-## PHQ-9 and GAD-7 self-checks
+## Mental-wellbeing self-checks
 
-The PHQ-9 (depression) and GAD-7 (anxiety) are validated questionnaires. Each
-item scores **0–3**; the items sum to a total, and the total falls in a published
-severity band.
+The mental-wellbeing module is opt-in; with it off, the `/mental-wellbeing`
+page is hidden and the assessment routes refuse server-side. With it on, the
+page leads with four instrument cards — answer the items, and HealthLog
+computes the total and its published band. Results chart as a trend so you can
+see movement between checks rather than a single snapshot.
+
+- **PHQ-9** (depression) and **GAD-7** (anxiety) — each item scores **0–3**;
+  the total falls in a published severity band. The PHQ-9's optional tenth
+  question (how much the answers affect daily life) can be included.
+- **WHO-5** (wellbeing) — five positively worded items over the last two
+  weeks, scaled to **0–100** per the official WHO scheme. A low score gently
+  points toward the PHQ-9 as a next step — a hint, never a verdict. The
+  official WHO translations ship in all six app languages.
+- **SCI** (Sleep Condition Indicator) — an eight-item validated sleep
+  questionnaire. It is validated in English only; locales without a validated
+  translation show the English items with an honest note rather than a
+  home-made translation.
+
+Instrument wording and thresholds are taken from the **official primary
+sources only** — no paraphrased questionnaires, no invented bands.
 
 - **They sit beside [mood tracking](/knowledge/mood/), never replace it.** Mood is
   your day-to-day log; the questionnaires are a periodic structured check. Both
@@ -34,9 +51,14 @@ severity band.
 - **It is opt-in.** Nothing about the screeners appears unless you choose to use
   them.
 
-To record one, open the self-check, answer each item, and HealthLog computes the
-total and band. The result charts as a trend so you can see it move between
-checks rather than as a single snapshot.
+### Check-ins on a rhythm
+
+Each check-in can be planned under **preventive care** with a default 28-day
+interval — the intro suggests a two-to-four-week rhythm. The reminder routes
+straight to the check-in page, and completing a check-in satisfies the
+reminder, in line with the activity-aware reminder rule: remind only while
+something is genuinely due, never nag after it is done. Completed scores are
+recorded as server-computed readings, so they trend like any other signal.
 
 :::caution[A flagged item 9 is handled supportively]
 PHQ-9 item 9 asks about thoughts of self-harm. When it is flagged, HealthLog
@@ -44,6 +66,16 @@ shows a supportive crisis-resource note — calmly, and never auto-interpreted i
 a conclusion. The screeners are deliberately kept off the Coach and MCP surface;
 item content and totals are never exposed to a model.
 :::
+
+### How results are interpreted
+
+A score is shown **with its published band** — the severity ranges from the
+instrument's own primary source — and plain words for what the band means.
+Every band cites its source, and the framing stays descriptive: where your
+total sits, what the instrument's authors say about that range, and nothing
+beyond it. A screening band is not a diagnosis, and the app never turns one
+into a conclusion — see the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/).
 
 ## Grip strength
 

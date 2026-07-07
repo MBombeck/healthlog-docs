@@ -75,6 +75,7 @@ export default defineConfig({
 						{ slug: 'guides/structured-records' },
 						{ slug: 'guides/reminder-channels' },
 						{ slug: 'guides/ai-providers' },
+						{ slug: 'guides/coach-plans' },
 						{ slug: 'guides/mcp-server' },
 						{ slug: 'guides/invites' },
 					],
@@ -168,6 +169,7 @@ export default defineConfig({
 						{ slug: 'guides/encryption-key-rotation' },
 						{ slug: 'guides/updates-and-deploy' },
 						{ slug: 'self-hosting/scaling' },
+						{ slug: 'self-hosting/troubleshooting' },
 					],
 				},
 				{

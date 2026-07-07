@@ -13,6 +13,27 @@ A cold dashboard load no longer staggers tile by tile. The above-the-fold strip 
 
 The daily briefing and the comprehensive insight are warmed **overnight** by a budget-gated background job, so opening `/insights` is a cache read instead of a synchronous model call. If the cache is cold (a brand-new account, or before the first nightly run), the page shows a *preparing* state rather than blocking the request. See [Background Jobs](/reference/data-model/) for the schedule.
 
+## Score rings
+
+The dashboard hero can carry up to **three score rings**, picked from a closed
+set of four: **readiness**, **recovery**, **sleep score**, and **today's
+doses**. Select and reorder them under **Settings → Dashboard** — changes
+apply instantly, and the order you set is the order the hero renders.
+
+Rings are honest about their inputs:
+
+- A ring only renders when its module is enabled **and** it has data — a
+  disabled sleep module or an empty recovery history simply drops the ring
+  rather than painting a zero.
+- The **dose ring** is the default single ring. It shows today's dose progress
+  ("1 / 3 taken") in the medication colour. The band reads green only when
+  every scheduled dose is taken and stays at a calm pending tone until then —
+  never red, because a morning with doses still ahead is not an alert. On days
+  with no scheduled doses it does not render at all.
+
+The ring preference is part of your dashboard layout, so it follows you across
+devices like the rest of the layout settings.
+
 ## Customize the Layout
 
 1. Open the dashboard and tap the **Customize** icon in the top right (or **Settings → Dashboard**). Personal target values (BP, BMI, glucose, pulse) live in their own section at **Settings → Health Targets**.
