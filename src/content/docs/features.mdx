@@ -80,8 +80,10 @@ insights.
 
 [Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Oura](/guides/connect-oura/) and [Polar](/guides/connect-polar/) sync over
-OAuth2; [Fitbit and Pixel](/guides/connect-google-health/) connect
-experimentally; a [Nightscout](/guides/connect-nightscout/) instance streams
+OAuth2; [Fitbit and Pixel](/guides/connect-google-health/) connect through
+Google Health, with the [classic Fitbit API](/guides/connect-fitbit/)
+alongside until its September 2026 retirement; a
+[Nightscout](/guides/connect-nightscout/) instance streams
 continuous glucose; an [Apple Health `export.zip`](/guides/import-apple-health/)
 folds your full history in; the native iOS app streams HealthKit live. A
 per-metric [source priority](/guides/source-priority/) decides which reading is
@@ -148,7 +150,7 @@ keeps them on a server you run.
 | Open source | Yes (PolyForm NC) | No | No | No | No | No |
 | Withings sync | OAuth2 | Native | Via shortcut | No | No | No |
 | WHOOP sync | OAuth2 (BYO-keys) | No | No | No | Native | No |
-| Google Health / Fitbit | Experimental | No | No | No | No | Native |
+| Google Health / Fitbit | BYO Google client | No | No | No | No | Native |
 | Apple Health import | `export.zip` | No | Native | No | No | No |
 | Aggregates many providers | Yes | No | Partial | No | No | No |
 | Multi-source dedup + priority | Per-metric | n/a | Limited | n/a | n/a | n/a |
