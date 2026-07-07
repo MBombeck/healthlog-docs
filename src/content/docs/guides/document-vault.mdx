@@ -73,3 +73,75 @@ studies is a job for a DICOM viewer or PACS, a different tool with
 different storage economics. If a file you consider a document is
 refused, check the format table above; re-exporting to PDF is usually the
 answer.
+
+## AI assist and content search
+
+The vault works fully without any AI. Filing and finding get an *optional*
+layer that only runs when you have configured an AI provider (bring-your-own-key
+or a local model) and consented to it. Nothing runs automatically, nothing is
+interpreted, and nothing is saved without your explicit action.
+
+### Suggest details (review-first)
+
+Open a stored document and choose **Suggest details**. HealthLog sends the
+document to your configured provider once and proposes a filing **title**, a
+**type**, and the document's printed **date**. These are drafts:
+
+- The title lands in the editable title field — you still press save.
+- Type and date apply only when you tap **Apply** on that row.
+- Nothing is written until you act. Suggestions can be wrong — check them.
+
+With no provider configured, the action is absent and the manual form is
+unchanged. The document is treated as untrusted data: any instruction printed
+inside it is ignored, never followed.
+
+### Summary / extracted text (session-only)
+
+**Summarise** returns a short, plain-language description of *what* the document
+is. **Show extracted text** returns its raw transcribed text. Both are shown
+once, for that view only — they are never saved into the coach, snapshots, the
+structured records, or the search index. The summary is descriptive and is not a
+diagnosis; it never flags a value as high, low, or abnormal.
+
+### Content search (search inside documents)
+
+By default search matches a document's title and filename. When indexing is
+available, search also matches whole words *inside* the document body.
+
+How it stays private:
+
+- Indexing extracts the document text, stores it **encrypted at rest**
+  (AES-256-GCM, the same posture as every other health note), and derives a
+  **blind token index** — each word is turned into a one-way keyed hash. No
+  readable document text and no readable word is ever stored.
+- A search hashes your query the same way and matches the hashes in the
+  database. Without the server's key the tokens are meaningless.
+
+Honest limits:
+
+- Content search is **whole-word**: it matches complete words, not substrings,
+  prefixes, or typos. Substring matching on the short fields (title, filename)
+  still works and is unioned with content matches.
+- Indexing needs a provider: a vision-capable provider reads images and (on the
+  Claude path) PDFs; with local OCR enabled, images are read on your device and
+  only the text is sent to the server to index. PDFs cannot be read by local
+  OCR.
+- Per-document **Index for search** indexes one document; **Index all for
+  search** runs a bounded, resumable background backfill over your not-yet-
+  indexed documents, stopping at your daily AI budget.
+
+### What this does not change
+
+- Uploads remain store-first and provider-free — a document is always filable,
+  even with no AI configured.
+- The stored original is never modified.
+- Sending a document to a provider means your data leaves the network under your
+  own key. That egress is opt-in, consent-gated, and rate- and budget-limited.
+
+### Key rotation
+
+The encrypted index text and its blind tokens both follow your active
+encryption key. `scripts/rotate-encryption-key.ts` re-encrypts the text and
+re-derives the tokens from it in the same pass, so content search keeps matching
+after a rotation. Keep the old key in `ENCRYPTION_KEYS` until the script reports
+zero remaining rows on it.
