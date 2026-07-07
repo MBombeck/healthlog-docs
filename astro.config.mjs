@@ -77,6 +77,7 @@ export default defineConfig({
 						{ slug: 'guides/reminder-channels' },
 						{ slug: 'guides/ai-providers' },
 						{ slug: 'guides/coach-plans' },
+						{ slug: 'guides/document-vault' },
 						{ slug: 'guides/mcp-server' },
 						{ slug: 'guides/invites' },
 					],

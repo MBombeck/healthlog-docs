@@ -1,0 +1,75 @@
+---
+title: The document vault
+description: Store the medical paper trail — doctor letters, reports, scans — encrypted at rest in one searchable timeline. Opt-in, byte-classified, with tunable per-file and per-account limits.
+sidebar:
+  order: 25
+---
+
+The Dokumente module is a flat, encrypted, searchable store for the paper
+trail a household accumulates: doctor letters, discharge summaries, lab
+reports, imaging findings, prescriptions, referrals, insurance letters,
+vaccination records. One timeline, filtered by type, condition, year, and
+text search — no folders to maintain.
+
+It is **off by default**. Each user enables it under Settings → Modules
+("Documents"), and an operator can withhold it instance-wide through the
+module availability settings.
+
+## What it stores — and how it is served
+
+Files are classified by their **bytes** (magic-byte sniffing), never by the
+file extension or the upload's declared content type.
+
+| Class | Formats | Behaviour |
+| --- | --- | --- |
+| Inline | PDF, JPEG, PNG, WebP, GIF | Render directly in the detail view |
+| Download-only | Word/Excel/PowerPoint (modern and legacy), plain text, Markdown, CSV, RTF, XML, JSON, TIFF, HEIC/HEIF | Stored verbatim, served only as an opaque download |
+| Refused | Executables and scripts, HTML/SVG, generic archives (`.zip`, `.7z`, `.rar`, `.tar.gz`, …), disk images, anything unidentifiable | Rejected at upload with a clear reason |
+
+The split is the security boundary: only passive, browser-native formats
+ever render inside the app, and nothing a user uploads can execute in the
+app's origin. Stored files are never rewritten or "sanitised" — the
+original is the artefact.
+
+**HEIC note:** iPhone photos picked through the browser are transcoded to
+JPEG by the picker and preview inline. A raw `.heic` file dropped from a
+computer is stored as-is and is download-only.
+
+## Limits and how to tune them
+
+Two knobs, both on the admin settings page:
+
+- **Per-file cap** — default 25 MB, hard ceiling 100 MB. The ceiling is
+  structural: uploads are encrypted in one pass in memory (transient peak
+  ≈ 3× file size), so the cap cannot be raised past it. Raise the cap only
+  if your host has the memory headroom for `cap × 3 × 3` (three parallel
+  uploads).
+- **Per-account quota** — default 1 GB, plus an optional per-user override
+  on the admin user page. Deleted documents keep counting against the
+  quota until their 30-day undo window ends (see below), so "deleted"
+  bytes are never invisible weight.
+
+An upload over the cap or quota fails instantly with a message naming the
+configured limit — files already in flight in the same batch continue.
+
+## Deleting, undo, and backups
+
+Delete is a soft delete with an Undo toast. A deleted document stays
+restorable — via undo or the API — for **30 days**; a nightly job then
+removes it permanently and returns the space.
+
+Documents live in PostgreSQL alongside everything else, so a normal
+`pg_dump` backup includes them and restore needs no extra steps. Plan for
+backup growth roughly linear in stored document bytes. The off-host S3
+JSON backup deliberately excludes document blobs — it stays a compact
+data-only safety net.
+
+## What the vault is not for
+
+The vault stores medical *documents*, not disk images. DICOM CDs, ISO
+images, and videos are out of scope by design: store the radiology
+*report* (the letter with the findings) and keep the CD — viewing DICOM
+studies is a job for a DICOM viewer or PACS, a different tool with
+different storage economics. If a file you consider a document is
+refused, check the format table above; re-exporting to PDF is usually the
+answer.
