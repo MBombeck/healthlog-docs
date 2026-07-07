@@ -1,38 +1,55 @@
 ---
 title: Connect Google Health (Fitbit & Pixel)
-description: Read Fitbit and Pixel Watch data through the Google Health API using your own Google Cloud OAuth client. Experimental.
+description: Read Fitbit and Pixel Watch data through the Google Health API using your own Google Cloud OAuth client — setup, redirect URI, scopes, connection test, and sync behaviour.
 sidebar:
   order: 3
 ---
 
 import { Steps } from '@astrojs/starlight/components';
 
-:::caution[Experimental]
-Field mapping is still being verified against live Google Health accounts, so
-some values may be missing or change in a future update.
-:::
+HealthLog reads Fitbit and Pixel data through the **Google Health API**
+(`health.googleapis.com`), the successor to the classic Fitbit Web API. Google
+retires that older API in **September 2026**, so this connection is the path
+forward for Fitbit and Pixel Watch accounts; it runs alongside the classic
+Fitbit connection until then, and every account eventually re-consents through
+Google OAuth.
 
-HealthLog reads Fitbit and Pixel data through the **Google Health API**. The
-OAuth app is therefore a **Google Cloud** OAuth client — not a Fitbit
-developer-console app. Like WHOOP, credentials are brought per user. The internal
-integration key is `fitbit`.
+The OAuth app is therefore a **Google Cloud** OAuth client — not a Fitbit
+developer-console app. Credentials are brought **per user**: Google's
+restricted-scope verification is tied to each OAuth client, so a shared,
+instance-wide app is not workable. Each user pastes their own client ID and
+secret in Settings.
+
+:::note[Beta]
+The connection imports live data since v1.27.4; daily activity totals (steps,
+distance, floors, active energy) read correctly since v1.27.12. The Google
+Health API itself is young — individual values can still be missing or shift as
+Google publishes more of the wire format.
+:::
 
 ## Set it up
 
 <Steps>
 
 1. **Create a Google Cloud OAuth client.** In
-   [console.cloud.google.com](https://console.cloud.google.com) pick a project,
-   enable the **Google Health API** under APIs & Services, configure the OAuth
+   [console.cloud.google.com](https://console.cloud.google.com) pick (or
+   create) a project, enable the **Google Health API** under **APIs & Services
+   → Library** (not the Fitness API, not Health Connect), configure the OAuth
    consent screen, then create an **OAuth 2.0 Client ID** of type **Web
    application**.
 
-   - **Authorized redirect URI:**
-     `https://your-instance.example.com/api/fitbit/callback`
+   - **Authorized redirect URI** — copy it exactly, with your own hostname:
 
+     ```
+     https://your-instance.example.com/api/google-health/callback
+     ```
+
+   The path is pinned: HealthLog refuses to start the OAuth flow if the
+   resolved redirect URI does not target exactly `/api/google-health/callback`.
    Google issues a **Client ID** and **Client Secret**.
 
-2. **Confirm the scopes.** HealthLog requests exactly these read-only scopes:
+2. **Confirm the scopes.** HealthLog requests exactly these four read-only
+   scopes:
 
    ```
    https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly
@@ -41,50 +58,85 @@ integration key is `fitbit`.
    https://www.googleapis.com/auth/googlehealth.profile.readonly
    ```
 
-   Location and intraday scopes are deliberately omitted to keep the
+   ECG, location, and intraday scopes are deliberately omitted to keep the
    Restricted-scope review surface minimal. The authorize request sends
    `access_type=offline` + `prompt=consent` so Google issues a refresh token.
 
 3. **Wire the credentials in Settings.** Sign in as the target user, open
    **Settings → Integrations → Google Health**, and paste the client ID and
-   secret. They are encrypted AES-256-GCM at rest, not stored in `.env`.
+   secret. They are stored on your user record, encrypted AES-256-GCM at rest —
+   not in `.env`.
 
 4. **Connect.** Click **Connect with Google Health**. HealthLog exchanges the
-   returned code for tokens, stores them encrypted, and runs an initial sync.
-   There is **no webhook** — Google Health syncs on the safety-net cron pull.
+   returned code for tokens, stores them encrypted, and queues a full-history
+   backfill. There is **no webhook** — Google Health syncs on an hourly poll.
+
+5. **Test the connection.** The card's connection test does a single profile
+   read and reports latency. It can also run a **structure probe**: one sample
+   request per data type, reduced to field names and value kinds — never actual
+   readings, timestamps, or IDs. That redacted shape is safe to paste into a
+   support thread when a data type imports nothing.
 
 </Steps>
 
 ## What imports
 
 Activity (steps, distance, active energy, floors, VO₂ max), health metrics
-(weight, body fat, SpO₂, resting heart rate, HRV, respiratory rate, wrist
-temperature, spot heart rate), per-stage sleep, and exercise workouts.
+(weight, body fat, height, SpO₂, resting heart rate, HRV, respiratory rate,
+spot heart rate), per-stage sleep, and exercise workouts.
+
+Two limits are stated plainly up front: **stress and readiness scores are not
+offered** by the Google Health API, and **skin/wrist temperature** is exposed
+only as a nightly deviation, so neither imports. Google may also ask you to
+reconnect from time to time — the connection shows a clear prompt when it does.
+
+## Sync cadence and backfill
+
+- **Hourly poll.** A background job walks every connected account once an hour
+  (staggered against the other integrations). New readings appear on the next
+  tick; the Settings card offers a manual sync for impatience.
+- **Full-history backfill.** On first connect, a serial background job pulls up
+  to **five years** of history, chunked into ≤ 90-day windows (with a 14-day
+  fallback when Google rejects the larger window). Large histories take a
+  while; the connection status shows when the backfill has completed.
 
 ## Redirect URI is validated strictly
 
 The resolved `redirect_uri` is asserted at connect time to be absolute, `https`
-(or `http` on localhost), to target exactly `/api/fitbit/callback`, and — when
-`FITBIT_REDIRECT_URI` is set alongside `NEXT_PUBLIC_APP_URL` — to share its
-origin. A misconfigured value fails closed rather than redirecting elsewhere.
+(or `http` on localhost), to target exactly `/api/google-health/callback`, and
+— when `GOOGLE_HEALTH_REDIRECT_URI` is set alongside `NEXT_PUBLIC_APP_URL` — to
+share its origin. A misconfigured value fails closed rather than redirecting
+elsewhere.
 
 ```env
 # Only when the callback origin differs from NEXT_PUBLIC_APP_URL:
-FITBIT_REDIRECT_URI="https://your-instance.example.com/api/fitbit/callback"
+GOOGLE_HEALTH_REDIRECT_URI="https://your-instance.example.com/api/google-health/callback"
 ```
+
+For everyone else, no environment variable is involved: the redirect URI
+resolves from `NEXT_PUBLIC_APP_URL`, and the client ID and secret live in the
+per-user Settings card.
 
 ## Caveats
 
-- Because the Google Health API is young and several per-type value fields are
-  not yet fully published, some data types may import nothing until the wire
-  mapping is verified against a live account.
 - Each operator's OAuth client needs Google brand verification plus an annual
-  CASA assessment before it can leave Testing mode.
-- If Google Health and another source both supply the same vital, you may see
-  both values until a future update settles on a single preferred source. See
-  [source priority](/guides/source-priority/).
+  CASA assessment before it can leave Testing mode. In Testing mode the client
+  works for the test users you list in the consent screen — fine for a
+  self-host, but refresh tokens are subject to Google's testing-mode limits.
+- Access tokens live one hour (the classic Fitbit API's were eight), so token
+  refresh is routine; a failed refresh surfaces as a reconnect prompt, not a
+  silent stall.
+- If Google Health and another source both supply the same vital, the
+  per-metric [source priority](/guides/source-priority/) decides which reading
+  is canonical.
 
 ## Disconnect
 
 The Settings **Disconnect** button revokes the stored tokens and removes the
 connection. Previously synced measurements stay in the database.
+
+## Related
+
+- [Source priority across devices](/guides/source-priority/)
+- [Environment variables](/reference/environment-variables/)
+- [Privacy architecture](/explanation/privacy-architecture/)
