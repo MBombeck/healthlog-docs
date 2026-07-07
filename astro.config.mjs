@@ -73,7 +73,6 @@ export default defineConfig({
 						{ slug: 'guides/track-medications' },
 						{ slug: 'guides/clinical-signals' },
 						{ slug: 'guides/structured-records' },
-						{ slug: 'guides/inbound-documents' },
 						{ slug: 'guides/reminder-channels' },
 						{ slug: 'guides/ai-providers' },
 						{ slug: 'guides/mcp-server' },
