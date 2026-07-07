@@ -1,6 +1,6 @@
 ---
 title: Environment variables
-description: Every environment variable a HealthLog deployment reads — required core, optional integrations, backups, scaling, and build-time toggles.
+description: Every environment variable a HealthLog deployment reads — required core, optional integrations, notifications, geolocation, logging, backups, and build-time toggles.
 sidebar:
   order: 3
 ---
@@ -14,7 +14,8 @@ two never drift.
 A variable in `.env` reaches the container **only** if it is also listed under
 `environment:` in `docker-compose.yml`. Docker Compose reads `.env` for `${VAR}`
 substitution at compose-up time, but does not forward arbitrary vars into the
-container. When you add a new optional var, add it to the whitelist too.
+container. When you add a new optional var, add it to the whitelist too — the
+tables below flag the variables that are **not** whitelisted by default.
 :::
 
 ## Core — required for boot
@@ -39,40 +40,37 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | `ENCRYPTION_KEYS` | JSON map, e.g. `{"v1":"<hex>","v2":"<hex>"}`. |
 | `ENCRYPTION_ACTIVE_KEY_ID` | The key id new writes use, e.g. `v2`. |
 
-## Session & proxy
+## Session, proxy & database pool
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_COOKIE_SECURE` | tracks `NODE_ENV=production` | Force or disable the cookie `Secure` flag. Set `false` for trusted plain-HTTP LANs. |
 | `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. See [reverse proxy](/guides/reverse-proxy/). |
-| `DB_CONNECTION_LIMIT` / `DATABASE_POOL_MAX` | `20` | Per-container Postgres pool ceiling. |
-| `DB_POOL_TIMEOUT` | `20` | Seconds a query waits for a free connection. |
+| `TRUST_CF_CONNECTING_IP` | unset | Set `1` **only** behind Cloudflare to trust the `cf-connecting-ip` header. |
+| `DATABASE_POOL_MAX` | `20` | The Prisma pool ceiling the app itself reads. |
+| `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | **Compose-level substitutions only** — they feed the `connection_limit` and `pool_timeout` query params of the default `DATABASE_URL`. The app never reads them directly; with a hand-written `DATABASE_URL`, set the query params yourself. |
 | `HEALTHLOG_PROCESS_TYPE` | `all` | `all` / `web` / `worker` process split. |
 
-## Withings (optional integration)
+## Device integrations (optional)
+
+Withings, WHOOP, Fitbit (classic), and Google Health credentials are
+**per-user, pasted in Settings and encrypted in the database** — they have no
+env-var path. Oura and Polar accept a shared instance-wide app via env, with a
+per-user override in Settings. The `*_REDIRECT_URI` overrides are only needed
+when the callback origin differs from `NEXT_PUBLIC_APP_URL`.
 
 | Variable | Purpose |
 | --- | --- |
-| `WITHINGS_CLIENT_ID` / `WITHINGS_CLIENT_SECRET` | OAuth credentials from developer.withings.com. |
-| `WITHINGS_REDIRECT_URI` | OAuth callback URL. |
-| `WITHINGS_WEBHOOK_SECRET` | Path-segment secret hardening the webhook URL. |
-
-## WHOOP (optional)
-
-WHOOP client id/secret are **per-user BYO-keys** in Settings, not env vars.
-
-| Variable | Purpose |
-| --- | --- |
-| `WHOOP_REDIRECT_URI` | Overrides the derived callback URL. |
-| `WHOOP_WEBHOOK_SECRET` | Path segment + HMAC body-signature key. |
-
-## Google Health / Fitbit (optional)
-
-Client id/secret are per-user in Settings.
-
-| Variable | Purpose |
-| --- | --- |
-| `FITBIT_REDIRECT_URI` | Callback URL when its origin differs from `NEXT_PUBLIC_APP_URL`. |
+| `WITHINGS_WEBHOOK_SECRET` | Path-segment secret hardening the Withings webhook URL. Not whitelisted by default. |
+| `WITHINGS_REDIRECT_URI` | Callback override for [Withings](/guides/connect-withings/). Not whitelisted by default. |
+| `WHOOP_REDIRECT_URI` | Callback override for [WHOOP](/guides/connect-whoop/). |
+| `WHOOP_WEBHOOK_SECRET` | Path segment + HMAC body-signature key for the WHOOP webhook. |
+| `FITBIT_REDIRECT_URI` | Callback override for [classic Fitbit](/guides/connect-fitbit/). Not whitelisted by default. |
+| `GOOGLE_HEALTH_REDIRECT_URI` | Callback override for [Google Health](/guides/connect-google-health/). Not whitelisted by default. |
+| `OURA_CLIENT_ID` / `OURA_CLIENT_SECRET` | Shared [Oura](/guides/connect-oura/) app; per-user Settings values win. |
+| `OURA_REDIRECT_URI` | Callback override for Oura. |
+| `POLAR_CLIENT_ID` / `POLAR_CLIENT_SECRET` | Shared [Polar](/guides/connect-polar/) app; per-user Settings values win. |
+| `POLAR_REDIRECT_URI` | Callback override for Polar. |
 
 ## APNs — iOS push (all-or-none)
 
@@ -81,7 +79,43 @@ Missing any one disables APNs silently.
 | Variable | Purpose |
 | --- | --- |
 | `APNS_KEY_ID` / `APNS_TEAM_ID` / `APNS_BUNDLE_ID` | Apple Developer identifiers. |
-| `APNS_KEY` *or* `APNS_KEY_FILE` | The `.p8` contents, or a path to it. (`APNS_KEY_B64` for base64.) |
+| `APNS_KEY_B64` | The `.p8` key, base64-encoded — the **recommended** form, immune to newline mangling by deployment panels. Precedence: `APNS_KEY_B64` > `APNS_KEY` > `APNS_KEY_FILE`. |
+| `APNS_KEY` / `APNS_KEY_FILE` | Raw PEM contents, or a path to the file. |
+| `APNS_PRODUCTION` | Force the production APNs gateway; default follows each device's registered environment. |
+| `APNS_CRITICAL_ENTITLEMENT` | Set `true` only if the iOS build carries Apple's Critical Alerts entitlement; otherwise urgent alerts degrade to time-sensitive. |
+
+The `.p8` must be scoped **"Sandbox & Production"** — a Sandbox-only key fails
+with `BadEnvironmentKeyInToken` on production builds. See
+[troubleshooting](/self-hosting/troubleshooting/).
+
+## Email (SMTP) notification channel
+
+Setting host + port + from enables the email channel; user/pass are optional.
+
+| Variable | Purpose |
+| --- | --- |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM` | Server, port, and sender address. |
+| `SMTP_USER` / `SMTP_PASS` | Credentials, when the relay requires auth. |
+| `SMTP_SECURE` | `true` = implicit TLS (usually 465); otherwise STARTTLS (587). |
+
+## Web Push (VAPID)
+
+The admin panel is the primary home for VAPID keys (stored encrypted in the
+database), but an env fallback exists — the loader reads the database first,
+then these:
+
+| Variable | Purpose |
+| --- | --- |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | The VAPID key pair. |
+| `VAPID_SUBJECT` | `mailto:` contact embedded in pushes. |
+
+## IP geolocation (sign-in overview)
+
+| Variable | Purpose |
+| --- | --- |
+| `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. |
+| `IP_GEO_LOOKUP_DISABLED` | Disable third-party IP lookups entirely (no geo egress). |
+| `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
 
 ## Off-host backups (all-or-none)
 
@@ -100,8 +134,19 @@ See [Backups](/guides/backups/).
 | Variable | Purpose |
 | --- | --- |
 | `DEPLOY_WEBHOOK_SECRET` | Authenticates `POST /api/internal/deploy-webhook`. |
+| `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | Replay hardening — require a fresh `X-Deploy-Webhook-Timestamp` (±5 min). |
 | `DEPLOY_LOGS_URL` | Deployment-dashboard URL linked in failure notifications. |
 | `TLS_LEAF_SPKI_PINS` | Known-good leaf SPKI pins for the native-client pin monitor. |
+
+## Logging & observability (optional)
+
+| Variable | Purpose |
+| --- | --- |
+| `LOG_LEVEL` | Structured wide-event log level. |
+| `LOG_SAMPLE_RATE` | Sampling for high-volume events. |
+| `LOG_SLOW_THRESHOLD_MS` | Requests slower than this are flagged. |
+| `LOG_INCLUDE_STACK` | Include stack traces in error events. |
+| `LOKI_ENDPOINT` / `LOKI_USERNAME` / `LOKI_PASSWORD` | Optional Loki log shipping. |
 
 ## FHIR (optional)
 
@@ -109,25 +154,40 @@ See [Backups](/guides/backups/).
 | --- | --- | --- |
 | `FHIR_MAX_MEDICATION_ADMINISTRATIONS` | `5000` | Per-export ceiling on `MedicationAdministration` rows (bounded 1–50000). |
 
-## Local AI (optional)
+## AI (optional)
 
 | Variable | Purpose |
 | --- | --- |
 | `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Set `true` to let the SSRF guard reach `localhost` / RFC1918 / link-local AI endpoints. |
 | `INSIGHTS_RATE_LIMIT_PER_HOUR` | Bounds `POST /api/insights/generate` per user per hour (default 10). |
 
+## Environment module (optional)
+
+Not whitelisted by default.
+
+| Variable | Purpose |
+| --- | --- |
+| `OPENMETEO_BASE_URL` / `OPENMETEO_GEOCODING_URL` | Override the weather / geocoding endpoints for the [environmental module](/explanation/environmental-module/). |
+
+## Webhook hardening (optional)
+
+| Variable | Purpose |
+| --- | --- |
+| `TELEGRAM_WEBHOOK_SECRET` | Hardens the Telegram webhook path (the bot token itself is configured in the admin panel). |
+
 ## Build-time only (not runtime)
 
 `NEXT_PUBLIC_*` vars are inlined into the client bundle at **build time**. The
 pre-built GHCR image ignores them at runtime, so they are deliberately absent
-from the compose whitelist. Setting them in Coolify's runtime panel has no
+from the compose whitelist. Setting them in a deploy panel's runtime tab has no
 effect.
 
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_DASHBOARD_SNAPSHOT` | `false` falls back to the legacy four-cell dashboard path. |
-| `NEXT_PUBLIC_APP_VERSION` / `_BUILD_SHA` / `_BUILT_AT` | Stamped from the GHCR tag during CI build; surfaced by `/api/version`. |
+| `NEXT_PUBLIC_APP_VERSION` / `NEXT_PUBLIC_APP_BUILD_SHA` / `NEXT_PUBLIC_APP_BUILT_AT` | Stamped from the GHCR tag during CI build; surfaced by `/api/version`. |
 
-Telegram bot token, ntfy settings, Web Push VAPID keys, and error-tracking URLs
-are configured in the **admin panel** and stored encrypted in the database — not
-as environment variables.
+Telegram bot token, ntfy settings, and error-tracking URLs are configured in
+the **admin panel** and stored encrypted in the database — not as environment
+variables. Device-integration credentials (Withings, WHOOP, Fitbit, Google
+Health) are per-user in Settings, likewise encrypted.
