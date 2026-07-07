@@ -45,9 +45,11 @@ each user's grant scoped to credentials they control.
    var.
 
 3. **Connect.** Click **Connect WHOOP**. The flow redirects to WHOOP, exchanges
-   the code for an access + refresh token, registers the webhook, and triggers
-   an initial sync of recent history. Subsequent syncs run on every webhook
-   delivery plus a safety-net cron pull.
+   the code for an access + refresh token, and queues a full-history backfill.
+   The webhook is **not** registered by this flow — you register the webhook
+   URL once, at the app level, in the WHOOP developer console (see the env-var
+   section below). Subsequent syncs run on every webhook delivery plus a
+   safety-net cron pull.
 
 </Steps>
 

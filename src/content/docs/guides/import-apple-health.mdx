@@ -72,8 +72,9 @@ Two axes keep re-imports clean:
 1. **File-level** — re-uploading the same `export.zip` (same byte SHA-256)
    short-circuits to the previous job before the parser starts.
 2. **Record-level** — a re-exported archive keeps every record's external ID
-   stable; the upsert path matches on `(userId, externalId)` and updates instead
-   of inserting.
+   stable; the dedup key is the `(user, type, source, externalId)` tuple, so a
+   matching record updates instead of inserting, and the same external ID from
+   a different source or metric type stays a distinct row.
 
 The job result reports `recordsInserted` and `recordsUpdated` separately, so a
 monthly re-import shows fresh data merged without duplicates.

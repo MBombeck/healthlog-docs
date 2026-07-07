@@ -67,6 +67,7 @@ export default defineConfig({
 						{ slug: 'guides/connect-oura' },
 						{ slug: 'guides/connect-polar' },
 						{ slug: 'guides/connect-google-health' },
+						{ slug: 'guides/connect-fitbit' },
 						{ slug: 'guides/connect-nightscout' },
 						{ slug: 'guides/import-apple-health' },
 						{ slug: 'guides/source-priority' },

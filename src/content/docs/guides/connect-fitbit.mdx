@@ -1,0 +1,88 @@
+---
+title: Connect Fitbit (classic Web API)
+description: Link a Fitbit account through the classic Fitbit Web API with your own dev.fitbit.com app — and know that this path sunsets in September 2026.
+sidebar:
+  order: 4
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+HealthLog's classic Fitbit connection reads a Fitbit account through the
+Fitbit Web API with a per-user app registered at
+[dev.fitbit.com](https://dev.fitbit.com). It coexists with the newer
+[Google Health connection](/guides/connect-google-health/) — same devices,
+different API.
+
+:::caution[This API retires in September 2026]
+Google retires the classic Fitbit Web API in **September 2026**. The classic
+connection keeps working until then; the
+[Google Health connection](/guides/connect-google-health/) is the path
+forward, and every account eventually re-consents through Google OAuth. If you
+are connecting fresh, weigh starting with Google Health directly.
+:::
+
+Why prefer classic in the meantime? Registration at dev.fitbit.com is
+self-serve — no brand verification, no CASA assessment — so it is the
+lower-friction path while it lasts.
+
+## Set it up
+
+<Steps>
+
+1. **Register a Fitbit app.** Sign in at
+   [dev.fitbit.com](https://dev.fitbit.com/apps) and register a new
+   application. Choose the **Personal** OAuth application type for your own
+   account's data.
+
+   - **Redirect URL** — copy it exactly, with your own hostname:
+
+     ```
+     https://your-instance.example.com/api/fitbit/callback
+     ```
+
+   The path is pinned: HealthLog refuses to start the flow if the resolved
+   redirect URI does not target exactly `/api/fitbit/callback`. Fitbit issues
+   a **Client ID** and **Client Secret**.
+
+2. **Paste the credentials in Settings.** Sign in as the target user, open
+   **Settings → Integrations → Fitbit**, and paste the client ID and secret.
+   They are stored AES-256-GCM-encrypted — there are no
+   `FITBIT_CLIENT_ID` / `FITBIT_CLIENT_SECRET` env vars.
+
+3. **Connect.** Click **Connect Fitbit**. The flow uses Authorization Code
+   with PKCE and requests these read scopes:
+
+   ```
+   activity cardio_fitness heartrate oxygen_saturation profile respiratory_rate sleep weight
+   ```
+
+   The `temperature` scope is deliberately omitted — Fitbit exposes skin
+   temperature only as a nightly deviation, not an absolute reading. On
+   success, a full-history backfill is queued.
+
+</Steps>
+
+## Sync behaviour
+
+There is **no webhook**: the classic connection polls hourly, staggered
+against the other integrations, and a manual sync button lives on the
+Settings card. The Web API's rate budget (~150 requests per hour per user)
+paces the backfill. Values import in metric units regardless of the Fitbit
+account's display locale.
+
+## Redirect URI override
+
+Only when the callback origin differs from `NEXT_PUBLIC_APP_URL`:
+
+```env
+FITBIT_REDIRECT_URI="https://your-instance.example.com/api/fitbit/callback"
+```
+
+Like the other integration overrides, this variable is not on the compose
+`environment:` whitelist by default — add it there when you set it.
+
+## Related
+
+- [Connect Google Health (Fitbit & Pixel)](/guides/connect-google-health/) — the successor path
+- [Source priority across devices](/guides/source-priority/)
+- [Environment variables](/reference/environment-variables/)
