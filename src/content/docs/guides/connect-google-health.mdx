@@ -38,6 +38,14 @@ Google publishes more of the wire format.
    consent screen, then create an **OAuth 2.0 Client ID** of type **Web
    application**.
 
+   On the consent screen, leave the publishing status on **Testing** — the
+   deliberate choice for a self-hoster, since a Testing-mode client avoids
+   Google verification and the annual CASA security assessment entirely. On
+   the **Audience** page, add every account that will connect as a **test
+   user** (**+ Add users**); an account not on that list is refused at the
+   consent screen. An unverified client is capped at **100 users** — staying
+   at or below that ceiling keeps you verification-free.
+
    - **Authorized redirect URI** — copy it exactly, with your own hostname:
 
      ```
@@ -140,6 +148,28 @@ per-user Settings card.
 
 The Settings **Disconnect** button revokes the stored tokens and removes the
 connection. Previously synced measurements stay in the database.
+
+## Garmin owners
+
+There is no direct Garmin connector for a self-hosted instance, and there
+cannot be one: Garmin's data-sharing program is business-partner-only —
+approval-gated and not the "register your own app, paste a key" model the
+other wearable integrations rely on. Instead, HealthLog reads Garmin data
+through the phone health platform the Garmin already feeds:
+
+- **Android:** since Garmin Connect 5.14.1 (July 2025) the app writes to
+  **Google Health Connect**, so this integration is how Garmin data reaches
+  HealthLog on Android.
+- **iOS:** Garmin Connect writes to Apple Health automatically — use the
+  [Apple Health import](/guides/import-apple-health/).
+
+Everything Garmin shares with the platform flows in: steps, heart rate, sleep
+stages, calories, distance, weight and body composition, cadence, and —
+partially — blood-oxygen saturation. Garmin's **proprietary scores** (Body
+Battery, HRV Status, VO₂ max, Training Load / Training Effect, Recovery Time,
+Intensity Minutes, Stress score, running dynamics) are not shared with Apple
+Health or Health Connect, so no self-hosted integration can obtain them — they
+remain visible only inside Garmin Connect itself.
 
 ## Related
 

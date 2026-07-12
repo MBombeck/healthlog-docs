@@ -103,8 +103,17 @@ themselves.
 | --- | --- | --- |
 | Missing `export.xml` | `Archive is missing the apple_health_export/export.xml member` | Re-export from the iPhone; a partial AirDrop can lose the entry. |
 | Encrypted archive | `Encrypted ZIP entries are not supported` | The file was repacked by a third-party tool — re-export from iOS directly. |
+| Unsupported compression | `Unsupported ZIP compression method <n> for export.xml` | Same recovery — re-export from iOS, which always emits method 0 (stored) or 8 (deflate). |
 | Worker down | `503 Background worker is not running` | Check the `app-worker` (or `all`-mode `app`) container and restart. |
 | Rate-limited | `429 Too many import uploads` | Wait sixty seconds; the limit is three uploads per minute per user. |
 
 The wide-event line `import.apple-health.kickoff` captures every attempt with
 upload size, SHA-256, and the resolved `ImportJob` id.
+
+## Garmin owners
+
+Garmin has no direct connector for a self-hosted instance. On iOS, Garmin
+Connect writes to Apple Health automatically, so the import path on this page
+is how Garmin data reaches HealthLog. For what comes through — and the
+proprietary Garmin scores that never leave Garmin Connect — see
+[Garmin owners](/guides/connect-google-health/#garmin-owners).

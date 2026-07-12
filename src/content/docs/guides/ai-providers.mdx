@@ -14,12 +14,19 @@ automatically. For what each provider sees, read
 
 ## Provider matrix
 
-| Provider | Key acquisition | Endpoint | Privacy stance |
-| --- | --- | --- | --- |
-| OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `api.openai.com/v1` | Context sent to OpenAI |
-| Anthropic | [console.anthropic.com](https://console.anthropic.com/settings/keys) | Anthropic default | Context sent to Anthropic |
-| Local | none (your endpoint) | OpenAI-compatible URL you control | Stays on your network |
-| ChatGPT OAuth | sign in with your ChatGPT account | Codex-routed | Via your ChatGPT subscription |
+| Provider | Key acquisition | Default model | Endpoint | Privacy stance |
+| --- | --- | --- | --- | --- |
+| OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `gpt-4o` | `api.openai.com/v1` | Context sent to OpenAI |
+| Anthropic | [console.anthropic.com](https://console.anthropic.com/settings/keys) | `claude-sonnet-4-6` | Anthropic default | Context sent to Anthropic |
+| Local | none (your endpoint) | your model | OpenAI-compatible URL you control | Stays on your network |
+| ChatGPT OAuth | sign in with your ChatGPT account | Codex-routed | Codex-routed | Via your ChatGPT subscription |
+
+The model is overridable per provider in `/settings/ai` — e.g. a lighter
+`gpt-4o-mini` trades some reasoning headroom for a lower per-token cost. Cost
+expectation for BYOK: a daily briefing runs at roughly 4–8k input tokens +
+~1k output, so even a heavy user generating multiple Coach turns plus a
+weekly report typically spends a few dollars per month on a full-size hosted
+model.
 
 ## BYOK vs admin-shared
 
@@ -80,9 +87,12 @@ Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
 The **Local** provider speaks the plain OpenAI chat-completions dialect, so it
 also covers gateways and routers, not just single-model servers: LiteLLM,
 OpenRouter, vLLM, LM Studio, or any proxy that exposes an OpenAI-compatible
-`/v1` endpoint. Point the base URL at the gateway, pick the model name the
-gateway routes, and set the API key field if the gateway expects one — the
-Bearer header is optional and simply omitted when no key is configured.
+`/v1` endpoint. A gateway always goes through **Local**: the OpenAI provider
+deliberately pins `api.openai.com`, so an OpenAI API key is never forwarded to
+a custom host. Point the base URL at the gateway (it ends with `/v1` — e.g.
+`https://openrouter.ai/api/v1`), pick the model name the gateway routes, and
+set the API key field if the gateway expects one — the Bearer header is
+optional and simply omitted when no key is configured.
 
 Structured generations send `response_format: { type: "json_object" }` by
 default. Since v1.28.28 the flag falls back **per endpoint**: a gateway that
@@ -90,6 +100,11 @@ rejects the parameter with a 400 flips that base URL to a no-flag dialect and
 the request is retried, so strict gateways work without configuration.
 Hosted gateways on public hosts need no `ALLOW_LOCAL_AI_PRIVATE_HOSTS` entry;
 a gateway on your LAN does.
+
+The **admin** server-key path has a separate guard: an admin-set custom base
+URL must additionally be allowed via `ADMIN_AI_BASE_URL_ALLOWLIST` in the
+container environment. The user-level Local provider does not read that
+variable — it is governed by the SSRF guard above.
 
 ## ChatGPT OAuth (Codex)
 
@@ -141,9 +156,41 @@ per user per hour. `INSIGHTS_MAX_TOKENS` (default 2500, clamped to 500–8000)
 sets the completion-token budget per generation — raise it when a verbose
 local model truncates its JSON mid-answer.
 
+## Automatic document reading (opt-in)
+
+The [document vault](/guides/document-vault/) is local-first by default: an
+uploaded document is only read by an external AI provider when you tap a
+per-document AI action, and text-layer PDFs are indexed for search locally
+with no egress. AI settings carry a per-user **"Read documents automatically
+with AI"** switch — **off by default** — that reads, describes, and indexes
+each upload through your configured provider with no per-document
+confirmation. Turning it on is standing consent for that egress and is
+recorded in the consent audit trail; a subscription connection applies its own
+consumer data settings, so privacy-sensitive deployments should keep the
+switch off, or pair it with a no-training BYOK key or a local model. See the
+[vault guide](/guides/document-vault/#reading-documents-with-ai--automatic-search)
+for how the readers are chosen.
+
 ## Connection test
 
 `POST /api/ai/test` runs a one-shot probe against the resolved provider and
 returns latency plus the model it routed to. The Settings UI surfaces a **Test
 connection** button per provider; a failed probe returns a localisable
 `errorCode`.
+
+## Troubleshooting
+
+- **"No AI provider configured."** Set up at least one BYOK provider in
+  `/settings/ai`, or configure an admin-shared key in the admin panel.
+- **Local endpoint rejected as "internal/private host".** Set
+  `ALLOW_LOCAL_AI_PRIVATE_HOSTS` to the endpoint's exact hostname
+  (comma-separate several) in the container environment. Prefer the host list
+  over the legacy `true`; leave it unset on internet-facing instances.
+- **ChatGPT OAuth disconnects after a few weeks of inactivity.** ChatGPT
+  refresh tokens lapse after extended idle periods. Reconnect via **Connect
+  ChatGPT** — the device-code flow re-runs and the new tokens land in the same
+  encrypted columns.
+- **Chain falls through every entry.** Run the per-provider connection test
+  from `/settings/ai` to identify the failing step. The most common cause is a
+  stale or revoked BYOK key earlier in the chain; remove or disable that entry
+  to skip ahead.

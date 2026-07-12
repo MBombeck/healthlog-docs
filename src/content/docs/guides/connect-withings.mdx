@@ -54,8 +54,7 @@ data (steps, active energy, distance, floors) arrives through the
    `WITHINGS_CLIENT_ID` / `WITHINGS_CLIENT_SECRET` env path. On a shared
    instance, each user brings their own Withings app.
 
-   Two variables do go in `.env` (and must be added to the compose
-   `environment:` whitelist — they are not on it by default):
+   Two variables do go in `.env`:
 
    ```env
    WITHINGS_WEBHOOK_SECRET="$(openssl rand -hex 32)"
@@ -65,14 +64,17 @@ data (steps, active energy, distance, floors) arrives through the
 
    `WITHINGS_WEBHOOK_SECRET` is the path-segment token the webhook handler
    validates against — a 64-char hex value keeps it indistinguishable from
-   random. Restart the `app` container after saving.
+   random. It is on the compose `environment:` whitelist; the
+   `WITHINGS_REDIRECT_URI` override is not, so add that one to the whitelist
+   if you set it. Restart the `app` container after saving.
 
 3. **Link from the Settings page.** On **Settings → Integrations**, click
    **Connect Withings**. The flow redirects to Withings, exchanges the
    returned code for an access + refresh token (stored
    AES-256-GCM-encrypted), subscribes the webhook URL, and triggers an
    initial sync of the past 30 days. The page then shows **Connected** with
-   the last-sync timestamp.
+   the last-sync timestamp. Subsequent syncs run automatically on every
+   webhook delivery, plus a safety-net cron pull every few hours.
 
 </Steps>
 
@@ -117,6 +119,15 @@ database as an audit trail. Override per user under **Settings → Sources**.
 - **"Reauthorisation required".** Withings revokes refresh tokens on password
   change or extended inactivity. Click **Connect Withings** again; the next sync
   catches up the last 30 days.
+
+## Disconnect
+
+The Settings **Disconnect** button revokes the access token at Withings,
+removes the connection and its stored tokens, and audits the action. Existing
+measurements tagged `source = WITHINGS` stay in the database — disconnect does
+not delete data. Re-linking the same Withings account merges back onto the same
+metric timeline: the upsert path matches on `(userId, type, measuredAt,
+source)`, so previously-synced rows update in place instead of duplicating.
 
 ## Admin probe
 
