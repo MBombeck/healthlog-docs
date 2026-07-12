@@ -63,7 +63,7 @@ from `NEXT_PUBLIC_APP_URL`.
 
 | Variable | Purpose |
 | --- | --- |
-| `WITHINGS_WEBHOOK_SECRET` | Path-segment secret hardening the Withings webhook URL. Not whitelisted by default. |
+| `WITHINGS_WEBHOOK_SECRET` | Path-segment secret hardening the Withings webhook URL. |
 | `WITHINGS_REDIRECT_URI` | Callback override for [Withings](/guides/connect-withings/). Not whitelisted by default. |
 | `WHOOP_REDIRECT_URI` | Callback override for [WHOOP](/guides/connect-whoop/). |
 | `WHOOP_WEBHOOK_SECRET` | Path segment + HMAC body-signature key for the WHOOP webhook. |
@@ -140,7 +140,7 @@ See [Backups](/guides/backups/).
 | `DEPLOY_WEBHOOK_SECRET` | Authenticates `POST /api/internal/deploy-webhook`. |
 | `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | Replay hardening — require a fresh `X-Deploy-Webhook-Timestamp` (±5 min). |
 | `DEPLOY_LOGS_URL` | Deployment-dashboard URL linked in failure notifications. |
-| `TLS_LEAF_SPKI_PINS` | Known-good leaf SPKI pins for the native-client pin monitor. |
+| `TLS_LEAF_SPKI_PINS` | Known-good served-leaf SPKI pins for the [server-side pin monitor](/security/certificate-pinning/#the-server-side-leaf-alarm); unset, the monitor logs the served pin but cannot alarm. |
 
 ## Logging & observability (optional)
 

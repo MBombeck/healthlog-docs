@@ -35,7 +35,7 @@ If you self-host on your own domain with a normal Let's Encrypt (or any CA-issue
 
 If you are security-conscious and want the same MITM hardening that the managed cloud gets, you can pin your own domain — but this requires rebuilding the iOS app, so it is strictly optional and only worthwhile if you are already re-signing the client under your own bundle-id (for example because you also configured [APNs push](/guides/reminder-channels/)).
 
-The pinning host list is being exposed as a build configuration in the iOS project:
+The pinning host list is a build configuration in the iOS project:
 
 1. Extract the SPKI hashes for your domain from its live TLS chain:
 
@@ -43,17 +43,25 @@ The pinning host list is being exposed as a build configuration in the iOS proje
    scripts/extract-spki.sh yourdomain.example.com
    ```
 
-   This prints the base64 SHA-256 SPKI for the leaf, intermediate, and root certificates.
+   This prints the base64 SHA-256 SPKI for each certificate in the chain —
+   leaf, intermediate, and root.
 
-2. Set the forthcoming build config in the iOS project:
+2. Set the build config in the iOS project:
 
    - **`HLPinnedHosts`** — your host (e.g. `health.example.com`)
-   - **`HLPinnedSPKIHashes`** — the leaf + intermediate + root hashes from step 1
+   - **`HLPinnedSPKIHashes`** — the **intermediate + root** hashes from step 1
 
 3. Rebuild and re-sign the app, then distribute it to your devices.
 
-:::caution[`HLPinnedHosts` is a forthcoming, optional config]
-Own-domain pinning via `HLPinnedHosts` is an optional, advanced build-time setting being added to the iOS client. Pin **all three** of leaf, intermediate, and root so a routine leaf rotation doesn't lock you out before you can ship a new build — see the [rotation-survival strategy](/security/certificate-pinning/#the-three-pin-rotation-survival-strategy). The implementation lives in the [iOS repo](https://github.com/MBombeck/healthlog-iOS).
+:::caution[Pin the CA keys, not the leaf]
+Pin the **intermediate and root** keys and leave the leaf out of the set. The
+leaf auto-renews roughly every 90 days and each renewal mints a new keypair —
+a leaf pin buys nothing (validation accepts a match on any certificate in the
+chain, so the CA pins already pass every renewal) and only becomes a stale
+entry to maintain. This mirrors the managed cloud's own
+[rotation-survival strategy](/security/certificate-pinning/#ca-level-pinning-the-rotation-survival-strategy).
+A release build requires at least two well-formed pins. The implementation
+lives in the [iOS repo](https://github.com/MBombeck/healthlog-iOS).
 :::
 
 ## Related

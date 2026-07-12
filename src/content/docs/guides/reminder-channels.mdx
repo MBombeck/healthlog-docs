@@ -11,6 +11,13 @@ channels a user has enabled. One dispatcher
 classification and a `push_attempts` ledger that retains 90 days of delivery
 attempts per channel.
 
+The single message to take away: **you do not need an Apple Developer account
+or APNs to get push.** Five of the six channels are free and cover every
+platform a self-hoster runs; an APNs-less instance degrades gracefully —
+urgent events still escalate on ntfy (max priority), Web Push (raised
+urgency), and the webhook (urgent flag). Web Push is the recommended default:
+it needs no third-party account, just a keypair you generate once.
+
 ## The cascade
 
 The dispatcher tries channels in this order: **APNs → Telegram → ntfy →
@@ -35,19 +42,35 @@ literal newlines; `APNS_KEY` / `APNS_KEY_FILE` remain accepted). See the
 [iOS connect guide](/getting-started/connect-ios-app/#push-notifications-apns)
 for the `.p8` gotchas.
 
+One thing worth stating plainly: APNs binds a push to a specific Apple
+Developer team + bundle ID + signing key, and the published iOS app is signed
+under the maintainer's team. A self-hosted server has no way to mint that
+team's key, so it **cannot** send APNs pushes to the published app — native
+push on your own infrastructure means building and signing your own copy of
+the open iOS client under your own Apple identity. Everyone else gets the
+same reminders through Web Push (install the PWA), Telegram, ntfy, webhook,
+or email; only the lock-screen Live Activity is APNs-exclusive.
+
 ## Telegram
 
 Configured **per user** in notification settings: each user saves their own
 bot token and chat id via `PUT /api/settings/telegram` (the token is stored
-encrypted in the database, not in `.env`). Telegram reminders carry inline
-action buttons; the button callback lands on `POST /api/telegram/webhook`,
-which is secret-authenticated.
+encrypted in the database, not in `.env`). Setup: create a bot with
+**@BotFather** and copy the token, send `/start` to the bot so it can message
+you, read your chat ID from **@userinfobot**, and fill both into the Telegram
+card under `/settings/notifications`. One bot can serve every user on the
+instance; each user pairs their own chat ID. Telegram reminders carry inline
+action buttons (taken / snooze / skip); the button callback lands on
+`POST /api/telegram/webhook`, which is secret-authenticated.
 
 ## ntfy
 
 Self-hostable push. Configured per user in notification settings — point it at a
 public `ntfy.sh` topic or your own ntfy server. Good for a no-account,
-no-vendor push channel.
+no-vendor push channel. Pick a hard-to-guess topic name: on public `ntfy.sh`
+the topic **is** the access control — anyone who knows the string can read it,
+so treat it like a secret. Urgent events are published at ntfy's top priority
+(`5`) so they bypass batching and surface on the lock screen.
 
 ## Webhook
 
@@ -66,11 +89,25 @@ without them the dispatcher skips it silently.
 
 ## Web Push (VAPID)
 
-Browser-native push for the PWA. The VAPID key pair is generated and stored
-(encrypted) in the admin panel. A browser registers via
-`POST /api/notifications/web-push` after the user grants notification
-permission; `GET /api/notifications/vapid` hands the client the public key. Test
-a registration with `POST /api/notifications/web-push/test`.
+Browser-native push for the PWA. The easiest path is the admin panel's **Web
+Push VAPID** card: **Generate keys** mints a keypair server-side, stores the
+private key encrypted at rest, and only asks you to set the `mailto:` subject
+— no shell, no `.env`. Regenerating an existing pair invalidates every
+browser subscription (each device must re-subscribe), so the card asks for
+confirmation first. Alternatively set `VAPID_PUBLIC_KEY` /
+`VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` as env vars — the database values win
+when both are present.
+
+A browser registers via `POST /api/notifications/web-push` after the user
+grants notification permission; `GET /api/notifications/vapid` hands the
+client the public key. Test a registration with
+`POST /api/notifications/web-push/test`.
+
+On an iPhone, Safari supports Web Push only from **iOS 16.4** and only for a
+site installed to the Home Screen as a PWA — a regular Safari tab cannot
+subscribe. Share → **Add to Home Screen**, launch from the icon, then
+subscribe under `/settings/notifications`. Android and desktop browsers need
+no such step.
 
 ## Proactive coach nudges
 

@@ -50,6 +50,55 @@ Because validation accepts a match on *any* certificate in the chain, routine le
 The hashes are produced from the live TLS chain with `scripts/extract-spki.sh <host>` in the iOS repo, which pulls the chain via `openssl s_client -showcerts` and prints the base64 SHA-256 SPKI for each certificate. For the managed cloud that's `scripts/extract-spki.sh healthlog.bombeck.io`.
 :::
 
+## The server-side leaf alarm
+
+Because the client pins the CA keys, a routine leaf renewal needs no action —
+but a **chain change** (the server moves to a different CA, or the CA rotates
+its intermediate / root keys) would eventually lock every pinned client out,
+and there is no client-side signal for it. A scheduled server job therefore
+probes the served leaf certificate every 6 hours as the canary for any chain
+movement:
+
+- It opens a raw TLS socket to the public host from `APP_URL` (falling back
+  to `NEXT_PUBLIC_APP_URL`) — observing exactly the certificate a pinned
+  client would, regardless of how the reverse proxy terminates TLS.
+- It computes the served leaf's SPKI pin and compares it against the
+  operator's known-good set in `TLS_LEAF_SPKI_PINS` (comma-separated).
+- On a pin outside the known set it emits a `tls.pin.leaf_changed` wide-event
+  annotation, writes a `system.tls.pin_changed` audit row, and fans out a
+  high-priority alert to every admin through the notification dispatcher.
+
+The baseline is an env var **on purpose**, not a persisted "last seen" value:
+an explicit baseline forces the operator to acknowledge every leaf rotation
+and check the new chain against the client's pinned CA keys before the alarm
+goes quiet. When the variable is unset, the monitor logs the served pin (so
+you can seed the baseline) and warns "not configured" — it never auto-adopts
+what it observed. Plain-HTTP self-hosts have no leaf to pin; the monitor
+no-ops there. Extract the current pin with:
+
+```bash
+openssl s_client -connect "$APP_HOST:443" -servername "$APP_HOST" </dev/null 2>/dev/null \
+  | openssl x509 -noout -pubkey \
+  | openssl pkey -pubin -outform der 2>/dev/null \
+  | openssl dgst -sha256 -binary \
+  | openssl base64
+```
+
+### When the alarm fires
+
+1. **Routine renewal, same chain.** If the issuing intermediate and root are
+   unchanged, no client is at risk. Update `TLS_LEAF_SPKI_PINS` to the new
+   served-leaf pin and redeploy so the alarm goes quiet. No client build.
+2. **Chain change.** Every pinned client will stop connecting once the old
+   chain is no longer served. Re-pin inside the old chain's remaining
+   validity: extract the new chain's CA pins, ship a client build carrying
+   the new pins **alongside** the old ones (dual-pin — clients on the old
+   build keep working while the old chain is served), update
+   `TLS_LEAF_SPKI_PINS` to the served leaf, and retire the old pins only once
+   the dual-pinned build has reached the installed base. CA keys carry
+   multi-year lifetimes and rotations are announced ahead, so pre-staging the
+   successor pins keeps this a non-event.
+
 ## Where the implementation lives
 
 Pinning is a **client-side** concern — the server presents a normal certificate; the iOS app decides whether to trust it. The validation logic, the production pin policy (a minimum well-formed pin count enforced at build time), and the rotation runbook all live in the native client:
