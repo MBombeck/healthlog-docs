@@ -30,7 +30,9 @@ Two key-provisioning modes coexist:
   in-process. Cost falls to the user.
 - **Admin-shared** — the admin panel accepts a single OpenAI key. Users without
   their own key fall back to it. It is the last entry in the chain, so it acts
-  as a safety net rather than the default route.
+  as a safety net rather than the default route. The operator can additionally
+  share a subscription-based account — see
+  [Operator-shared subscription access](#operator-shared-subscription-access).
 
 ## The fallback chain
 
@@ -62,14 +64,32 @@ stays on your network end to end.
 
 :::caution[SSRF guard for local endpoints]
 Local endpoints route through the same outbound-URL validation as every other
-fetch. The guard rejects private-IP targets by default. To allow `localhost`,
-RFC1918, and link-local destinations, set `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` in
-the container environment. Leave it unset on internet-facing instances unless
+fetch. The guard rejects private-IP targets by default. To allow a private
+destination, set `ALLOW_LOCAL_AI_PRIVATE_HOSTS` in the container environment —
+preferably to a comma-separated host allowlist (`ollama.lan, 10.0.0.5`), which
+permits exactly those hosts. The legacy value `true` opens **every** private
+host and remains accepted. Leave it unset on internet-facing instances unless
 you specifically run an internal endpoint.
 :::
 
 Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
 16-24 GB (the BYOK sweet spot), 70B+ for 48 GB+.
+
+## OpenAI-compatible gateways
+
+The **Local** provider speaks the plain OpenAI chat-completions dialect, so it
+also covers gateways and routers, not just single-model servers: LiteLLM,
+OpenRouter, vLLM, LM Studio, or any proxy that exposes an OpenAI-compatible
+`/v1` endpoint. Point the base URL at the gateway, pick the model name the
+gateway routes, and set the API key field if the gateway expects one — the
+Bearer header is optional and simply omitted when no key is configured.
+
+Structured generations send `response_format: { type: "json_object" }` by
+default. Since v1.28.28 the flag falls back **per endpoint**: a gateway that
+rejects the parameter with a 400 flips that base URL to a no-flag dialect and
+the request is retried, so strict gateways work without configuration.
+Hosted gateways on public hosts need no `ALLOW_LOCAL_AI_PRIVATE_HOSTS` entry;
+a gateway on your LAN does.
 
 ## ChatGPT OAuth (Codex)
 
@@ -80,6 +100,31 @@ subscription. In `/settings/ai`, set provider to **ChatGPT OAuth**, click
 enter the short code). Tokens land AES-256-GCM-encrypted; refresh runs
 automatically. The wire protocol is documented in the repo's
 `docs/codex-protocol-spec.md`.
+
+## Operator-shared subscription access
+
+Besides the shared API key, the operator can connect a single
+subscription-based AI account for the whole instance and let users opt into
+it:
+
+- **Admin side.** Under **Admin → AI** the operator runs the same device-code
+  OAuth flow as the per-user ChatGPT connection. The tokens are stored
+  AES-256-GCM-encrypted in the instance settings and are never returned by
+  any endpoint; the admin routes sit behind the cookie-only admin boundary.
+- **User side.** Each user opts in individually in `/settings/ai` — the
+  opt-in is off by default.
+- **Chain semantics.** The shared connection is never part of a user's
+  persisted chain and never appears in the chain editor. It is appended
+  **last** to the resolved chain, only when the user opted in and the
+  operator has connected the account, so a user's own providers always
+  resolve first.
+- **Cost.** Generations through it run under the operator's account — usage
+  and rate limits land on the operator, not the user.
+
+The settings UI states this plainly: the shared access is a single signed-in
+AI account the operator connected for everyone on the server, not the user's
+own key. Users who want their data to reach only a provider under their own
+contract should configure a personal provider instead.
 
 ## Caching and budget
 
@@ -92,7 +137,9 @@ Two caches sit in front of every provider call so budgets stay predictable:
    conversation reuses upstream context.
 
 `INSIGHTS_RATE_LIMIT_PER_HOUR` (default 10) bounds `POST /api/insights/generate`
-per user per hour.
+per user per hour. `INSIGHTS_MAX_TOKENS` (default 2500, clamped to 500–8000)
+sets the completion-token budget per generation — raise it when a verbose
+local model truncates its JSON mid-answer.
 
 ## Connection test
 

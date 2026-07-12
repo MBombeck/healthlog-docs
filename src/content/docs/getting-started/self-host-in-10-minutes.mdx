@@ -51,13 +51,13 @@ longer if you also want a TLS-fronted public hostname (see
 
    | Variable | Purpose | Rotation cost |
    | --- | --- | --- |
-   | `POSTGRES_PASSWORD` | Bundled Postgres password — used by both the `db` service and `DATABASE_URL` | Database restart + connection-string update |
+   | `POSTGRES_PASSWORD` | Bundled Postgres password — used by both the `db` service and the derived `DATABASE_URL` | Database restart |
    | `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets (provider tokens, AI keys, VAPID secrets) | Coordinated; see [key rotation](/guides/encryption-key-rotation/) |
    | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer API tokens before storage | Invalidates every issued `hlk_*` token |
 
-   Then open `.env` and confirm `DATABASE_URL` carries the password you just
-   generated. The template references the literal string `CHANGE-ME` — replace
-   it with your `POSTGRES_PASSWORD` value.
+   There is no connection string to edit: the compose file derives
+   `DATABASE_URL` from `POSTGRES_PASSWORD` in its `environment:` block, and
+   that block overrides anything in `.env`.
 
 3. **Bring the stack up.**
 

@@ -1,6 +1,6 @@
 ---
 title: "Certificate Pinning"
-description: "How the HealthLog iOS client pins TLS public keys against MITM attacks — SPKI pinning, the three-pin rotation strategy, and why self-hosters are never locked out."
+description: "How the HealthLog iOS client pins TLS public keys against MITM attacks — SPKI pinning at the CA level, rotation survival, and why self-hosters are never locked out."
 sidebar:
   order: 3
 ---
@@ -33,19 +33,18 @@ This is the part that matters for self-hosters: **the app pins only the managed-
 - **Host is `*.bombeck.io`** → the SPKI pin set is enforced. A non-matching chain aborts the connection.
 - **Any other host** (including a self-hosted instance on your own domain) → the app falls back to **standard, CA-validated system-trust TLS**. There is no pin to satisfy, so you are never locked out.
 
-In other words, pinning is a hardening measure for the hosted service the maintainer operates; it does not constrain people running their own instance. If you self-host, your TLS works exactly the way it would for any other modern app pointed at your domain.
+In other words, pinning is a hardening measure for the hosted service the maintainer operates; it does not constrain people running their own instance. If you self-host, your TLS works exactly the way it would for any other modern app pointed at your domain. (A self-hoster who rebuilds the app under their own bundle id can opt into pinning their own domain via the `HLPinnedHosts` + `HLPinnedSPKIHashes` build-time keys.)
 
-## The three-pin rotation-survival strategy
+## CA-level pinning: the rotation-survival strategy
 
-A single pin is brittle: the moment the server rotates its key, the app can no longer connect. HealthLog ships **three pins** and survives rotation because of it:
+A leaf pin is brittle: the server's certificate auto-renews roughly every 90 days, each renewal mints a new leaf keypair, and a leaf-pinned app breaks on every renewal unless a new build ships first. HealthLog therefore pins **the CA keys, not the leaf**:
 
 | Pin | Role | Typical lifetime |
 |-----|------|-----------------|
-| **Leaf** | The active server certificate's key | short (≈90 days, Let's Encrypt / GTS) |
 | **Intermediate** | The issuing CA's key | years |
-| **Root** | The trust-anchor key | many years |
+| **Root** | The trust-anchor key | years |
 
-Because validation accepts a match on *any* certificate in the chain, a leaf rotation does not break the app — the intermediate (and root) pins still match the new chain. This buys a wide window to ship a new build with the new leaf pin through App Store review before the old leaf expires. A single-pin build breaks on first rotation; a three-pin build survives until the root itself rotates (years out).
+Because validation accepts a match on *any* certificate in the chain, routine leaf renewals pass with **zero app updates** — the served chain still terminates in the pinned intermediate and root keys. Baseline X.509 evaluation (hostname, validity, revocation) always runs first, so pinning means "valid chain AND pinned key", never "pinned key alone". MITM protection is preserved: an attacker still needs a certificate that chains through the pinned CA keys *and* passes system trust. A release build refuses to launch with fewer than two well-formed pins, so a single-pin configuration cannot ship. A re-pin (and app update) is only needed when the CA rotates its intermediate or root keys, or the server moves to a different CA — rare, multi-year events announced ahead of time.
 
 :::tip[Generating the hashes]
 The hashes are produced from the live TLS chain with `scripts/extract-spki.sh <host>` in the iOS repo, which pulls the chain via `openssl s_client -showcerts` and prints the base64 SHA-256 SPKI for each certificate. For the managed cloud that's `scripts/extract-spki.sh healthlog.bombeck.io`.

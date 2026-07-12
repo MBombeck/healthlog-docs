@@ -83,7 +83,9 @@ To split: set `HEALTHLOG_PROCESS_TYPE=web` on `app`, uncomment the `app-worker`
 service in the compose file, ensure both see the same `DATABASE_URL`,
 `ENCRYPTION_KEY`, and `API_TOKEN_HMAC_KEY`, then
 `docker compose up -d --build`. pg-boss claims jobs atomically via row-level
-locking, so multiple worker replicas safely share load. A startup gate refuses to
+locking (`FOR UPDATE SKIP LOCKED`), so a duplicate worker replica is safe but
+only doubles DB load — run one worker and scale the web containers, as the
+[scaling page](/self-hosting/scaling/) recommends. A startup gate refuses to
 boot the reminder worker when `HEALTHLOG_PROCESS_TYPE=web`, so a cross-mode
 misconfiguration aborts instead of doubling cron load.
 

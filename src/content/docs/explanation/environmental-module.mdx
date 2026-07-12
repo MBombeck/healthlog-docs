@@ -28,7 +28,7 @@ rather than health readings in their own right:
 - **barometric pressure**.
 
 These join the [correlation engine](/explanation/health-scores/) through the
-[signal registry](/explanation/signal-registry/), so the influence relationships
+signal registry, so the influence relationships
 surface the same way any other driver does — winter darkness against mood, heat
 against blood pressure and pulse — with the usual descriptive, never-causal
 framing. For the physiology behind those links, see
@@ -75,7 +75,7 @@ The environmental signals (`ENV_*` — temperature, sunshine, daylight,
 precipitation, barometric pressure) are **not exposed to the Coach or MCP** in
 v1. They are real registry signals — charted, correlated, exportable — but they
 do not resolve through any AI read tool. This matches the deliberate exclusions
-described in [the signal registry](/explanation/signal-registry/) and the
+described in the
 [privacy architecture](/explanation/privacy-architecture/): being defined is not
 the same as being streamed to a model.
 
@@ -83,7 +83,6 @@ the same as being streamed to a model.
 
 <CardGrid>
   <LinkCard title="Environment and your health" href="/knowledge/environment/" />
-  <LinkCard title="The signal registry" href="/explanation/signal-registry/" />
   <LinkCard title="Privacy architecture" href="/explanation/privacy-architecture/" />
   <LinkCard title="How the health scores are built" href="/explanation/health-scores/" />
 </CardGrid>

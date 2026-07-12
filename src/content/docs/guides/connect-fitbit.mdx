@@ -13,26 +13,24 @@ Fitbit Web API with a per-user app registered at
 [Google Health connection](/guides/connect-google-health/) — same devices,
 different API.
 
-:::caution[This API retires in September 2026]
-Google retires the classic Fitbit Web API in **September 2026**. The classic
-connection keeps working until then; the
-[Google Health connection](/guides/connect-google-health/) is the path
-forward, and every account eventually re-consents through Google OAuth. If you
-are connecting fresh, weigh starting with Google Health directly.
+:::caution[New registrations are closed; the API retires in September 2026]
+Fitbit has **discontinued self-serve app registration** — the form at
+`dev.fitbit.com/apps/new` is disabled for new applications — and Google
+retires the classic Fitbit Web API in **September 2026**. An app you
+registered before the shutdown keeps working until the sunset, and this page
+still applies to it. Connecting Fitbit data for the first time? Use the
+[Google Health connection](/guides/connect-google-health/) instead — Fitbit
+devices sync into Google's health stack, which HealthLog reads directly.
 :::
 
-Why prefer classic in the meantime? Registration at dev.fitbit.com is
-self-serve — no brand verification, no CASA assessment — so it is the
-lower-friction path while it lasts.
-
-## Set it up
+## Set it up (existing app holders)
 
 <Steps>
 
-1. **Register a Fitbit app.** Sign in at
-   [dev.fitbit.com](https://dev.fitbit.com/apps) and register a new
-   application. Choose the **Personal** OAuth application type for your own
-   account's data.
+1. **Check your existing Fitbit app.** Sign in at
+   [dev.fitbit.com](https://dev.fitbit.com/apps) and open the application you
+   registered before the shutdown. The **Personal** OAuth application type is
+   the right one for your own account's data.
 
    - **Redirect URL** — copy it exactly, with your own hostname:
 
@@ -41,8 +39,8 @@ lower-friction path while it lasts.
      ```
 
    The path is pinned: HealthLog refuses to start the flow if the resolved
-   redirect URI does not target exactly `/api/fitbit/callback`. Fitbit issues
-   a **Client ID** and **Client Secret**.
+   redirect URI does not target exactly `/api/fitbit/callback`. The app's
+   settings page shows its **Client ID** and **Client Secret**.
 
 2. **Paste the credentials in Settings.** Sign in as the target user, open
    **Settings → Integrations → Fitbit**, and paste the client ID and secret.

@@ -1,6 +1,6 @@
 ---
 title: Webhooks
-description: The inbound webhook surfaces — Withings, WHOOP, Telegram, deploy-result — and the shared-secret + timing-safe + rate-limit verification pattern they all follow.
+description: The inbound webhook surfaces — Withings, WHOOP, Telegram, moodLog (deprecated), deploy-result — and the shared-secret + timing-safe + rate-limit verification pattern they all follow.
 sidebar:
   order: 6
 ---
@@ -57,8 +57,21 @@ POST /api/telegram/webhook
 ```
 
 Carries the bot reminder inline-button callbacks (taken / skip / snooze). Secret-
-authenticated; the bot token and secret are configured in the admin panel and
+authenticated; the bot token is saved per user in notification settings and
 stored encrypted. See [Reminder channels](/guides/reminder-channels/).
+
+## moodLog (deprecated)
+
+```
+POST /api/integrations/moodlog/webhook
+```
+
+Inbound bridge for the standalone moodLog app, shared-secret-authenticated
+with the same timing-safe pattern. **Deprecated**: mood is now tracked fully
+inside HealthLog (native entries plus structured tags and rated factors), so
+the external bridge no longer adds anything. It stays functional for existing
+integrations but is slated for removal in a future major release — do not
+build new callers against it.
 
 ## Deploy-result webhook
 
@@ -74,8 +87,11 @@ resulting failure notification. See
 
 ## What does not exist
 
-There is **no outbound** user-defined webhook system, and there is no
-`Access-Control-Allow-Origin` header on any route. Outbound egress (provider
-calls, notification delivery) goes through a single guarded `safeFetch` wrapper
-with `redirect: "manual"` and a request timeout — see
+Outbound, the only user-defined hook is the **webhook notification channel**
+(a per-user URL the dispatcher POSTs reminders to — see
+[Reminder channels](/guides/reminder-channels/)); there is no general
+outbound event system, and there is no `Access-Control-Allow-Origin` header
+on any route. Outbound egress (provider calls, notification delivery) goes
+through a single guarded `safeFetch` wrapper with `redirect: "manual"` and a
+request timeout — see
 [Privacy architecture](/explanation/privacy-architecture/).
