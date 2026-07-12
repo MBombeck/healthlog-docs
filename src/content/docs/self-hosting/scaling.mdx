@@ -14,10 +14,10 @@ The optional `HEALTHLOG_PROCESS_TYPE` env var splits HTTP traffic and pg-boss ba
 | Value | Behaviour |
 |-------|-----------|
 | `all` (default) | Single container — HTTP + pg-boss in the same process. |
-| `web` | HTTP only. pg-boss is not started. Reminders, insight caching, and weekly backups will not run. |
+| `web` | HTTP only. pg-boss is not started. Reminders, insight caching, and the nightly off-host backup will not run. |
 | `worker` | pg-boss only. The proxy refuses HTTP traffic with `503 Service Unavailable` and an `X-HealthLog-Process-Type: worker` header so a misrouted request fails loudly. |
 
-Run **at most one** worker per database — pg-boss serializes through Postgres advisory locks, but running multiple workers wastes connections.
+Run **one** worker per database. pg-boss claims jobs atomically via row-level locking (`FOR UPDATE SKIP LOCKED`), so a second worker replica is safe — no job runs twice — but it doubles the DB load and muddies telemetry without adding throughput a personal instance needs. Scale the web containers instead.
 
 ```yaml title="docker-compose.scale.yml"
 services:

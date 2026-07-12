@@ -76,7 +76,8 @@ WHOOP_WEBHOOK_SECRET="$(openssl rand -hex 32)"
   validates the signature before processing. Without a webhook, WHOOP still
   syncs on the safety-net cron pull — only the near-real-time push is lost.
 
-Add both to the compose `environment:` whitelist if you set them.
+Both variables are already on the compose `environment:` whitelist — set them
+in `.env` and restart.
 
 ## The signals it brings
 

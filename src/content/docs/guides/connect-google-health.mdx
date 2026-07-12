@@ -122,7 +122,13 @@ per-user Settings card.
 - Each operator's OAuth client needs Google brand verification plus an annual
   CASA assessment before it can leave Testing mode. In Testing mode the client
   works for the test users you list in the consent screen — fine for a
-  self-host, but refresh tokens are subject to Google's testing-mode limits.
+  self-host — but Google **expires the refresh token after 7 days**. When
+  that happens the sync stops with a soft "needs reconnect" state rather
+  than a hard error, and the Google Health card shows a **Reconnect**
+  banner: click it, complete the Google consent once more, and syncing
+  resumes. This is the price of avoiding CASA — expected, not a bug.
+  (Publishing the client past verification removes the 7-day expiry but
+  triggers the verification + CASA requirements.)
 - Access tokens live one hour (the classic Fitbit API's were eight), so token
   refresh is routine; a failed refresh surfaces as a reconnect prompt, not a
   silent stall.

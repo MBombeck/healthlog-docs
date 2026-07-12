@@ -75,6 +75,19 @@ builder and the error forwarder — not at each call site. Path-segment webhook
 secrets are scrubbed from logged paths; secret-shaped fields are denylisted in
 one place. This means a new handler cannot forget to redact; the boundary does it.
 
+## Model output renders as plain text
+
+The Coach, the daily briefing, and the insight write-ups render the AI
+provider's output as **plain React text children** — never through a markdown
+renderer, and no markdown library exists in the dependency tree. Model output
+is untrusted input: piping it through a markdown-to-HTML step would make
+stored XSS a matter of one sanitiser bypass. React's escaping closes that
+class by construction — a `<script>` in a generation shows up as literal
+characters, not an element. The strict per-request-nonce CSP remains the
+backstop, not the primary control. The trade-off is deliberate: no bold or
+bullet markup in Coach replies, and adding a markdown renderer is treated as
+a security decision, not a UX one.
+
 ## The honest summary
 
 | Flow | Leaves the instance? | Control |

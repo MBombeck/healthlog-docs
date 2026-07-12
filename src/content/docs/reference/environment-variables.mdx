@@ -55,9 +55,11 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 
 Withings, WHOOP, Fitbit (classic), and Google Health credentials are
 **per-user, pasted in Settings and encrypted in the database** — they have no
-env-var path. Oura and Polar accept a shared instance-wide app via env, with a
-per-user override in Settings. The `*_REDIRECT_URI` overrides are only needed
-when the callback origin differs from `NEXT_PUBLIC_APP_URL`.
+env-var path. Oura, Polar, and Strava accept a shared instance-wide app via
+env, with a per-user override in Settings (for Strava the per-user pair is the
+primary path — see [Connect Strava](/guides/connect-strava/)). The
+`*_REDIRECT_URI` overrides are only needed when the callback origin differs
+from `NEXT_PUBLIC_APP_URL`.
 
 | Variable | Purpose |
 | --- | --- |
@@ -71,6 +73,8 @@ when the callback origin differs from `NEXT_PUBLIC_APP_URL`.
 | `OURA_REDIRECT_URI` | Callback override for Oura. |
 | `POLAR_CLIENT_ID` / `POLAR_CLIENT_SECRET` | Shared [Polar](/guides/connect-polar/) app; per-user Settings values win. |
 | `POLAR_REDIRECT_URI` | Callback override for Polar. |
+| `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Optional shared [Strava](/guides/connect-strava/) app fallback; per-user Settings credentials are the primary path and always win. |
+| `STRAVA_REDIRECT_URI` | Callback override for Strava; defaults to `${NEXT_PUBLIC_APP_URL}/api/strava/callback`. |
 
 ## APNs — iOS push (all-or-none)
 
@@ -158,8 +162,10 @@ See [Backups](/guides/backups/).
 
 | Variable | Purpose |
 | --- | --- |
-| `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Set `true` to let the SSRF guard reach `localhost` / RFC1918 / link-local AI endpoints. |
+| `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Let the SSRF guard reach private AI endpoints. Preferred form is a comma-separated host allowlist (`ollama.lan, 10.0.0.5`) — only those hosts pass. The legacy `true` opens **every** private host and remains accepted; unset / `false` allows none. |
 | `INSIGHTS_RATE_LIMIT_PER_HOUR` | Bounds `POST /api/insights/generate` per user per hour (default 10). |
+| `INSIGHTS_MAX_TOKENS` | Completion-token budget per insight generation. Default `2500`, clamped to 500–8000. Raise it when a verbose local model truncates its JSON mid-answer. |
+| `NATIVE_CANVAS` | Override for the native canvas renderer (document thumbnails, scanned-PDF rasterization). Default auto-detects AVX2 on Linux x64 and disables cleanly on CPUs without it. `off` force-disables; `on` force-enables (crashes the process on a CPU that truly lacks AVX2). |
 
 ## Environment module (optional)
 
@@ -173,7 +179,7 @@ Not whitelisted by default.
 
 | Variable | Purpose |
 | --- | --- |
-| `TELEGRAM_WEBHOOK_SECRET` | Hardens the Telegram webhook path (the bot token itself is configured in the admin panel). |
+| `TELEGRAM_WEBHOOK_SECRET` | Hardens the Telegram webhook path (the bot token itself is per-user, saved in notification settings via `PUT /api/settings/telegram`). |
 
 ## Build-time only (not runtime)
 
@@ -187,7 +193,8 @@ effect.
 | `NEXT_PUBLIC_DASHBOARD_SNAPSHOT` | `false` falls back to the legacy four-cell dashboard path. |
 | `NEXT_PUBLIC_APP_VERSION` / `NEXT_PUBLIC_APP_BUILD_SHA` / `NEXT_PUBLIC_APP_BUILT_AT` | Stamped from the GHCR tag during CI build; surfaced by `/api/version`. |
 
-Telegram bot token, ntfy settings, and error-tracking URLs are configured in
-the **admin panel** and stored encrypted in the database — not as environment
-variables. Device-integration credentials (Withings, WHOOP, Fitbit, Google
-Health) are per-user in Settings, likewise encrypted.
+Telegram bot tokens and ntfy settings are configured **per user** in
+notification settings; error-tracking URLs live in the **admin panel**. All
+are stored encrypted in the database — not as environment variables.
+Device-integration credentials (Withings, WHOOP, Fitbit, Google Health,
+Strava) are per-user in Settings, likewise encrypted.

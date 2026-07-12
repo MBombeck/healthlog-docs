@@ -1,6 +1,6 @@
 ---
 title: Reminder channels
-description: Configure APNs, Telegram, ntfy, and Web Push for medication reminders and proactive nudges, and understand the dispatcher cascade.
+description: Configure APNs, Telegram, ntfy, webhook, email, and Web Push for medication reminders and proactive nudges, and understand the dispatcher cascade.
 sidebar:
   order: 7
 ---
@@ -13,8 +13,9 @@ attempts per channel.
 
 ## The cascade
 
-The dispatcher tries channels in this order: **APNs → Telegram → ntfy → Web
-Push**. Each user's preferences are a per-channel × per-event matrix
+The dispatcher tries channels in this order: **APNs → Telegram → ntfy →
+Webhook → Email → Web Push**. Each user's preferences are a per-channel ×
+per-event matrix
 (`GET` / `PUT /api/notifications/preferences`), so a user can route medication
 reminders to Telegram while keeping the daily briefing on Web Push only.
 
@@ -28,22 +29,40 @@ hammering it.
 For the [native iOS app](/getting-started/connect-ios-app/). Reminders arrive
 with taken / skip / snooze action buttons that work without opening the app.
 APNs needs the all-or-none env set (`APNS_KEY_ID`, `APNS_TEAM_ID`,
-`APNS_BUNDLE_ID`, and `APNS_KEY` or `APNS_KEY_FILE`). See the
+`APNS_BUNDLE_ID`, and one key source — `APNS_KEY_B64` is the recommended
+form: the base64-encoded `.p8` survives env-file round-trips that mangle
+literal newlines; `APNS_KEY` / `APNS_KEY_FILE` remain accepted). See the
 [iOS connect guide](/getting-started/connect-ios-app/#push-notifications-apns)
 for the `.p8` gotchas.
 
 ## Telegram
 
-Configured in the **admin panel** (the bot token is stored encrypted in the
-database, not in `.env`). Telegram reminders carry inline action buttons; the
-button callback lands on `POST /api/telegram/webhook`, which is
-secret-authenticated. A user links their chat from notification settings.
+Configured **per user** in notification settings: each user saves their own
+bot token and chat id via `PUT /api/settings/telegram` (the token is stored
+encrypted in the database, not in `.env`). Telegram reminders carry inline
+action buttons; the button callback lands on `POST /api/telegram/webhook`,
+which is secret-authenticated.
 
 ## ntfy
 
 Self-hostable push. Configured per user in notification settings — point it at a
 public `ntfy.sh` topic or your own ntfy server. Good for a no-account,
 no-vendor push channel.
+
+## Webhook
+
+A generic outbound POST for homelab relays — Gotify, Discord, Slack, a
+Matrix bridge, Home Assistant. The user supplies a public URL and optionally
+one custom header (e.g. `Authorization: Bearer <token>`); HealthLog POSTs a
+small plain-text JSON envelope. Outbound goes through the SSRF-guarded
+fetch path with the DNS-rebinding pin, since the host is user-supplied.
+
+## Email
+
+Rendered plain-text email over an operator-supplied SMTP transport. The
+channel only appears when the operator sets `SMTP_HOST`, `SMTP_PORT`, and
+`SMTP_FROM` (plus optional `SMTP_USER` / `SMTP_PASS` / `SMTP_SECURE`);
+without them the dispatcher skips it silently.
 
 ## Web Push (VAPID)
 
