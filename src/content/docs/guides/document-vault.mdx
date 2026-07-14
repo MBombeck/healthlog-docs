@@ -223,10 +223,13 @@ search can match words inside the document, not just its title or filename.
 Indexing runs as a background job, so your upload finishes instantly and never
 fails because of it. The job picks the best available reader:
 
-- **AI provider (primary).** If you have a vision-capable AI provider configured
-  and have consented to AI features, HealthLog asks it to transcribe the
-  document — including scanned pages and photos. This is the richest read and is
-  bounded by your daily AI budget.
+- **AI provider (opt-in).** If you have a vision-capable AI provider
+  configured, consented to AI features, **and turned on "Read documents
+  automatically with AI" in AI settings** (off by default), HealthLog asks the
+  provider to transcribe the document — including scanned pages and photos.
+  This is the richest read and is bounded by your daily AI budget. With the
+  switch off, a provider read happens only when you tap a per-document AI
+  action.
 - **Local text layer (fallback).** With no provider — or once the AI budget for
   the day is used up — HealthLog extracts a PDF's embedded text layer on the
   server with no AI and nothing leaving your machine, in milliseconds. Digitally

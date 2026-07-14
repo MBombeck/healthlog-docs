@@ -36,6 +36,44 @@ services:
 
 Pin both services to the same explicit version tag in production so a deploy can never split the two across releases. See [Updates and deploy](/guides/updates-and-deploy/) for the full process-type matrix and the post-deploy version check.
 
+A startup gate refuses to boot the reminder worker when
+`HEALTHLOG_PROCESS_TYPE=web`, so an accidental cross-mode invocation aborts
+immediately instead of silently doubling cron load. The off-host backup job
+runs in the worker only, while the admin backup smoke test runs in the web
+container — set the `BACKUP_*` vars on **both** (see
+[Backups](/guides/backups/)).
+
+## Healthchecks and liveness
+
+- The **web** container's healthcheck polls `/api/version` every 30 seconds.
+- The **worker** exposes no port. Its liveness is written into the
+  `worker_status` table on every reminder pass and surfaced through
+  `/api/admin/status` (and the admin panel's worker-status card).
+
+Neither container depends on the other, so startup cannot deadlock; both wait
+only on Postgres being healthy.
+
+## Postgres connection-pool sizing
+
+Every container that boots the image opens its own pool against
+`DATABASE_URL`, with a ceiling of **20 connections per container** by default
+(`DATABASE_POOL_MAX`). Plan total Postgres slots as
+**container count × `DATABASE_POOL_MAX`** — a stock Postgres 16 ships with
+`max_connections = 100`, so four web replicas plus one worker at the default
+ceiling consume all 100 slots and starve every other client (`psql`, backups,
+the Prisma CLI during a migration deploy).
+
+Rules of thumb:
+
+- Set `DATABASE_POOL_MAX` on every container that needs a non-default
+  ceiling; web and worker read the same variable.
+- Keep `DATABASE_POOL_MAX ≥ 8` on web replicas — the analytics fan-out holds
+  up to 4 concurrent slots per request.
+- Worker replicas mostly use one connection per active job; `8` is plenty.
+- If the sum approaches `max_connections`, raise the Postgres ceiling, lower
+  the per-container pool, or front the database with PgBouncer in
+  transaction-pooling mode.
+
 ## Related operations runbooks
 
 The two operations tasks that pair with scaling have dedicated guides — keep to them so there is one canonical set of instructions:

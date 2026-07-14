@@ -79,6 +79,21 @@ longer if you also want a TLS-fronted public hostname (see
 
 </Steps>
 
+:::caution[Two first-boot decisions worth making now]
+**Close public registration if you expose the instance to the internet.**
+Registration stays open after the first admin so you can invite the rest of
+your household — but on a publicly reachable host that means strangers can
+still sign up. Once everyone has an account, turn it off via the `/admin`
+registration toggle, or keep it closed and hand out
+[invite links](/guides/invites/) instead.
+
+**Save the admin password in a manager.** No email is configured out of the
+box, so password reset has no self-service path until you set up SMTP (see
+[reminder channels](/guides/reminder-channels/#email)). A locked-out solo
+admin with no SMTP recovers only via the CLI reset script in the main repo's
+ops docs.
+:::
+
 ## The bundled compose file
 
 The compose file is the single source of truth and ships with the repository.

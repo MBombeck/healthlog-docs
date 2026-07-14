@@ -30,7 +30,11 @@ devices sync into Google's health stack, which HealthLog reads directly.
 1. **Check your existing Fitbit app.** Sign in at
    [dev.fitbit.com](https://dev.fitbit.com/apps) and open the application you
    registered before the shutdown. The **Personal** OAuth application type is
-   the right one for your own account's data.
+   the right one for a single-person self-host — it only ever sees the
+   owner's own Fitbit account and gets intraday (per-minute) heart-rate and
+   steps automatically. **Server** (or **Client**) is only needed when the
+   instance connects other people's accounts; intraday access is then granted
+   case by case via Fitbit's Intraday Data Access request form.
 
    - **Redirect URL** — copy it exactly, with your own hostname:
 
@@ -46,6 +50,12 @@ devices sync into Google's health stack, which HealthLog reads directly.
    **Settings → Integrations → Fitbit**, and paste the client ID and secret.
    They are stored AES-256-GCM-encrypted — there are no
    `FITBIT_CLIENT_ID` / `FITBIT_CLIENT_SECRET` env vars.
+
+   A common mistake: the field wants a **Fitbit** Client ID (a short numeric
+   id from dev.fitbit.com), **not** a Google Cloud client id ending in
+   `.apps.googleusercontent.com`. A Google Cloud client fails at the Fitbit
+   consent screen with `unauthorized_client — Invalid client_id`, because
+   Fitbit and Google Cloud are separate client registries.
 
 3. **Connect.** Click **Connect Fitbit**. The flow uses Authorization Code
    with PKCE and requests these read scopes:
@@ -66,7 +76,9 @@ There is **no webhook**: the classic connection polls hourly, staggered
 against the other integrations, and a manual sync button lives on the
 Settings card. The Web API's rate budget (~150 requests per hour per user)
 paces the backfill. Values import in metric units regardless of the Fitbit
-account's display locale.
+account's display locale. Classic Fitbit refresh tokens rotate (one-time
+use); HealthLog replaces the stored token on every refresh, so the connection
+stays healthy without re-authorising.
 
 ## Redirect URI override
 

@@ -65,7 +65,11 @@ bucket's **Settings → Lifecycle**: expire all objects after 30 days.
 ## Restore
 
 Pick a key from the bucket and run the restore script with the same backup
-credentials and encryption key:
+credentials and **the encryption key the backup was written under**. Never
+generate a fresh `BACKUP_ENCRYPTION_KEY` for a restore — a new key cannot
+decrypt any existing object. If you rotated the backup key at some point,
+pre-rotation objects are only readable with the retired key, so keep retired
+backup keys somewhere durable for as long as their objects live.
 
 ```bash
 BACKUP_S3_ENDPOINT=https://...r2.cloudflarestorage.com \
@@ -87,3 +91,27 @@ seed` or a custom script).
 The production standalone image strips `tsx`, so a bare `pnpm tsx scripts/...`
 fails inside the container. Always invoke one-shot scripts via `pnpm dlx tsx`.
 :::
+
+## Monthly restore drill (automatic)
+
+A pg-boss job (`data-restore-drill`, 04:11 on the 1st of each month) exercises
+the read path end to end: it fetches the most recent backup object, decrypts
+it under the current `BACKUP_ENCRYPTION_KEY`, JSON-parses it, and sanity-checks
+the payload shape. It performs **no database restore** — it validates the
+artefact, not the import path. Outcomes:
+
+- **Success** — record counts, object age, and sizes land in the wide-event
+  meta (`job.restore_drill`).
+- **Stale chain** — the newest object is older than 3 days: the nightly
+  uploader has stalled, or the lifecycle rule is too aggressive. The drill
+  pages via the worker error reporter.
+- **Failure** — empty bucket, fetch error, decryption failure, or malformed
+  JSON pages the same way. A decryption failure right after a
+  `BACKUP_ENCRYPTION_KEY` change means the new key cannot read the existing
+  objects — re-encrypt, or accept that pre-rotation backups are only readable
+  with the retired key.
+- **Not configured** — deployments without the `BACKUP_S3_*` vars skip
+  silently.
+
+The drill needs no IAM grant beyond the uploader's existing `GetObject` +
+`ListBucket`.
