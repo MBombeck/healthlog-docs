@@ -157,6 +157,7 @@ export default defineConfig({
 						{ slug: 'features/achievements-hidden' },
 						{ slug: 'features/fhir-export' },
 						{ slug: 'insights/how-it-works' },
+						{ slug: 'insights/ecg-recordings' },
 					],
 				},
 				{

@@ -1,0 +1,79 @@
+---
+title: ECG recordings
+description: How a synced single-lead ECG is shown on a familiar calibration grid — with the recording device's own result attributed to the device, and no interpretation of the trace by HealthLog.
+sidebar:
+  order: 2
+---
+
+When a compatible watch records a single-lead electrocardiogram (ECG) and that
+recording syncs in, HealthLog stores it and shows it on the **Insights** page as
+its own surface — next to the rhythm and vitals surfaces the page already carries.
+It is a **display** of a recording your device made, not a reading HealthLog
+performs on the trace.
+
+The ECG surface rides the **Insights** module. Enable it under **Settings →
+Modules**; with the module off, the surface does not appear even when recordings
+have synced.
+
+## What the surface shows
+
+Each recording renders on the **calibration grid** cardiologists read on paper —
+the familiar 25 mm/s horizontal, 10 mm/mV vertical layout, so the trace has the
+right shape and proportions at a glance rather than an arbitrary auto-scaled
+line. Around the trace, each recording carries:
+
+- **Date and time** it was taken.
+- **Duration** of the recording (a single-lead strip is typically 30 seconds).
+- **Average heart rate** over the recording.
+- **The device's own result** — see below.
+
+Recordings list newest first, so the most recent strip is the one you open.
+
+## The result belongs to the device, not to HealthLog
+
+The classification shown with a recording — "sinus rhythm", "atrial
+fibrillation", "inconclusive", "high heart rate", and the like — is the
+**recording device's own result**. HealthLog reproduces it verbatim and
+**attributes it to the device**. It does not re-run, second-guess, or add to that
+classification.
+
+**HealthLog does not read or interpret the waveform.** There is no model, no
+heuristic, and no analysis of the trace anywhere in the app. The strip is drawn
+so you can see it and hand it to a clinician; the words beside it are the ones
+your device produced, labelled as such.
+
+:::caution[This is not a diagnosis]
+A permanent note sits with every recording: a single-lead ECG and its device
+classification are **not a diagnosis**. A "normal" result does not rule a
+condition out, and a device is not a cardiologist. This is the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/) applied to the
+one surface where it matters most.
+:::
+
+## When a result is not normal
+
+When the device's own classification is anything other than a normal one, the
+surface points you to a clinician — plainly, without alarm. A single non-normal
+strip is common and often benign; a recurring pattern is worth showing to someone
+who can examine you and confirm it with a clinical ECG. HealthLog's role stops at
+showing you the recording and making it easy to share: it never tells you what
+the result means for your health.
+
+For the wider context on why an irregular reading is a screening prompt rather
+than a verdict, see
+[resting heart rate — irregular-rhythm and atrial-fibrillation awareness](/knowledge/resting-heart-rate/#irregular-rhythm-and-atrial-fibrillation-awareness).
+
+## What the AI never sees
+
+The waveform trace is a picture your device recorded, not a health metric the
+Coach or insights reason over. It is not folded into the snapshot the
+[AI Insights](/insights/how-it-works/) prompt is built from, and no provider is
+asked to interpret it. The recording is yours to view and to share with a
+clinician — the only place an ECG belongs for a reading.
+
+## Sharing it
+
+An ECG recording travels with the rest of your record: it prints in the
+doctor-report PDF and can be handed to a clinician the same way as any other
+finding. Bring the strip to the appointment — a clinician reading it in context
+is the reading that counts.
