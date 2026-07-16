@@ -49,11 +49,45 @@ Available widgets:
 - Glucose summary
 - Pulse summary
 - BMI card
+- Heart-rate variability
+- Blood oxygen (SpO₂)
+- Breathing rate
+- Wrist temperature
+- Muscle mass
+- Body water
+- Bone mass
 - Mood snapshot
 - Medication compliance
 - Today's reminders
 - Recent achievements card
 - AI Insight cards (per metric)
+
+### Tiles for more metrics
+
+Since v1.28.52 the tile strip covers more of what your devices already record.
+Alongside the long-standing weight, blood-pressure, glucose and pulse tiles,
+the dashboard can show:
+
+- **Heart-rate variability**, **blood oxygen (SpO₂)**, **breathing rate**, and
+  **wrist temperature** — the overnight and spot-check vitals a wearable
+  reports. See [heart-rate variability](/knowledge/hrv/),
+  [blood oxygen](/knowledge/spo2/), [respiratory rate](/knowledge/respiratory-rate/),
+  and [body temperature](/knowledge/temperature/) for how to read each.
+- **Muscle mass**, **body water**, and **bone mass** — the body-composition
+  readings a smart scale reports beyond weight and body fat. See
+  [body composition](/knowledge/body-composition/).
+
+Each tile is **conditional**: it appears only once your account actually holds
+that reading — from a connected device, an import, or a manual entry — so an
+account that has never recorded a breathing rate never sees an empty breathing-
+rate tile. Once a metric has data, its tile joins the strip and picks up the
+same [7-day trend chip](#7-day-trend-on-every-tile) and per-metric colour as the
+rest.
+
+Like every other widget, the new tiles are **toggleable and reorderable** under
+**Settings → Dashboard** — hide the ones you don't follow, drag the ones you do
+to the top. The [tile / chart split](#tile-and-chart-toggles-separately) applies
+here too, so you can keep a metric's tile without its chart.
 
 ### Tile and chart toggles, separately
 
