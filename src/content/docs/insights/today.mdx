@@ -1,0 +1,115 @@
+---
+title: The Today view
+description: How the dashboard's daily companion works — a health score with a morning-freshness refresh, the day's lead read, a worth-a-look rail, a coach check-in, quiet milestones, and an optional once-a-day note.
+sidebar:
+  order: 3
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+The dashboard opens with a **Today** view: the day's read at the top, the
+familiar tiles and charts unchanged below it. It is the surface that turns
+HealthLog from a place you record your health into one that meets you each day.
+
+Everything in Today reads an insight **prepared overnight** — nothing is
+generated when you open the app, so it loads instantly and never triggers a
+provider call on a page visit. What follows is what each piece is and where its
+number comes from.
+
+## What Today shows
+
+- **A health score.** One ring with the day's score, computed from your own
+  measurements. It cites its inputs and degrades to "not enough data" rather
+  than inventing a value — the same [transparent metrics
+  tier](/explanation/health-scores/) the rest of the app uses.
+- **The day's lead read.** The single most relevant line from the briefing
+  prepared overnight — what changed, or what's worth your attention today.
+- **A "worth a look" rail.** A short list of priority items, each a single tap
+  to the right place: a dose window that's open, an integration to reconnect, a
+  check-up coming due, a fresh ECG, a milestone reached.
+- **A coach check-in.** When a coach plan is due for a look-back, it surfaces
+  here as a calm card (see below).
+
+The greeting stays; the tiles and charts sit just below, unchanged. A layout
+saved with the older opt-in hero card simply ignores that setting — the two
+never stack.
+
+## Morning freshness
+
+The score and read are prepared overnight, but last night's sleep usually
+hasn't synced by the time the digest is built. So Today shows a **provisional**
+score first, and refreshes the sleep-dependent parts on their own the moment
+last night's sleep arrives — from Withings, WHOOP, Apple Health, Google Health,
+Fitbit, Oura, or Polar. By the time you look, the day is up to date.
+
+Until sleep is in, Today **says so plainly** rather than showing a stale or
+empty score. Each skipped refresh is recorded, so a morning read that stayed
+provisional can be traced to its cause.
+
+## The worth-a-look rail
+
+Each item on the rail is a single tap to the place it points at. An item that
+only needs your awareness — a milestone, a new ECG, an elevated-at-rest note —
+can be **dismissed** once you've seen it; the section tightens when the last one
+is gone. Items that need an action (an open dose window, an integration to
+reconnect) stay until you act on them.
+
+## The coach check-in
+
+When a coach plan reaches its review date, it comes back as a calm card in Today
+with three choices — **keep**, **adjust**, or **let go** — one tap each. Letting
+go retires the plan quietly; silence never changes it. This is the loop a coach
+plan is built for: agree on a change, run it for a few weeks, then look at what
+happened. See [Coach plans](/guides/coach-plans/) for how a plan is created and
+reviewed.
+
+## Quiet milestones
+
+Reaching a steady stretch inside your target range, or a new personal best, is
+marked with a calm moment on the rail. Milestones are **states you've reached,
+not streaks to keep** — so there's nothing to break and nothing to nag. A
+missed day is invisible; there is no "you broke it" to reach.
+
+Three kinds surface:
+
+- **A personal best** — a fresh record for a core vital.
+- **A return to range** — a metric that has settled back inside your own usual
+  range. Only the calm arrival is narrated; leaving the range is never marked.
+- **A sustained stretch** — one durable state per week held inside your range,
+  up to four weeks. The set is closed; there is no ever-climbing counter.
+
+A milestone surfaces **once**, on the day it was reached, and never resurfaces —
+its reach-date is a settled historical fact. At most one appears per day, the
+most meaningful first.
+
+:::note[Milestones are not the achievements page]
+These daily milestones are distinct from the gamification
+[achievements](/features/achievements-hidden/) surface, which keeps its own
+streak, milestone, and consistency badges. Today's milestones are durable states
+reached — a separate, calmer primitive.
+:::
+
+## The optional daily note
+
+A once-a-day morning notification carrying the day's read is available, **off by
+default** and opt-in per channel under Notifications. It carries the refreshed
+digest once sleep is in, never repeats within a day, and is a calm note — never
+an alert. It rides the same [reminder channels](/guides/reminder-channels/) as
+the rest of the app.
+
+## Dashboard tiles
+
+Today also brings tiles for readings that were synced and charted but never had
+a place on the home strip: heart-rate variability, blood oxygen, breathing rate,
+wrist temperature, and — for anyone with a body-composition scale — muscle mass,
+body water, and bone mass. Each tile appears only once you have that reading,
+and every one can be toggled or reordered under **Settings → Dashboard**.
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Intraday pulse" href="/insights/intraday-pulse/" />
+  <LinkCard title="How AI Insights work" href="/insights/how-it-works/" />
+  <LinkCard title="Health scores" href="/explanation/health-scores/" />
+  <LinkCard title="Coach plans" href="/guides/coach-plans/" />
+</CardGrid>

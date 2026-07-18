@@ -238,6 +238,20 @@ fails because of it. The job picks the best available reader:
 Either way, only encrypted text and one-way search tokens are stored — the
 readable body is never kept in the clear.
 
+### The stored summary (opt-in)
+
+Separately from the one-time **Summarise** button above, a newly uploaded
+document can get a short plain-language summary generated **once at upload** and
+kept with the document. It is generated only when the external-AI document
+reading you already opted into ("Read documents automatically with AI", off by
+default) is on, so it rides the exact consent and budget you set for auto-reading
+— nothing new to enable. It **never touches older documents**: only files
+uploaded after the switch is on get a summary.
+
+The summary is **stored encrypted at rest** (AES-256-GCM, the same posture as
+every other health note). It describes *what* the document is; it is not a
+diagnosis and never flags a value as high, low, or abnormal.
+
 ### The "Read with AI" action
 
 Open a document and you'll see a **Read with AI** block with a status pill —

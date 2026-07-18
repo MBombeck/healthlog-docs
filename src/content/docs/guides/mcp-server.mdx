@@ -9,10 +9,13 @@ import { Steps } from '@astrojs/starlight/components';
 
 HealthLog can expose **one user's own health record** to an external client
 (Claude.ai, ChatGPT, Claude Desktop) over the Model Context Protocol (MCP). The
-client reads your figures — vitals, sleep, labs, medications, discovered drivers
-— and, if you opt in, can log a single self-reported reading back. Everything
-stays on your instance; the client only ever sees what it asks for, one record
-at a time.
+client reads your figures — vitals, sleep, labs, medications, discovered drivers,
+nutrition and vitamins, the intraday pulse curve, stored ECG recordings, and a
+range of device metrics — and, if you opt in, can log a single self-reported
+reading back. Everything stays on your instance; the client only ever sees what
+it asks for, one record at a time. The mental-health screeners and the
+environmental signals stay off the connector by construction. See the
+[MCP server reference](/reference/mcp/) for the full read catalogue.
 
 The surface is **off by default**. It does nothing until three things are true,
 and the `/mcp` endpoint answers `404` until all three are in place. A

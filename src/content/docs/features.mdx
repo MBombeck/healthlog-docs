@@ -36,6 +36,41 @@ Show, hide, and drag-to-reorder every widget; per-user layout with reset-to-
 defaults. The above-the-fold tiles arrive together in a single first-paint
 snapshot, and charts reveal together once their data is in.
 
+## Daily companion
+
+The dashboard opens with a [Today view](/insights/today/): a health score that
+starts provisional overnight and finalises the moment last night's sleep syncs
+(morning freshness), the day's lead read, a "worth a look" rail of tap-through
+priority items you can dismiss, and a coach check-in when a plan is due for a
+look-back. [Quiet milestones](/insights/today/#quiet-milestones) mark durable
+states reached — a personal best, a return to your usual range — never streaks to
+keep. An optional once-a-day morning note (off by default, opt-in per channel)
+carries the day's read. Everything reads the insight prepared overnight; nothing
+generates on open.
+
+## Intraday pulse
+
+Heart rate drawn [across the day](/insights/intraday-pulse/) as a 10-minute-mean
+curve with a day navigator — dense detail for 90 days, an honest hourly fallback
+for older days, and no fake line across gaps. When heart rate stays lifted while
+you're at rest and not moving, it's noted plainly as possible tension —
+conservatively, never as a verdict.
+
+## Nutrients
+
+A [nutrients module](/guides/nutrients/) for fluid intake, caffeine, macros, and
+the vitamins and minerals your device records — a dashboard water tile with
+quick-add and a Nutrients page charting hydration and micronutrients against
+their reference daily intake as context. On by default for a fresh install,
+opt-in on an existing one; device-synced dietary data flows once your client
+sends it.
+
+## Metric catalog
+
+A [quiet "All metrics" view](/insights/metric-catalog/) lists everything
+HealthLog can track and which device supplies each — so a metric you don't have
+data for stays out of your daily views but is discoverable in one place.
+
 ## Mood logging
 
 A five-face mood capture (1–5) backed by a structured tag catalogue and rated
@@ -53,7 +88,10 @@ one-time doses, as-needed (PRN), and cyclic on/off plans — so non-daily plans
 [score honestly against their real cadence](/explanation/medication-compliance/).
 Route of administration (oral / injection / other) carries an injection-site
 picker. Take / skip / snooze logging, a traceable dose history, supply runway,
-and structured side-effect tracking. See
+and structured side-effect tracking. An
+[efficacy chart](/guides/track-medications/#see-a-medications-effect-on-a-metric)
+plots how a metric moved since a medication started — a data-scaled axis, a
+"% since start" view, and the full intake history. See
 [Track medications](/guides/track-medications/).
 
 ## Clinical signals and records
@@ -77,7 +115,9 @@ account and deliberately stay out of device sync, FHIR export, and AI
 insights. Single-lead [ECG recordings](/insights/ecg-recordings/) synced from a
 compatible watch are shown on a calibration grid with date, duration and average
 heart rate — the device's own result attributed to the device, and no
-interpretation of the trace by HealthLog.
+interpretation of the trace by HealthLog. Each carries a plain-language, strictly
+non-diagnostic descriptor that restates the recording's device-reported facts in
+words.
 
 ## Device integrations
 

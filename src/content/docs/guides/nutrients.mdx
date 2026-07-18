@@ -1,0 +1,66 @@
+---
+title: Track hydration and nutrients
+description: Enable the nutrients module for fluid intake, vitamins, minerals, and macros — how it flows in from your device's dietary data, and how it's read as context, never a verdict.
+sidebar:
+  order: 16
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Fluid intake and the vitamins and minerals your device records have a home in
+the **Nutrients** module. It is the supported path for hydration and
+micronutrients — there is no separate "water" measurement type.
+
+## What it surfaces
+
+- **A water tile** on the dashboard shows the day's total fluid intake with
+  quick-add amounts.
+- **A Nutrients page** under Insights shows hydration over the last month,
+  caffeine when you record it, and the vitamins and minerals you actually have
+  data for — each against its reference daily intake where that applies, shown as
+  context, never as a verdict.
+
+Manual water entries and device-synced totals **coexist** instead of overwriting
+each other. Sparse logging is never read as a deficiency.
+
+## Enabling it
+
+The module is **on by default for a fresh install** and **opt-in on an existing
+one**. On an existing instance, enable it under **Settings → Modules**
+("Nutrients"), or with the one-tap prompt on the Nutrients page. The external-AI
+options and the daily note stay off until you turn them on.
+
+While the module is off it also refuses to ingest — synced dietary data is
+dropped, not quietly stored, so turning the module on is a real opt-in and not
+just a surface toggle.
+
+## Where the data comes from
+
+Dietary intake flows in from your client's health store. Apple Health records
+water, caffeine, macros, and a full set of vitamins and minerals under its
+dietary identifiers; those flow into the module **once your client sends them**.
+Manual water entry works with no device at all.
+
+:::note[The iOS client must send the dietary data]
+Micronutrients and fluid intake are only as complete as what your device holds
+and forwards. If the vitamins you expect aren't showing, check that the client is
+granted and syncing the dietary data types — the module surfaces what arrives, it
+does not invent the rest.
+:::
+
+## How it's read
+
+Each vitamin or mineral is shown against its reference daily intake where one
+applies, as **context**. HealthLog never flags a value as high, low, or a
+deficiency, and never turns a day of sparse logging into a verdict — the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/) governs this
+surface like every other.
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Import Apple Health" href="/guides/import-apple-health/" />
+  <LinkCard title="The metric catalog" href="/insights/metric-catalog/" />
+  <LinkCard title="Source priority across devices" href="/guides/source-priority/" />
+  <LinkCard title="Non-diagnostic standard" href="/explanation/non-diagnostic-standard/" />
+</CardGrid>

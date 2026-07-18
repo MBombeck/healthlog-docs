@@ -118,14 +118,47 @@ trajectory), the `healthlog://lab/{analyte}` resource template, and `search` →
 `fetch` (`lab:<analyte>`). Reference bounds come from the curated biomarker
 catalogue.
 
+### Nutrition, intraday pulse, and ECG
+
+Three surfaces the connector reaches directly:
+
+- **Nutrition and vitamins.** Fluid intake, macros, and the vitamins and
+  minerals synced from the device's dietary data are readable by name, each
+  against its reference daily intake as context (never a deficiency verdict).
+  Gated on the [nutrients module](/guides/nutrients/) being on.
+- **The intraday pulse curve.** The within-day heart-rate shape — the same
+  10-minute-mean series the [intraday view](/insights/intraday-pulse/) draws,
+  read server-authoritatively.
+- **Stored ECG recordings.** A recording's own facts — date, duration, average
+  heart rate, and the **device's own result, attributed to the device**.
+  HealthLog does not interpret the trace here any more than it does in the app;
+  the connector reads the recorded facts, not a reading of the waveform.
+
+### Device-metric discovery
+
+A set of device metrics that were collected but previously unadvertised are now
+discoverable and can be **compared and baselined by name** through
+`get_metric_baseline`, `compare_metric`, and `detect_changepoints`: wrist
+temperature, cardio recovery and load, day and workout strain, sleep score,
+breathing disturbances, fall count, the six-minute-walk distance, stair ascent
+and descent speeds, and energy expenditure. Pass the metric name; each carries
+its unit and, where one applies, a population reference band.
+
+### Heart-rate variability flavour
+
+HRV resolves whether the source records **SDNN** or **RMSSD**, so a ring- or
+strap-only account is no longer reported as having no HRV when it in fact records
+the other flavour.
+
 :::caution[Off the MCP surface by construction]
-The PHQ-9 / GAD-7 mental-health screeners (item content and totals) are excluded
-from the MCP surface. The environmental-context signals (`ENV_*`: temperature,
-sunshine, daylight, precipitation, barometric pressure) are off MCP in v1. The
-structured records (allergies, family history) and the inbound-document store
-are not exposed either — the document pipeline extracts facts for the user to
-confirm in-app rather than streaming them to a model. None of these resolve
-through any read tool; they are not on the MCP exposure allowlist.
+The PHQ-9 / GAD-7 / WHO-5 / SCI mental-health screeners (item content and totals)
+and the environmental-context signals (`ENV_*`: temperature, sunshine, daylight,
+precipitation, barometric pressure) remain excluded from the MCP surface by
+construction — the connector's read reach grew, but these did not join it. The
+structured records (allergies, family history) and the inbound-document store are
+not exposed either — the document pipeline extracts facts for the user to confirm
+in-app rather than streaming them to a model. A metric is only readable once it
+has been named for the surface; none of these are on the exposure allowlist.
 :::
 
 ## Resources
