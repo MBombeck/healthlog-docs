@@ -1,0 +1,66 @@
+---
+title: Intraday pulse
+description: The within-day heart-rate curve — 10-minute means with a day navigator, a dense-then-hourly retention model, and a conservative elevated-at-rest note.
+sidebar:
+  order: 4
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Heart rate is drawn across the day, not just as a single daily number — so you
+can see it settle overnight and climb during the day. The intraday view sits on
+the **pulse** insight page and reads the raw samples your devices already synced;
+it computes nothing new about your health.
+
+## The curve
+
+The day's raw pulse samples are folded into **10-minute means** in your local
+time. Ten minutes is fine enough to show the shape of the day without turning
+noise into a jagged line. A **day navigator** steps back through previous days.
+
+The view is honest about coverage: where a stretch of the day has no readings,
+it does not draw a fake continuous line across the gap, and it shows how many
+readings the curve is based on. A sparse day reads as sparse. A failed load
+shows a retry rather than an empty state.
+
+## Dense, then hourly
+
+The fine-grained 10-minute detail is kept for the most recent **90 days**. Older
+days fall back to a coarser **hourly** shape — the per-sample rows are folded to
+one mean per local hour rather than pretending an old day still carries
+10-minute resolution. The chart labels which resolution a day was drawn at, so a
+folded older day is never mistaken for a dense recent one.
+
+## The elevated-at-rest note
+
+When heart rate stays lifted while you're at rest and not moving, Today notes it
+plainly as possible tension — carefully, and never as a verdict. This is the
+one interpretive line on the surface, and it is deliberately conservative.
+
+What makes it careful:
+
+- **It is not raw heart rate.** A hard run is high heart rate with high movement;
+  it can never read as tension. The signal is heart rate sustained above your own
+  **resting baseline** while movement is low.
+- **A high bar.** A bucket must sit a clear margin above your resting baseline,
+  hold for a sustained stretch, pass a mandatory low-movement gate, and clear a
+  per-bucket sample-density floor before anything is reported. Under-flagging is
+  the intended failure mode — silence over speculation.
+- **Suppressed on the hourly tier.** The note requires the dense 10-minute
+  resolution, so it never fires on an older, folded day.
+
+Where a device also records intraday heart-rate variability, that is surfaced as
+a confirming flag but is never required.
+
+This is descriptive context, never a clinical stress score — the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/) applies to
+every line on the surface.
+
+## Related
+
+<CardGrid>
+  <LinkCard title="The Today view" href="/insights/today/" />
+  <LinkCard title="Resting heart rate" href="/knowledge/resting-heart-rate/" />
+  <LinkCard title="ECG recordings" href="/insights/ecg-recordings/" />
+  <LinkCard title="Non-diagnostic standard" href="/explanation/non-diagnostic-standard/" />
+</CardGrid>

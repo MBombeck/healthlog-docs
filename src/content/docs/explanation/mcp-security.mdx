@@ -114,7 +114,11 @@ design, not just usage etiquette.
 The mental-health screeners (PHQ-9 / GAD-7 / WHO-5 / SCI), the environmental-context signals,
 the structured allergy and family-history records, and the inbound-document store
 are kept off the surface entirely for the same reason: they are not on the MCP
-exposure allowlist, so no tool can return them.
+exposure allowlist, so no tool can return them. As the connector's read reach
+grew — nutrition and vitamins, the intraday pulse curve, stored ECG recordings,
+and a set of device metrics all became readable by name — these exclusions did
+not move. A metric is exposed only once it has been named for the surface; the
+allowlist is the boundary, not a default.
 
 ## Per-token session binding limits blast radius
 

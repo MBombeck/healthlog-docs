@@ -1,0 +1,41 @@
+---
+title: The metric catalog
+description: The "All metrics" view — every metric HealthLog can track, grouped and attributed to the device that supplies it, so a metric you have no data for stays discoverable without cluttering your daily views.
+sidebar:
+  order: 5
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+HealthLog can track far more than any one account has data for. The **metric
+catalog** at `/insights/catalog` is the one place that lists everything — so a
+metric you don't have data for stays out of your busy daily views but is still
+discoverable when you want to know what's possible.
+
+## The product rule
+
+Data-less metrics are **hidden from busy surfaces** and found here instead. The
+dashboard, the Today rail, and the per-metric surfaces show a reading only once
+you have it; the catalog is the counterpart that shows the full set regardless.
+This keeps your day-to-day views about your own data while nothing HealthLog
+supports goes unadvertised.
+
+## What the catalog shows
+
+- **Every tracked metric, grouped** — vitals, body composition, activity, sleep,
+  nutrients, and the rest — with an "All metrics" view across the groups.
+- **The data source for each** — which device or integration supplies it, so
+  it's clear what you'd need to connect to start collecting a metric you don't
+  yet have.
+
+The catalog shows a loading state while it reads and a retry on error, so an
+in-flight load is never briefly mistaken for "not tracked".
+
+## Related
+
+<CardGrid>
+  <LinkCard title="Feature catalogue" href="/features/" />
+  <LinkCard title="Source priority across devices" href="/guides/source-priority/" />
+  <LinkCard title="Track hydration and nutrients" href="/guides/nutrients/" />
+  <LinkCard title="Health knowledge" href="/knowledge/" />
+</CardGrid>
