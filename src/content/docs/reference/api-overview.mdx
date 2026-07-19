@@ -34,12 +34,28 @@ Two methods, with a hard structural boundary between them:
 
 - **Session cookies** are Postgres-backed with a sliding 30-day expiry,
   HttpOnly + SameSite. The cookie path can elevate to admin via
-  `requireAdmin()`.
+  `requireAdmin()`. Since v1.30.33 the cookie carries a purpose-generated
+  32-byte random secret (`hls_<hex>`) and only its HMAC-SHA256 hash is stored,
+  so the value in the browser exists nowhere on the server. It used to be the
+  session row's own primary key — an identifier built for collision resistance,
+  not for unguessability, and one that appeared wherever that row was
+  referenced. Sessions created before that release keep working and are simply
+  not renewed, so they run out their normal 30 days: the change signs nobody
+  out.
 - **Bearer tokens** are HMAC-SHA256-hashed under `API_TOKEN_HMAC_KEY` before
   storage — there is no plaintext path, and the raw `hlk_<hex>` value is shown
   exactly once at creation. Tokens are scoped (for example `fhir:read` gates the
   [FHIR API](/reference/fhir-api/)); the user-facing mint endpoint hardcodes a
   narrow scope so it can never produce a wildcard token.
+
+:::caution[Bearer scope is fail-closed since v1.30.17]
+A route accepts a narrow-scope token only if it **names** the scope it accepts.
+`requireAuth()` with no argument admits a cookie session or a wildcard token
+only; a narrow token is refused with `403` and an audit row. Before v1.30.17 a
+token minted for one purpose reached every Bearer-accepting endpoint, including
+the full backup export. **Revoke and re-issue any token you handed to a third
+party**, and treat it as having had that reach for its whole lifetime.
+:::
 
 :::caution[Admin is cookie-only]
 `requireAdmin()` is a cookie-only boundary. A Bearer token — even with `["*"]`

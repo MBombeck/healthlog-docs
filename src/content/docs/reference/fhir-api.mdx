@@ -22,6 +22,21 @@ background, see the [FHIR R4 specification](https://hl7.org/fhir/R4/).
 HealthLog implements the read side of this contract for the resources it can
 populate from your own data.
 
+:::caution[The doctor-report module gates these endpoints]
+Since v1.30.19 the FHIR endpoints honour the **doctor-report module switch**
+under **Settings → Modules**. With the module off they return `403` rather than
+the record. Before that release the switch was ignored here: the export still
+returned the full record, the sync feed still sent cycle data, and the dashboard
+summary still built glucose and sleep cards regardless. v1.30.23 extended the
+same rule to connected assistants over [MCP](/reference/mcp/) and to a shared
+clinician link, both of which could previously read a module's data — including
+the full doctor summary — with the module off.
+
+**Nothing is deleted by a switch.** Turning a module back on finds the history
+complete. A native client pointed at a server where the module is off will see
+the `403`; that is the switch working, not a fault.
+:::
+
 ## Endpoints
 
 All require a Bearer token with the `fhir:read` scope.

@@ -1,34 +1,46 @@
 ---
 title: Sleep debt and chronotype
-description: Why HealthLog reads sleep debt as a rolling shortfall and your chronotype from mid-sleep on free days — the MCTQ method, social jetlag, and the sub-linear recovery curve, each cited to the literature.
+description: Why HealthLog reads sleep debt as a recovering running balance and your chronotype from mid-sleep on free days — the MCTQ method, social jetlag, and the sub-linear recovery curve, each cited to the literature.
 sidebar:
   order: 3
 ---
 
-The sleep page reads two things beyond the nightly score: a rolling **sleep debt** against your age-based need, and an **MCTQ chronotype** with your mid-sleep, social jetlag and a type band. Both are computed once on the server from the same per-night data the rest of the app uses, and both hold a confident reading back behind a "still learning" state until enough nights are recorded. This page is about *why* they are computed the way they are.
+The sleep page reads two things beyond the nightly score: a recovering **sleep debt** balance against your age-based need, and an **MCTQ chronotype** with your mid-sleep, social jetlag and a type band. Both are computed once on the server from the same per-night data the rest of the app uses, and both hold a confident reading back behind a "still learning" state until enough nights are recorded. This page is about *why* they are computed the way they are.
 
 ## Sleep debt
 
-Sleep debt is the running shortfall between how much sleep you **need** and how much you actually got, accumulated over a rolling two-week window.
+Sleep debt is a **running balance** over a short recent window: how much extra sleep your body still owes tonight because of the last few nights. It is not a fortnight-long sum of every deficit you ever ran up.
 
-### Only undersleep accrues; catch-up pays it down
+### A balance, not a sum
 
-Per night the deficit is `max(0, need − asleep)`. A short night adds to the debt; a long night does **not** mint a "credit" that cancels future shortfalls. This is a deliberate, evidence-based asymmetry: recovery sleep does not repay a deficit minute-for-minute. Van Dongen et al., *The Cumulative Cost of Additional Wakefulness* (Sleep 2003, [PMID 12683469](https://pubmed.ncbi.nlm.nih.gov/12683469/)), showed the recovery curve is sub-linear — you cannot fully bank a weekend lie-in against a week of short nights.
+The balance walks the window oldest night to newest. Each night either adds to it or pays it down:
 
-Instead, catch-up pays the running debt **down through the window**: as a deficit night ages out of the rolling 14-night window it stops contributing, so a stretch of full nights drains the debt toward zero. Fourteen nights is long enough that one bad night does not dominate and short enough that month-old debt does not haunt a current reading.
+- a night **below** need adds its shortfall, at full weight;
+- a night **above** need **pays the balance down** — catch-up sleep genuinely recovers debt;
+- the balance floors at **0**, so a run of long nights cannot bank negative debt.
+
+A sum of deficits answers "how much sleep did I miss across the window" — a historical total that grows with the window and ignores recovery. A balance answers "how much do I still owe right now", which is the number a recovery surface can act on: it shrinks the moment you catch up.
+
+### Surplus is credited at half weight
+
+Catch-up does not repay a deficit minute-for-minute. Van Dongen et al., *The Cumulative Cost of Additional Wakefulness* (Sleep 2003, [PMID 12683469](https://pubmed.ncbi.nlm.nih.gov/12683469/)), showed the recovery curve is sub-linear — one long night recovers some, not all, of an accumulated deficit. So a night over need pays the balance down at **half** its surplus, while deficits still add at full weight. The asymmetry is in the *rate*, not in whether surplus counts at all.
+
+### Why five nights
+
+Sleep debt is a short-horizon signal: most of the rebound from acute restriction resolves within a few nights of adequate sleep. The window is **five nights** — long enough that one rough night does not dominate the reading, short enough that a fortnight-old deficit no longer shapes what you owe tonight.
 
 ### Why caps
 
 Two caps keep the number honest:
 
-- A **per-night deficit cap of 180 minutes (3 h)** — the largest single-night shortfall that still reads as plausibly slept rather than a missing-stage artefact — so one catastrophic or mis-recorded night cannot swamp a fortnight of otherwise-fine sleep.
-- A **cumulative cap** — beyond a point more debt is not more actionable; the message ("you are deeply under-slept") is the same, so the figure does not run away into meaningless territory.
+- A **per-night deficit cap of 180 minutes (3 h)** — the largest single-night shortfall that still reads as a rough night rather than a missing-stage artefact — so one catastrophic or mis-recorded night cannot swamp the window.
+- A **balance cap of 600 minutes (10 h)** — beyond a point more debt is not more actionable; the message ("you are deeply under-slept") is the same, so the figure does not run away into meaningless territory.
 
 ### Your need is age-based
 
-The shortfall is measured against an age-based sleep need, the same single need table the nightly sleep score uses (Hirshkowitz et al., *National Sleep Foundation's sleep time duration recommendations*, Sleep Health 2015). There is no second need table — one source of truth for "how much you need", two framings of `need − actual`: the nightly score is the single-night view, sleep debt is the rolling cumulative.
+The shortfall is measured against an age-based sleep need, the same single need table the nightly sleep score uses (Hirshkowitz et al., *National Sleep Foundation's sleep time duration recommendations*, Sleep Health 2015). There is no second need table — one source of truth for "how much you need", two framings of `need − actual`: the nightly score is the single-night view, sleep debt is the recent recovering balance.
 
-Below a minimum of tracked nights the debt stays in "still learning" — a one-night window would read a single rough night as a fortnight of debt.
+Below **four** tracked nights the debt stays in "still learning" — a one-night window would read a single rough night as a standing debt.
 
 ## Chronotype (MCTQ)
 

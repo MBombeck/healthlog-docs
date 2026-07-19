@@ -240,26 +240,55 @@ readable body is never kept in the clear.
 
 ### The stored summary (opt-in)
 
-Separately from the one-time **Summarise** button above, a newly uploaded
-document can get a short plain-language summary generated **once at upload** and
-kept with the document. It is generated only when the external-AI document
-reading you already opted into ("Read documents automatically with AI", off by
-default) is on, so it rides the exact consent and budget you set for auto-reading
-— nothing new to enable. It **never touches older documents**: only files
-uploaded after the switch is on get a summary.
+Separately from the one-time **Summarise** button above, a document can get a
+short plain-language summary generated once and kept with it. It is generated
+only when the external-AI document reading you already opted into ("Read
+documents automatically with AI", off by default) is on, so it rides the exact
+consent and budget you set for auto-reading — nothing new to enable.
+
+Since v1.30.32, turning the switch on also **works through the documents already
+in your vault**. Before that, reading was only ever started at upload, so a
+vault filled before the flip stayed unread no matter what the setting said and
+the switch read as broken. The catch-up pass runs in batches, walks only
+documents with no summary yet, and grants nothing on its own: the opt-in is
+re-read, the egress consent is re-asserted per document, and the daily token
+budget is reserved exactly as on the upload path. Retroactive work is not a
+reason to skip a consent receipt.
 
 The summary is **stored encrypted at rest** (AES-256-GCM, the same posture as
 every other health note). It describes *what* the document is; it is not a
 diagnosis and never flags a value as high, low, or abnormal.
 
+#### What the summary state means
+
+A document records what actually happened to its summary rather than leaving you
+to guess from its absence (v1.30.31):
+
+| State | What it means |
+| --- | --- |
+| **Not attempted** | Nobody ever enqueued a summary — auto-reading was off when the document arrived, and no catch-up has reached it. |
+| **Generating** | A summary job is in flight. |
+| **Ready** | The summary is stored and shown. |
+| **Withheld** | The safety screen held the generated text back. |
+| **Unavailable** | The read could not complete — no usable provider, or the budget was exhausted. |
+
+Before v1.30.31 all five outcomes looked identical, and the detail view read
+that as "still generating" forever while hiding the button that would have made
+one. Every state now offers to generate a summary, and one you generate that way
+is kept.
+
 ### The "Read with AI" action
 
-Open a document and you'll see a **Read with AI** block with a status pill —
-**Read by AI** (a provider read the original), **Searchable** (indexed locally),
-**Making searchable…**, or **Not searchable yet**. The same block offers
-**Suggest details** (a reviewable draft title, type and date) and **Summarise /
-Show text** (a one-time, session-only read-out that is never saved). With no
-provider configured it shows a calm pointer to your AI settings.
+Open a document and you'll see a **Read with AI** block offering **Suggest
+details** (a reviewable draft title, type and date) and **Summarise / Show
+text** (a one-time, session-only read-out that is never saved). With no provider
+configured it shows a calm pointer to your AI settings; with auto-reading on and
+nothing waiting for review, the block collapses entirely.
+
+The detail view no longer prints a line saying *how* the text was extracted —
+which reader got the words off the page is plumbing, not something you can act
+on. What the vault card's meta row shows is whether the document is searchable
+at all.
 
 ### Which reader, and where your data goes
 

@@ -64,9 +64,15 @@ Grant only the types you want synced — denied types simply never leave the pho
 
 Live reads use HealthKit's observer and anchored-query APIs, and a background-processing task gives delivery a second chance when the app is not in the foreground. Every iOS-side write carries a stable external identifier so the server and Apple Health do not echo each other's writes back and forth. Day-aggregated cumulative metrics (steps, energy, distance) use the same `stats:<HKType>:<YYYY-MM-DD>` external-ID convention the bulk importer uses, so a phone sync and a later `export.zip` import resolve to the same rows rather than duplicating. See [Source priority](/explanation/source-priority/) for how readings from the phone, a Withings device, and manual entry collapse to one canonical value per day.
 
+## What the home screen can show
+
+The app's home screen renders the summary the server computes; it never recomputes a figure of its own. Two tiles arrived in v1.30.34 — **mood** and **BMI**. Both had existed in the record all along but were missing from that summary payload, so the app could not paint them while every other tile worked. Update the server to v1.30.34 or later and they appear.
+
 ## Local medication reminders
 
 The app schedules **local notifications** for medication doses, with action buttons that mark an intake without opening the app — taken, snooze, or skipped — by calling the server's mark-intake endpoint directly.
+
+The **pen list** reads a container's manufacturer and printed strength from the server (v1.30.34). Containers created on the web before that release carry neither, so they stay unlabelled until you fill the two fields in on the medication's **Bestand** tab.
 
 Because the phone owns these reminders, you can tell the server to stop sending its own push reminders for that device. The client opts in through the notification-preferences endpoint; the server then suppresses dose-due [APNs](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) pushes for that device. See [Notifications](/guides/reminder-channels/) for the channel cascade and [Certificate pinning](/security/certificate-pinning/) for how the app secures its connection.
 
