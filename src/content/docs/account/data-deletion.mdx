@@ -51,6 +51,7 @@ Then, in the same transaction, the per-user fields on the `User` row are cleared
 - **Feedback** — bug reports remain so admins can review the inbox without losing context.
 - **Achievements** — `UserAchievement` rows are not in the wipe scope. (If you want a true clean-slate experience for every user, follow up with a `DELETE FROM user_achievements;` on the database.)
 - **Data backups** — `DataBackup` rows survive a wipe so you can roll back if you wiped by mistake. Restore one via `/admin/backups` to undo.
+- **Shared-access grants.** `AccountGrant` rows are not in the wipe scope, for the same reason accounts and passkeys are not: the wipe clears health data and leaves the identity and authorization layer standing. If you are refurbishing a box for somebody else, check **Settings → Shared access** on each account, or clear `account_grants` on the database, before handing it over. A wiped instance still knows who could open whose record. See [Give another account access to your record](/guides/shared-access/).
 
 ## What "Delete account" deletes
 
@@ -74,6 +75,7 @@ The handler:
    - Push subscriptions, Telegram scheduled deletions
    - Data backups (own snapshots are wiped so a recovered DB doesn't leak the user's history through a rebuild)
    - Idempotency keys, devices, achievements
+   - Shared-access grants **in both directions**: every `AccountGrant` naming the deleted account as the owner *or* as the delegate, whatever its state. Anyone who could open this user's record loses that access, and this user loses access to any record that was shared with them.
 
 ### Why GDPR-clean and what it means
 
@@ -86,6 +88,7 @@ After the deletion completes the audit log gets a `settings.account.delete` Wide
 - **App settings** — never user-bound to begin with.
 - **Other users' audit-log entries** — the deleted user's `AuditLog` rows are purged, but rows that mention them as a *target* (e.g. "Admin X force-logged-out user Y") stay because they belong to the actor's audit trail, not the deleted user's.
 - **The instance itself** — deleting the last non-admin doesn't tear anything down; the app keeps running.
+- **Audit rows recording that this account opened somebody else's record.** They belong to the *other* person's record, and they render as "a deleted account" rather than being nulled. Turning "your daughter opened your record" into "you opened your record" would be worse than an unresolvable id.
 
 ## Backups and the right to be forgotten
 
@@ -107,7 +110,8 @@ Every HealthLog instance serves a public Privacy Policy at `/privacy` — reacha
 
 ## Related pages
 
-- [Backup structure and restore](/guides/backups/) — what's in a snapshot, how restore works, security considerations
+- [Backup structure and restore](/guides/backups/) — what's in a snapshot, [what a snapshot deliberately leaves out](/guides/backups/#what-a-backup-does-not-carry), how restore works, security considerations
+- [What a shared record is](/explanation/record-sharing/): what a grant survives, and what it does not
 - [Self-Hosting → Scaling](/self-hosting/scaling/) — off-host S3 backups, encryption-key rotation
 - [Privacy architecture](/explanation/privacy-architecture/) — what leaves your instance, audit trail
 - [Encryption at rest](/explanation/encryption-at-rest/) — how stored data is encrypted

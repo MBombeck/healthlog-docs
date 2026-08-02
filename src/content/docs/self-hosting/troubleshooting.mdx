@@ -120,6 +120,38 @@ and it holds.
 The Postgres healthcheck can race the migration on slow disks. Migrations are
 idempotent — run `docker compose restart app` once the database has settled.
 
+## Someone I invited to my record still cannot see it
+
+**Symptom.** You sent an invitation from **Settings → Shared access** and the
+other person says nothing appeared, or that they can see the invitation but not
+the record.
+
+**Cause.** An invitation confers nothing until the person named on it accepts,
+and accepting is theirs to do. There is no way for you to accept on their
+behalf, by design.
+
+**Fix.** Ask them to open **Settings → Shared access** on their own account and
+choose **Accept** under "Records I can open". After that the record appears in
+their user menu under **Open a record**. If the invitation never arrived at all,
+check the name you typed: it has to be the username or e-mail they sign in with,
+and an account has to exist on this instance already. See
+[Give another account access to your record](/guides/shared-access/).
+
+## Pages refuse while I am inside somebody else's record
+
+**Symptom.** You are reading a record that was shared with you and parts of the
+app say they are not part of shared access.
+
+**Cause.** Not a bug and not a rendering fault. Sharing covers the health record
+itself. The account around it stays with the person who owns it, so credentials,
+connected services, notification channels, exports, clinician share links and
+grant management are refused by the server rather than merely hidden. The full
+list and the reasoning are in
+[What a shared record is](/explanation/record-sharing/).
+
+**Fix.** Use the button in the banner at the top, or **My own record** in the
+user menu, to go back to your own account. Those surfaces work there.
+
 ## Where to look when something else breaks
 
 - `docker compose logs -f app` — the app logs structured wide events; errors

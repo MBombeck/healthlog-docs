@@ -66,6 +66,25 @@ runtime check future code can soften.
 `userId` is never a request-body field. It is always narrowed from the session
 or the Bearer token and feeds the Prisma `where` clause directly.
 
+:::note[Acting on a shared record since v1.36.0]
+A caller can hold read access to another account's record, and on the routes
+that allow it the `userId` in the `where` clause is then the record owner's
+rather than the caller's. That substitution never comes from the request body
+either. It comes from an account selector the caller names, checked against a
+live grant row on **every** request, and it only happens on a route that has
+declared itself safe to serve under a grant. The set of such routes is frozen by
+a structural test; every other route refuses with `403`
+(`meta.errorCode: sharing.not_permitted`) rather than falling back to the
+caller's own record, because answering with the wrong person's health record is
+worse than refusing.
+
+Cookie clients name the account with `POST /api/account/switch`; Bearer clients
+send the `X-HealthLog-Account` header per request and are refused by the switch
+endpoint, because a token must keep meaning one person for as long as it exists.
+See [Shared access](/reference/api-endpoints/#shared-access) and
+[What a shared record is](/explanation/record-sharing/).
+:::
+
 ## Response envelope
 
 Every response is `{ data, error }`, with an optional `meta`:

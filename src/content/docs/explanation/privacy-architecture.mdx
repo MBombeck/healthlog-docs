@@ -88,6 +88,21 @@ backstop, not the primary control. The trade-off is deliberate: no bold or
 bullet markup in Coach replies, and adding a markdown renderer is treated as
 a security decision, not a UX one.
 
+## Another account you granted access to
+
+Since v1.36.0 you can give another account on the same instance read access to
+your record. Nothing crosses the network because of it: two accounts on one
+server read one Postgres, and no new outbound path exists.
+
+It is still a change to who can read your record, so it belongs on this page
+rather than only in the feature docs. The access is a grant you make
+deliberately, it does nothing until the other person accepts, it is read-only,
+and either side can end it at any time. It never carries the account around the
+record with it, so a delegate cannot reach your credentials, your integrations,
+your notification channels, your exports, or the AI surfaces that would send
+your data to a provider under your consent. The reasoning is in
+[What a shared record is](/explanation/record-sharing/).
+
 ## The honest summary
 
 | Flow | Leaves the instance? | Control |
@@ -98,7 +113,13 @@ a security decision, not a UX one.
 | Notifications | Only to channels you enable | Per-channel opt-in |
 | Telemetry / analytics | No | None exists |
 | Clinician share | Only via a link you create and revoke | Scoped, time-limited |
+| Another account you shared with | No | Read-only grant on the same instance, accepted then revocable |
 
-If you run a local AI endpoint and no device integrations, HealthLog is a closed
-loop: your data is read and written on hardware you control and nothing about it
-crosses the network.
+If you run a local AI endpoint and no device integrations, nothing about your
+data crosses the network: it is read and written on hardware you control.
+
+Who can read it *on* that hardware is a different question, and this page is not
+the whole answer to it. The instance operator can always reach the database, an
+admin account on the instance can reach health data directly, and any account
+you granted access to can read your record until you end it.
+[What a shared record is](/explanation/record-sharing/) covers all three.

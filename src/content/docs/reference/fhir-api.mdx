@@ -74,6 +74,13 @@ time-limited, read-only `/c/<token>` view that you revoke after the visit
 share link does **not** expose the FHIR API
 (`capabilities.share.fhirApi=false`). Each stands on its own.
 
+A third way somebody else reads your data is a
+[shared-access grant](/guides/shared-access/) to another account on the instance,
+and it stands on its own too. A delegate reading your record reaches neither the
+FHIR API, nor the export, nor the share-link surface. Those are refused under a
+grant rather than hidden, because an export is a copy of everything and a link is
+a door that would survive the delegate's own revocation.
+
 :::caution[Read-only and not a clinical record system]
 The FHIR API and the export describe your tracked data in a standard shape. They
 are for sharing with a clinician, not for use as a system of record or for any

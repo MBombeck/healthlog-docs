@@ -7,6 +7,8 @@ sidebar:
 
 The web PWA uses cookie sessions; native clients (the HealthLog iOS app, n8n, Health Connect bridges, custom shortcuts) authenticate with [bearer tokens](https://datatracker.ietf.org/doc/html/rfc6750) — an opaque credential sent in the `Authorization: Bearer …` header that the server resolves to a user on every request. Both flows share the same handlers, so every protected route accepts either credential.
 
+Since v1.36.0 a request can also name a record other than the caller's own, when the caller holds a [shared-access grant](/guides/shared-access/) on it. A Bearer client names it with an `X-HealthLog-Account: <accountId>` header on each request it wants scoped that way. `POST /api/account/switch` is cookie-only and refuses a Bearer caller with `400` (`meta.errorCode: sharing.switch.wrong_transport`), because a token has to keep meaning one person for as long as it exists and must never accumulate switch state. The header is honoured only on routes that declared themselves safe to serve under a grant, and the grant is re-read from the database on every request, so a revocation lands on the very next call rather than at the next login. See [Shared access](/reference/api-endpoints/#shared-access).
+
 ## Token Issuance
 
 `POST /api/auth/login` and `POST /api/auth/passkey/login-verify` return a bearer token in the response body when the request opts in as a native client.

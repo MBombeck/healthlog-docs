@@ -161,6 +161,26 @@ A doctor-report PDF generated client-side (rendered in your UI language), a read
 [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited share links you
 revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
 
+## Shared access between accounts
+
+One account can give another account on the same instance read access to its
+health record, which is how a household looks after each other without anybody
+sharing a password. Both people keep their own account, their own credentials
+and their own second factor.
+
+An invitation confers nothing until the person named on it accepts. Access is
+read-only, and the server refuses every write under a grant. It never carries
+the account around the record with it, so credentials, integrations,
+notification channels, exports, clinician links and grant management are refused
+rather than merely hidden from the screen. Either side can end it at any time,
+and it ends on the delegate's next request rather than at their next login. The
+owner sees who has access, when they accepted, when they last opened the record,
+and which days somebody else was in it.
+
+See [Give another account access to your record](/guides/shared-access/) for the
+steps and [What a shared record is](/explanation/record-sharing/) for the
+reasoning.
+
 ## Built to be lived in
 
 Installable PWA with offline support and an opaque-cursor sync delta feed;

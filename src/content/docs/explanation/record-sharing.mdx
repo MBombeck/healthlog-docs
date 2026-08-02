@@ -1,0 +1,157 @@
+---
+title: What a shared record is
+description: Why account sharing is a grant between two accounts rather than a shared login, why a delegate can read and not write, and what sharing does and does not change about your instance's trust model.
+sidebar:
+  order: 7
+---
+
+Since v1.36.0 one account on an instance can give another account read access to
+its health record. This page is the reasoning: what that connection is, what it
+deliberately is not, and which of the instance's existing trust properties it
+leaves exactly as they were.
+
+For the steps, see
+[Give another account access to your record](/guides/shared-access/).
+
+## It is a grant, never a shared login
+
+The obvious way to let a partner see your blood pressure is to hand them your
+password. Every property worth having is lost the moment you do. There is one
+identity for two people, so the audit log cannot tell them apart. There is one
+second factor, so enrolling a phone means enrolling the other person's. And
+taking the access back means changing a password you also use.
+
+A grant keeps both people whole. Each account keeps its own credentials, its own
+second factor and its own sessions. The permission is a row that names an owner,
+a delegate and a state, and every request the delegate makes is resolved against
+that row.
+
+Three properties are the whole of it, and each is decided in one place rather
+than at each call site.
+
+**An invitation confers nothing.** A grant that has not been accepted fails the
+active check. Being handed read access to somebody's health record is not
+something the product imposes silently, and the acceptance with its timestamp is
+what the row records.
+
+**A lapse date is checked live.** The check runs against the clock on the
+request that reads the row, not against a sweep that may or may not have run. A
+grant a second past its lapse date is already inert.
+
+**Revocation never deletes.** Ending access stamps the row and leaves it in
+place. A deleted row cannot answer "who had access, from when to when, and who
+ended it", and that question is the reason the table has the shape it does.
+Inviting the same person again mints a new row beside the old one.
+
+## Read, and not write
+
+Every grant in this release is a read grant. That is not a setting left at a
+cautious default; the access level is not a parameter anywhere in the request
+path, and the invite call hardcodes it. A field the domain layer then ignored
+would be the shape of a promise nobody kept.
+
+So a delegate can read the record and cannot add a reading, correct an entry, or
+delete anything. The server refuses a write under a grant regardless of what a
+screen offers, which means the guarantee does not depend on the client behaving.
+
+## Why the account is not part of the record
+
+The health record is what sharing covers. Everything wrapped around it stays
+with the person who owns the account, and the line is drawn on the server rather
+than by hiding menu items.
+
+| Not reachable | Why it would matter |
+| --- | --- |
+| Password, passkeys, second factor, recovery codes | Silent takeover, surviving any revocation |
+| Sessions, trusted devices, sign-out-everywhere | Ending or enumerating the owner's logins |
+| API tokens, the MCP connector | A durable credential that outlives the access |
+| Connected services (Withings, Fitbit, WHOOP, Google Health, Polar, Oura, Strava, Nightscout) | Re-pointing a sync, or feeding somebody else's wearable into this record |
+| Notification channels and push devices | The owner's health alerts redirected to another phone or chat |
+| Exports, the health-record archive, clinician share links | A one-click copy of everything, or a new door that outlives the access |
+| Insights and the Coach | AI processing of the owner's data, under the owner's own consent |
+| Sharing itself | Inviting somebody else, widening the access, or passing it on |
+| Locale, theme, dashboard layout | Presentation belongs to the person, not to the record |
+
+Two of those rows are worth a sentence each.
+
+**Sharing is not transferable.** A delegate cannot invite a third person, cannot
+raise their own level, and cannot hand their access on. This is the property the
+whole feature rests on, and it is why grant management is refused from inside a
+shared record rather than merely absent from the navigation.
+
+**The AI row looks arbitrary and is not.** Insights and the Coach send the
+record's data to a provider under a consent the record's *owner* gave, for the
+owner's own use. Somebody else triggering that would create a consent-shaped act
+the owner never made, so those surfaces stay owner-only.
+
+Forty-four read routes serve a shared record. Every route in the product refuses
+by default while a browser is acting on another account; a route becomes
+reachable only by declaring itself so, and the set of declared routes is frozen
+by a test. Adding a route therefore cannot silently widen a delegate's reach,
+because the default arm denies.
+
+Two of the refusals are permanent rather than pending. A delegate cannot mint a
+clinician share link, because that would be a door surviving their own
+revocation. And a delegate cannot reach anything that would widen their own
+access.
+
+## What revocation can and cannot do
+
+Ending access takes effect on the delegate's **next request**, not at their next
+login. The grant is read from the database on every single request, so there is
+no cached verdict to wait out. If their browser is sitting inside the record when
+the owner ends it, the same database transaction puts that browser back into its
+own account, so they land at home rather than on a wall of refusals.
+
+What revocation cannot do is take back what was already seen. A person who had
+read access could have read, remembered, screenshotted or written down anything
+in the record. The product can close the door and cannot reach through it.
+Nothing in the interface implies otherwise, and neither does this page.
+
+## What sharing does not change about your instance
+
+A sharing feature is exactly the moment somebody re-reads the trust model, so
+this is worth stating plainly.
+
+- **The operator could always read the database.** Anyone with server or
+  database access, and anyone with an admin account on this instance, can reach
+  health data directly. That was true before sharing existed and is unchanged by
+  it. On a household instance the operator is usually one of the people using
+  it; on an instance hosting other people, it is worth saying out loud.
+- **Encryption at rest is instance-keyed, not per-user.** The encrypted columns
+  are protected by the key in `ENCRYPTION_KEYS`, which belongs to the instance.
+  Sharing does not weaken that, and it never did protect one account's data from
+  the operator of the same instance. See
+  [Encryption at rest](/explanation/encryption-at-rest/).
+- **Nothing new leaves the instance.** A grant is two accounts on one server
+  reading one Postgres. No new egress path exists because of it, and AI
+  processing stays under the record owner's consent because the AI surfaces are
+  not part of what sharing covers. See
+  [Privacy architecture](/explanation/privacy-architecture/).
+
+## Operator obligations
+
+Sharing needs no configuration and does nothing until one account invites
+another. Three consequences are yours to know about.
+
+**Invitations disclose whether a username exists.** An invitation to a name
+nobody uses is refused with "no account on this instance carries that name".
+The alternative is a silent pending row that will never be accepted because the
+owner mistyped, which is the worse failure. The caller is already authenticated
+and the endpoint allows ten invitations an hour per account, which bounds how
+fast the surface could be walked.
+
+**Audit retention bounds what an owner can see.** The day-by-day view of who
+opened a record is built from audit rows, so `AUDIT_LOG_RETENTION_DAYS` sets how
+far back it reaches. The default is 365 days. Shortening it shortens that view,
+and the page says which number your instance uses rather than a hardcoded one.
+
+**Account deletion removes grants and keeps history.** Deleting an account
+removes the grants it is party to. Audit rows naming that account as the one who
+opened somebody's record stay and render as "a deleted account". Nulling them
+would turn "your daughter opened your record" into "you opened your record",
+which is worse than an unresolvable id. See
+[Data deletion](/account/data-deletion/).
+
+Backups deliberately carry no grants, which matters when you restore. See
+[what a backup does not carry](/guides/backups/#what-a-backup-does-not-carry).

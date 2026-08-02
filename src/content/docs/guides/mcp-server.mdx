@@ -172,7 +172,10 @@ several structural limits, but the operator's choices still matter:
 
 - **Only enable the connector for clients you trust.** Anything holding a valid
   token or a live OAuth connection reads your health record. Revoke connections
-  and tokens you no longer use under **Settings → MCP**.
+  and tokens you no longer use under **Settings → MCP**. A connector reads the
+  record of the account that minted it and nothing else: it does not follow a
+  [shared-access grant](/guides/shared-access/) into another account's record,
+  even one you can open in the browser.
 - **Use a read-only token unless you need writes.** It is the default, and a
   read-only session never even sees the write tools advertised.
 - **Writes are narrow by construction.** The only writes are append-only,

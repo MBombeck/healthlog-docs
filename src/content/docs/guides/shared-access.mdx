@@ -1,0 +1,181 @@
+---
+title: Give another account access to your record
+description: Invite someone on your instance to read your health record, see when they opened it, and end the access at any time. Read access only, and nothing happens until they accept.
+sidebar:
+  order: 26
+---
+
+Two accounts on the same instance can be connected so that one of them can open
+the other's health record. A parent and an adult child, two partners, somebody
+keeping an eye on a relative's blood pressure: the case this exists for is a
+household.
+
+Both people keep their own account, their own password and their own second
+factor. Nobody signs in as anybody else. What you are handing over is a grant
+from your account to theirs, and it does one thing: it lets them read your
+record.
+
+:::note[Read access, nothing more]
+Access granted this way is read access. A delegate cannot add a reading, edit an
+entry, or change anything at all in your record, and the server refuses a write
+under a grant no matter what a screen offers. There is no setting that turns a
+grant into a writing one.
+:::
+
+## Before you start
+
+The person you want to invite needs an account on this instance already. There
+is no invite-by-e-mail flow here; if they have never registered, they have to do
+that first, either through open registration or through an
+[invite link](/guides/invites/) from your operator.
+
+You will invite them by the username or e-mail address they type into the login
+form. If you are the operator too, that is the name you see in the admin user
+list.
+
+## Send the invitation
+
+1. Open **Settings → Shared access**.
+2. Under **Invite someone**, enter the username or e-mail address they sign in
+   with.
+3. Choose **Send invitation**.
+
+Nothing is shared yet. The invitation sits in their own settings and gives them
+nothing until they accept it, and until then your record is exactly as private
+as it was a minute ago.
+
+If the name you typed does not belong to an account on this instance, the form
+says so rather than creating a pending invitation nobody will ever see. That is
+deliberate: a silent pending row after a typo is a worse failure than a clear
+refusal.
+
+The endpoint allows ten invitations an hour per account. If you are setting up
+several people at once and hit that, wait and carry on.
+
+## Accepting an invitation
+
+For the person who was invited:
+
+1. Open **Settings → Shared access**.
+2. The invitation appears under **Records I can open**.
+3. Choose **Accept**.
+
+Acceptance is the moment access begins, and the grant row keeps the timestamp.
+
+## Opening somebody's record
+
+Once an invitation is accepted, the record appears in the user menu under **Open
+a record**. Choosing it reloads the app into that person's record.
+
+A strip across the top of every page names whose record is open and says it is
+read-only, with a button back to your own. It is loud on purpose. Somebody who
+forgets they are switched will try to log their own weight into another person's
+record, and an entry that was never theirs is a mess to unpick.
+
+To leave, use the button in the strip or pick **My own record** from the same
+menu.
+
+## What a delegate sees, and what they do not
+
+**They can read the health record.** Measurements and charts, medications and
+the dose history, mood entries, lab results, the illness journal, preventive-care
+reminders, stored documents.
+
+**They cannot reach anything about the account around the record.** Not the
+password, passkeys, second factor or recovery codes. Not the sessions or trusted
+devices. Not API tokens or the MCP connector. Not the connected services, so
+they cannot re-point a sync or feed their own wearable into your record. Not the
+notification channels, so your reminders cannot be redirected to another phone.
+Not the exports, the health-record archive or the clinician share links. Not
+Insights or the Coach, because those send your data to a provider under a
+consent you gave for your own use. Not sharing itself, so a delegate can neither
+invite a third person nor pass their access on.
+
+Display preferences stay with the person at the keyboard. Reading somebody
+else's record does not change your own theme, language or dashboard layout.
+
+These are refusals the server makes, not screens that happen to be hidden. The
+reasoning is written up in
+[What a shared record is](/explanation/record-sharing/).
+
+## See when your record was opened
+
+**Settings → Shared access** answers three questions for the owner at any time.
+
+- **Who can open my record** lists everybody with access, when they accepted,
+  and when they last opened it. Access that has ended stays on the list, so you
+  can always see who had it and between which dates.
+- **When my record was opened** is a day-by-day view: one line per person per
+  day, with how many times.
+
+That second list is bounded by your instance's audit retention, which defaults
+to 365 days and is set with `AUDIT_LOG_RETENTION_DAYS`. The page prints the
+number your instance actually uses. An empty list means nobody opened the record
+inside that window, not that nobody ever did.
+
+## End the access
+
+Either side can end it, and neither needs a second factor or a typed
+confirmation. Reducing access should never be harder than granting it was.
+
+- **As the owner:** **Settings → Shared access → Who can open my record**,
+  then **End access**. If the invitation was never accepted, the same row offers
+  **Withdraw**.
+- **As the delegate:** **Settings → Shared access → Records I can open**, then
+  **Hand back**.
+
+It takes effect on their very next request, not at their next login. The grant is
+checked against the database on every request, so there is no cached verdict to
+wait out. If their browser is sitting inside your record when you end it, that
+same browser lands back in their own account.
+
+What ending access cannot do is take back what was already read. Somebody who
+had access could have remembered it, screenshotted it, or written it down. The
+product can close the door and cannot reach through it, and the confirmation
+dialog says so.
+
+Ending access never deletes the record of it. The row stays with its dates and
+with who ended it. Inviting the same person again creates a new row beside the
+old one, and they have to accept again.
+
+## Access that lapses on a date
+
+A grant can carry a date it lapses on, checked against the clock on every
+request rather than by a sweep that may not have run. A grant one second past
+that date is already inert.
+
+The settings form does not ask for a date, so an invitation you send from
+**Shared access** runs until somebody ends it, which is the common household
+case. If you want a lapse date, send the invitation through the API instead and
+pass `expiresAt` on `POST /api/account/grants`. See
+[Shared access endpoints](/reference/api-endpoints/#shared-access).
+
+## Sharing with a clinician is a different thing
+
+**Settings → Shared access** is for another account on this instance.
+**Settings → Sharing** mints a public, time-boxed, passphrase-protected link for
+somebody with no account at all, which is what you hand a doctor at the desk.
+The two do not overlap, and a delegate cannot mint one of those links from
+inside your record. See
+[Sharing documents with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
+
+## For operators
+
+Nothing to configure. Sharing is available on every instance, needs no
+environment variable, and does nothing until one account invites another.
+
+Two things are worth knowing before somebody asks.
+
+- An invitation to a username nobody uses is refused by name, which tells the
+  caller that the name is free. The caller is already authenticated and is
+  limited to ten invitations an hour, which bounds how fast the surface could be
+  walked.
+- Deleting an account removes the grants it is party to. Audit rows naming that
+  account as the one who opened somebody's record stay and render as "a deleted
+  account", because nulling them would turn "your daughter opened your record"
+  into "you opened your record".
+
+Backups do not carry grants. Restoring onto the same instance leaves shared
+access exactly as it was; restoring onto a fresh instance means both people have
+to invite and accept again. That is covered in
+[Backups](/guides/backups/#what-a-backup-does-not-carry).
