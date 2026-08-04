@@ -163,19 +163,32 @@ revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
 
 ## Shared access between accounts
 
-One account can give another account on the same instance read access to its
-health record, which is how a household looks after each other without anybody
-sharing a password. Both people keep their own account, their own credentials
-and their own second factor.
+One account can give another account on the same instance access to its health
+record, which is how a household looks after each other without anybody sharing
+a password. Both people keep their own account, their own credentials and their
+own second factor.
 
-An invitation confers nothing until the person named on it accepts. Access is
-read-only, and the server refuses every write under a grant. It never carries
-the account around the record with it, so credentials, integrations,
-notification channels, exports, clinician links and grant management are refused
-rather than merely hidden from the screen. Either side can end it at any time,
-and it ends on the delegate's next request rather than at their next login. The
-owner sees who has access, when they accepted, when they last opened the record,
-and which days somebody else was in it.
+An invitation confers nothing until the person named on it accepts, and it names
+its level. Read lets somebody open the record and change nothing in it. Write
+adds a short, closed list: a reading, a lab result, a biomarker, an illness
+entry, a value on a metric the owner already tracks, a side effect against a
+drug, a medication, and marking a dose taken or skipped. Every one of those is a
+new entry. Editing, deleting, restoring and importing stay with the owner at
+both levels, on an entry the other person added a minute ago as much as on their
+own, and so does deferring one of the owner's reminders.
+
+An entry a delegate makes is stored as the owner's, because it is a fact about
+their body. Who wrote it is in the audit trail rather than on the row.
+
+A grant never carries the account around the record with it, so credentials,
+integrations, notification channels, exports, clinician links and grant
+management are refused rather than merely hidden from the screen, and a control
+the record will not accept is not drawn at all. An invitation can name the day
+the access lapses, and either side can end it before then, with effect on the
+delegate's next request rather than at their next login. The owner sees who has
+access, at which level, when they accepted, which days somebody else was in the
+record and what they contributed, and is told when somebody marks one of their
+doses.
 
 See [Give another account access to your record](/guides/shared-access/) for the
 steps and [What a shared record is](/explanation/record-sharing/) for the

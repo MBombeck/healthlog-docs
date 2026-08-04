@@ -62,10 +62,12 @@ looks like, or jump straight to
   read-only [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited
   share links you revoke after the visit.
 - **[Shared access](/guides/shared-access/) for a household.** One account can
-  give another account on the same instance read access to its record, so a
-  partner or an adult child can look after somebody without anybody sharing a
-  password. Nothing happens until the invitation is accepted, the access is
-  read-only, and either side can end it at any time.
+  give another account on the same instance access to its record, so a partner
+  or an adult child can look after somebody without anybody sharing a password.
+  Nothing happens until the invitation is accepted. A grant is either read, or
+  read plus a short closed list of entries the other person may add, and
+  changing or deleting what is already there is on neither list. Either side can
+  end it at any time.
 - **Private by construction.** AES-256-GCM
   [encryption at rest](/explanation/encryption-at-rest/) with zero-downtime key
   rotation, passkey login, server-side sessions, strict CSP, and no third-party

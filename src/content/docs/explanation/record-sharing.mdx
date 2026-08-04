@@ -1,14 +1,16 @@
 ---
 title: What a shared record is
-description: Why account sharing is a grant between two accounts rather than a shared login, why a delegate can read and not write, and what sharing does and does not change about your instance's trust model.
+description: Why account sharing is a grant between two accounts rather than a shared login, why the list of what a second person may write is short and closed, why their entries are stored as the owner's, and what sharing does and does not change about your instance's trust model.
 sidebar:
   order: 7
 ---
 
-Since v1.36.0 one account on an instance can give another account read access to
-its health record. This page is the reasoning: what that connection is, what it
-deliberately is not, and which of the instance's existing trust properties it
-leaves exactly as they were.
+Since v1.36.0 one account on an instance can give another account access to its
+health record, and since v1.36.1 that access carries a level: read, or read and
+add. This page is the reasoning: what that connection is, what it deliberately
+is not, why the list of things a second person may add is short and closed, and
+which of the instance's existing trust properties it leaves exactly as they
+were.
 
 For the steps, see
 [Give another account access to your record](/guides/shared-access/).
@@ -26,13 +28,14 @@ second factor and its own sessions. The permission is a row that names an owner,
 a delegate and a state, and every request the delegate makes is resolved against
 that row.
 
-Three properties are the whole of it, and each is decided in one place rather
+Four properties are the whole of it, and each is decided in one place rather
 than at each call site.
 
 **An invitation confers nothing.** A grant that has not been accepted fails the
-active check. Being handed read access to somebody's health record is not
-something the product imposes silently, and the acceptance with its timestamp is
-what the row records.
+active check. Being handed access to somebody's health record is not something
+the product imposes silently, and the acceptance with its timestamp is what the
+row records. That holds twice over at the write level, where accepting also
+means agreeing to put entries into somebody else's record under your own name.
 
 **A lapse date is checked live.** The check runs against the clock on the
 request that reads the row, not against a sweep that may or may not have run. A
@@ -43,16 +46,112 @@ place. A deleted row cannot answer "who had access, from when to when, and who
 ended it", and that question is the reason the table has the shape it does.
 Inviting the same person again mints a new row beside the old one.
 
-## Read, and not write
+**The level is fixed at the invitation.** A grant is offered as read or as
+write, and it stays what it was offered as. There is no widen call, no upgrade
+endpoint, and the absence is the design rather than a gap. Write access needs
+two consents: the owner's, because it is their record, and the delegate's,
+because they are being asked to write into somebody else's health record.
+Acceptance is the single moment those two meet, and it happens once. Raising a
+live grant afterwards would carry one consent, and it would not be the
+delegate's. The way up is a new invitation at the level meant, accepted again.
 
-Every grant in this release is a read grant. That is not a setting left at a
-cautious default; the access level is not a parameter anywhere in the request
-path, and the invite call hardcodes it. A field the domain layer then ignored
-would be the shape of a promise nobody kept.
+State outranks level everywhere. A pending, lapsed or revoked write grant
+permits nothing at all, and no level survives an expiry.
 
-So a delegate can read the record and cannot add a reading, correct an entry, or
-delete anything. The server refuses a write under a grant regardless of what a
-screen offers, which means the guarantee does not depend on the client behaving.
+## Why write is a list rather than a permission
+
+The reason to share a record is usually that a second person is doing something
+about it. Somebody takes the blood pressure, somebody watches the evening dose
+go down. Read-only access made them watch that happen and then ask the owner to
+type it in, which is the part that fails on a bad evening.
+
+So write exists. What it is not is the mirror image of read. Read is a large
+surface because looking at a record cannot damage it. Write is a list of eight
+acts, enumerated once, and the list is closed:
+
+- entering a reading, singly or in a batch;
+- entering a lab result, which may mint the analyte into the record's own
+  catalogue;
+- adding a biomarker to that catalogue;
+- opening an illness episode;
+- adding a value to a metric the owner already tracks;
+- recording a side effect against one of the owner's medications;
+- adding a medication with its schedule;
+- marking a dose taken or skipped.
+
+Every member of that list is a *create*. Nothing on it changes or removes
+anything that is already there, and that is the line the feature is built
+around. Correcting an entry, deleting one, restoring a deleted one, bulk
+actions, and importing a file are the owner's, and they stay the owner's on an
+entry the delegate created ten seconds ago with a typo in the dose. A caregiver
+who mistypes tells the owner, and the owner fixes it. That is one awkward
+sentence in a kitchen, against a delegate quietly rewriting history in somebody
+else's health record.
+
+Two absences on that list are decisions rather than oversights.
+
+**Deferring a reminder is not marking a dose.** From a medication card the two
+sit side by side and read as the same gesture, and they are not the same act at
+all. Recording that a dose went down is a fact about the owner's day. Pushing
+the owner's own reminder back is a change to the owner's schedule, made by
+somebody who does not have to live with the consequence. It stays with the
+owner, and so does changing a dose that is already recorded.
+
+**Allergies and family history are read, not written.** They are entered from a
+settings page, and settings is outside what sharing covers. Adding a write path
+for them would have meant opening a surface the grant deliberately closes, to
+carry two fields that are rarely urgent.
+
+The mechanism under all of this is the same default-deny arm that governs reads.
+A route serves a shared record only by declaring which mode it accepts, and a
+route that declares nothing refuses outright while a browser is acting on
+another account. Nine route modules declare write, and the set is frozen by a
+structural test, so a new endpoint cannot quietly join the list. Any unsafe
+method on a route that declared itself readable is treated as a write and
+refused under a read grant, which means a route cannot widen itself by accident
+either.
+
+## Why a delegate's entry is stored as the owner's
+
+An entry a delegate makes lands in the record under the owner's account. It is
+not tagged, not flagged, not shown differently, and not separable in an export.
+It reads exactly like an entry the owner typed themselves.
+
+That looks like the wrong answer for about a minute. The reasoning is that a
+blood-pressure reading is a fact about the owner's body. Who held the cuff is a
+fact about an evening. Storing the second one on the row would mean every chart,
+every average, every export and every clinician-facing surface has to decide
+what to do with a reading that belongs to two people, and the honest answer at
+each of those sites is "treat it as the owner's". A column that every reader
+resolves the same way is a column that should not exist.
+
+So authorship lives in the audit trail, which is where the question is actually
+asked. "Who put this here" has an answer months later without the record itself
+having to carry an asterisk, and the owner sees each act as it happens rather
+than discovering it in a diff.
+
+The cost is real and worth naming: the audit trail is bounded by
+`AUDIT_LOG_RETENTION_DAYS`, so the entry outlives the name attached to it. On an
+instance where households share records, shortening that retention shortens how
+long authorship is answerable.
+
+## A refused control is absent, not greyed out
+
+The server decides what a grant admits, and the interface agrees with it rather
+than guessing. A control the record will not accept is not rendered.
+
+The alternative was tried and is worse. A delegate opens a page inside somebody
+else's record, sees the button, fills the form, and is refused. Nothing leaks,
+because the refusal is correct, and the person still walks away believing the
+product is broken. A greyed-out button says "this exists and does not work for
+you". A control that is not there says "this is not part of what you were
+given", which is the truth.
+
+The banner carries what the absence cannot say on its own. It names the record
+and the mode in the same breath, at both levels: read-only says the record
+cannot be changed, and write says entries can be added but not changed or
+deleted. A person who cannot find the edit button reads the banner and knows
+why, without a chip on every control explaining itself.
 
 ## Why the account is not part of the record
 
@@ -84,11 +183,12 @@ record's data to a provider under a consent the record's *owner* gave, for the
 owner's own use. Somebody else triggering that would create a consent-shaped act
 the owner never made, so those surfaces stay owner-only.
 
-Forty-four read routes serve a shared record. Every route in the product refuses
-by default while a browser is acting on another account; a route becomes
-reachable only by declaring itself so, and the set of declared routes is frozen
-by a test. Adding a route therefore cannot silently widen a delegate's reach,
-because the default arm denies.
+Fifty-two route modules serve a shared record, and nine of those also accept a
+write. Every other route in the product refuses by default while a browser is
+acting on another account; a route becomes reachable only by declaring which
+mode it serves, and both declared sets are frozen by a test. Adding a route
+therefore cannot silently widen a delegate's reach, because the default arm
+denies.
 
 Two of the refusals are permanent rather than pending. A delegate cannot mint a
 clinician share link, because that would be a door surviving their own
@@ -107,6 +207,14 @@ What revocation cannot do is take back what was already seen. A person who had
 read access could have read, remembered, screenshotted or written down anything
 in the record. The product can close the door and cannot reach through it.
 Nothing in the interface implies otherwise, and neither does this page.
+
+Entries a delegate added stay too, and that is not a gap. They are the owner's
+rows, in the owner's record, and the owner has had every one of them named in
+the activity view since the moment it was written. Ending access removes the
+ability to add more. It is not an undo, and treating it as one would mean a
+revocation silently deleting health data the owner may well want to keep. What
+the owner keeps is the ordinary ability to correct or delete any of those rows,
+which they had all along and the delegate never did.
 
 ## What sharing does not change about your instance
 
@@ -132,7 +240,7 @@ this is worth stating plainly.
 ## Operator obligations
 
 Sharing needs no configuration and does nothing until one account invites
-another. Three consequences are yours to know about.
+another. Four consequences are yours to know about.
 
 **Invitations disclose whether a username exists.** An invitation to a name
 nobody uses is refused with "no account on this instance carries that name".
@@ -141,10 +249,23 @@ owner mistyped, which is the worse failure. The caller is already authenticated
 and the endpoint allows ten invitations an hour per account, which bounds how
 fast the surface could be walked.
 
-**Audit retention bounds what an owner can see.** The day-by-day view of who
-opened a record is built from audit rows, so `AUDIT_LOG_RETENTION_DAYS` sets how
-far back it reaches. The default is 365 days. Shortening it shortens that view,
-and the page says which number your instance uses rather than a hardcoded one.
+**Audit retention bounds what an owner can see.** The view of who opened a
+record and what they contributed is built from audit rows, so
+`AUDIT_LOG_RETENTION_DAYS` sets how far back it reaches. The default is 365
+days. Shortening it shortens that view, and the page says which number your
+instance uses rather than a hardcoded one.
+
+This matters more since write access exists. Authorship of a delegate's entry is
+held in the audit trail and nowhere else, so the retention window is the window
+in which "who entered this" is answerable at all. The entry itself is permanent.
+The name attached to it is not. On an instance where households share records,
+that is a retention decision rather than a housekeeping one.
+
+**Marking somebody's dose notifies them by default.** The event is on unless the
+owner turns it off, and it rides whichever channels they already enabled. On an
+instance with no channel configured it degrades to nothing, quietly, which is
+the ordinary behaviour of every other notification and worth knowing before
+somebody asks why they were not told.
 
 **Account deletion removes grants and keeps history.** Deleting an account
 removes the grants it is party to. Audit rows naming that account as the one who

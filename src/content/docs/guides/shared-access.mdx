@@ -1,6 +1,6 @@
 ---
 title: Give another account access to your record
-description: Invite someone on your instance to read your health record, see when they opened it, and end the access at any time. Read access only, and nothing happens until they accept.
+description: Invite someone on your instance to read your health record, or to read it and add to it. See what they did, end the access at any time, and know that nothing happens until they accept.
 sidebar:
   order: 26
 ---
@@ -12,14 +12,27 @@ household.
 
 Both people keep their own account, their own password and their own second
 factor. Nobody signs in as anybody else. What you are handing over is a grant
-from your account to theirs, and it does one thing: it lets them read your
-record.
+from your account to theirs, and that grant carries a level: it lets them read
+your record, or read it and add to it.
 
-:::note[Read access, nothing more]
-Access granted this way is read access. A delegate cannot add a reading, edit an
-entry, or change anything at all in your record, and the server refuses a write
-under a grant no matter what a screen offers. There is no setting that turns a
-grant into a writing one.
+:::note[Two levels, and neither of them is full access]
+A grant is either **read** or **write**. You choose when you send the
+invitation, and the choice is fixed for the life of that grant.
+
+Read lets somebody open your record and change nothing in it. Write lets them
+add entries from a short, closed list, set out under
+[What write access admits](#what-write-access-admits). Everything outside that
+list stays with you at both levels. Correcting an entry, deleting one, restoring
+from a backup and importing a file are yours alone, on an entry the other person
+added a minute ago exactly as much as on one of your own.
+
+There is no third level and no way to raise a grant you already sent. Moving
+somebody from read to write means ending the grant they have and inviting them
+again at the level you mean, which they accept again. Write access needs both
+consents, yours because it is your record and theirs because they are being
+asked to put something into somebody else's health record. Acceptance is the one
+moment those two meet, so it happens once per grant rather than being edited
+afterwards by one side.
 :::
 
 ## Before you start
@@ -38,11 +51,17 @@ list.
 1. Open **Settings → Shared access**.
 2. Under **Invite someone**, enter the username or e-mail address they sign in
    with.
-3. Choose **Send invitation**.
+3. Under **What they may do**, pick the level. **Can view** is the default and
+   is read access. **Can view and add** is the write level, and the form spells
+   out underneath it exactly what adding covers.
+4. Optionally fill in **Access ends on**. Leave it empty and the grant runs
+   until somebody ends it.
+5. Choose **Send invitation**.
 
 Nothing is shared yet. The invitation sits in their own settings and gives them
 nothing until they accept it, and until then your record is exactly as private
-as it was a minute ago.
+as it was a minute ago. The level travels with the invitation, so what they
+accept is what you offered.
 
 If the name you typed does not belong to an account on this instance, the form
 says so rather than creating a pending invitation nobody will ever see. That is
@@ -67,19 +86,60 @@ Acceptance is the moment access begins, and the grant row keeps the timestamp.
 Once an invitation is accepted, the record appears in the user menu under **Open
 a record**. Choosing it reloads the app into that person's record.
 
-A strip across the top of every page names whose record is open and says it is
-read-only, with a button back to your own. It is loud on purpose. Somebody who
-forgets they are switched will try to log their own weight into another person's
-record, and an entry that was never theirs is a mess to unpick.
+A strip across the top of every page names whose record is open and which of the
+two levels applies, with a button back to your own. At the read level it says
+"You can read it, not change it." At the write level it says "You can add to it,
+but not change or delete what is there." It is loud on purpose. Somebody who
+forgets they are switched will read the wrong week, or at the write level log
+their own weight into another person's record, and an entry that was never
+theirs is a mess to unpick.
 
 To leave, use the button in the strip or pick **My own record** from the same
 menu.
+
+## What write access admits
+
+The write level is a list, not a permission. These are the things a delegate may
+add to your record, and the list is the whole of it.
+
+- A measurement, single or in a batch. Weight, a blood-pressure reading, a
+  glucose value, anything the record tracks as a reading.
+- A lab result. If the result names an analyte your catalogue has never seen,
+  that analyte is added to your catalogue with it.
+- A biomarker in your catalogue, on its own.
+- An illness episode.
+- A value on one of the custom metrics you already track. They cannot invent a
+  metric for you.
+- A side effect recorded against one of your medications.
+- A medication, with its schedule.
+- Marking a dose taken or skipped.
+
+Everything else is refused, including the obvious neighbours of the things on
+the list. A delegate can add a medication and cannot correct the one they added
+ten seconds ago with a typo in the dose. They can enter a reading and cannot
+delete it. Editing, deleting, restoring a deleted entry, bulk actions and
+importing a file are the owner's, always, whoever created the row.
+
+Saving confirms where the entry went, naming the record by its owner, so a
+mistake is visible at the moment it happens rather than a week later.
+
+Two refusals are worth naming because a caregiver will run into them.
+
+**Deferring one of your reminders is yours alone.** Marking a dose and pushing a
+reminder back an hour look like the same action from the medication card, and
+they are not. Somebody with write access can record that a dose went down or was
+skipped. Postponing the reminder you set for yourself is not part of what they
+were given, and neither is changing a dose that is already recorded.
+
+**Allergies and family history are not on the list.** They are read, not
+written, under a grant. The only place to enter them is a settings page, and
+settings is outside what sharing covers.
 
 ## What a delegate sees, and what they do not
 
 **They can read the health record.** Measurements and charts, medications and
 the dose history, mood entries, lab results, the illness journal, preventive-care
-reminders, stored documents.
+reminders, stored documents. That is the same at both levels.
 
 **They cannot reach anything about the account around the record.** Not the
 password, passkeys, second factor or recovery codes. Not the sessions or trusted
@@ -94,24 +154,52 @@ invite a third person nor pass their access on.
 Display preferences stay with the person at the keyboard. Reading somebody
 else's record does not change your own theme, language or dashboard layout.
 
-These are refusals the server makes, not screens that happen to be hidden. The
-reasoning is written up in
+These are refusals the server makes rather than screens that happen to be
+hidden. What the screens do is match them: a control the record will not accept
+is simply not drawn, so a delegate never fills in a form that was going to be
+turned down. A read-level delegate sees no add buttons at all. A write-level
+delegate sees the eight kinds of entry above and no edit or delete controls
+anywhere. The reasoning is written up in
 [What a shared record is](/explanation/record-sharing/).
 
-## See when your record was opened
+## Whose entry is it
+
+An entry a delegate makes is stored as yours. It carries your account, appears
+in your charts and exports, and reads the same as anything you typed in
+yourself. It is a fact about your body, and it belongs in your record whoever
+happened to be holding the phone.
+
+Who wrote it down is kept in the audit trail rather than on the row. That is a
+deliberate split. The record stays one person's, so nothing in it has to be
+read twice to work out whether it counts, and the question "who put this here"
+still has an answer months later.
+
+## See what the access is being used for
 
 **Settings → Shared access** answers three questions for the owner at any time.
 
-- **Who can open my record** lists everybody with access, when they accepted,
-  and when they last opened it. Access that has ended stays on the list, so you
-  can always see who had it and between which dates.
+- **Who can open my record** lists everybody with access, at which level, when
+  they accepted, and when they last opened it. Access that has ended stays on
+  the list, so you can always see who had it and between which dates.
 - **When my record was opened** is a day-by-day view: one line per person per
   day, with how many times.
+- The same view names what was done, not only that somebody was there. A line
+  reads "added a reading", "marked a dose", "entered a lab result", and a
+  refused attempt is on the list too, as "tried to change a dose or defer a
+  reminder, and was refused". Nothing a delegate adds is silent, and nothing
+  they add is disguised as your own doing.
 
-That second list is bounded by your instance's audit retention, which defaults
-to 365 days and is set with `AUDIT_LOG_RETENTION_DAYS`. The page prints the
-number your instance actually uses. An empty list means nobody opened the record
-inside that window, not that nobody ever did.
+That view is bounded by your instance's audit retention, which defaults to 365
+days and is set with `AUDIT_LOG_RETENTION_DAYS`. The page prints the number your
+instance actually uses. An empty list means nobody opened the record inside that
+window, not that nobody ever did.
+
+Marking a dose also reaches you at the time it happens. When somebody with write
+access records one of your doses as taken or skipped, you are notified on
+whatever channels you already have switched on, naming the person and the
+medication. It is on by default and turns off like any other notification under
+**Settings → Notifications**. A dose you mark yourself never notifies you, and a
+deferred reminder never notifies anybody, because a delegate cannot defer one.
 
 ## End the access
 
@@ -140,14 +228,21 @@ old one, and they have to accept again.
 
 ## Access that lapses on a date
 
-A grant can carry a date it lapses on, checked against the clock on every
-request rather than by a sweep that may not have run. A grant one second past
-that date is already inert.
+A grant can carry a date it lapses on, set in the **Access ends on** field when
+you send the invitation. The date is checked against the clock on every request
+rather than by a sweep that may not have run, so a grant one second past it is
+already inert.
 
-The settings form does not ask for a date, so an invitation you send from
-**Shared access** runs until somebody ends it, which is the common household
-case. If you want a lapse date, send the invitation through the API instead and
-pass `expiresAt` on `POST /api/account/grants`. See
+The field is optional and empty by default, because the common household case is
+access that simply runs. It earns its place when the access has a known end: a
+stay in hospital, a course of treatment, a relative visiting for a month. The
+earliest date you can pick is tomorrow, and the access runs to the end of the
+day you name.
+
+The date is fixed when the invitation is sent. There is no screen for extending
+or shortening it afterwards, so a different date means ending the grant and
+inviting again. Through the API it is `expiresAt` on
+`POST /api/account/grants`. See
 [Shared access endpoints](/reference/api-endpoints/#shared-access).
 
 ## Sharing with a clinician is a different thing
@@ -164,7 +259,7 @@ inside your record. See
 Nothing to configure. Sharing is available on every instance, needs no
 environment variable, and does nothing until one account invites another.
 
-Two things are worth knowing before somebody asks.
+Three things are worth knowing before somebody asks.
 
 - An invitation to a username nobody uses is refused by name, which tells the
   caller that the name is free. The caller is already authenticated and is
@@ -174,6 +269,12 @@ Two things are worth knowing before somebody asks.
   account as the one who opened somebody's record stay and render as "a deleted
   account", because nulling them would turn "your daughter opened your record"
   into "you opened your record".
+- Write access raises what your audit retention is worth. Authorship of a
+  delegate's entry lives in the audit trail and nowhere else, so
+  `AUDIT_LOG_RETENTION_DAYS` is the window in which "who entered this" has an
+  answer. The entry itself is permanent; the name attached to it is not.
+  Shortening the retention on an instance where households share records is a
+  decision, not a tidy-up.
 
 Backups do not carry grants. Restoring onto the same instance leaves shared
 access exactly as it was; restoring onto a fresh instance means both people have

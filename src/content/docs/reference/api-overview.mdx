@@ -67,16 +67,26 @@ runtime check future code can soften.
 or the Bearer token and feeds the Prisma `where` clause directly.
 
 :::note[Acting on a shared record since v1.36.0]
-A caller can hold read access to another account's record, and on the routes
-that allow it the `userId` in the `where` clause is then the record owner's
-rather than the caller's. That substitution never comes from the request body
-either. It comes from an account selector the caller names, checked against a
-live grant row on **every** request, and it only happens on a route that has
-declared itself safe to serve under a grant. The set of such routes is frozen by
-a structural test; every other route refuses with `403`
+A caller can hold access to another account's record, and on the routes that
+allow it the `userId` in the `where` clause is then the record owner's rather
+than the caller's. That substitution never comes from the request body either.
+It comes from an account selector the caller names, checked against a live grant
+row on **every** request, and it only happens on a route that has declared which
+mode it serves under a grant. Both declared sets are frozen by a structural
+test; every other route refuses with `403`
 (`meta.errorCode: sharing.not_permitted`) rather than falling back to the
 caller's own record, because answering with the wrong person's health record is
 worse than refusing.
+
+Since v1.36.1 a grant carries a level, so the substitution can apply to a write
+as well as a read. Nine route modules declare write, out of fifty-two that serve
+a shared record at all, and every one of them creates a row rather than changing
+one. The row belongs to the record owner exactly as if they had entered it
+themselves; authorship of the write rides the audit row, not the data row. An
+unsafe method on a route that declared itself readable counts as a write
+whatever the route intended, so a read-level grant refuses it (`403`,
+`meta.errorCode: sharing.access.denied`) and a route cannot widen itself by
+gaining a verb.
 
 Cookie clients name the account with `POST /api/account/switch`; Bearer clients
 send the `X-HealthLog-Account` header per request and are refused by the switch

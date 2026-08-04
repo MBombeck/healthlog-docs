@@ -90,7 +90,7 @@ avatar, source priority, and the Codex device-OAuth flow.
 
 ## Shared access
 
-One account's standing permission to read another's record. See
+One account's standing permission on another's record, at `READ` or `WRITE`. See
 [Give another account access to your record](/guides/shared-access/).
 
 | Method | Endpoint | Notes |
@@ -99,13 +99,32 @@ One account's standing permission to read another's record. See
 | `POST` | `/api/account/grants/{id}/accept` | The delegate accepts. Until this lands, the grant confers nothing |
 | `POST` | `/api/account/grants/{id}/renounce` | The delegate hands the access back |
 | `DELETE` | `/api/account/grants/{id}` | The owner withdraws. Stamps the row, never deletes it |
-| `GET` | `/api/account/activity` | Day-coalesced record of who opened the caller's record |
+| `GET` | `/api/account/activity` | Day-coalesced record of who opened the caller's record, and what they contributed. Owner-only, never served under a grant |
 | `POST` | `/api/account/switch` | Point this browser session at a record, or back at its own with `accountId: null`. Cookie transport only |
 
 `POST /api/account/grants` takes `identifier` (the invitee's username or e-mail,
-matched case-insensitively, the same identifier they sign in with) and an
-optional `expiresAt`. Omitted or `null` means the grant runs until somebody ends
-it. The access level is not a parameter: every grant is `READ`.
+matched case-insensitively, the same identifier they sign in with), an optional
+`access` of `READ` or `WRITE` defaulting to `READ`, and an optional `expiresAt`.
+Omitted or `null` means the grant runs until somebody ends it.
+
+`access` is fixed at the invitation. No endpoint raises, lowers or otherwise
+edits a live grant's level, and none is planned: write access is two consents
+meeting once at acceptance, so moving somebody between levels means ending their
+grant and inviting them again at the level you mean. `GET /api/account/grants`
+reports `access` on every row, and `/api/auth/me` reports the active one
+lowercased as `access` plus a `canWrite` boolean. `canWrite` means "may create
+entries from the delegable write set" and never means edit or delete.
+
+A `WRITE` grant admits nine route modules, out of fifty-two that serve a shared
+record at all. Every one of them is a create. On a route that declared itself
+readable, any unsafe method is treated as a write and refused under a `READ`
+grant (`403`, `meta.errorCode: sharing.access.denied`); a route that declared
+nothing refuses outright (`403`, `meta.errorCode: sharing.not_permitted`). The
+canonical intake route carries two further refusals that are not level failures
+at all: deferring a reminder, and changing a dose that is already recorded, are
+the owner's whatever the grant says. Both answer `403` with
+`meta.errorCode: sharing.not_permitted` and file an audit row under the owner,
+so a refused attempt is visible to them rather than silent.
 
 :::note[Naming the record on each transport]
 `POST /api/account/switch` is a browser-session feature. A Bearer caller gets

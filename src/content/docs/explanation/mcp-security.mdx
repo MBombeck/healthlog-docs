@@ -143,8 +143,9 @@ removes exactly the access it granted, no more and no less.
 The last row is worth stating rather than leaving to inference. Account sharing
 is resolved in the REST request handler, and the MCP endpoint runs its own
 Bearer resolver that never reaches that code. An MCP token therefore means one
-record and always the minting account's own, so somebody who holds read access
-to a relative's record cannot point an assistant at it.
+record and always the minting account's own, so somebody who holds access to a
+relative's record cannot point an assistant at it, and a write-level grant does
+not become a write-level connector either.
 
 This is the same philosophy as the rest of the platform: see
 [Privacy architecture](/explanation/privacy-architecture/) for what leaves the
