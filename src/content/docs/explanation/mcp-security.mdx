@@ -138,6 +138,14 @@ removes exactly the access it granted, no more and no less.
 | With a write scope, append a single self-reported measurement, mood, or blood-pressure reading after an explicit confirm | Edit or delete any existing row, change a medication or schedule, write a lab, or export data |
 | See only what it asks for, one record at a time, each with a citation deep-link | Use a `health:write` token as a general REST write credential |
 | Be revoked at any time under **Settings → MCP** | Reach the screeners, environmental signals, structured records, or document store — none are on the exposure allowlist |
+| Read the record of the account that minted it, and only that one | Follow a [shared-access grant](/explanation/record-sharing/) into another account's record, even one the connecting user can open in the browser |
+
+The last row is worth stating rather than leaving to inference. Account sharing
+is resolved in the REST request handler, and the MCP endpoint runs its own
+Bearer resolver that never reaches that code. An MCP token therefore means one
+record and always the minting account's own, so somebody who holds access to a
+relative's record cannot point an assistant at it, and a write-level grant does
+not become a write-level connector either.
 
 This is the same philosophy as the rest of the platform: see
 [Privacy architecture](/explanation/privacy-architecture/) for what leaves the

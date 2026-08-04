@@ -171,6 +171,30 @@ switch off, or pair it with a no-training BYOK key or a local model. See the
 [vault guide](/guides/document-vault/#reading-documents-with-ai--automatic-search)
 for how the readers are chosen.
 
+Since v1.30.32, switching it on also catches up on documents already in your
+vault instead of only applying to new uploads. The catch-up re-asserts the
+consent and the daily budget per document; it grants nothing extra.
+
+## Withdrawing AI consent
+
+AI settings show the standing consent decision in plain words and carry the
+control that changes it. Withdrawing takes effect immediately: the consent gate
+fails closed without an active receipt, so every AI surface falls back to its
+no-consent state on the next call. Nothing you have recorded is deleted by a
+withdrawal — that is the export/erase path under **Data & Privacy**.
+
+Two things changed in v1.30.32 that are worth knowing if you used an earlier
+release:
+
+- **A withdrawn consent stays withdrawn.** Opening the AI settings used to grant
+  consent again if you had taken it back, and recorded it as though you had done
+  it yourself. A withdrawal is now a standing decision that only an explicit act
+  lifts.
+- **The web can withdraw at all.** The revoke endpoint has existed since
+  v1.4.40, but only the native client ever called it; on the web, consent could
+  be given and never taken back. Withdrawal now sits on the same surface as the
+  grant.
+
 ## Connection test
 
 `POST /api/ai/test` runs a one-shot probe against the resolved provider and

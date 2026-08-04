@@ -76,6 +76,14 @@ rejects timestamps before the medication existed, and warns when the new time
 sits more than 48 hours from the scheduled slot — so a day/month typo cannot
 silently corrupt the today view.
 
+:::note[Somebody marking a dose in your record]
+If you have given another account [write access](/guides/shared-access/) to your
+record, they can mark a dose taken or skipped, and you are notified when they
+do. They cannot snooze it. Pushing back a reminder you set for yourself is a
+change to your schedule rather than a note about your day, so it stays with you,
+as does changing a dose that is already recorded.
+:::
+
 ## Attribute an off-schedule dose to its slot
 
 When an intake lands off schedule, the **Verlauf** (history) row shows when the
@@ -99,6 +107,13 @@ cascade and the per-channel setup.
 The **Bestand** tab tracks a supply count and surfaces a runway ("X days left").
 For injections, a site-rotation picker and structured side-effect tracking live
 under the advanced sections.
+
+A container in that tab can also carry the **manufacturer** and the **strength
+printed on the carton** (v1.30.34). Both are optional and both are blank on
+containers created before that release — a blister pack or a bottle has no use
+for either. They matter for pens: the companion app's pen list uses the two as
+its headline and subhead, so a container entered on the web could not be shown
+there until the server held them.
 
 ## See a medication's effect on a metric
 

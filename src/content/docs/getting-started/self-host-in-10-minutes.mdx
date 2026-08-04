@@ -53,7 +53,7 @@ longer if you also want a TLS-fronted public hostname (see
    | --- | --- | --- |
    | `POSTGRES_PASSWORD` | Bundled Postgres password — used by both the `db` service and the derived `DATABASE_URL` | Database restart |
    | `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets (provider tokens, AI keys, VAPID secrets) | Coordinated; see [key rotation](/guides/encryption-key-rotation/) |
-   | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer API tokens before storage | Invalidates every issued `hlk_*` token |
+   | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer API tokens **and web session cookies** before storage | Invalidates every issued `hlk_*` token **and signs out every browser session** |
 
    There is no connection string to edit: the compose file derives
    `DATABASE_URL` from `POSTGRES_PASSWORD` in its `environment:` block, and
@@ -85,7 +85,10 @@ Registration stays open after the first admin so you can invite the rest of
 your household — but on a publicly reachable host that means strangers can
 still sign up. Once everyone has an account, turn it off via the `/admin`
 registration toggle, or keep it closed and hand out
-[invite links](/guides/invites/) instead.
+[invite links](/guides/invites/) instead. Give every household member their own
+account rather than one shared login: if somebody needs to see another person's
+readings, that is a [shared-access grant](/guides/shared-access/) between two
+accounts, which stays revocable and leaves each person's credentials their own.
 
 **Save the admin password in a manager.** No email is configured out of the
 box, so password reset has no self-service path until you set up SMTP (see

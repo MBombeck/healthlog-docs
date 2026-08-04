@@ -33,6 +33,21 @@ The same consensus paper sets the bar for a *time*-based report: roughly 14 days
 
 Below a minimum of readings over a minimum span of days, the panel holds back entirely with a calm "still learning" state rather than asserting a confident share off thin data. A burst of readings inside one day cannot stand in for two weeks of behaviour, so both a count *and* a span are required.
 
+## Which reference band a single reading is judged against
+
+Time-in-range above uses the consensus bands, which do not move. A *single* reading is a different question: the same fasting value can read as slightly high against general non-diabetic ranges and as comfortably on-goal against the ADA treatment goals. Which band applies is a declared preference, never something inferred from your numbers.
+
+The **glucose reference band** setting lives under **Settings → Targets**, above the per-metric target editor, and has been settable on the web since v1.30.34 — before that the setting existed and already fed the coach, but nothing on the web could set it. With it on, the resolver applies the ADA glycemic **goal** bands for someone treating diabetes:
+
+| Context | Goal band (mg/dL) |
+| --- | --- |
+| Fasting / pre-prandial | 80–130 |
+| Peak post-prandial | 80–180 |
+
+Those are the ADA Standards of Care §6 goals. They are *goals*, not screening thresholds — a fasting 80 is on-goal for someone managing diabetes and would read differently on a general screening band. With the setting off, the general non-diabetic ranges apply.
+
+Two boundaries hold: the setting **selects a reference range and is never a diagnosis**, and it is **never inferred from a reading**. A per-metric override in the editor below it still beats it.
+
 ## Glucose Management Indicator (GMI)
 
 GMI translates your mean glucose into the A1C-like percentage a CGM report would show:

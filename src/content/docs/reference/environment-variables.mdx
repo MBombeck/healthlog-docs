@@ -29,7 +29,15 @@ The app refuses to boot without these.
 | `NEXT_PUBLIC_APP_URL` | Public URL embedded in OAuth redirects, webhook callbacks, deep links. |
 | `APP_URL` | Server-side mirror of the above, used by background workers. Must match. |
 | `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets. 64 hex chars. Required unless `ENCRYPTION_KEYS` is set. |
-| `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer tokens. 64 hex chars. |
+| `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer tokens, refresh tokens and web session cookies. 64 hex chars. |
+
+:::caution[Rotating `API_TOKEN_HMAC_KEY` signs everyone out]
+Since v1.30.33 the browser session cookie is a random secret stored only as an
+HMAC under this key, the same way Bearer and refresh tokens already were.
+Rotating the key therefore invalidates every issued `hlk_*` token **and** every
+browser session — users sign in again, and any automation holding a token needs
+a new one. Plan it like a password change, not a config tweak.
+:::
 
 ## Encryption key map
 

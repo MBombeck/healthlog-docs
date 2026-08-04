@@ -39,6 +39,29 @@ does not exercise the affected tables, so the container stays "healthy" and a
 naïve load balancer routes real traffic into the broken shell.
 :::
 
+## Migrations in the v1.30 line
+
+Three migrations shipped between v1.30.15 and v1.30.34. All three are additive
+and need no operator action beyond the normal `migrate deploy`:
+
+| Migration | Release | What it adds |
+| --- | --- | --- |
+| `0254_document_summary_state` | v1.30.31 | A state column on documents so the four summary outcomes can be told apart. Documents that already hold a summary are moved to `READY`; every other pre-existing row is truthfully "not attempted". |
+| `0255_session_token_hash` | v1.30.33 | A nullable hash column on sessions for the new cookie shape. |
+| `0256_medication_inventory_pen_labelling` | v1.30.34 | Manufacturer and printed strength on an inventory container, both nullable. |
+
+:::note[v1.30.33 does not sign anyone out]
+`0255` is nullable on purpose. Every session that exists when you deploy keeps a
+`NULL` hash and stays resolvable the old way, so nobody is logged out. Those rows
+cannot have their sliding expiry extended, so the old scheme drains itself within
+the normal 30-day session lifetime with no operator action. Every sign-in from
+v1.30.33 onward uses the new scheme.
+
+What *does* sign everyone out is rotating `API_TOKEN_HMAC_KEY`, which now keys
+session cookies as well as API tokens — see
+[environment variables](/reference/environment-variables/).
+:::
+
 ## Rolling back
 
 Rolling back **migrations** is generally one-way (Prisma's `down` step is not

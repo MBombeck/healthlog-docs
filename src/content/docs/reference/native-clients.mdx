@@ -7,6 +7,8 @@ sidebar:
 
 The web PWA uses cookie sessions; native clients (the HealthLog iOS app, n8n, Health Connect bridges, custom shortcuts) authenticate with [bearer tokens](https://datatracker.ietf.org/doc/html/rfc6750) — an opaque credential sent in the `Authorization: Bearer …` header that the server resolves to a user on every request. Both flows share the same handlers, so every protected route accepts either credential.
 
+Since v1.36.0 a request can also name a record other than the caller's own, when the caller holds a [shared-access grant](/guides/shared-access/) on it. A Bearer client names it with an `X-HealthLog-Account: <accountId>` header on each request it wants scoped that way. `POST /api/account/switch` is cookie-only and refuses a Bearer caller with `400` (`meta.errorCode: sharing.switch.wrong_transport`), because a token has to keep meaning one person for as long as it exists and must never accumulate switch state. The header is honoured only on routes that declared themselves safe to serve under a grant, and the grant is re-read from the database on every request, so a revocation lands on the very next call rather than at the next login. See [Shared access](/reference/api-endpoints/#shared-access).
+
 ## Token Issuance
 
 `POST /api/auth/login` and `POST /api/auth/passkey/login-verify` return a bearer token in the response body when the request opts in as a native client.
@@ -100,8 +102,10 @@ If the same APNs / FCM token is already registered to a **different** account, t
 
 ## Token Storage (Server-Side)
 
-Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [external-ingest](/reference/api-endpoints/) token verification.
+Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [external-ingest](/reference/api-endpoints/) token verification. Since v1.30.33 web session cookies use the same storage shape — a random secret in the cookie, only its HMAC in the database.
 
-:::tip
-For long-running automation (n8n, Home Assistant, Health Connect bridges), prefer a long-lived API token created from **Settings → API & Tokens** instead of the 24-hour access tokens — same auth header, no refresh dance.
+:::tip[Long-lived tokens are minted per medication]
+For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens — same auth header, no refresh dance. The token is scoped to intake for that medication, and since v1.30.17 every route that does not declare that scope refuses it.
+
+The generic **create API token** button under **Settings → API & Tokens** is gone as of v1.30.17: the token it produced never worked for the medication intake it advertised, while reaching everything else. That page still lists and revokes existing tokens.
 :::

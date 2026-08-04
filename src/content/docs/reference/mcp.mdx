@@ -38,6 +38,27 @@ Discover before fetching: call `list_metrics` (or read the
 `healthlog://measurements/inventory` resource) first to see what exists, then
 fetch with the matching tool or resource template.
 
+### Module switches apply here too
+
+Since v1.30.23 a connected assistant honours the **module switches** under
+**Settings → Modules**. With a module off, its tools, resources and prompts stop
+returning that data — including the full doctor summary, which a connected
+assistant could previously read regardless. The same release closed the gap on a
+shared clinician link. Nothing is deleted; turning a module back on finds the
+history complete.
+
+### A read-only connector is refused at the write
+
+A connector token minted read-only is now refused **at the write itself**
+(v1.30.29), not merely by never being offered a write tool. The protection was
+real before, but it rested entirely on how the connection was assembled — a
+future change to that assembly could have opened writing with no test noticing.
+Any write added later inherits the check.
+
+The same release made the boundary around your own text explicit: names and free
+text read out of your records carry an explicit data boundary when handed to a
+connected assistant, matching what the app already does for its own coach.
+
 ### Windows
 
 The windowed reads accept one of five fixed trailing windows: `last7days`,

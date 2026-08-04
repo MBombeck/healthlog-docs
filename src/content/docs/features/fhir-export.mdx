@@ -41,4 +41,6 @@ Instead of handing a clinician a bearer token, you can create a scoped, time-lim
 - Each link carries an explicit expiry (`expiresAt`) and can be revoked at any time (`revokedAt`); a link is active only while it is unrevoked and unexpired.
 - Share links **do not** expose the FHIR REST API. The capability flag `allowFhirApi` defaults to `false`, so a share link is a human-readable view, not a programmatic FHIR endpoint.
 
-The two surfaces are deliberately separate: the FHIR API is for system-to-system integration behind a token scope; the share link is for handing a person a read-only view. A share link granting API access is a future consideration, not the current behaviour.
+The two surfaces are deliberately separate: the FHIR API is for system-to-system integration behind a token scope; the share link is for handing a person with no account a read-only view. A share link granting API access is a future consideration, not the current behaviour.
+
+Giving access to somebody who *does* have an account on your instance is a third surface, [shared access](/guides/shared-access/), and it does not touch either of these. A delegate cannot export your record, cannot reach the FHIR API, and cannot mint a share link, at either grant level. A write grant admits a short, closed list of entries somebody may add to a record; taking a copy of one out is on no list at all.

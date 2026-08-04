@@ -61,6 +61,13 @@ looks like, or jump straight to
 - **Clinician-ready output.** A doctor-report PDF generated client-side, a
   read-only [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited
   share links you revoke after the visit.
+- **[Shared access](/guides/shared-access/) for a household.** One account can
+  give another account on the same instance access to its record, so a partner
+  or an adult child can look after somebody without anybody sharing a password.
+  Nothing happens until the invitation is accepted. A grant is either read, or
+  read plus a short closed list of entries the other person may add, and
+  changing or deleting what is already there is on neither list. Either side can
+  end it at any time.
 - **Private by construction.** AES-256-GCM
   [encryption at rest](/explanation/encryption-at-rest/) with zero-downtime key
   rotation, passkey login, server-side sessions, strict CSP, and no third-party
@@ -75,6 +82,11 @@ try to be a ring or a strap; instead it aggregates the readings your devices
 already collect, plus the ones they do not hold (cuff blood pressure,
 finger-stick or CGM glucose, medication intake), and keeps them on hardware you
 control. See [how it compares](/features/#how-it-compares).
+
+A household is a normal shape for an instance. Everybody gets their own account
+rather than sharing one, and if one person needs to keep an eye on another's
+readings, that is a [shared-access grant](/guides/shared-access/) between the two
+accounts.
 
 ## Status
 
