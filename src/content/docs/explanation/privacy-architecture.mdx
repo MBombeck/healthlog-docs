@@ -136,3 +136,10 @@ the whole answer to it. The instance operator can always reach the database, an
 admin account on the instance can reach health data directly, and any account
 you granted access to can read your record until you end it.
 [What a shared record is](/explanation/record-sharing/) covers all three.
+
+Three outbound calls happen without you configuring anything: a breached-password
+check that sends five characters of a hash, a geo lookup for the login history
+that sends the signing-in IP, and a daily release check against GitHub. Each is
+named with its off-switch on
+[Security and privacy](/security/overview/#what-leaves-the-instance), which also
+carries the commands that verify the image you are running.

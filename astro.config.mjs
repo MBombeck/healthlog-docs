@@ -182,6 +182,12 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Security & Privacy',
+					items: [
+						{ slug: 'security/overview', label: 'Security and privacy' },
+					],
+				},
+				{
 					label: 'Project',
 					items: [
 						{ slug: 'account/data-deletion' },

@@ -1,0 +1,258 @@
+---
+title: Security and privacy
+description: The consolidated security statement for HealthLog — encryption at rest, what leaves the instance, the threat model, and the commands that verify the image you are about to run.
+sidebar:
+  order: 0
+---
+
+This page is the one place that states what HealthLog protects, what it does
+not, and how you check the claims yourself instead of taking them on trust.
+Nothing here is a certification. A SOC 2 or HIPAA attestation certifies the
+*operator* of a hosted service, and on a self-hosted instance the operator is
+you, so buying one would say nothing about the software. What can be verified is
+the software: the image is signed, the build is attested, the ingredient list
+ships with it, and every claim below points at the file or the command that
+backs it.
+
+## The short version
+
+| Claim | How you check it |
+| --- | --- |
+| Secrets are encrypted at rest with AES-256-GCM | [Encryption at rest](/explanation/encryption-at-rest/), `src/lib/crypto.ts` |
+| No usage telemetry, no third-party trackers | [What leaves the instance](#what-leaves-the-instance) below, and the strict CSP in `src/proxy.ts` |
+| The image was built by this repository's release workflow | `cosign verify`, [below](#verify-the-image-you-run) |
+| The image contents are enumerable | SBOM attestation, [below](#the-ingredient-list) |
+| Vulnerabilities have a private reporting path | [SECURITY.md](https://github.com/MBombeck/HealthLog/blob/main/SECURITY.md) |
+
+## Encryption at rest
+
+Sensitive stored values are encrypted with **AES-256-GCM**, an authenticated
+mode, so a tampered or truncated ciphertext is rejected on decrypt rather than
+decoding into garbage. Each value gets a random 12-byte IV and is stored as
+`iv ‖ tag ‖ ciphertext`, base64-encoded, behind a key id:
+
+```
+<keyId>.<base64(iv ‖ tag ‖ ciphertext)>
+```
+
+The key id indexes into an `ENCRYPTION_KEYS` JSON map, which is what makes
+zero-downtime rotation possible. Several keys coexist, new writes use the active
+one, and a rotation script re-wraps old rows on its own schedule while the app
+keeps serving. The operator procedure is
+[Rotate the encryption key](/guides/encryption-key-rotation/).
+
+What is encrypted is the class of values that would let an attacker pivot
+outward or impersonate you: provider access and refresh tokens, bring-your-own
+AI keys, VAPID secrets, notification channel credentials, the Coach
+conversation, and even the last integration error string, because upstream
+errors have a habit of echoing secrets back. Measurements themselves are not
+column-encrypted; they are the rows you query and chart constantly, and they sit
+on a database you already control.
+
+The defining property is that **every failure path throws**. A missing key,
+malformed key JSON, an unknown key id, a legacy ciphertext with no `v1` key
+configured: each raises rather than degrading to plaintext. The usual
+encryption-at-rest bug is a fallback that writes the value in the clear "just
+this once" and nobody notices for a year. A misconfigured key here takes the
+feature down loudly instead, which is the trade the project wants.
+
+The practical corollary during a rotation: keep the old key in the map until the
+rotation script reports zero remaining rows on it. Drop it early and those rows
+become undecryptable, and the app will tell you so rather than paper over it.
+
+## What leaves the instance
+
+HealthLog sends **no usage telemetry**. There is no analytics beacon, no
+crash reporting by default, no anonymous statistics, no fonts from a CDN, no tag
+manager, no embedded tracker. The strict Content-Security-Policy with a
+per-request nonce and a surgical `connect-src` makes that enforceable rather
+than promised, and there are no CORS headers anywhere outside the documented
+webhook routes, which authenticate by header secret rather than by cookie.
+
+Most outbound traffic exists only because you asked for it: an AI provider you
+configured, a device vendor you connected, a notification channel you turned on.
+[Privacy architecture](/explanation/privacy-architecture/) walks each of those
+flows.
+
+Three outbound calls happen without you configuring anything, and they are worth
+naming rather than rounding the claim up to "nothing leaves".
+
+| Destination | When | What is sent | How to stop it |
+| --- | --- | --- | --- |
+| `api.pwnedpasswords.com` | A password is set, changed, or admin-reset | The first five hex characters of the SHA-1 of the candidate password, and nothing else. The remaining 35 characters are matched locally against the response, so neither the password nor its full hash crosses the network. The request carries `Add-Padding: true` so the response size does not leak which bucket was queried. | Block the host at the network level. The check fails open, so setting a password still works. |
+| `ipwho.is` | A sign-in is geo-resolved for the login-history surface | The IP address of the person signing in | Ship the offline GeoLite2 databases (see [Environment variables](/reference/environment-variables/)), which are consulted first, or set `IP_GEO_LOOKUP_DISABLED=1`. `IP_GEO_LOOKUP_URL` points the lookup at a different provider. |
+| `api.github.com` | At most once a day, when a signed-in user views a surface that shows the version | Nothing about the instance beyond the request itself. The route reads the latest release tag and compares it locally. | Block the host at the network level. The check reports `unknown` and the UI carries on. |
+
+None of the three carries health data. The first two carry something worth
+knowing about: a password prefix, and a login IP. Both are documented above
+rather than filed under "outbound connections only to services you configured",
+because that sentence would be tidier than the truth.
+
+Every outbound call from server code goes through a single `safeFetch` wrapper
+with manual redirect handling and a request timeout, and an in-repo lint rule
+rejects a bare `fetch(` in server code outside that wrapper, so a new egress
+path cannot skip the guard by being written in a hurry. For an operator- or
+user-supplied host it can also pin a connect-time public-address check, which is
+what closes SSRF via DNS rebinding and via redirect.
+
+## The threat model, briefly
+
+Self-hosting changes *who holds the data*. It does not make the data
+unreachable, and the honest version of that is short.
+
+**What self-hosting plus encryption at rest gets you.** There is no vendor
+account and no key escrow, so no third party can be served process for data it
+does not have. A stolen disk or a leaked backup does not yield the encrypted
+fields as long as the key is held separately from the image of the disk. No
+health data reaches an analytics or advertising endpoint, because no such
+endpoint is contacted at all.
+
+**What it does not get you.** If the running machine is seized, imaged, or
+compelled, the data is on it, and encryption at rest does nothing for a live
+host whose key is loaded. A hosting provider can snapshot a VPS disk and can be
+served process, so renting infrastructure narrows the set of parties who hold
+your data without emptying it. Your own `pg_dump` and off-host exports carry the
+same data and belong to the same surface. A phone or laptop with a live session
+holds data locally, and no server-side control reaches it. And on the instance
+itself, an administrator can read the database directly, which is why
+[what a shared record is](/explanation/record-sharing/) treats "who can read it
+on that hardware" as a separate question from "what leaves the host".
+
+A worked example of the same reasoning applied to the most sensitive category in
+the app is the
+[cycle-data threat model](https://github.com/MBombeck/HealthLog/blob/main/docs/security/cycle-data-threat-model.md).
+
+## Verify the image you run
+
+Every release image is signed keyless through Sigstore in the release workflow.
+GitHub's OIDC token is exchanged for a short-lived Fulcio certificate bound to
+the workflow identity, the signature is recorded in the Rekor transparency log,
+and no long-lived signing key exists anywhere in the pipeline to leak or rotate.
+What is signed is the multi-arch manifest **index**, so one signature covers both
+the `amd64` and the `arm64` manifest.
+
+Install [cosign](https://docs.sigstore.dev/cosign/system_config/installation/),
+then:
+
+```sh
+cosign verify \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/MBombeck/HealthLog/\.github/workflows/docker-publish\.yml@refs/tags/v.*' \
+  ghcr.io/mbombeck/healthlog:v1.37.0
+```
+
+A pass prints the checks that were performed and the signed payload:
+
+```
+Verification for ghcr.io/mbombeck/healthlog:v1.37.0 --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The code-signing certificate was verified using trusted certificate authority certificates
+```
+
+That proves the image was built by this repository's release workflow on a `v*`
+tag. It does not prove the tag still points where it did an hour ago, because a
+tag is a mutable alias. The digest is the image's only immutable identity, and
+the digest is what the signature actually covers, so for any deploy where
+supply-chain integrity matters more than convenience, verify and pin the digest:
+
+```sh
+cosign verify \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/MBombeck/HealthLog/\.github/workflows/docker-publish\.yml@refs/tags/v.*' \
+  ghcr.io/mbombeck/healthlog@sha256:4adabd76f105e60338ab567e97014d543ebe301e73f9b5482ae1356acf9c6b3f
+```
+
+The compose file carries the hook for pinning: set `HEALTHLOG_IMAGE_REF` to
+`@sha256:<digest>` in your `.env` and the `app` service follows it. Pinning is
+sticky, though, and a stale pin is silent, so bumping it becomes part of
+shipping. [Updates and deploy](/guides/updates-and-deploy/) has the full note.
+
+## Where the image came from
+
+Each release image carries a SLSA build-provenance attestation produced by
+BuildKit and pushed alongside the manifest. Read it with the Docker CLI:
+
+```sh
+docker buildx imagetools inspect ghcr.io/mbombeck/healthlog:v1.37.0 \
+  --format '{{ json .Provenance }}'
+```
+
+The statement names the build type, the Dockerfile it was built from, the
+build arguments (including the commit SHA and the build timestamp that
+`/api/version` reports back at runtime), and the source repository:
+
+```json
+"externalParameters": {
+  "configSource": { "path": "Dockerfile" },
+  "request": {
+    "args": {
+      "build-arg:NEXT_PUBLIC_APP_VERSION": "v1.37.0",
+      "label:org.opencontainers.image.revision": "381a07a13486913412d05d0d28d344587310fed1",
+      "label:org.opencontainers.image.source": "https://github.com/MBombeck/HealthLog"
+    }
+  }
+}
+```
+
+One thing to know before you reach for it: `gh attestation verify` will not find
+these. That command reads GitHub's attestation API, which is populated by the
+`actions/attest-build-provenance` action, and this pipeline attaches BuildKit's
+own attestation to the image in the registry instead. The provenance is real and
+readable with the command above; it just does not live where the `gh` CLI looks.
+
+## The ingredient list
+
+Each image also carries an SPDX Software Bill of Materials, generated at build
+time, listing the packages and files that went into it:
+
+```sh
+docker buildx imagetools inspect ghcr.io/mbombeck/healthlog:v1.37.0 \
+  --format '{{ json .SBOM }}'
+```
+
+The document identifies its own generator, which is worth checking when you feed
+it into a scanner:
+
+```json
+"creators": [
+  "Organization: Anchore, Inc",
+  "Tool: syft-v1.42.3",
+  "Tool: buildkit-v0.31.2"
+]
+```
+
+Pipe it into whatever you already run. The output is per-platform, keyed
+`linux/amd64` and `linux/arm64`, so pick the key that matches the host you are
+deploying to.
+
+## What runs on every change
+
+The release pipeline is not the only gate. Every push and pull request runs
+lint, a strict TypeScript pass, the unit suite, a Prettier check, and an OpenAPI
+drift check that fails when the published contract stops matching the schemas it
+is generated from. A dependency audit fails the build on a high or critical
+advisory against a production dependency. Gitleaks scans the full history for
+secret-shaped strings. The container image is built and scanned with Trivy, and
+a high or critical finding fails the job rather than filing a warning nobody
+reads.
+
+## Reporting something
+
+Do not open a public issue for a vulnerability. Mail
+**security@bombeck.io** with a description, reproduction steps, the impact you
+see, and a suggested fix if you have one. Acknowledgement inside 72 hours,
+initial assessment inside a week, and disclosure coordinated with you. The full
+policy, including what is in and out of scope, is in
+[SECURITY.md](https://github.com/MBombeck/HealthLog/blob/main/SECURITY.md).
+
+## Related pages
+
+- [Privacy architecture](/explanation/privacy-architecture/) covers every flow that crosses the boundary and why
+- [Encryption at rest](/explanation/encryption-at-rest/) covers the crypto layer in full
+- [GDPR for operators](/self-hosting/gdpr/) covers hosting an instance for somebody else
+- [Data deletion](/account/data-deletion/) enumerates what each deletion path removes
+- [What a shared record is](/explanation/record-sharing/) covers who can read your record on your own hardware
+- [Certificate pinning](/security/certificate-pinning/) covers how the iOS app secures its connection
+- [MCP security](/explanation/mcp-security/) covers the model-context server, which is off by default
