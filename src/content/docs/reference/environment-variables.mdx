@@ -141,6 +141,30 @@ See [Backups](/guides/backups/).
 | `BACKUP_ENCRYPTION_KEY` | Separate AES key — **must not** equal `ENCRYPTION_KEY`. |
 | `BACKUP_RETENTION_DAYS` | Defaults to `30`. |
 
+## Audit-trail retention
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `AUDIT_LOG_RETENTION_DAYS` | `365` | How long rows in `audit_logs` survive, in days. A daily job does the pruning. |
+
+The floor is 7. A smaller value, a non-numeric one or a negative one is ignored
+and the default applies, so a window entered in seconds by mistake cannot empty
+a fresh table.
+
+:::note[This number is published, not only enforced]
+Two surfaces state it back to the user rather than printing a constant.
+**Settings → Shared access** captions the activity list with the window it can
+see, and the dialog that ends somebody else's access says how long "who entered
+what" stays answerable. Both take the value the server resolved from this
+variable, so an instance running 90 says 90 in both places. The API carries it
+as `retentionDays` on `GET /api/account/activity` and `GET /api/account/grants`.
+
+That makes shortening it a decision rather than a tidy-up on an instance where
+households share records: a delegate's entry is permanent, and the name attached
+to it lives only in the audit trail. See
+[What a shared record is](/explanation/record-sharing/#why-a-delegates-entry-is-stored-as-the-owners).
+:::
+
 ## Deploy webhook & TLS pin (optional)
 
 | Variable | Purpose |

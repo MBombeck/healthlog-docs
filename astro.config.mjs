@@ -81,6 +81,7 @@ export default defineConfig({
 						{ slug: 'guides/coach-plans' },
 						{ slug: 'guides/document-vault' },
 						{ slug: 'guides/shared-access' },
+						{ slug: 'guides/managed-profiles' },
 						{ slug: 'guides/mcp-server' },
 						{ slug: 'guides/invites' },
 					],

@@ -1,19 +1,21 @@
 ---
 title: What a shared record is
-description: Why account sharing is a grant between two accounts rather than a shared login, why the list of what a second person may write is short and closed, why their entries are stored as the owner's, and what sharing does and does not change about your instance's trust model.
+description: Why account sharing is a grant between two accounts rather than a shared login, why a level is fixed at the invitation, why a scope can never widen, why a record with no login is still a record, and what sharing does and does not change about your instance's trust model.
 sidebar:
   order: 7
 ---
 
 Since v1.36.0 one account on an instance can give another account access to its
-health record, and since v1.36.1 that access carries a level: read, or read and
-add. This page is the reasoning: what that connection is, what it deliberately
-is not, why the list of things a second person may add is short and closed, and
-which of the instance's existing trust properties it leaves exactly as they
-were.
+health record. Since v1.36.1 that access carries a level, and since v1.37.0
+there are three of them, an invitation can name the parts of the record it
+opens, and a record can exist for somebody who has no login at all. This page is
+the reasoning: what that connection is, what it deliberately is not, why the
+levels behave the way they do, and which of the instance's existing trust
+properties it leaves exactly as they were.
 
 For the steps, see
-[Give another account access to your record](/guides/shared-access/).
+[Give another account access to your record](/guides/shared-access/) and
+[Records with no login of their own](/guides/managed-profiles/).
 
 ## It is a grant, never a shared login
 
@@ -46,17 +48,18 @@ place. A deleted row cannot answer "who had access, from when to when, and who
 ended it", and that question is the reason the table has the shape it does.
 Inviting the same person again mints a new row beside the old one.
 
-**The level is fixed at the invitation.** A grant is offered as read or as
-write, and it stays what it was offered as. There is no widen call, no upgrade
-endpoint, and the absence is the design rather than a gap. Write access needs
-two consents: the owner's, because it is their record, and the delegate's,
-because they are being asked to write into somebody else's health record.
-Acceptance is the single moment those two meet, and it happens once. Raising a
-live grant afterwards would carry one consent, and it would not be the
-delegate's. The way up is a new invitation at the level meant, accepted again.
+**The level and the scope are fixed at the invitation.** A grant is offered as
+read, write or manage, over the whole record or over named sections, and it
+stays what it was offered as. There is no widen call, no upgrade endpoint, and
+the absence is the design rather than a gap. Anything above read needs two
+consents: the owner's, because it is their record, and the delegate's, because
+they are being asked to write into somebody else's health record. Acceptance is
+the single moment those two meet, and it happens once. Raising a live grant
+afterwards would carry one consent, and it would not be the delegate's. The way
+up is a new invitation at the level meant, accepted again.
 
-State outranks level everywhere. A pending, lapsed or revoked write grant
-permits nothing at all, and no level survives an expiry.
+State outranks level everywhere. A pending, lapsed or revoked grant permits
+nothing at all, whatever it was offered as, and no level survives an expiry.
 
 ## Why write is a list rather than a permission
 
@@ -66,50 +69,176 @@ go down. Read-only access made them watch that happen and then ask the owner to
 type it in, which is the part that fails on a bad evening.
 
 So write exists. What it is not is the mirror image of read. Read is a large
-surface because looking at a record cannot damage it. Write is a list of eight
-acts, enumerated once, and the list is closed:
+surface because looking at a record cannot damage it. Write is a list of acts,
+enumerated once, and the list is closed:
 
 - entering a reading, singly or in a batch;
 - entering a lab result, which may mint the analyte into the record's own
   catalogue;
 - adding a biomarker to that catalogue;
 - opening an illness episode;
-- adding a value to a metric the owner already tracks;
 - recording a side effect against one of the owner's medications;
 - adding a medication with its schedule;
-- marking a dose taken or skipped.
+- marking a dose taken or skipped, one at a time or by clearing what is due.
 
 Every member of that list is a *create*. Nothing on it changes or removes
-anything that is already there, and that is the line the feature is built
+anything that is already there, and that is the line the write level is built
 around. Correcting an entry, deleting one, restoring a deleted one, bulk
-actions, and importing a file are the owner's, and they stay the owner's on an
-entry the delegate created ten seconds ago with a typo in the dose. A caregiver
-who mistypes tells the owner, and the owner fixes it. That is one awkward
-sentence in a kitchen, against a delegate quietly rewriting history in somebody
-else's health record.
+actions, and importing a file are not on it, and they stay off it on an entry
+the delegate created ten seconds ago with a typo in the dose. A caregiver who
+mistypes tells the owner, and the owner fixes it. That is one awkward sentence
+in a kitchen, against a write-level delegate quietly rewriting history in
+somebody else's health record.
 
-Two absences on that list are decisions rather than oversights.
+One entry left that list in v1.37.0 rather than joining it. Logging a value on a
+metric the owner tracks themselves was named on the consent screen and had
+nothing behind it: the only form that records one sits on a page a shared record
+does not open, so nobody could ever have used it. A capability nobody can reach
+is worse than an absent one, because the consent screen was telling people they
+had granted something. The copy now lists what the level actually admits, and
+reading those values was never affected.
+
+Two absences are decisions rather than oversights, and both survive the third
+level.
 
 **Deferring a reminder is not marking a dose.** From a medication card the two
 sit side by side and read as the same gesture, and they are not the same act at
 all. Recording that a dose went down is a fact about the owner's day. Pushing
 the owner's own reminder back is a change to the owner's schedule, made by
-somebody who does not have to live with the consequence. It stays with the
-owner, and so does changing a dose that is already recorded.
+somebody who does not have to live with the consequence.
 
-**Allergies and family history are read, not written.** They are entered from a
-settings page, and settings is outside what sharing covers. Adding a write path
-for them would have meant opening a surface the grant deliberately closes, to
-carry two fields that are rarely urgent.
+**A dose that already carries a decision keeps it.** Re-sending the same
+decision is admitted, because a second tap, a phone catching up after no signal
+and a retry after a partial sweep all look like that, and somebody standing over
+a pill box hits all three. Turning the owner's "taken" into a "skipped" is a
+different act and is refused however the request arrives.
 
 The mechanism under all of this is the same default-deny arm that governs reads.
-A route serves a shared record only by declaring which mode it accepts, and a
-route that declares nothing refuses outright while a browser is acting on
-another account. Nine route modules declare write, and the set is frozen by a
-structural test, so a new endpoint cannot quietly join the list. Any unsafe
-method on a route that declared itself readable is treated as a write and
-refused under a read grant, which means a route cannot widen itself by accident
-either.
+A route serves a shared record only by declaring which mode it accepts and which
+section of the record it touches, and a route that declares nothing refuses
+outright while a browser is acting on another account. Both declared sets are
+frozen by a structural test, so a new endpoint cannot quietly join either list.
+Any unsafe method on a route that declared itself readable is treated as a write
+and refused under a read grant, which means a route cannot widen itself by
+accident either.
+
+## Why there is a third level, and where it stops
+
+Write is a caregiver level and it has a shape: somebody who is present, doing
+things, and reporting them. There is a second relationship it does not describe.
+Somebody may be keeping the record rather than contributing to it, and keeping
+it means fixing the row that is wrong.
+
+Manage is that. It adds changing and removing entries, including ones the owner
+wrote, recording the record's own health background, and reading the insights
+generated from the record.
+
+Three properties make it something other than "full access".
+
+**The boundary is record content against account configuration.** Manage never
+reaches the login, the second factor, provider connections, API tokens,
+notification routing, module and threshold configuration, or who else has
+access. That is the same line the other two levels stop at, and it is the line
+that makes a grant a grant instead of a shared account. The one thing that moved
+across it in v1.37.0 is the health background: allergies and family history live
+under Settings in the interface, but they are facts about a body rather than
+configuration of an account, so a manager may record them.
+
+**Offering it asks for the owner's second factor.** A step-up resolves through
+the browser session, so manage can only be offered from a browser, and an
+account without a second factor cannot offer it at all. Accepting it needs
+nothing special, because the consent that matters at that end is the delegate
+agreeing to act under their own name.
+
+**Everything a manager does is named.** The activity view does not say "made a
+change". It says which entry, and with which verb: changed a reading, removed an
+illness entry, recorded an illness day. A level that can rewrite the record is
+only tolerable if the owner can read what was rewritten.
+
+Manage always covers the entire record. That is not a simplification, it is the
+same reasoning the next section is about.
+
+## Why a scope can name sections but a manage grant cannot
+
+An invitation can open part of a record instead of all of it. Eight sections,
+each one a thing a person recognises as one thing, and everything not picked
+stays closed. A section held back is refused exactly the way a record nobody
+shared is, so the shape of what was held back is not visible from outside.
+
+The section names are a sharing vocabulary and not the module vocabulary the
+instance already has, deliberately and permanently. The two answer different
+questions. "Did the owner turn this part of the product on" and "did the owner
+open this part of their record to that person" are unrelated, and the day they
+share a spelling is the day somebody makes one imply the other. The implication
+would run in the dangerous direction: a module the owner enabled is not a
+section the owner shared.
+
+Two limits are published on the consent screen rather than left for somebody to
+discover.
+
+**A section carries whatever was written in it.** Notes and names inside one
+section can mention any other part of a person's health, so sharing a section
+shares everything written in it. The vault is the sharpest case, because a
+document can contain anything at all. Saying this on the screen where the choice
+is made is the honest version; the alternative is a scope that reads tighter
+than it is.
+
+**Whole-record figures need the whole record.** The dashboard overview, the
+health score and the daily digest appear only when the entire record is shared,
+because a figure computed from part of a record still reads as a figure about
+the person, and nothing on the surface would say which parts it left out.
+
+That second point is also why a manage grant is whole-record by construction. A
+level that can rewrite entries, over a slice of a record whose notes can be
+about any other slice, is a boundary that cannot be honestly drawn. An
+invitation naming both a scope and manage is refused rather than quietly
+narrowed to one of them.
+
+A stored scope never grows by release either. A grant written when the list held
+eight sections opens those of the eight it named, and nothing added later, since
+the scope is stored as the keys the owner ticked and a key that did not exist
+then cannot be in it. A new section is therefore a consent question rather than
+a schema question. Every grant written before v1.37.0 carries no scope at all,
+which means the entire record, which is what those owners consented to.
+
+## Why a record can exist without a login
+
+A grant runs between two accounts, and it covers exactly half of looking after
+somebody. The other half is the person who has no account to begin with: a
+child, or somebody in your care. Giving them a login they will never use, so
+that somebody else can hold its password, would recreate the shared-login
+problem this feature exists to avoid.
+
+So a managed profile is a record without credentials. No password, no passkey,
+no second factor, and no path to gaining one. The people who look after it hold
+manage grants with the profile as the grantor, which means everything already
+true of a grant is true here: live revocation, an audit trail under the actor's
+own name, and no reach into account configuration.
+
+Three consequences follow from a record with nobody behind it.
+
+**Creating one is a step-up act.** It mints a real record on the instance, and
+the creator becomes its first guardian in the same transaction, so there is no
+instant where the record exists and nobody is looking after it.
+
+**Its reminders belong to its guardians.** A record with no login has no phone
+and no chat. Medication and measurement reminders, safety-floor alerts and
+low-stock alerts go to the guardians instead, each in their own language and on
+the channels they already chose, and the message names whose record it is about.
+It carries no action buttons: a lock screen is a poor place to decide something
+about another person's medication, so opening the app takes you through the
+ordinary switch into the record.
+
+**It can never be left empty.** The last guardian may not hand the record back
+and may not be removed, and a pending invitation does not satisfy the floor
+because nothing about it is accepted yet. The way out is to add somebody else or
+to delete the profile. Deleting is a real ending and it is offered plainly,
+because "you may end this record" and "you may walk away from it" are different
+permissions and only the first one is safe.
+
+The floor holds on every route that could breach it, including a guardian
+deleting their own account and a data wipe, rather than only on the button that
+looks like it would.
 
 ## Why a delegate's entry is stored as the owner's
 
@@ -148,10 +277,18 @@ you". A control that is not there says "this is not part of what you were
 given", which is the truth.
 
 The banner carries what the absence cannot say on its own. It names the record
-and the mode in the same breath, at both levels: read-only says the record
-cannot be changed, and write says entries can be added but not changed or
-deleted. A person who cannot find the edit button reads the banner and knows
-why, without a chip on every control explaining itself.
+and the mode in the same breath: read-only says the record cannot be changed,
+and write says entries can be added but not changed or deleted. A person who
+cannot find the edit button reads the banner and knows why, without a chip on
+every control explaining itself.
+
+There is a moment before the answer arrives, and it is handled rather than
+tolerated. A control tapped while the app still does not know whose record is on
+screen used to strand somebody in a form the server was going to refuse. The
+capture sheet and the dashboard's quick-entry sheets now withdraw when the
+answer lands, which is what the measurements page and the medication wizard
+already did. Standing on a form that has become invalid is a worse outcome than
+closing it under somebody's hands.
 
 ## Why the account is not part of the record
 
@@ -167,28 +304,45 @@ than by hiding menu items.
 | Connected services (Withings, Fitbit, WHOOP, Google Health, Polar, Oura, Strava, Nightscout) | Re-pointing a sync, or feeding somebody else's wearable into this record |
 | Notification channels and push devices | The owner's health alerts redirected to another phone or chat |
 | Exports, the health-record archive, clinician share links | A one-click copy of everything, or a new door that outlives the access |
-| Insights and the Coach | AI processing of the owner's data, under the owner's own consent |
+| Generating an insight, and the Coach | AI processing of the owner's data, under the owner's own consent |
+| Module switches, thresholds and notification routing | Configuration of the account, not content of the record |
 | Sharing itself | Inviting somebody else, widening the access, or passing it on |
 | Locale, theme, dashboard layout | Presentation belongs to the person, not to the record |
 
-Two of those rows are worth a sentence each.
+Three of those rows are worth a sentence each.
 
 **Sharing is not transferable.** A delegate cannot invite a third person, cannot
 raise their own level, and cannot hand their access on. This is the property the
 whole feature rests on, and it is why grant management is refused from inside a
 shared record rather than merely absent from the navigation.
 
-**The AI row looks arbitrary and is not.** Insights and the Coach send the
-record's data to a provider under a consent the record's *owner* gave, for the
-owner's own use. Somebody else triggering that would create a consent-shaped act
-the owner never made, so those surfaces stay owner-only.
+**The AI row looks arbitrary and is not.** Generating an insight and talking to
+the Coach send the record's data to a provider under a consent the record's
+*owner* gave, for the owner's own use. Somebody else triggering that would
+create a consent-shaped act the owner never made, so those surfaces stay
+owner-only. Reading an insight that already exists is a different act, and a
+manage-level delegate may do it: nothing leaves the instance, and the reason
+somebody is keeping a record is often exactly to read what it concluded.
 
-Fifty-two route modules serve a shared record, and nine of those also accept a
-write. Every other route in the product refuses by default while a browser is
-acting on another account; a route becomes reachable only by declaring which
-mode it serves, and both declared sets are frozen by a test. Adding a route
-therefore cannot silently widen a delegate's reach, because the default arm
-denies.
+**The document vault is read, at every level.** Reading a clinical letter is
+health data belonging to the record and much of the reason to hand somebody the
+record at all. Uploading, retyping, discarding, linking a document to an illness
+episode and every AI action stay with the owner, so the vault behaves the same
+whether the grant is read, write or manage.
+
+Every route in the product refuses by default while a browser is acting on
+another account. A route becomes reachable only by declaring which mode it
+serves and which section of the record it touches, and every declared set is
+frozen by a test. Adding a route therefore cannot silently widen a delegate's
+reach, because the default arm denies.
+
+That default has one honest limit, and it is worth stating for anyone reading
+the API contract. The published OpenAPI document does not describe every route
+that can serve a shared record; a number of them predate the contract and have
+never been published. The refusal is identical on all of them, and a guard
+prevents an unpublished one being published without it, but "the contract is
+complete and consistent" is not the same claim as "every delegable route is
+described".
 
 Two of the refusals are permanent rather than pending. A delegate cannot mint a
 clinician share link, because that would be a door surviving their own
@@ -211,10 +365,54 @@ Nothing in the interface implies otherwise, and neither does this page.
 Entries a delegate added stay too, and that is not a gap. They are the owner's
 rows, in the owner's record, and the owner has had every one of them named in
 the activity view since the moment it was written. Ending access removes the
-ability to add more. It is not an undo, and treating it as one would mean a
+ability to act further. It is not an undo, and treating it as one would mean a
 revocation silently deleting health data the owner may well want to keep. What
 the owner keeps is the ordinary ability to correct or delete any of those rows,
-which they had all along and the delegate never did.
+which they had all along.
+
+## Why every refusal reads the same
+
+A delegate who is refused gets one status and one body, whatever the reason.
+A record nobody shared with them, an account that does not exist at all, a
+section the grant does not open, a write on a read grant: identical bytes.
+
+That is the point rather than a missing feature. A refusal that told the caller
+which of those it was would be a way for anybody with a login on the instance to
+find out which accounts exist and what they have. The reason does not vanish;
+it goes where it belongs, which is the record owner's activity feed and the
+operator's audit trail.
+
+The consequence for anyone building against the API is short: on that refusal,
+stop using the selector, re-read the account payload, and render what it now
+says. There is nothing to be learned by telling the cases apart, because they
+were deliberately made indistinguishable.
+
+## Why a request names the record it thinks it is in
+
+Switching records moves the browser session rather than the tab you clicked in.
+That is the right behaviour, because a person is in one record at a time and
+they should not have to switch each window separately. It also left a hole: a
+second tab, open on the record you just left, went on reading and writing there
+until somebody reloaded it.
+
+So a browser request carries the record the tab believes it is in, and a request
+naming a record the session has left is refused with an answer the tab recovers
+from by re-reading who it is. The recovery is not a failure and is never
+presented as one.
+
+Three properties keep that from costing anything.
+
+A session that has never opened somebody else's record carries nothing and is
+unaffected, which is what keeps an open tab working across a deploy. Once a
+session has entered a shared record it carries the assertion permanently, so
+there is no window where the check can be skipped by going home first. And the
+refusal body deliberately carries no context to re-adopt: a refusal is not a
+third place to learn from, so the tab goes back to the one surface that answers
+that question.
+
+None of this applies to the phone app or to any other API client authenticating
+with a token. Those name the record on each request already and never held a
+selector that could go stale, so they see none of it.
 
 ## What sharing does not change about your instance
 
@@ -240,7 +438,7 @@ this is worth stating plainly.
 ## Operator obligations
 
 Sharing needs no configuration and does nothing until one account invites
-another. Four consequences are yours to know about.
+another. Five consequences are yours to know about.
 
 **Invitations disclose whether a username exists.** An invitation to a name
 nobody uses is refused with "no account on this instance carries that name".
@@ -250,16 +448,33 @@ and the endpoint allows ten invitations an hour per account, which bounds how
 fast the surface could be walked.
 
 **Audit retention bounds what an owner can see.** The view of who opened a
-record and what they contributed is built from audit rows, so
-`AUDIT_LOG_RETENTION_DAYS` sets how far back it reaches. The default is 365
-days. Shortening it shortens that view, and the page says which number your
-instance uses rather than a hardcoded one.
+record and what they did in it is built from audit rows, so
+`AUDIT_LOG_RETENTION_DAYS` sets how far back it reaches. The default is 365 days
+and the floor is 7: a smaller value is ignored rather than obeyed, so a window
+entered in seconds by mistake cannot empty a fresh table. Shortening it shortens
+that view, and the interface says which number your instance uses rather than a
+hardcoded one. It says it in two places, the caption under the activity list and
+the dialog that ends somebody's access, and both take the value the server
+resolved from your variable. See
+[Audit-trail retention](/reference/environment-variables/#audit-trail-retention).
 
-This matters more since write access exists. Authorship of a delegate's entry is
-held in the audit trail and nowhere else, so the retention window is the window
-in which "who entered this" is answerable at all. The entry itself is permanent.
-The name attached to it is not. On an instance where households share records,
-that is a retention decision rather than a housekeeping one.
+This matters more with every level above read. Authorship of a delegate's entry
+is held in the audit trail and nowhere else, so the retention window is the
+window in which "who entered this" is answerable at all. The entry itself is
+permanent. The name attached to it is not. On an instance where households share
+records, that is a retention decision rather than a housekeeping one.
+
+The list also states when it is not showing everything. A busy record can
+produce more activity than one read returns, and a list that stopped at its own
+ceiling in silence would let the oldest visible line read as the beginning.
+
+**A managed profile is a full record with no login.** It counts against storage,
+produces rollups and reminders like any other record, is covered by the same
+backups and the same instance key, and never appears in a sign-in log because it
+has no sign-in. Its reminders fan out to its guardians, so one dose-due event on
+a profile with three guardians becomes three notifications on three sets of
+channels. Creating one requires a second factor on the creating account, which
+is structural rather than a policy setting.
 
 **Marking somebody's dose notifies them by default.** The event is on unless the
 owner turns it off, and it rides whichever channels they already enabled. On an

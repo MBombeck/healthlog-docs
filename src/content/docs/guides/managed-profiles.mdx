@@ -1,0 +1,168 @@
+---
+title: Records with no login of their own
+description: Keep a health record for a child or somebody you care for. Create a managed profile, add a second guardian, know why the last one cannot leave, and see where its reminders go.
+sidebar:
+  order: 27
+---
+
+A grant between two accounts covers half of looking after somebody's health. The
+other half is the person who has no account to begin with, and never will: a
+child, or somebody you care for. A **managed profile** is a health record for
+exactly that person.
+
+It has no password, no passkey and no second factor, and it never gains one. The
+people who look after it are its **guardians**, and a guardian can switch into
+the record the way any shared record is opened.
+
+If the person you want to look after does sign in themselves, you want an
+ordinary grant instead. See
+[Give another account access to your record](/guides/shared-access/).
+
+## Create the profile
+
+Creating a managed profile asks for your second factor, so it happens in a
+browser rather than in the phone app. An account with no second factor enrolled
+is refused rather than waved through; set one up under **Settings → Security**
+first.
+
+1. Open **Settings → Shared access**.
+2. Under **Records you look after**, choose **Create profile**.
+3. Give it a **name**, up to 80 characters. This is what you will recognise the
+   record by, and it appears wherever the record does.
+4. Optionally give a **date of birth**. Leave it empty if you would rather not
+   record one. Nothing is guessed from a year you did not give.
+5. Pick the **language of this record** and its **timezone**.
+6. Confirm your second factor.
+
+The language and the timezone belong to the record rather than to you. They
+decide how text written into it is worded, when its days start and end, and how
+its reminders read. Your own screens stay in your own language while you work in
+it.
+
+You become the profile's first guardian in the same transaction that creates it,
+so there is no moment where the record exists and nobody is looking after it.
+Afterwards it appears in the account menu under **Open a record**, and under
+**Records you look after** in the sharing panel.
+
+The endpoint allows ten profiles an hour per account, the same ceiling the
+guardian invitation carries. If you are setting up a household at once and hit
+that, wait and carry on.
+
+## Keep its settings
+
+A guardian can keep the profile's own settings: its modules, its units, its
+language and timezone, its thresholds and its notification preferences. Each of
+those is read and written as that record's setting rather than as yours, so
+turning a module off for the profile leaves your own record alone.
+
+Connected services are the exception. Inside a managed profile they show a
+status and nothing else. Connecting, syncing and disconnecting a wearable on
+somebody else's behalf is not part of this release.
+
+## Where its reminders go
+
+A record with no login has no phone and no chat of its own. So the reminders it
+produces reach the people looking after it instead: medication reminders,
+measurement reminders, safety-floor alerts and low-stock alerts all go to the
+profile's guardians.
+
+Each guardian receives them in their own language and over the channels they had
+already chosen, and the message names whose record it is about. It carries no
+buttons. Opening the app takes you through the ordinary switch into that record
+rather than letting you act on it from a lock screen, because a tap on a lock
+screen is a poor place to decide something about another person's medication.
+
+One guardian turning their own reminders off on their own phone does not silence
+the others.
+
+## Add another guardian
+
+A second pair of hands is the point of the feature, and it is also the way out
+of being the only one.
+
+1. Open the profile's panel under **Records you look after**.
+2. Under **Who looks after this record**, enter the username or e-mail address
+   of the account you want to add.
+3. Optionally give a date the access ends on.
+4. Choose **Send invitation**.
+
+They accept it the way any other invitation is accepted, under **Settings →
+Shared access → Records I can open** on their own account. Until they accept,
+the invitation confers nothing, and the roster shows them as invited rather than
+as looking after the record.
+
+A guardian holds manage-level access to that record: they can add, change and
+remove entries, and keep its settings. What they cannot do is change who else
+looks after it beyond the controls described here, and a managed profile can
+never be invited as a guardian of another record, because a record with no self
+cannot look after anybody.
+
+## The last guardian
+
+A managed profile can never be left with nobody. The last guardian cannot hand
+the record back and cannot be removed from it, and the screen says so at the
+place the refusal happens rather than letting it arrive as a surprise.
+
+Two details decide whether you are the last one.
+
+**Only accepted access counts.** An invited guardian who has not accepted yet
+does not satisfy the floor. Until they accept, you are still the only one, and
+handing your own access back is still refused.
+
+**You cannot remove your own row.** The roster is for ending somebody else's
+access. Your own way out is **Hand back** under **Records I can open**, which is
+where every delegate ends their own access, and it is refused while you are the
+only guardian.
+
+So the way out of a profile you are alone with is one of two things: add
+somebody else and wait for them to accept, or delete the profile.
+
+## Delete the profile
+
+Deleting a managed profile takes everything recorded for it: readings,
+medications, documents and notes. It cannot be undone, and the confirmation
+states how many people look after the record today and will lose it.
+
+This is also the legitimate ending when you are the last guardian. You may end
+the record. You may not leave it standing with nobody looking after it.
+
+## What a managed profile is, underneath
+
+A guardian relationship is a manage-level grant with the profile as the account
+that granted it. That is worth knowing for two reasons.
+
+Everything that holds for an ordinary manage grant holds here: the access is
+checked against the database on every request, ending it takes effect on the
+next request rather than at the next login, and every act is recorded under the
+guardian's own name with a verb that says what it was.
+
+And the profiles you look after are not a separate list somewhere. They are the
+records in your account's own list of what it can open, marked as managed rather
+than as shared, which is why they appear in the same switcher as a record a
+neighbour shared with you.
+
+## For operators
+
+Nothing to configure. Managed profiles are available on every instance and do
+nothing until somebody creates one.
+
+Three consequences worth knowing.
+
+- **Creating one requires a second factor on the creating account.** This is
+  structural rather than a policy toggle: the step-up resolves through the
+  browser session, so the phone app cannot create a profile at all and an account
+  with no second factor is refused rather than exempted. If your users cannot
+  find the button, check whether they have enrolled one.
+- **A managed profile is a full record on your instance.** It counts against
+  storage, it produces rollups and reminders like any other record, and it is
+  covered by the same backups and the same encryption key. It has no login, so
+  it never appears in a sign-in log.
+- **The reminders it produces fan out to its guardians.** A profile with three
+  guardians can turn one dose-due event into three notifications, each on that
+  guardian's own channels. That is the intended behaviour, and it is the one
+  place where a single record's schedule multiplies across accounts.
+
+Deleting a guardian's account ends the grants it held, including guardian
+grants, and the floor holds there too: an account deletion that would leave a
+managed profile with nobody is refused rather than silently orphaning the record.
+See [Data deletion](/account/data-deletion/).

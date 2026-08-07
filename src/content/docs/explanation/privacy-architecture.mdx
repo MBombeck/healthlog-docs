@@ -91,22 +91,29 @@ a security decision, not a UX one.
 ## Another account you granted access to
 
 Since v1.36.0 you can give another account on the same instance access to your
-record, and since v1.36.1 that access is either read, or read plus a short
-closed list of entries they may add. Nothing crosses the network because of it:
-two accounts on one server read one Postgres, and no new outbound path exists.
+record. That access carries a level: read, read plus a short closed list of
+entries they may add, or manage, which can also change and remove what is
+already there. Since v1.37.0 an invitation can name the parts of the record it
+opens as well, so a grant can be narrower than the whole of you. Nothing crosses
+the network because of any of it: two accounts on one server read one Postgres,
+and no new outbound path exists.
 
 It is still a change to who can read and write your record, so it belongs on
 this page rather than only in the feature docs. The access is a grant you make
-deliberately, it does nothing until the other person accepts, its level is the
-one you named when you sent it, and either side can end it at any time. It never
-carries the account around the record with it, so a delegate cannot reach your
-credentials, your integrations, your notification channels, your exports, or the
-AI surfaces that would send your data to a provider under your consent.
+deliberately, it does nothing until the other person accepts, its level and its
+scope are the ones you named when you sent it, neither can be raised afterwards,
+and either side can end it at any time. It never carries the account around the
+record with it, so a delegate cannot reach your credentials, your integrations,
+your notification channels, your module and threshold configuration, your
+exports, or the AI surfaces that would send your data to a provider under your
+consent.
 
-The write level does not widen who can *read* your record, and it does not let
-anybody change or remove what is already in it. Every entry it admits is a new
-one, stored under your account, with the author named in the audit trail and
-listed for you in the access panel as it happens. The reasoning is in
+None of the levels widens who can *read* your record. Write admits only new
+entries, stored under your account. Manage can revise what is there, and every
+act is recorded under the actor's own name with a verb that says what it was,
+listed for you in the access panel as it happens. A record that exists for
+somebody with no login of their own follows the same rules, with its guardians
+holding manage grants on it. The reasoning is in
 [What a shared record is](/explanation/record-sharing/).
 
 ## The honest summary

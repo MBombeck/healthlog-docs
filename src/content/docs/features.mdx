@@ -171,28 +171,47 @@ own second factor.
 An invitation confers nothing until the person named on it accepts, and it names
 its level. Read lets somebody open the record and change nothing in it. Write
 adds a short, closed list: a reading, a lab result, a biomarker, an illness
-entry, a value on a metric the owner already tracks, a side effect against a
-drug, a medication, and marking a dose taken or skipped. Every one of those is a
-new entry. Editing, deleting, restoring and importing stay with the owner at
-both levels, on an entry the other person added a minute ago as much as on their
-own, and so does deferring one of the owner's reminders.
+entry, a side effect against a drug, a medication, and marking a dose taken or
+skipped. Every one of those is a new entry. Manage adds the other half, so a
+manager can change and remove entries including the owner's own, record the
+health background, and read the insights the record generated. Deferring one of
+the owner's reminders, and overturning a dose decision already recorded, stay
+with the owner at every level.
+
+An invitation can also name the parts of the record it opens: readings,
+medications, lab results, health background, illness, mood and mind, cycle,
+documents. Everything not picked stays closed and is refused the same way a
+record nobody shared is. Manage always covers the entire record, because a note
+in one section can be about any other. Every grant written before v1.37.0 opens
+the entire record and is untouched.
 
 An entry a delegate makes is stored as the owner's, because it is a fact about
-their body. Who wrote it is in the audit trail rather than on the row.
+their body. Who wrote it is in the audit trail rather than on the row, and the
+activity view names each act with a verb that says what it was.
 
 A grant never carries the account around the record with it, so credentials,
-integrations, notification channels, exports, clinician links and grant
-management are refused rather than merely hidden from the screen, and a control
-the record will not accept is not drawn at all. An invitation can name the day
-the access lapses, and either side can end it before then, with effect on the
-delegate's next request rather than at their next login. The owner sees who has
-access, at which level, when they accepted, which days somebody else was in the
-record and what they contributed, and is told when somebody marks one of their
-doses.
+integrations, notification channels, module and threshold configuration,
+exports, clinician links and grant management are refused rather than merely
+hidden from the screen, and a control the record will not accept is not drawn at
+all. An invitation can name the day the access lapses, and either side can end
+it before then, with effect on the delegate's next request rather than at their
+next login.
 
-See [Give another account access to your record](/guides/shared-access/) for the
-steps and [What a shared record is](/explanation/record-sharing/) for the
-reasoning.
+## Managed profiles
+
+A health record can also exist for somebody who does not sign in at all: a
+child, or a person you care for. A managed profile has no login and no e-mail
+address, and it never gains one. Its guardians look after it at the manage
+level, and the record can never be left with nobody, so the last guardian may
+delete the profile but may not walk away from it.
+
+Its reminders reach its guardians rather than the record itself, each in their
+own language and over the channels they already chose, naming whose record it is
+about.
+
+See [Give another account access to your record](/guides/shared-access/) and
+[Records with no login of their own](/guides/managed-profiles/) for the steps,
+and [What a shared record is](/explanation/record-sharing/) for the reasoning.
 
 ## Built to be lived in
 

@@ -52,6 +52,7 @@ Then, in the same transaction, the per-user fields on the `User` row are cleared
 - **Achievements** — `UserAchievement` rows are not in the wipe scope. (If you want a true clean-slate experience for every user, follow up with a `DELETE FROM user_achievements;` on the database.)
 - **Data backups** — `DataBackup` rows survive a wipe so you can roll back if you wiped by mistake. Restore one via `/admin/backups` to undo.
 - **Shared-access grants.** `AccountGrant` rows are not in the wipe scope, for the same reason accounts and passkeys are not: the wipe clears health data and leaves the identity and authorization layer standing. If you are refurbishing a box for somebody else, check **Settings → Shared access** on each account, or clear `account_grants` on the database, before handing it over. A wiped instance still knows who could open whose record. See [Give another account access to your record](/guides/shared-access/).
+- **Managed profiles hold a floor that a wipe respects.** A record with no login of its own may never be left with nobody looking after it, so an operation that would strip the last guardian is refused rather than silently orphaning the record. That holds on a data wipe and on a guardian deleting their own account, not only on the button that looks like it would. The way to end such a record is to delete the profile. See [Records with no login of their own](/guides/managed-profiles/).
 
 ## What "Delete account" deletes
 
