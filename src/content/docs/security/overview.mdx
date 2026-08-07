@@ -229,14 +229,17 @@ deploying to.
 
 ## What runs on every change
 
-The release pipeline is not the only gate. Every push and pull request runs
-lint, a strict TypeScript pass, the unit suite, a Prettier check, and an OpenAPI
-drift check that fails when the published contract stops matching the schemas it
-is generated from. A dependency audit fails the build on a high or critical
-advisory against a production dependency. Gitleaks scans the full history for
-secret-shaped strings. The container image is built and scanned with Trivy, and
-a high or critical finding fails the job rather than filing a warning nobody
-reads.
+The release pipeline is not the only gate. Every push and every pull request
+runs lint, a strict TypeScript pass, the unit suite, a Prettier check, and an
+OpenAPI drift check that fails when the published contract stops matching the
+schemas it is generated from. In the same run, a dependency audit fails the
+build on a high or critical advisory against a production dependency, and
+Gitleaks scans the full history for secret-shaped strings. On a push to the
+default branch the image is built and scanned with Trivy as well, and a high or
+critical finding fails the job rather than filing a warning nobody reads. The
+release itself will not publish unless the commit is an ancestor of the default
+branch, the tag is strict SemVer, the tag matches the version in
+`package.json`, and that same commit already has a green quality run behind it.
 
 ## Reporting something
 
