@@ -185,6 +185,7 @@ export default defineConfig({
 					label: 'Security & Privacy',
 					items: [
 						{ slug: 'security/overview', label: 'Security and privacy' },
+						{ slug: 'self-hosting/gdpr' },
 					],
 				},
 				{

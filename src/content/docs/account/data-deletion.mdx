@@ -1,24 +1,45 @@
 ---
 title: Data deletion — what gets removed
-description: Exactly which models are deleted by the admin "Wipe all data" action and by passkey-based account deletion, and what survives both.
+description: Exactly which models each of the three deletion paths removes, and what survives them.
 sidebar:
   order: 1
 ---
 
-HealthLog has two distinct deletion paths, and they affect different sets of data. This page enumerates every model touched by each path so you can pick the right one with confidence — and so you know what you've still got after.
+HealthLog has three distinct deletion paths, and they affect different sets of data. This page enumerates every model touched by each path so you can pick the right one with confidence — and so you know what you've still got after.
 
-## Two deletion paths
+## Three deletion paths
 
 | Path | Scope | Triggered by | Confirm string | What stays |
 |------|-------|--------------|----------------|------------|
-| **Wipe all data** (admin only) | Health + integration data of every user on the instance | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | User accounts, passkeys, sessions, audit log |
+| **Delete all data** | Every row one account owns, across 87 user-scoped models | `/settings/advanced` → "Delete all data" | `DELETE` | The account and the credentials that sign into it |
 | **Delete account** | One user, including the account itself | `/settings/account` → "Delete account" | `DELETE_ACCOUNT` | Audit-log entries that reference other users still survive (the row's `userId` is purged but the audit row itself remains for the rest of the audit trail) |
+| **Wipe all data** (admin only) | Nine tables, instance-wide. Not a complete erasure — see the warning below. | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | User accounts, passkeys, sessions, audit log, and every model added to the schema after the list was written |
 
-The instance-wide wipe is meant for refurbishing a self-hosted box — handing the URL to someone else, repurposing the database, or starting over after a botched import. The per-account deletion is the one a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure).
+The two per-account paths are the ones a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure), and they are the ones held against `prisma/schema.prisma` by a test. The instance-wide wipe was meant for refurbishing a self-hosted box, and it has not kept pace with the schema.
+
+## What "Delete all data" deletes
+
+`DELETE /api/settings/data` with body `{ "confirm": "DELETE" }` removes every row the calling account owns, keeping only what the account needs to sign in again. An account with a second factor enrolled has to pass a fresh step-up first.
+
+The list of models is not written in the route. It is declared once in `src/lib/data-wipe/wipe-plan.ts`, and `src/__tests__/data-wipe-completeness.test.ts` enumerates the Prisma schema and fails when a model belongs to neither the wipe list nor one of the two exemption lists. That test is why the number is 87 rather than the thirteen the route deleted while telling people it had deleted everything.
+
+Covered, in the order the plan declares (children before parents, so the per-model counts in the audit row are truthful): measurements and every derived tier built from them, medications and their schedules and intake history, mood, the clinical record, activity, context and engagement, documents, the AI surfaces including Coach messages, sharing grants, integrations, notification transports, and the API surface with its operational trails.
+
+Everything runs in one transaction with a 120-second budget, because a half-applied wipe is worse than none: the person is told it succeeded either way. Soft-deleted rows go too — the delete carries no `deletedAt` filter, so the tombstone goes with the record. The personal columns carried on the account row itself are reset in the same transaction, and the reset is held to the `User` model's columns by the same test.
+
+### What "Delete all data" preserves
+
+Only the sign-in layer, and each entry carries its reason in the plan file: passkeys, second-factor credentials and recovery codes, trusted-device grants, the session performing the wipe, per-device refresh tokens, and the in-flight challenges that expire on their own within seconds. Removing those would not be data deletion, it would be account deletion, and that has its own path.
+
+A single `user.data.clear` audit row is written **after** the transaction commits, so it survives the deletion of the person's own audit history and stands as the receipt for the erasure they asked for.
 
 ## What "Wipe all data" deletes
 
-The admin "Wipe all data" action at `/admin/danger-zone` runs `DELETE /api/admin/data` with body `{ "confirm": "DELETE ALL" }`. It's rate-limited (5/min/IP), requires the admin role, and audit-logs the intent **before** the transaction starts — so the trail describing "an admin is about to wipe data" survives even if the operation crashes mid-way.
+The admin "Wipe all data" action at `/admin/danger-zone` runs `DELETE /api/admin/data` with body `{ "confirm": "DELETE ALL" }`. It's rate-limited (5/min/IP and 5/min/admin), requires the admin role, and audit-logs the intent **before** the transaction starts — so the trail describing "an admin is about to wipe data" survives even if the operation crashes mid-way.
+
+:::caution[This list has not kept pace with the schema]
+The nine tables below are written inline in the route, not derived from the wipe plan, and nothing holds them against `prisma/schema.prisma`. Labs, documents, cycle and journal entries, mood, workouts, sleep, Coach conversations, achievements, and every model added since the list was written survive the wipe. Do not use this path to answer a request for erasure, and do not treat it as a clean slate before handing a box to somebody else — run the per-account "Delete all data" on each account instead, or clear the database.
+:::
 
 Inside a single Postgres transaction:
 
@@ -31,7 +52,6 @@ Inside a single Postgres transaction:
 - **Notification channels** — Telegram, ntfy, Web Push (cascades to per-channel preferences via the FK).
 - **Push subscriptions** — every device's Web Push endpoint registration.
 - **Telegram-scheduled deletions** — the queue of sent reminder messages waiting to be auto-deleted by the bot.
-- **Mood entries** — every mood log row.
 
 Then, in the same transaction, the per-user fields on the `User` row are cleared:
 
@@ -116,3 +136,5 @@ Every HealthLog instance serves a public Privacy Policy at `/privacy` — reacha
 - [Self-Hosting → Scaling](/self-hosting/scaling/) — off-host S3 backups, encryption-key rotation
 - [Privacy architecture](/explanation/privacy-architecture/) — what leaves your instance, audit trail
 - [Encryption at rest](/explanation/encryption-at-rest/) — how stored data is encrypted
+- [Security and privacy](/security/overview/) — the consolidated security statement, including image verification
+- [GDPR for operators](/self-hosting/gdpr/) — which deletion path answers a request for erasure, and what backups do to it

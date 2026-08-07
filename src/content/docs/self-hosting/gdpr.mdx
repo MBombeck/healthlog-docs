@@ -1,0 +1,245 @@
+---
+title: GDPR for operators
+description: What running a HealthLog instance for other people makes you responsible for under the GDPR, and which in-app surface answers each data-subject right.
+sidebar:
+  order: 5
+---
+
+Running HealthLog for yourself is a private matter and the regulation mostly
+leaves it alone. Running it for other people makes you a controller of special
+category data, and that is a different set of duties. This page maps the duties
+onto the surfaces the app actually has, so you can see which ones are already
+answered and which ones are yours to organise.
+
+It describes software, not your situation. Nothing here is legal advice, and a
+family instance and a club instance are not the same problem.
+
+## When the regulation applies to you
+
+The GDPR does not cover processing carried out "in the course of a purely
+personal or household activity" ([Art. 2(2)(c)](https://gdpr-info.eu/art-2-gdpr/)).
+An instance you run for yourself alone sits there. So, on the ordinary reading,
+does one you run for the people you live with, as long as nothing leaves the
+household.
+
+The exemption stops being comfortable in three cases. If you host for somebody
+outside your household, a friend, a relative in another home, a club, or anyone
+you have a professional relationship with, you are processing their personal
+data and the exemption is gone. If you share a record outward, to a clinician
+for example, that is a disclosure to a third party. And if you offer the
+instance to a wider circle at all, however informally, it stops being household
+activity. In all three you are the **controller**: the person who decides why
+and how the data is processed.
+
+## Who else is involved
+
+There is no vendor behind HealthLog to sign a data-processing agreement with,
+because there is no service. You run the software; nobody else holds the data by
+virtue of you running it. What that leaves is a short list of parties you may
+have brought in yourself.
+
+Your hosting provider is a processor if the instance runs on rented
+infrastructure. They can snapshot the disk, so [Art. 28](https://gdpr-info.eu/art-28-gdpr/)
+applies and you want their standard agreement on file. On your own hardware at
+home the question does not arise.
+
+An AI provider becomes a recipient of whatever the Coach and the insight
+surfaces send it, which is a structured snapshot of recent health data, for as
+long as their retention policy says. The key is yours, so the choice and the
+contractual relationship are yours too. Pointing the app at a local endpoint
+(Ollama, LM Studio, vLLM) removes the recipient entirely, and that is the option
+to reach for when you are processing somebody else's health data.
+[Configure AI providers](/guides/ai-providers/) covers the choice.
+
+Notification channels are recipients of the notification text. Apple sees APNs
+payloads, Telegram sees Telegram messages, and your ntfy server sees whatever
+you send it. HealthLog can collapse cycle and medication reminders to a generic
+title so the content is not the thing that travels, which is worth turning on
+when the instance is not only yours.
+
+## Legal basis
+
+Health data is a special category under
+[Art. 9](https://gdpr-info.eu/art-9-gdpr/), and processing it is prohibited
+unless one of the listed exceptions applies. For an instance you run for other
+people the practical one is **explicit consent**, Art. 9(2)(a), sitting on top
+of a lawful basis under [Art. 6](https://gdpr-info.eu/art-6-gdpr/), which in the
+same setting is normally consent again, Art. 6(1)(a).
+
+Consent has to be informed, specific, freely given, and as easy to withdraw as
+it was to give. In practice that means telling the person, before they start
+entering anything:
+
+- what the instance stores, which is every category they choose to track
+- where it is hosted, and therefore who can seize or snapshot the machine
+- that you as the administrator can read the database directly, which no
+  in-app control changes
+- whether an AI provider is configured, and which one
+- how they get their data out and how they delete it, which are the two
+  sections below
+- that they can withdraw and have the record erased at any time
+
+Write down when they agreed and what you told them. For a child's record, or
+one of the [records with no login of their own](/guides/managed-profiles/), the
+consent is the guardian's, and the age at which a child can consent for
+themselves is set nationally between 13 and 16
+([Art. 8](https://gdpr-info.eu/art-8-gdpr/)).
+
+## Access and portability
+
+[Art. 15](https://gdpr-info.eu/art-15-gdpr/) gives a person a copy of their data
+and [Art. 20](https://gdpr-info.eu/art-20-gdpr/) gives them a machine-readable,
+portable version of what they provided. Both are answered by the export surface
+at **Settings, then Export**, which runs under the person's own session. You do
+not have to assemble anything on their behalf; they hold the account, so they
+run it themselves.
+
+| Artefact | Format | What it is |
+| --- | --- | --- |
+| Full backup | JSON | The single-file, user-scoped dump. The closest thing to the Art. 15 copy, and the one to hand over. |
+| Per-type export | CSV or JSON | Measurements, medications, intake events, mood, chosen individually. Convenient for a spreadsheet, not a complete record. |
+| Health record | PDF, FHIR R4 bundle, or a ZIP of both | The doctor-handover artefact, built from a selection you make. Written for a clinical reader, not for completeness. |
+
+Two honest limits on the full backup. Document originals and the sample-level
+time series behind a workout, including GPS, are never included; the payload's
+`manifest` field discloses that and the export screen says so too. And around
+thirty of the models the backup plan marks as carried do not yet have a reader
+in the export path, which the plan names one by one rather than leaving to be
+discovered. If a request has to be complete to the row, a `pg_dump` filtered to
+the person's `userId` is the fallback, and the plan file is the checklist for
+what the export missed.
+
+Rectification under [Art. 16](https://gdpr-info.eu/art-16-gdpr/) needs no
+special surface. Every entry in the app is editable and deletable by the person
+who owns it.
+
+## The deletion concept
+
+[Art. 17](https://gdpr-info.eu/art-17-gdpr/) is where the detail matters,
+because "delete" means three different scopes in this app and only two of them
+are erasure.
+
+| Path | Where | Scope |
+| --- | --- | --- |
+| Delete all data | Settings, then Advanced | Every row the account owns, across 87 user-scoped tables, keeping only what the account needs to sign in again |
+| Delete account | Settings, then Account | The account itself and everything the schema cascades from it |
+| Wipe all data | Admin, then Danger zone | Instance-wide, and **incomplete**. See the warning below. |
+
+**Delete all data** runs as one transaction. The list of tables is declared in
+one place in the source and held against the Prisma schema by a completeness
+test, so a model added to the schema has to be classified as wiped, exempt, or
+instance-scoped before it can ship. That test is the reason the number is 87 and
+not the nine it once was. What survives is the sign-in layer and nothing else:
+passkeys, second-factor credentials and recovery codes, the session performing
+the wipe, per-device refresh tokens, and the in-flight challenges that expire on
+their own. Soft-deleted rows go too, because the delete carries no `deletedAt`
+filter. For an account with a second factor enrolled, a fresh step-up is
+required first. A single audit row recording the erasure is written after the
+transaction commits, so it survives the deletion of the person's own audit
+history.
+
+**Delete account** refuses to remove the last administrator, destroys every
+session, then explicitly purges the two tables that would otherwise survive with
+a null owner but keep the person's IP addresses, login city, and free-text bug
+reports. Then it deletes the account row and the schema's cascades take
+everything attached to it, including sharing grants in both directions. A record
+that would be left with no guardian at all is refused rather than orphaned.
+
+**The admin wipe is not an erasure tool.** It deletes measurements, medications,
+intake events, API tokens, Withings connections, auth challenges, notification
+channels, push subscriptions, and scheduled Telegram deletions, then clears a
+handful of profile columns. Nine tables out of the schema's hundred and fifteen.
+Labs, documents, cycle and journal entries, mood, workouts, sleep, Coach
+conversations, and everything added since that list was written are untouched.
+It was built to refurbish a box, it has not kept pace with the schema, and it
+should not be used to answer a request for erasure. Use the per-account paths
+above, which are the ones held to the schema by a test.
+
+Backups outlive all three paths. In-database backup rows cascade away with the
+account, but objects already written to an off-host bucket stay until the
+lifecycle policy expires them, and purging those is an operator action by
+design: the backup worker holds put and get only, so a compromised worker cannot
+erase your history. When somebody invokes Art. 17, purge the bucket objects
+yourself and note in your records that you did.
+
+[Data deletion](/account/data-deletion/) enumerates each path model by model.
+
+## Storage limitation
+
+[Art. 5(1)(e)](https://gdpr-info.eu/art-5-gdpr/) says personal data is kept no
+longer than necessary. Health entries are kept until the person deletes them,
+which is the point of the app. The operational trails around them expire on
+their own:
+
+| Data | Default window | Variable |
+| --- | --- | --- |
+| Audit log, including login IP addresses and resolved city | 365 days | `AUDIT_LOG_RETENTION_DAYS`, floor of 7 |
+| Coach conversation | 365 days | `COACH_MESSAGE_RETENTION_DAYS`, floor of 30 |
+| Notification delivery attempts | 90 days | fixed |
+| Host metrics | 7 days | `HOST_METRIC_RETENTION_DAYS` |
+| Off-host backup objects | as configured | `BACKUP_RETENTION_DAYS` |
+
+Shorten the audit window if you would rather hold fewer login IP addresses.
+Lengthening it means holding more, so pick the number you can justify rather
+than the largest one the field accepts. The account-sharing surface sends the
+configured window along with the rows it shows, so a client never implies a
+completeness the retention policy has already removed.
+
+## Security of processing
+
+[Art. 32](https://gdpr-info.eu/art-32-gdpr/) asks for measures appropriate to
+the risk, and health data is high risk. What the software brings is described in
+[Security and privacy](/security/overview/): AES-256-GCM at rest under a
+versioned key map, passkey-first sign-in with Argon2id passwords behind it,
+server-side sessions, HMAC-hashed API tokens, rate limits in the database rather
+than in memory, and a strict Content-Security-Policy.
+
+What it cannot bring is the deployment. Serve the instance over TLS, keep
+`ENCRYPTION_KEYS` somewhere other than the disk holding the database, restrict
+who can reach the host, keep the image current, and verify what you deployed.
+[TLS certificates](/self-hosting/tls-certificates/),
+[Backups](/guides/backups/), and
+[Updates and deploy](/guides/updates-and-deploy/) each cover a piece of it.
+
+## Paperwork that is yours, not the app's
+
+The small-organisation exemption from keeping records of processing
+([Art. 30(5)](https://gdpr-info.eu/art-30-gdpr/)) does not extend to special
+categories, so an instance holding somebody else's health data needs a record
+even when it holds one person's. Keep it short and keep it current: the
+categories of data, the people whose data it is, why you hold it, who else sees
+it (the hosting provider, an AI provider if you configured one, the notification
+services you enabled), where it is stored, the retention windows above, and the
+security measures.
+
+A breach is reportable to your supervisory authority within 72 hours of you
+becoming aware of it ([Art. 33](https://gdpr-info.eu/art-33-gdpr/)), and to the
+people affected without undue delay when the risk to them is high
+([Art. 34](https://gdpr-info.eu/art-34-gdpr/)). A lost or copied disk holding
+health data is the high-risk case, and encryption at rest only helps to the
+extent the key was somewhere else. Decide now who you would notify and how, and
+write down the answer, because 72 hours is not long enough to work it out from
+scratch.
+
+Every instance also serves a public privacy policy at `/privacy`, reachable
+without an account. It is generic to the software and enumerates the
+data-subject rights alongside the in-app surface that answers each one. It is a
+useful starting text and it is not your record of processing, your consent
+documentation, or a statement about your hosting.
+
+## What the app does not do for you
+
+There is no consent-management screen, no agreement generator, no request
+tracker, and nothing that assembles an Art. 15 packet on somebody else's behalf.
+Those are yours. What the app gives you is the substance the answers are made
+of: an export the person runs themselves, an erasure path held to the schema by
+a test, retention windows you can set, and encryption you can verify.
+
+## Related pages
+
+- [Security and privacy](/security/overview/), the consolidated security statement
+- [Privacy architecture](/explanation/privacy-architecture/), every flow that crosses the boundary
+- [Encryption at rest](/explanation/encryption-at-rest/), the crypto layer in full
+- [Data deletion](/account/data-deletion/), each deletion path model by model
+- [What a shared record is](/explanation/record-sharing/), who can read a record on your hardware
+- [Backups](/guides/backups/), what a snapshot carries and what it leaves out
