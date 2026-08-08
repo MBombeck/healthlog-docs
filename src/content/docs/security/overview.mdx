@@ -80,7 +80,7 @@ naming rather than rounding the claim up to "nothing leaves".
 | Destination | When | What is sent | How to stop it |
 | --- | --- | --- | --- |
 | `api.pwnedpasswords.com` | A password is set, changed, or admin-reset | The first five hex characters of the SHA-1 of the candidate password, and nothing else. The remaining 35 characters are matched locally against the response, so neither the password nor its full hash crosses the network. The request carries `Add-Padding: true` so the response size does not leak which bucket was queried. | Block the host at the network level. The check fails open, so setting a password still works. |
-| `ipwho.is` | A sign-in is geo-resolved for the login-history surface | The IP address of the person signing in | `IP_GEO_LOOKUP_DISABLED=1`, and nothing else. `IP_GEO_LOOKUP_URL` moves the lookup to a different provider rather than stopping it. See the note below about the offline databases, which do **not** stop it. |
+| `ipwho.is` | A sign-in is geo-resolved for the login-history surface, and only for an address the offline GeoLite2 databases could not place | The IP address of the person signing in | Mount the GeoLite2 databases: since v1.37.1 the resolver reads them first, and an address they place never goes online. `IP_GEO_LOOKUP_DISABLED=1` turns the online lookup off entirely; `IP_GEO_LOOKUP_URL` moves it to a different provider rather than stopping it. See the note below. |
 | `api.github.com` | At most once a day, when a signed-in user views a surface that shows the version | Nothing about the instance beyond the request itself. The route reads the latest release tag and compares it locally. | Block the host at the network level. The check reports `unknown` and the UI carries on. |
 
 None of the three carries health data. The first two carry something worth
@@ -88,15 +88,18 @@ knowing about: a password prefix, and a login IP. Both are documented above
 rather than filed under "outbound connections only to services you configured",
 because that sentence would be tidier than the truth.
 
-:::caution[The offline geo databases are a fallback, not a substitute]
-The resolver queries `ipwho.is` **first** and reads the bundled MaxMind
-GeoLite2 databases only when the online lookup returns nothing. Baking the
-databases into your image, or mounting them and setting `GEOLITE2_DIR`, gives
-you a local source when the provider is down or rate-limiting. It does not stop
-login IP addresses leaving the host, and an operator who obtained a MaxMind
-licence key specifically to close that egress has not closed it. The only switch
-that does is `IP_GEO_LOOKUP_DISABLED=1`, which turns the online lookup off and
-leaves the offline tier as the sole source.
+:::note[The offline geo databases come first since v1.37.1]
+The resolver reads the bundled MaxMind GeoLite2 databases first, whether baked
+into your image or mounted with `GEOLITE2_DIR`, and asks `ipwho.is` only about
+an address they could not place. Mounting the databases therefore does what an
+operator mounts them for: a login IP the local databases can place stays on the
+host. An address they cannot place still goes online, so the only switch that
+closes the egress completely is `IP_GEO_LOOKUP_DISABLED=1`.
+
+On builds before v1.37.1 the order was inverted. The resolver asked the online
+provider first and read the databases only when that returned nothing, so an
+operator who mounted them specifically to keep login addresses on the host kept
+none of them there. If that is why you have the databases, update.
 :::
 
 Every outbound call from server code goes through a single `safeFetch` wrapper

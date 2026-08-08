@@ -125,6 +125,7 @@ then these:
 
 | Variable | Purpose |
 | --- | --- |
+| `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. Since v1.37.1 the resolver reads them first and goes online only for an address they cannot place. |
 | `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. |
 | `IP_GEO_LOOKUP_DISABLED` | Disable third-party IP lookups entirely (no geo egress). |
 | `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
