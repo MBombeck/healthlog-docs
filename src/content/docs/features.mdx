@@ -87,6 +87,19 @@ entry, because a stress rating and the strain scale were two answers to the
 same question; ratings already logged still show, still edit, and still feed
 the breakdowns that read them.
 
+Since v1.37.2 the mood record can also show what a day would have looked like on
+your own past patterns, and how far the day you recorded sits from it. This is a
+second, separate reading. Your own rating stays the leading one, it is stored
+exactly as you gave it, and the prognosis never overwrites it. The comparison
+appears only once there are enough days to say something honest: it carries the
+number of days it was built from and a range rather than a single figure, and it
+names which of the things you recorded weighed most that day. It describes a
+connection, never a cause. Below fifteen days it shows nothing at all; between
+fifteen and thirty it says how far along it is instead of guessing; between
+thirty and sixty it is there and labelled provisional. It is rebuilt overnight
+from your entries, and if you delete enough of them it goes away again rather
+than standing there with a fresh date on nothing.
+
 ## Medication compliance
 
 Flexible scheduling driven by a single recurrence engine: time windows,
@@ -125,6 +138,27 @@ heart rate — the device's own result attributed to the device, and no
 interpretation of the trace by HealthLog. Each carries a plain-language, strictly
 non-diagnostic descriptor that restates the recording's device-reported facts in
 words.
+
+## Doctor visits
+
+Since v1.37.2 appointments and the practices behind them have their own section.
+A visit records what kind it was, when it happened, its status, an optional
+practice drawn from a contact list you keep, and an encrypted note. It links to
+the lab results, documents and illness episodes it concerned, and those links
+point at the originals rather than copying them, so a later correction in the
+source shows through on the visit.
+
+Visits and their checkups sit under one segmented view. A preventive-care
+checkup is closed by recording the visit that fulfilled it, and a due checkup
+can carry a planned appointment. A planned visit sets a reminder that the server
+re-anchors when you move the date and clears when the visit happens or is
+cancelled. It fires once, never nags, and carries no "done" button, because an
+appointment is not a task you tick off.
+
+The section rides the [record-sharing model](/explanation/record-sharing/) as
+its own scope, so a delegate you share it with reads your visits under the same
+rules as the rest of the record. It also appears in the doctor-report PDF as a
+visit list you can leave out.
 
 ## Device integrations
 
@@ -187,7 +221,7 @@ with the owner at every level.
 
 An invitation can also name the parts of the record it opens: readings,
 medications, lab results, health background, illness, mood and mind, cycle,
-documents. Everything not picked stays closed and is refused the same way a
+documents, and doctor visits. Everything not picked stays closed and is refused the same way a
 record nobody shared is. Manage always covers the entire record, because a note
 in one section can be about any other. Every grant written before v1.37.0 opens
 the entire record and is untouched.

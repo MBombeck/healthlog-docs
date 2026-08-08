@@ -64,6 +64,19 @@ Grant only the types you want synced — denied types simply never leave the pho
 
 Live reads use HealthKit's observer and anchored-query APIs, and a background-processing task gives delivery a second chance when the app is not in the foreground. Every iOS-side write carries a stable external identifier so the server and Apple Health do not echo each other's writes back and forth. Day-aggregated cumulative metrics (steps, energy, distance) use the same `stats:<HKType>:<YYYY-MM-DD>` external-ID convention the bulk importer uses, so a phone sync and a later `export.zip` import resolve to the same rows rather than duplicating. See [Source priority](/explanation/source-priority/) for how readings from the phone, a Withings device, and manual entry collapse to one canonical value per day.
 
+### Workouts backfill their heart-rate curve
+
+Since v1.37.2 a workout recorded before the phone learned to send heart-rate
+detail can pick that detail up afterwards. When the app sends a session the
+server already holds and the payload this time carries the reading-by-reading
+heart rate, the server attaches the curve to the workout that is already there
+and it shows on the workout's detail page. The session itself is untouched:
+duration, calories, the average and maximum heart rate and the times all stay as
+first recorded. A workout that already has its curve is left alone, so the phone
+can walk back through years of history as often as it likes without writing
+anything twice. If one session's readings arrive unusable, that session alone is
+reported back and the rest of the batch still lands.
+
 ## What the home screen can show
 
 The app's home screen renders the summary the server computes; it never recomputes a figure of its own. Two tiles arrived in v1.30.34 — **mood** and **BMI**. Both had existed in the record all along but were missing from that summary payload, so the app could not paint them while every other tile worked. Update the server to v1.30.34 or later and they appear.
