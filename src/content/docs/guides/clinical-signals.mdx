@@ -103,7 +103,13 @@ derives the **waist-to-height ratio** and charts both against clinical bands. Se
 The longevity lab panel — markers like ApoB, Lp(a), and hs-CRP — is **entered as
 biomarkers**, not as a separate signal type. Key in (or scan) the values and they
 ride the existing labs and biomarker-detail rails, with reference bounds from the
-curated catalogue. See [the longevity lab panel](/knowledge/longevity-labs/).
+curated catalogue. Since v1.37.1 a value read from a lab report also keeps the
+reference range printed beside it, and that source range decides in or out of
+range everywhere the value shows, because the physician evaluates against the
+printed range, not a general one. The chart draws the source range as a second
+band and marks where it diverges from the catalogue; a value without a printed
+range keeps the catalogue as its net. See
+[the longevity lab panel](/knowledge/longevity-labs/).
 
 ## Where they show up
 
