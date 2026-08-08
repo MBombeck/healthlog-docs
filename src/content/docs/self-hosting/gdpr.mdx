@@ -123,7 +123,7 @@ are erasure.
 | --- | --- | --- |
 | Delete all data | Settings, then Advanced | Every row the account owns, across 87 user-scoped tables, keeping only what the account needs to sign in again |
 | Delete account | Settings, then Account | The account itself and everything the schema cascades from it |
-| Wipe all data | Admin, then Danger zone | Instance-wide, and **incomplete**. See the warning below. |
+| Wipe all data | Admin, then Danger zone | Instance-wide: every account's health data, derived from the same wipe plan since v1.37.1. See the note below. |
 
 **Delete all data** runs as one transaction. The list of tables is declared in
 one place in the source and held against the Prisma schema by a completeness
@@ -145,16 +145,20 @@ reports. Then it deletes the account row and the schema's cascades take
 everything attached to it, including sharing grants in both directions. A record
 that would be left with no guardian at all is refused rather than orphaned.
 
-**The admin wipe is not an erasure tool.** It deletes measurements, medications,
-intake events, API tokens, Withings connections, auth challenges, notification
-channels, push subscriptions, and scheduled Telegram deletions, then clears a
-handful of profile columns. Nine tables out of the hundred and twenty in the
-schema.
-Labs, documents, cycle and journal entries, mood, workouts, sleep, Coach
-conversations, and everything added since that list was written are untouched.
-It was built to refurbish a box, it has not kept pace with the schema, and it
-should not be used to answer a request for erasure. Use the per-account paths
-above, which are the ones held to the schema by a test.
+**The admin wipe clears health data, not identity.** Since v1.37.1 it derives
+from the same wipe plan as the per-account path and runs in one transaction: 88
+tables cleared, and every survivor is either a sign-in credential, instance
+configuration, or the single deliberate exemption of shared-access grants. A
+build-time rule fails if the route ever names a table inline again. On builds
+before v1.37.1 the route carried its own inline list, a snapshot of the schema
+from the day it was written, and cleared nine tables of the 122 in the schema
+while reporting the same success line however much was cleared; labs,
+documents, cycle and journal entries, mood, workouts, sleep and Coach
+conversations all survived that wipe.
+
+It is still not the way to answer a request for erasure: it keeps every
+account, and it wipes every account at once, which is the wrong scope for one
+person invoking Art. 17. Use the per-account paths above.
 
 Backups outlive all three paths. In-database backup rows cascade away with the
 account, but objects already written to an off-host bucket stay until the

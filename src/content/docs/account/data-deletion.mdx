@@ -13,9 +13,9 @@ HealthLog has three distinct deletion paths, and they affect different sets of d
 |------|-------|--------------|----------------|------------|
 | **Delete all data** | Every row one account owns, across 87 user-scoped models | `/settings/advanced` → "Delete all data" | `DELETE` | The account and the credentials that sign into it |
 | **Delete account** | One user, including the account itself | `/settings/account` → "Delete account" | `DELETE_ACCOUNT` | Audit-log entries that reference other users still survive (the row's `userId` is purged but the audit row itself remains for the rest of the audit trail) |
-| **Wipe all data** (admin only) | Nine tables, instance-wide. Not a complete erasure — see the warning below. | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | User accounts, passkeys, sessions, audit log, and every model added to the schema after the list was written |
+| **Wipe all data** (admin only) | Every account's health data, instance-wide: 88 tables, derived from the wipe plan since v1.37.1 | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | Accounts and their sign-in credentials, instance configuration, and shared-access grants |
 
-The two per-account paths are the ones a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure), and they are the ones held against `prisma/schema.prisma` by a test. The instance-wide wipe was meant for refurbishing a self-hosted box, and it has not kept pace with the schema.
+The two per-account paths are the ones a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure), and they are the ones held against `prisma/schema.prisma` by a test. The instance-wide wipe was meant for refurbishing a self-hosted box; since v1.37.1 it derives from the same plan and is held by the same test.
 
 ## What "Delete all data" deletes
 
@@ -37,41 +37,24 @@ A single `user.data.clear` audit row is written **after** the transaction commit
 
 The admin "Wipe all data" action at `/admin/danger-zone` runs `DELETE /api/admin/data` with body `{ "confirm": "DELETE ALL" }`. It's rate-limited (5/min/IP and 5/min/admin), requires the admin role, and audit-logs the intent **before** the transaction starts — so the trail describing "an admin is about to wipe data" survives even if the operation crashes mid-way.
 
-:::caution[This list has not kept pace with the schema]
-The nine tables below are written inline in the route, not derived from the wipe plan, and nothing holds them against `prisma/schema.prisma`. Labs, documents, cycle and journal entries, mood, workouts, sleep, Coach conversations, achievements, and every model added since the list was written survive the wipe. Do not use this path to answer a request for erasure, and do not treat it as a clean slate before handing a box to somebody else — run the per-account "Delete all data" on each account instead, or clear the database.
+:::note[Derived from the wipe plan since v1.37.1]
+The route no longer carries its own list. It clears the models the per-account wipe plan declares, minus one deliberate exemption, and a build-time rule fails if the route ever names a table inline again. On builds before v1.37.1 the route held an inline list written years earlier and cleared nine tables of the 122 in the schema, reporting the same success line however much was cleared; labs, documents, cycle and journal entries, mood, workouts, sleep, Coach conversations and achievements all survived that wipe. On those builds, run the per-account "Delete all data" on each account instead, or clear the database.
 :::
 
-Inside a single Postgres transaction:
+Inside a single Postgres transaction, for every account at once: 88 tables. That is the per-account "Delete all data" scope applied instance-wide, so the enumeration above applies here too: measurements and every derived tier, medications with their schedules and intake history, mood, the clinical record, activity, context and engagement, documents, the AI surfaces including Coach messages, integrations, notification transports, and the API surface with its operational trails. The per-user columns on each `User` row are reset in the same transaction, held to the model's columns by the same completeness test.
 
-- **Measurements** — every weight, blood pressure, glucose, SpO₂, sleep, activity, body-composition entry, for every user.
-- **Medication intake events** — every confirmed / late / missed / skipped record.
-- **Medications** — definitions, schedules, reminder phases (cascaded via the medication FK).
-- **API tokens** — both Bearer (`hlk_*`) and refresh tokens.
-- **Withings connections** — OAuth credentials, callback registrations.
-- **Auth challenges** — pending passkey-registration / -login challenges.
-- **Notification channels** — Telegram, ntfy, Web Push (cascades to per-channel preferences via the FK).
-- **Push subscriptions** — every device's Web Push endpoint registration.
-- **Telegram-scheduled deletions** — the queue of sent reminder messages waiting to be auto-deleted by the bot.
+Two consequences of the wider scope are worth knowing before pressing the button:
 
-Then, in the same transaction, the per-user fields on the `User` row are cleared:
-
-- `heightCm`, `dateOfBirth`, `gender`
-- `insightsPrivacyMode` resets to `aggregated`
-- `insightsCachedAt`, `insightsCachedText` — wipes the cached AI summary
-- `telegramBotToken`, `telegramChatId`, `telegramEnabled` — clears any remaining encrypted Telegram credentials on the user row itself (the channel rows above are already gone)
-- `withingsClientIdEncrypted`, `withingsClientSecretEncrypted`
-- `onboardingCompletedAt` — set to `null`, so users land on the onboarding wizard again on next login
+- **The audit history goes with it.** Audit rows are part of the operational trail and are wiped. The `admin.data.clear.start` row written before the transaction survives a crash or rollback; on success, a fresh `admin.data.clear` row written after the commit restarts the trail with the receipt for the wipe itself.
+- **In-database backups go with it.** `DataBackup` rows are in the wipe scope, so `/admin/backups` cannot undo an admin wipe. Objects already written to an off-host bucket are untouched, and restoring one of those is the recovery path.
 
 ### What "Wipe all data" preserves
 
-- **User accounts** — `users` rows are not deleted; everyone can still log in.
-- **Passkeys + Sessions** — sign-in credentials survive so admins don't lock themselves out by clicking the button.
-- **Audit log** — preserved. The audit log's whole point is to outlive the data it documents; a wipe creates `admin.data.clear.start` and `admin.data.clear` rows that anchor the trail.
-- **App settings** — the `AppSettings` singleton (registration flag, notification globals, VAPID keys, GitHub PAT, etc.) is admin-level config and is **not** in the wipe scope.
-- **Feedback** — bug reports remain so admins can review the inbox without losing context.
-- **Achievements** — `UserAchievement` rows are not in the wipe scope. (If you want a true clean-slate experience for every user, follow up with a `DELETE FROM user_achievements;` on the database.)
-- **Data backups** — `DataBackup` rows survive a wipe so you can roll back if you wiped by mistake. Restore one via `/admin/backups` to undo.
-- **Shared-access grants.** `AccountGrant` rows are not in the wipe scope, for the same reason accounts and passkeys are not: the wipe clears health data and leaves the identity and authorization layer standing. If you are refurbishing a box for somebody else, check **Settings → Shared access** on each account, or clear `account_grants` on the database, before handing it over. A wiped instance still knows who could open whose record. See [Give another account access to your record](/guides/shared-access/).
+Every survivor is one of three things:
+
+- **The sign-in layer**: accounts, passkeys, second-factor credentials and recovery codes, trusted devices, sessions, per-device refresh tokens, and the in-flight challenges that expire on their own. Nobody is locked out by the button.
+- **Instance configuration**: the `AppSettings` singleton (registration flag, notification globals, VAPID keys, etc.), rate-limit buckets, host telemetry, the seeded symptom catalogues, and the invite ledger.
+- **Shared-access grants.** `AccountGrant` rows are the one deliberate exemption from the per-account plan, for the same reason accounts and passkeys survive: the wipe clears health data and leaves the identity and authorization layer standing. If you are refurbishing a box for somebody else, check **Settings → Shared access** on each account, or clear `account_grants` on the database, before handing it over. A wiped instance still knows who could open whose record. See [Give another account access to your record](/guides/shared-access/).
 - **Managed profiles hold a floor that a wipe respects.** A record with no login of its own may never be left with nobody looking after it, so an operation that would strip the last guardian is refused rather than silently orphaning the record. That holds on a data wipe and on a guardian deleting their own account, not only on the button that looks like it would. The way to end such a record is to delete the profile. See [Records with no login of their own](/guides/managed-profiles/).
 
 ## What "Delete account" deletes
