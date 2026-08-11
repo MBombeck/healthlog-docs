@@ -191,6 +191,7 @@ export default defineConfig({
 				{
 					label: 'Project',
 					items: [
+						{ slug: 'support', label: 'Support and contact' },
 						{ slug: 'account/data-deletion' },
 						{ slug: 'license' },
 					],
