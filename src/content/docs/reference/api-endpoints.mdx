@@ -5,12 +5,22 @@ sidebar:
   order: 2
 ---
 
-The API has well over 250 routes. Rather than hand-maintain every one here (which
+The API has over 400 routes. Rather than hand-maintain every one here (which
 would drift), this page documents the **groups** with representative endpoints
 and examples. The authoritative, machine-readable contract is
 [`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml)
 — generate clients from it, and treat it as canonical when this page and the spec
 disagree.
+
+Since v1.37.25 the spec is complete in a way it was not before. Every route the
+application serves is either published there or listed in the repository with a
+reason for its absence, and a test fails the build if a new route is neither.
+Before that release the spec described 262 paths while the application answered
+on 410: the drift check compared the spec against the schemas and never against
+the routes, so a route that was never registered raised no complaint. The same
+release added the `security` declaration the spec had always been missing, so a
+generated client now wires the Bearer token or the session cookie instead of
+treating every operation as public.
 
 All mutations require [authentication](/reference/api-overview/); responses use
 the `{ data, error }` envelope.
