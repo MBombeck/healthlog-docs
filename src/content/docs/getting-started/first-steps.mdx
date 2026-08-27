@@ -47,11 +47,11 @@ NEXT_PUBLIC_APP_URL="https://your-instance.example.com"
 APP_URL="https://your-instance.example.com"
 ```
 
-Both must match. `NEXT_PUBLIC_APP_URL` lands in the client bundle and drives
-every absolute URL the UI emits (OAuth redirects, share links, manifest icons);
-`APP_URL` is the server-side mirror used by background jobs that have no request
-context. Restart the app container after editing — the pre-built image reads
-both values at startup, no rebuild needed.
+Both must match. The server reads `NEXT_PUBLIC_APP_URL` at runtime for OAuth
+redirects and the other absolute URLs it emits; `APP_URL` is the mirror used by
+background jobs that have no request context. Restart the app container after
+editing — the pre-built image picks both values up at startup, no rebuild
+needed.
 
 ```bash
 docker compose up -d
