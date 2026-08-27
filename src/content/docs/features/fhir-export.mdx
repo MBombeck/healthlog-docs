@@ -7,7 +7,7 @@ HealthLog speaks [HL7 FHIR R4](https://hl7.org/fhir/R4/), the standard wire form
 
 ## Health-record export
 
-`POST /api/export/health-record` produces a selectable export driven by a strict selection payload (date range, per-domain section toggles, optional charts and AI summary). Three output formats:
+`POST /api/export/health-record` produces a selectable export driven by a strict selection payload: an optional date range, a required leaf-level `selection` list naming exactly which metrics and record types to include, and optional charts. A scope has to be stated; the older grouped section toggles are rejected rather than silently defaulted, because an absent key used to resolve to "included". Three output formats:
 
 | Format | Content type | What it is |
 | ------ | ------------ | ---------- |
@@ -15,7 +15,7 @@ HealthLog speaks [HL7 FHIR R4](https://hl7.org/fhir/R4/), the standard wire form
 | `fhir` | `application/fhir+json` | An HL7 FHIR R4 document Bundle: LOINC-coded [observations](https://www.hl7.org/fhir/R4/observation.html), a blood-pressure panel, [medication statements](https://www.hl7.org/fhir/R4/medicationstatement.html), and a diagnostic report |
 | `package` | `application/zip` | The PDF and the FHIR Bundle together with a short README |
 
-Both formats read the same aggregator, so the PDF and the FHIR Bundle describe identical numbers. The optional AI summary is an explicit opt-in section, marked as not clinically validated, and it is kept **out** of the FHIR Bundle entirely — it is not a clinical observation.
+Both formats read the same aggregator, so the PDF and the FHIR Bundle describe identical numbers. There is no AI summary in this export: it was removed along with the grouped toggles, because its text came from a cached briefing whose scope could not be proven against the selection.
 
 If you fill in your patient identity on **Account** (name, insurer, insurance number), it feeds the report cover and the FHIR [`Patient`](https://www.hl7.org/fhir/R4/patient.html) resource. The export endpoint is rate-limited (a shared `export:<userId>` bucket) and audit-logged.
 
@@ -30,16 +30,17 @@ A read-only FHIR R4 REST API lets a clinical system pull your record in a standa
 | `GET` | `/api/fhir/Observation` | Vitals and labs as LOINC-coded observations |
 | `GET` | `/api/fhir/MedicationStatement` | Medication regimen |
 | `GET` | `/api/fhir/MedicationAdministration` | Logged intake events |
-| `GET` | `/api/fhir/$everything` | A Bundle of every resource above |
+| `GET` | `/api/fhir/Coverage` | Insurance coverage |
+| `GET` | `/api/fhir/Patient/$everything` | A Bundle of every resource above |
 
-Start at `/api/fhir/metadata` — the CapabilityStatement tells a client exactly which resources and search parameters this server exposes.
+The collection endpoints also support read-by-id (`/api/fhir/Patient/[id]`, `/api/fhir/Observation/[id]` and so on). Start at `/api/fhir/metadata` — the CapabilityStatement tells a client exactly which resources and search parameters this server exposes.
 
 ## Shareable clinician record
 
 Instead of handing a clinician a bearer token, you can create a scoped, time-limited **share link**. The clinician opens the read-only `/c/<token>` view, and you revoke the link when the visit is over.
 
 - Each link carries an explicit expiry (`expiresAt`) and can be revoked at any time (`revokedAt`); a link is active only while it is unrevoked and unexpired.
-- Share links **do not** expose the FHIR REST API. The capability flag `allowFhirApi` defaults to `false`, so a share link is a human-readable view, not a programmatic FHIR endpoint.
+- Share links **do not** expose the FHIR REST API. There is no capability flag to flip: a share link structurally cannot reach the FHIR routes, so it is a human-readable view, not a programmatic FHIR endpoint.
 
 The two surfaces are deliberately separate: the FHIR API is for system-to-system integration behind a token scope; the share link is for handing a person with no account a read-only view. A share link granting API access is a future consideration, not the current behaviour.
 

@@ -30,7 +30,7 @@ HealthLog's `docker-compose.yml` ships with:
 ```yaml
 services:
   app:
-    image: ghcr.io/mbombeck/healthlog:latest
+    image: ghcr.io/mbombeck/healthlog${HEALTHLOG_IMAGE_REF:-:latest}
     pull_policy: always
 ```
 
@@ -38,13 +38,13 @@ This is **load-bearing** for Coolify deploys. Without `pull_policy: always`, Coo
 
 ## The deploy webhook
 
-Each Coolify application has a unique deploy URL. Wire it into your release pipeline so a fresh tag triggers an auto-pull + restart:
+Each Coolify application has a unique deploy URL, and the main repo's `docker-publish.yml` workflow already contains a complete deploy hook. If you run your own fork, you only supply the credentials:
 
-1. In Coolify, open the application → **Webhooks** → copy the **Deploy Webhook URL** (looks like `https://your-coolify.example.com/api/v1/deploy?uuid=...&force=true`).
-2. Store it as a GitHub Actions secret (`COOLIFY_DEPLOY_WEBHOOK_PROD`).
-3. Add a step to the release workflow that `curl`s the URL after the GHCR image push succeeds.
+1. In Coolify, open the application → **Webhooks** → copy the **Deploy Webhook URL** (looks like `https://your-coolify.example.com/api/v1/deploy?uuid=...`).
+2. Store it as the GitHub Actions secret `COOLIFY_WEBHOOK`, and a Coolify API token as `COOLIFY_TOKEN`.
+3. Set the repository variable `COOLIFY_AUTO_DEPLOY=on` (`off` skips the hook explicitly).
 
-The pre-existing post-publish-verify workflow in the main repo already handles half of this — the missing piece is the secret on the Coolify side, which is intentionally not in version control.
+After the multi-arch image is published, the workflow waits 90 seconds for registry propagation, then calls the webhook with an `Authorization: Bearer` header, appending `force=true` if the URL does not carry it. No workflow step needs adding; the webhook URL and token stay out of version control as secrets.
 
 ## When autodeploy refuses to pull — the host-side retag fallback
 
@@ -59,7 +59,7 @@ docker tag ghcr.io/mbombeck/healthlog:<version> ghcr.io/mbombeck/healthlog:lates
 
 The retag forces Coolify's next compose-up to use the freshly-pulled digest as the canonical `:latest`. Less elegant than autodeploy but reliable when the cache misbehaves.
 
-The cleaner long-term fix is to pin the compose file to an explicit version tag (`ghcr.io/mbombeck/healthlog:<version>`) and bump it per release — that removes Coolify's cache from the path entirely at the cost of one extra commit per release.
+The cleaner long-term fix needs no compose-file edit: the shipped image line reads `ghcr.io/mbombeck/healthlog${HEALTHLOG_IMAGE_REF:-:latest}`, so setting `HEALTHLOG_IMAGE_REF` in `.env` or in Coolify's environment UI pins the deploy to an explicit `:vX.Y.Z` tag or `@sha256:<digest>` and removes Coolify's cache from the path entirely.
 
 ## Worker-process split
 
@@ -88,13 +88,7 @@ Both services pick up the same database, the same encryption keys, and the same 
 
 ## Resource sizing
 
-Coolify exposes per-service CPU and memory caps. Sensible starting points:
-
-| Service | CPU | Memory | Notes |
-| ------- | --- | ------ | ----- |
-| `app` (web) | 1 vCPU | 512 MB | Bumps under chart render or AI Coach streaming; 1 GB if you serve > 50 concurrent users. |
-| `app-worker` | 0.5 vCPU | 512 MB | Apple Health import worker spikes to 800 MB on a 1 GB `export.zip`; bump to 1 GB if your users are heavy importers. |
-| `postgres` | 1 vCPU | 1 GB | Comfortable for a few thousand `Measurement` rows per day; bump to 2 GB if you enable `pg_stat_statements` or `pg-boss` queue depth grows past a few thousand jobs. |
+The compose file's own knobs are the place to start: `APP_MEMORY_LIMIT` (default `1g`) caps the app container, and the worker example carries a matching `WORKER_MEMORY_LIMIT` (default `1g`). The compose file describes these as a starting point, not a measured ceiling. The Postgres service deliberately carries no `mem_limit`, so under memory pressure the app is killed before the database; raise `APP_MEMORY_LIMIT` first if the app gets OOM-killed under real load, and give the worker headroom if your users import large Apple Health archives.
 
 ## Backups
 
@@ -107,13 +101,12 @@ Restore drills are part of the operator manual — see [Ops → Backup & Restore
 
 ## Logs and observability
 
-Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth) — the wide-event log lines are pre-formatted for Loki's structured-log path.
+Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth) — the wide-event log lines are pre-formatted for Loki's structured-log path. Note that none of the three `LOKI_*` variables is on the shipped compose file's `environment:` whitelist, so setting them in `.env` alone does nothing: add them to the compose `environment:` block yourself, or set them in Coolify's per-service environment UI.
 
 Glitchtip and Umami land in the admin-panel monitoring section; both honour the SSRF guard and only emit when explicitly configured.
 
 ## Common Coolify gotchas
 
-- **`unrs-resolver` build script blocked** — Coolify 4.x on pnpm 11 needs `--ignore-scripts` plus an `onlyBuiltDependencies` list for `sharp` and `unrs-resolver`. The repo's Dockerfile already has the flags; if you fork the build, copy them across verbatim.
 - **`/tmp` wiped between deploys** — the worker writes Apple Health import temp files to `/tmp`. Coolify wipes the host's `/tmp` between deploys, so an import in flight during a deploy will fail mid-stream. Acceptable; the user can re-upload (and the SHA-256 dedup short-circuits) the same archive. If you want it bulletproof, mount a named volume at `/tmp/healthlog-imports`.
-- **Coolify webhook secret in the URL** — Coolify's deploy URL includes the UUID and `force=true` as query params. Treat it as a secret; do not commit it.
-- **Edge-host clones disappearing** — on some hosts the source clone in `/tmp` gets wiped, breaking later deploys. The repo's compose entries auto-clone if the source directory is missing; verify your compose file includes that fallback.
+- **Coolify webhook secret in the URL** — Coolify's deploy URL includes the application UUID as a query param. Treat it as a secret; do not commit it.
+- **No source clone needed** — the published image is self-contained; the compose file pulls it from GHCR and never references a source directory, so a wiped checkout on the host cannot break a deploy.
