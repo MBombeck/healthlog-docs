@@ -27,8 +27,8 @@ preferred units while storage and exports stay canonical SI.
 ## Custom thresholds
 
 Override the computed default ranges per metric with the targets your clinician
-set. Audit-logged. The doctor-report PDF prints both your target and the standard
-reference.
+set. Audit-logged. The doctor-report PDF prints the effective range in force,
+overrides included.
 
 ## Customizable dashboard
 
@@ -61,9 +61,9 @@ conservatively, never as a verdict.
 A [nutrients module](/guides/nutrients/) for fluid intake, caffeine, macros, and
 the vitamins and minerals your device records — a dashboard water tile with
 quick-add and a Nutrients page charting hydration and micronutrients against
-their reference daily intake as context. On by default for a fresh install,
-opt-in on an existing one; device-synced dietary data flows once your client
-sends it.
+their reference daily intake as context. Opt-in: the module ships off, and
+ingest refuses while it is off. Once you enable it, device-synced dietary data
+flows as your client sends it.
 
 ## Metric catalog
 
@@ -116,7 +116,7 @@ plots how a metric moved since a medication started — a data-scaled axis, a
 
 ## Clinical signals and records
 
-Opt-in and additive to the everyday metrics:
+Additive to the everyday metrics, on by default and inert until data arrives:
 [validated mental-wellbeing self-checks](/guides/clinical-signals/) (PHQ-9,
 GAD-7, WHO-5, and the Sleep Condition Indicator — official wording, published
 severity bands, calm crisis-resource handling), grip strength, a 0–10 pain
@@ -125,14 +125,18 @@ score, waist and body measurements, and a longevity
 signal registry, so a new signal wires into
 charts, correlations, the Coach, the FHIR map and the API at once. Structured
 [allergies and family history](/guides/structured-records/) are encrypted at
-rest and print in the doctor report. (Immunization records are deliberately out
-of scope.) An opt-in
-[environmental module](/explanation/environmental-module/) folds weather,
-daylight and temperature in as influence signals. **Custom metrics** let you
+rest and print in the doctor report. A vaccination record (since v1.37.3)
+keeps a lifetime immunization log — doses grouped under the disease they
+protect against, optional booster reminders, and a doctor-report section you
+can leave out. An
+[environmental module](/explanation/environmental-module/), on by default,
+folds weather, daylight and temperature in as influence signals; the weather
+fetch itself stays off until you configure a home location. **Custom metrics** let you
 define your own measurement — name, unit, optional target range — and log and
 chart it alongside the built-ins; custom definitions stay private to your
-account and deliberately stay out of device sync, FHIR export, and AI
-insights. Single-lead [ECG recordings](/insights/ecg-recordings/) synced from a
+account and deliberately stay out of device sync and FHIR export, though they
+do feed the correlation discovery that the Coach and the insights surfaces
+read. Single-lead [ECG recordings](/insights/ecg-recordings/) synced from a
 compatible watch are shown on a calibration grid with date, duration and average
 heart rate — the device's own result attributed to the device, and no
 interpretation of the trace by HealthLog. Each carries a plain-language, strictly
@@ -155,10 +159,11 @@ re-anchors when you move the date and clears when the visit happens or is
 cancelled. It fires once, never nags, and carries no "done" button, because an
 appointment is not a task you tick off.
 
-The section rides the [record-sharing model](/explanation/record-sharing/) as
-its own scope, so a delegate you share it with reads your visits under the same
-rules as the rest of the record. It also appears in the doctor-report PDF as a
-visit list you can leave out.
+In the [record-sharing model](/explanation/record-sharing/) visits belong to
+the health-background section rather than a scope of their own, so a delegate
+granted your health background also reads your visits and the practice list
+behind them, under the same rules as the rest of the record. The section also
+appears in the doctor-report PDF as a visit list you can leave out.
 
 ## Device integrations
 
@@ -220,8 +225,9 @@ the owner's reminders, and overturning a dose decision already recorded, stay
 with the owner at every level.
 
 An invitation can also name the parts of the record it opens: readings,
-medications, lab results, health background, illness, mood and mind, cycle,
-documents, and doctor visits. Everything not picked stays closed and is refused the same way a
+medications, lab results, health background (which includes doctor visits and
+the immunization history), illness, mood and mind, cycle, and documents.
+Everything not picked stays closed and is refused the same way a
 record nobody shared is. Manage always covers the entire record, because a note
 in one section can be about any other. Every grant written before v1.37.0 opens
 the entire record and is untouched.
@@ -283,7 +289,7 @@ keeps them on a server you run.
 | | HealthLog | Withings web | Apple Health | Oura web | WHOOP web | Fitbit web |
 | --- | --- | --- | --- | --- | --- | --- |
 | Self-hosted | Yes | No | No | No | No | No |
-| Open source | Yes (PolyForm NC) | No | No | No | No | No |
+| Source-available | Yes (PolyForm NC) | No | No | No | No | No |
 | Withings sync | OAuth2 | Native | Via shortcut | No | No | No |
 | WHOOP sync | OAuth2 (BYO-keys) | No | No | No | Native | No |
 | Google Health / Fitbit | BYO Google client | No | No | No | No | Native |
