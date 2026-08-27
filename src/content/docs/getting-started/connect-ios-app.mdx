@@ -18,7 +18,6 @@ repository, [MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
   no `export.zip` round-trip.
 - **Reminders with action buttons.** Medication reminders arrive over APNs with
   taken / skip / snooze buttons that work without opening the app.
-- **An on-device coach** on Apple-Intelligence-capable iPhones.
 
 ## Connect
 
@@ -43,19 +42,25 @@ configured. This is an all-or-none set of environment variables:
 | `APNS_KEY_ID` | 10-char Key ID from Apple Developer |
 | `APNS_TEAM_ID` | 10-char Team ID |
 | `APNS_BUNDLE_ID` | iOS app bundle id |
-| `APNS_KEY` *or* `APNS_KEY_FILE` | The `.p8` auth key contents, or a path to it |
+| `APNS_KEY_B64` | The `.p8` auth key contents, base64-encoded |
 
 :::caution[`.p8` key gotchas]
-Paste the `.p8` body through `APNS_KEY_B64` (base64) rather than a raw multiline
-env var — `env_file` mangling of literal newlines is the most common failure.
-The key must be scoped **Sandbox & Production** in the Apple Developer Portal; a
+`APNS_KEY_B64` is the variable the stock `docker-compose.yml` passes through to
+the container. The code also accepts `APNS_KEY` (raw contents) and
+`APNS_KEY_FILE` (a path), but neither is on the compose `environment:`
+whitelist, so setting them in `.env` with the stock compose file does nothing
+unless you add them there yourself. Prefer the base64 form anyway, because
+`env_file` mangling of the `.p8` body's literal newlines is the most common
+failure. The
+key must be scoped **Sandbox & Production** in the Apple Developer Portal; a
 Sandbox-only key fails with `BadEnvironmentKeyInToken` on production builds.
 :::
 
 If a client manages its own local reminders, it can set `clientManaged: true` on
 `PATCH /api/auth/me/notification-prefs` to suppress server-side
-`MEDICATION_REMINDER` APNs. The cron then skips dose-due pushes for that user and
-emits a `medication_reminder.suppressed_client_managed` annotation per skip.
+`MEDICATION_REMINDER` APNs. Only the APNs leg is skipped; Telegram, ntfy, and
+Web Push still deliver. Each skip emits a
+`medication_reminder_suppressed_client_managed` annotation.
 
 ## Diagnostics
 

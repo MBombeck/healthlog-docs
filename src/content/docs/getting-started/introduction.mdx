@@ -8,10 +8,11 @@ sidebar:
 HealthLog is a self-hosted personal health tracker that runs from a single
 `docker compose up`. It covers the metrics most people actually log — weight,
 blood pressure, pulse, body composition, blood glucose, sleep, mood, menstrual
-cycle, and medication compliance — plus opt-in
+cycle, and medication compliance — plus
 [clinical signals](/guides/clinical-signals/) (validated mental-wellbeing
 self-checks, grip strength, a pain score, waist measures, and a longevity lab
-panel) and structured [records](/guides/structured-records/) for allergies and
+panel), on by default and inert until data arrives, and structured
+[records](/guides/structured-records/) for allergies and
 family history. It brings them together in one dashboard with clinical reference
 ranges, overridable with the targets your clinician set.
 
@@ -49,15 +50,17 @@ looks like, or jump straight to
 - **AI insights you own.** A daily briefing, health scores, correlations, and a
   conversational coach grounded in your own measurements, with calm
   [proactive check-ins](/explanation/proactive-coach/) it suppresses when there
-  is nothing genuine to say. Bring your own OpenAI or Anthropic key, or point at
-  a local endpoint so nothing leaves your network.
+  is nothing genuine to say. Bring your own OpenAI or Anthropic key, use
+  ChatGPT via Codex or an admin-shared key, or point at a local endpoint so
+  nothing leaves your network.
 - **Open to your own assistant.** An off-by-default
   [MCP connector](/guides/mcp-server/) can expose your own record to an external
   assistant over OAuth — read-only by default, with narrow confirmed writes only
   when you opt in.
-- **Context that explains the numbers.** An opt-in
-  [environmental module](/explanation/environmental-module/) folds weather,
-  daylight, and temperature in as influence signals.
+- **Context that explains the numbers.** An
+  [environmental module](/explanation/environmental-module/), on by default,
+  folds weather, daylight, and temperature in as influence signals; the
+  weather fetch itself stays off until you configure a home location.
 - **Clinician-ready output.** A doctor-report PDF generated client-side, a
   read-only [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited
   share links you revoke after the visit.

@@ -17,8 +17,8 @@ exact catalogue and contract see the [MCP server reference](/reference/mcp/).
 The surface ships dark. The `/mcp` endpoint answers `404` until three
 independent conditions all hold: a pinned canonical origin (`APP_URL`), the
 operator's instance-wide API switch, and a per-account `mcp` module toggle. The
-`mcp` module is the only one that ships off — every other module is on out of the
-box.
+`mcp` module is one of only two modules that ship off (the other is nutrients);
+every other module is on out of the box.
 
 The point is plain: **a self-hoster who never opts in gets zero new exposure.**
 There is no "enabled but unused" state to forget about, no default credential to
@@ -111,10 +111,13 @@ design, not just usage etiquette.
   surface inside HealthLog's project-wide self-description — a personal
   record-keeping and wellness tool, not a medical device.
 
-The mental-health screeners (PHQ-9 / GAD-7 / WHO-5 / SCI), the environmental-context signals,
-the structured allergy and family-history records, and the inbound-document store
-are kept off the surface entirely for the same reason: they are not on the MCP
-exposure allowlist, so no tool can return them. As the connector's read reach
+The mental-health screeners (PHQ-9 / GAD-7 / WHO-5 / SCI), the structured
+allergy and family-history records, and the inbound-document store are kept off
+the surface entirely for the same reason: they are not on the MCP exposure
+allowlist, so no tool can return them. The raw environmental series (`ENV_*`)
+are likewise off the metric-read allowlist, though the correlation tools run
+the same discovery engine as the Coach, so an environmental channel can be
+named as a driver in a correlation result. As the connector's read reach
 grew — nutrition and vitamins, the intraday pulse curve, stored ECG recordings,
 and a set of device metrics all became readable by name — these exclusions did
 not move. A metric is exposed only once it has been named for the surface; the
@@ -137,7 +140,7 @@ removes exactly the access it granted, no more and no less.
 | Attach the documented resources and run the built-in prompts | Reach any `/api/admin/*` endpoint |
 | With a write scope, append a single self-reported measurement, mood, or blood-pressure reading after an explicit confirm | Edit or delete any existing row, change a medication or schedule, write a lab, or export data |
 | See only what it asks for, one record at a time, each with a citation deep-link | Use a `health:write` token as a general REST write credential |
-| Be revoked at any time under **Settings → MCP** | Reach the screeners, environmental signals, structured records, or document store — none are on the exposure allowlist |
+| Be revoked at any time under **Settings → MCP** | Reach the screeners, raw environmental series, structured records, or document store — none are on the exposure allowlist |
 | Read the record of the account that minted it, and only that one | Follow a [shared-access grant](/explanation/record-sharing/) into another account's record, even one the connecting user can open in the browser |
 
 The last row is worth stating rather than leaving to inference. Account sharing
