@@ -1,6 +1,6 @@
 ---
 title: The environmental module
-description: A module that folds weather, daylight, and temperature in as influence signals correlated with your mood, sleep, and vitals — on by default, inert until you set a home location.
+description: A module that folds weather, daylight, and temperature in as influence signals correlated with your mood, sleep, and vitals. On by default, inert until you set a home location.
 sidebar:
   order: 22
 ---
@@ -77,7 +77,7 @@ The raw environmental series (`ENV_*` — temperature, sunshine, daylight,
 precipitation, barometric pressure) stay off the AI metric-read allowlist: no
 Coach or MCP tool can fetch them as a series. The correlation engine both
 surfaces query does include the environmental channels, though, so an
-environment-vs-outcome relationship — barometric pressure against sleep, say —
+environment-vs-outcome relationship (barometric pressure against sleep, say)
 can appear as a named driver in an AI-narrated correlation. The raw exclusion
 matches the deliberate exclusions described in the
 [privacy architecture](/explanation/privacy-architecture/): being defined is not

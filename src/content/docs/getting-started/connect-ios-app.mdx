@@ -49,16 +49,17 @@ configured. This is an all-or-none set of environment variables:
 the container. The code also accepts `APNS_KEY` (raw contents) and
 `APNS_KEY_FILE` (a path), but neither is on the compose `environment:`
 whitelist, so setting them in `.env` with the stock compose file does nothing
-unless you add them there yourself. Prefer the base64 form anyway — `env_file`
-mangling of the `.p8` body's literal newlines is the most common failure. The
+unless you add them there yourself. Prefer the base64 form anyway, because
+`env_file` mangling of the `.p8` body's literal newlines is the most common
+failure. The
 key must be scoped **Sandbox & Production** in the Apple Developer Portal; a
 Sandbox-only key fails with `BadEnvironmentKeyInToken` on production builds.
 :::
 
 If a client manages its own local reminders, it can set `clientManaged: true` on
 `PATCH /api/auth/me/notification-prefs` to suppress server-side
-`MEDICATION_REMINDER` APNs. Only the APNs leg is skipped — Telegram, ntfy, and
-Web Push still deliver — and each skip emits a
+`MEDICATION_REMINDER` APNs. Only the APNs leg is skipped; Telegram, ntfy, and
+Web Push still deliver. Each skip emits a
 `medication_reminder_suppressed_client_managed` annotation.
 
 ## Diagnostics

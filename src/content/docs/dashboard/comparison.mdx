@@ -9,7 +9,7 @@ A **comparison baseline** turns charts and tiles into a "this month vs. last mon
 
 ## Where the control lives
 
-Each chart card carries an **overlay cog** — the same menu that holds the trend, trend-arrow, and target-range overlays (see [Dashboard Customization](/features/dashboard-customization/)). Under the *Comparison* label sit three buttons: *Off*, *vs. last month*, and *vs. last year*.
+Each chart card carries an **overlay cog**, the same menu that holds the trend, trend-arrow, and target-range overlays (see [Dashboard Customization](/features/dashboard-customization/)). Under the *Comparison* label sit three buttons: *Off*, *vs. last month*, and *vs. last year*.
 
 The choice is not per chart, though: it writes into the persisted dashboard-widgets preference, so setting it on one chart sets it everywhere. The dashboard tiles, every dashboard chart, and the insights metric pages all resolve the same stored baseline, and it survives reload and follows you across devices. Default is off; nothing changes until you pick a baseline.
 
@@ -42,14 +42,14 @@ Both modes use the same 30-day window length as the current period. That means t
 
 ## When the overlay can't render
 
-- **No prior-period data on a chart.** When the chart discovers the selected prior period carries nothing to overlay, its caption states that the comparison is unavailable, and the cog's comparison buttons render visibly disabled — reduced opacity, with a tooltip saying why. *Off* stays enabled as the escape hatch, and the moment a prior-period reading lands (say, you backfill a paper diary), the overlay starts showing.
+- **No prior-period data on a chart.** When the chart discovers the selected prior period carries nothing to overlay, its caption states that the comparison is unavailable, and the cog's comparison buttons render visibly disabled (reduced opacity, with a tooltip saying why). *Off* stays enabled as the escape hatch, and the moment a prior-period reading lands (say, you backfill a paper diary), the overlay starts showing.
 - **A missing mean on a tile.** The tile delta needs both a current and a prior 30-day mean; when either side is missing, the chip is suppressed rather than shown as a dash.
 
 The current period gets its own empty-state handling — a 1- or 2-point chart still renders an explicit empty state — independent of the overlay.
 
 ## Performance
 
-Enabling a comparison **widens the chart's data window** by the shift length — 30 days for last-month, 365 for last-year — so the chart runs one refetch for the wider window and then renders both periods from that single response. The tile deltas are cheaper: the prior-period means ride the summary fields already in the dashboard fetch, so the tiles need no extra request at all.
+Enabling a comparison **widens the chart's data window** by the shift length (30 days for last-month, 365 for last-year), so the chart runs one refetch for the wider window and then renders both periods from that single response. The tile deltas are cheaper: the prior-period means ride the summary fields already in the dashboard fetch, so the tiles need no extra request at all.
 
 The AI insights narration adds the prior-period means to the prompt — that's a small token-budget hit per generation, not a separate request. The cached insight payload includes the narration, so switching the comparison off and back on doesn't trigger a regeneration.
 
