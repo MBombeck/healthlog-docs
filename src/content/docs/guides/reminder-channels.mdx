@@ -111,20 +111,23 @@ no such step.
 
 ## Proactive coach nudges
 
-Separate from dose reminders, a nightly pass can send at most one gentle coach
-nudge per week through the same channels — watching four signals (low 7-day
+Separate from dose reminders, a daily pass can send at most one gentle coach
+nudge per rolling window through the same channels: 7 days by default, 14 when
+you pick the biweekly preference. It watches seven trigger groups (low 7-day
 adherence, blood pressure above its target band, a falling recovery trend, a
-stale self-context). It has its own opt-out and is off whenever the coach is
-disabled. See [Health scores](/explanation/health-scores/) for what the signals
-mean.
+stale self-context, weight drifting away from its green range, accumulating
+sleep debt, and an abrupt measurement gap), with per-group toggles under the
+nudge opt-out. It is off whenever the coach is disabled. See
+[Health scores](/explanation/health-scores/) for what the signals mean.
 
 ## Client-managed reminders
 
 A client that manages its own local reminders can suppress server-side
 `MEDICATION_REMINDER` APNs by setting `clientManaged: true` on
-`PATCH /api/auth/me/notification-prefs`. The cron then skips dose-due pushes for
-that user and annotates each skip
-(`medication_reminder.suppressed_client_managed`).
+`PATCH /api/auth/me/notification-prefs`. Only the APNs send is skipped; every
+other enabled channel (Telegram, ntfy, webhook, email, Web Push) still
+delivers, and each skip is annotated
+(`medication_reminder_suppressed_client_managed`).
 
 ## Diagnostics
 

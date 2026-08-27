@@ -18,6 +18,10 @@ The Oura client (`src/lib/oura/client.ts`) reads from the Oura v2 user collectio
 - **Daily activity** — steps, energy, distance.
 - **Daily SpO₂** — average overnight blood-oxygen saturation.
 - **Daily sleep** — the headline Sleep Score (distinct from the `sleep` detail).
+- **VO₂ max** — the dedicated `vO2_max` collection.
+- **Cardiovascular age** — Oura's daily estimate, stored as vascular age.
+- **Daily resilience** — the resilience level, encoded on a 1 to 5 scale.
+- **Cycle phases** — a best-effort import of `daily_cycle_phases` for Cycle Insights, where the ring provides it.
 
 Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's.
 

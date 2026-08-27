@@ -26,7 +26,8 @@ Withings metric types map into `Measurement` rows tagged `source = WITHINGS`:
 | 54, 35 | `OXYGEN_SATURATION` (ScanWatch / pulse-ox) |
 
 Plus the body-composition family (fat ratio, muscle mass, bone mass, hydration),
-sleep stages, and heart-rate variability via the heart-list endpoint. Activity
+sleep stages, and heart-rate variability from the nightly sleep summary (the
+SDNN estimate); the heart endpoints power the ECG recording import. Activity
 data (steps, active energy, distance, floors) arrives through the
 `user.activity` scope.
 
@@ -74,7 +75,7 @@ data (steps, active energy, distance, floors) arrives through the
    AES-256-GCM-encrypted), subscribes the webhook URL, and triggers an
    initial sync of the past 30 days. The page then shows **Connected** with
    the last-sync timestamp. Subsequent syncs run automatically on every
-   webhook delivery, plus a safety-net cron pull every few hours.
+   webhook delivery, plus hourly safety-net cron pulls.
 
 </Steps>
 
@@ -122,16 +123,18 @@ database as an audit trail. Override per user under **Settings → Sources**.
 
 ## Disconnect
 
-The Settings **Disconnect** button revokes the access token at Withings,
-removes the connection and its stored tokens, and audits the action. Existing
+The Settings **Disconnect** button unsubscribes the webhook categories at
+Withings, removes the connection and its stored tokens locally, and audits the
+action; the OAuth grant itself is managed on the Withings side. Existing
 measurements tagged `source = WITHINGS` stay in the database — disconnect does
 not delete data. Re-linking the same Withings account merges back onto the same
 metric timeline: the upsert path matches on `(userId, type, measuredAt,
 source)`, so previously-synced rows update in place instead of duplicating.
 
-## Admin probe
+## Connection test
 
-`POST /api/integrations/withings/test` (admin-only) runs a read-only round-trip
-against the user's stored credentials and returns the latency. A green test plus
+`POST /api/integrations/withings/test` runs a read-only round-trip against the
+signed-in user's stored credentials and returns the latency; the Settings card
+exposes it, and it is rate-limited to five calls per minute. A green test plus
 a stale `lastSyncedAt` usually means the webhook URL Withings holds is out of
 sync — re-subscribe.

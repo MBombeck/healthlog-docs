@@ -14,35 +14,44 @@ This is the practical guide to adjusting that ladder. For the reasoning behind
 the two-ladder design, see
 [Why source priority works the way it does](/explanation/source-priority/).
 
-## The two ladders
+## The default ladders
 
 HealthLog ranks sources differently depending on the metric class, because the
-right answer differs:
+right answer differs. The defaults are per metric and wearable-aware; a few
+representative ones:
 
-- **Point measurements** (weight, blood pressure, pulse, body fat, body
-  temperature, SpO₂, VO₂ max) pick a single display-preferred source. The
-  default ladder is **`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL`** — a dedicated cuff or
-  scale outranks a wrist estimate.
-- **Cumulative metrics** (steps, active energy, distance, flights, sleep, HRV,
-  resting HR) pick exactly **one source per day** so they are never
-  double-counted. The default ladder is
-  **`APPLE_HEALTH ≻ WITHINGS ≻ MANUAL ≻ IMPORT`** — HealthKit folds multiple
-  sensors into one canonical daily stream, so it is the most complete cumulative
-  source.
+- **Point measurements from a dedicated sensor** (weight, blood pressure, body
+  fat, body temperature) put the primary device first. Weight defaults to
+  **`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL ≻ WHOOP ≻ FITBIT ≻ GOOGLE_HEALTH`**; blood
+  pressure to **`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL`**. A dedicated cuff or scale
+  outranks a wrist estimate.
+- **Cumulative activity metrics** (steps, active energy, distance, flights) pick
+  exactly **one source per day** so they are never double-counted. Steps default
+  to
+  **`APPLE_HEALTH ≻ WITHINGS ≻ FITBIT ≻ GOOGLE_HEALTH ≻ OURA ≻ POLAR ≻ STRAVA ≻ MANUAL`**:
+  HealthKit folds multiple sensors into one canonical daily stream, so it is the
+  most complete cumulative source.
+- **Recovery inputs** (sleep, HRV, resting heart rate, respiratory rate) are led
+  by the worn-all-night wearables:
+  **`WHOOP ≻ FITBIT ≻ GOOGLE_HEALTH ≻ OURA ≻ POLAR ≻ APPLE_HEALTH ≻ WITHINGS`**.
+- **SpO₂** ranks the ScanWatch pulse-ox first, then the straps and rings:
+  **`WITHINGS ≻ WHOOP ≻ FITBIT ≻ GOOGLE_HEALTH ≻ OURA ≻ POLAR ≻ APPLE_HEALTH ≻ MANUAL`**.
 
-The defaults live in `src/lib/validations/source-priority.ts`.
+A source that is not listed in a metric's ladder is never silently dropped: when
+none of the colliding sources appear in the ladder, every row is kept. The full
+per-metric defaults live in `src/lib/validations/source-priority.ts`.
 
 ## Adjust the ladder
 
-Open the **Sources** section of `/settings/thresholds`. For each metric (or
+Open **Settings → Source priority** (`/settings/sources`). For each metric (or
 metric class) you can:
 
-- Reorder the source ladder by drag.
+- Reorder the source ladder with the up/down arrow buttons.
 - Set an optional **device-type tie-break** so two devices reporting under the
   same source resolve deterministically.
 
 Changes are per user and audit-logged. The API surface is
-`GET` / `PATCH /api/auth/me/source-priority`.
+`GET` / `PUT /api/auth/me/source-priority`.
 
 ## What happens to the losing rows
 
@@ -61,5 +70,6 @@ weighing second-hand via the Health Mate app):
 - **Steps** (cumulative): if a ScanWatch feeds HealthKit, the Apple-Health-
   aggregated day wins; the Withings step rows stay in the database.
 
-Override either default under the Sources section if your setup differs — for
-instance, if you trust a Fitbit's resting heart rate over a Withings estimate.
+Override either default under **Settings → Source priority** if your setup
+differs — for instance, if you trust a Fitbit's resting heart rate over a
+Withings estimate.

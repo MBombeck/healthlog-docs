@@ -44,17 +44,16 @@ SHA-256, so re-uploading the same archive merges instead of duplicating.
 
 ## What gets imported
 
-The parser folds four XML element types into the schema:
+The parser folds three XML element types into the schema:
 
 | XML element | Maps to | Notes |
 | --- | --- | --- |
 | `<Record>` | `Measurement` rows | One row per spot sample. Keyed by `HKMetadataKeyExternalUUID` when present, otherwise a deterministic `sample:<sha256>` fallback so re-imports stay idempotent. |
 | `<Workout>` | `Workout` rows | Activity type + duration + energy + distance. |
-| `<Correlation>` | `Measurement` rows | Compound samples like blood pressure explode into per-metric children. |
-| `<ClinicalRecord>` | `Measurement` rows where the type maps | Only the metric-typed fields are ingested. |
+| `<Correlation>` | `Measurement` rows | Compound samples like blood pressure explode into per-metric children; the child Records import individually. |
 
-Anything outside the mapped set (workout routes, ECG voltage traces) is counted
-in `progress.records_skipped` but not stored.
+Anything outside the mapped set (`<ClinicalRecord>` elements, workout routes,
+ECG voltage traces) is counted in the skip tally but not stored.
 
 ### Cumulative types collapse to one row per day
 
