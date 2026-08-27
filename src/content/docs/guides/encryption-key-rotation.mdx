@@ -62,9 +62,10 @@ refuses to silently fall back to the active key and throws a clear error instead
    ```
 
    It is idempotent — re-running is a no-op for rows already prefixed `v2.`. It
-   rotates `User`, `WithingsConnection`, `AppSettings`, `NotificationChannel`,
-   and `PushSubscription` rows (plus the `CoachMessage.encryptedContent` Bytes
-   column and `IntegrationStatus.lastError`). The summary line reports
+   rotates every encrypted column across the schema; the script enumerates
+   them, from the connection credentials and notification channels through
+   Coach content, mood entries, lab results, documents and the search index,
+   so a new release's encrypted columns ride along. The summary line reports
    `scanned` / `rotated` / `errors` per table+field; treat `errors > 0` as a
    hard failure and re-run after fixing the cause.
 
