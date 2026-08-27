@@ -19,10 +19,12 @@ Open `/medications` and start the wizard. You set the name, an optional dosage
 and unit, a route of administration (oral / injection / other — injection adds a
 site picker), an optional supply count for the runway estimate, and a schedule.
 
-The detail page that follows is a six-tab layout: **Übersicht** (overview),
-**Zeitplan** (schedule), **Erinnerung** (reminders), **Bestand** (supply),
-**Verlauf** (history), and **Erweitert** (advanced). Reminders live with the
-schedule they gate; charts load on demand.
+The detail page that follows is a tabbed layout: **Übersicht** (overview),
+**Wirkung** (effect on a metric), **Zeitplan** (schedule, which also carries
+the reminder card), **Bestand** (supply), **Verlauf** (history), **API** (the
+per-medication ingest token), and **Erweitert** (advanced). Injectables get an
+extra **Injektion** tab. Reminders live with the schedule they gate; charts
+load on demand.
 
 ## Pick a cadence
 
@@ -101,7 +103,8 @@ fact.
 
 ## Reminders
 
-Set reminder times and channels on the **Erinnerung** tab. The dispatcher fans
+Set reminder times and channels on the reminder card inside the **Zeitplan**
+tab, under the times editor. The dispatcher fans
 each reminder out to whichever channels the user enabled, with late/missed
 escalation. See [Reminder channels](/guides/reminder-channels/) for the channel
 cascade and the per-channel setup.
