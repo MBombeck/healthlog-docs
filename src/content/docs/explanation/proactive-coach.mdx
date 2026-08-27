@@ -17,11 +17,14 @@ all.
 
 ## What triggers it
 
-The nudge watches a small set of signals — the same kinds of trends the
-[health scores](/explanation/health-scores/) and insights already surface, such
-as recovery picking up or blood pressure settling. When one of them has moved in
-a way worth a sentence, the nudge has something to open with. When nothing has
-genuinely changed, it has nothing to say, and so it says nothing.
+The nudge watches a small set of signals, each of them something slipping
+rather than something going well: a medication compliance rate falling under
+its floor, blood pressure sitting above your effective target, a recovery
+score dropping sharply against the prior week, weight drifting further from
+its range, repeated sleep debt across a week, an abrupt stop in logging from a
+previously active account, or a stale Coach self-context. When one of them has
+moved in a way worth a sentence, the nudge has something to open with. When
+nothing has genuinely changed, it has nothing to say, and so it says nothing.
 
 ## The discipline behind it
 
@@ -49,9 +52,9 @@ people simply browsing.
 The nudge is governed by suppression rules whose whole purpose is to make it rare
 enough to be welcome:
 
-- **At most one a day.** Never more.
-- **Never two days running on the same focus.** It will not repeat the same theme
-  morning after morning.
+- **At most one per week.** The cap is one nudge per rolling 7-day window, or
+  14 days if you picked the biweekly setting — so back-to-back mornings cannot
+  happen at all, on any focus.
 - **Suppressed when there is nothing genuine to say.** No manufactured nudge to
   hit a cadence. Silence is the default, not the failure case.
 - **Suppressed when you already engaged the Coach recently.** If you have talked
@@ -71,8 +74,8 @@ show you what's behind it" than "you need to check this."
 :::caution[It never quotes your own notes back]
 The nudge references the **focus category** — the kind of thing it noticed — not
 your private words. It does not interpolate your decrypted self-context sentences
-back at you verbatim. You will see "your recovery has been picking up," not your
-own note read aloud. This is a deliberate guard, not an incidental one.
+back at you verbatim. You will see "your sleep has been running short," not
+your own note read aloud. This is a deliberate guard, not an incidental one.
 :::
 
 And, like everything else the Coach says, it **describes, never diagnoses**. It

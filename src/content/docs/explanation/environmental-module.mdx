@@ -1,6 +1,6 @@
 ---
 title: The environmental module
-description: An opt-in, off-by-default module that folds weather, daylight, and temperature in as influence signals correlated with your mood, sleep, and vitals.
+description: A module that folds weather, daylight, and temperature in as influence signals correlated with your mood, sleep, and vitals — on by default, inert until you set a home location.
 sidebar:
   order: 22
 ---
@@ -12,13 +12,15 @@ sinks through a dark winter; blood pressure and pulse drift up in a heatwave.
 When a pattern in your own data has no obvious cause, the cause is sometimes
 outside the window.
 
-The environmental module gives those patterns somewhere to point. It is **opt-in
-and off by default** — nothing about the weather is recorded unless you turn it
-on.
+The environmental module gives those patterns somewhere to point. It is **on by
+default since v1.29.1, but inert**: nothing about the weather is recorded, and
+no outbound fetch happens, until you set a home location on the Environment
+settings surface.
 
 ## What it adds
 
-When enabled, the module folds in a small set of environmental measures as
+Once a home location is set, the module folds in a small set of environmental
+measures as
 **influence signals** — context correlated with your mood, sleep, and vitals
 rather than health readings in their own right:
 
@@ -69,13 +71,15 @@ Later stages — coarse location from the iOS client, or a bedroom-temperature f
 from a home-automation setup — are separate, opt-in follow-ups, not part of this
 first version.
 
-## Kept off the AI surface in v1
+## What the AI surfaces can and cannot see
 
-The environmental signals (`ENV_*` — temperature, sunshine, daylight,
-precipitation, barometric pressure) are **not exposed to the Coach or MCP** in
-v1. They are real registry signals — charted, correlated, exportable — but they
-do not resolve through any AI read tool. This matches the deliberate exclusions
-described in the
+The raw environmental series (`ENV_*` — temperature, sunshine, daylight,
+precipitation, barometric pressure) stay off the AI metric-read allowlist: no
+Coach or MCP tool can fetch them as a series. The correlation engine both
+surfaces query does include the environmental channels, though, so an
+environment-vs-outcome relationship — barometric pressure against sleep, say —
+can appear as a named driver in an AI-narrated correlation. The raw exclusion
+matches the deliberate exclusions described in the
 [privacy architecture](/explanation/privacy-architecture/): being defined is not
 the same as being streamed to a model.
 

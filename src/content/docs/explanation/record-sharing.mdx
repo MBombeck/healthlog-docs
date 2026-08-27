@@ -144,9 +144,12 @@ across it in v1.37.0 is the health background: allergies and family history live
 under Settings in the interface, but they are facts about a body rather than
 configuration of an account, so a manager may record them.
 
-**Offering it asks for the owner's second factor.** A step-up resolves through
-the browser session, so manage can only be offered from a browser, and an
-account without a second factor cannot offer it at all. Accepting it needs
+**Offering it can only happen from a browser session,** and when the owner has
+a second factor enrolled, the offer demands a fresh step-up through that
+session first. An account that never enrolled a second factor is not blocked
+from offering manage; it simply has no factor to be asked for. (Creating a
+managed profile is the surface with the unconditional fresh-MFA gate.)
+Accepting it needs
 nothing special, because the consent that matters at that end is the delegate
 agreeing to act under their own name.
 
