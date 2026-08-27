@@ -108,6 +108,10 @@ analytics is computed at the wire.
 | `get_medication_schedule` | When each active medication is next due and which are overdue right now — name, dose, next-due, overdue flag, as-needed flag. Reuses the recurrence engine. |
 | `get_integration_status` | Sync health of connected devices/services — connected, last sync, reauth-required/failing — to answer "why is my data stale?". No secrets or tokens. |
 | `get_preventive_care` | The user's own configured preventive-care (Vorsorge) reminders — upcoming/overdue checkups with next-due dates. Surfaces configured reminders, invents nothing. |
+| `get_visits` | Past doctor visits over a bounded window (default 12 months): date, lifecycle status, kind, practitioner name + specialty, reason, outcome, linked conditions. Optionally narrowed to one practitioner. |
+| `get_nutrients` | Synced micronutrient intake (water, caffeine, 24 vitamins/minerals) as day totals, with the EFSA dietary reference resolved against the user's profile. Gated on the nutrients module. |
+| `get_intraday_pulse` | The 10-minute heart-rate shape for one local day, with a cautious descriptive elevated-at-rest window when every confidence gate holds. Gated on the insights module. |
+| `get_ecg_recordings` | Metadata for stored ECG recordings — time, duration, average HR, lead, and the device's own rhythm classification. Never the waveform. Gated on the insights module. |
 | `search` | Free-text search over the user's record (metric domains, medications, lab analytes). Returns `{ results: [{ id, title, url }], nextCursor? }`. |
 | `fetch` | Hydrate one record by the id `search` returned (`metric:weight`, `med:<id>`, `lab:LDL`). Returns `{ id, title, text, url, metadata }` with a citation deep-link. |
 
@@ -143,14 +147,16 @@ catalogue.
 
 Three surfaces the connector reaches directly:
 
-- **Nutrition and vitamins.** Fluid intake, macros, and the vitamins and
-  minerals synced from the device's dietary data are readable by name, each
-  against its reference daily intake as context (never a deficiency verdict).
-  Gated on the [nutrients module](/guides/nutrients/) being on.
-- **The intraday pulse curve.** The within-day heart-rate shape — the same
-  10-minute-mean series the [intraday view](/insights/intraday-pulse/) draws,
-  read server-authoritatively.
-- **Stored ECG recordings.** A recording's own facts — date, duration, average
+- **Nutrition and vitamins** (`get_nutrients`). Fluid intake, macros, and the
+  vitamins and minerals synced from the device's dietary data are readable by
+  name, each against its reference daily intake as context (never a deficiency
+  verdict). Gated on the [nutrients module](/guides/nutrients/) being on.
+- **The intraday pulse curve** (`get_intraday_pulse`). The within-day
+  heart-rate shape — the same 10-minute-mean series the
+  [intraday view](/insights/intraday-pulse/) draws, read
+  server-authoritatively.
+- **Stored ECG recordings** (`get_ecg_recordings`). A recording's own facts —
+  date, duration, average
   heart rate, and the **device's own result, attributed to the device**.
   HealthLog does not interpret the trace here any more than it does in the app;
   the connector reads the recorded facts, not a reading of the waveform.
@@ -210,6 +216,7 @@ discovery.
 | `healthlog://metric/{type}/{window}` | One metric's series over a chosen trailing window. |
 | `healthlog://lab/{analyte}` | One lab analyte's recent readings (value, unit, reference range, status). |
 | `healthlog://medication/{id}` | One medication by id, with its schedules. User-scoped (`{present:false}` if not yours). |
+| `healthlog://nutrient/{code}` | One nutrient's per-day intake series (e.g. `healthlog://nutrient/water`). Gated on the nutrients module. |
 | `healthlog://report/doctor-visit/{window}` | The doctor-visit summary over a chosen window. |
 
 ## Prompts (skills)

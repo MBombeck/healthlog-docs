@@ -34,7 +34,7 @@ The core ingest and read surface. Batch endpoints power the native client.
 | `GET` | `/api/measurements` | List (paginated, filterable by type / source / date) |
 | `POST` | `/api/measurements` | Create one measurement |
 | `POST` | `/api/measurements/batch` | Bulk ingest; see the overwrite note below |
-| `POST` | `/api/measurements/by-external-ids` | Resolve rows by external id |
+| `DELETE` | `/api/measurements/by-external-ids` | Soft-delete rows by external id (HealthKit deletion reconciliation) |
 | `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
 | `GET` | `/api/analytics/range` | Trend summaries over a window |
 | `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
@@ -57,7 +57,7 @@ is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
 | `GET` / `PUT` / `DELETE` | `/api/medications/{id}` | Read / update / delete |
 | `POST` | `/api/medications/{id}/intake` | Log a take / skip |
 | `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate |
-| `PUT` | `/api/medications/{id}/cadence` | Update the schedule |
+| `GET` | `/api/medications/{id}/cadence` | Read the cadence; schedule edits go through `PUT /api/medications/{id}` |
 | `POST` | `/api/medications/extract` | Parse a label into a draft |
 | `POST` | `/api/medications/intake/bulk` | Native bulk intake |
 
@@ -78,7 +78,8 @@ SSE coach stream, and the self-context surface.
 | `GET` | `/api/dashboard/snapshot` | Single-cell above-the-fold hydration |
 | `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback |
 | `GET` / `PUT` | `/api/coach/about-me` | Encrypted self-context + follow-up questions |
-| `PATCH` | `/api/auth/me/coach-prefs` · `/disable-coach` | Coach prefs and kill switch |
+| `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences |
+| `GET` / `PATCH` | `/api/auth/me/disable-coach` | Coach kill switch |
 
 ## Cycle (menstrual tracking)
 
@@ -317,8 +318,8 @@ that already has access.
 
 ## Integrations
 
-OAuth connect / sync / test / resume for Withings, WHOOP, and Google Health/Fitbit,
-plus the inbound webhooks. See the integration guides
+OAuth connect / sync / test / resume for Withings, WHOOP, Oura, Polar, Strava,
+Nightscout, and Google Health/Fitbit, plus the inbound webhooks. See the integration guides
 ([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Google Health](/guides/connect-google-health/)) and
 [Webhooks](/reference/webhooks/).

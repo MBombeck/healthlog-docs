@@ -6,8 +6,9 @@ sidebar:
 ---
 
 HealthLog exposes a read-only **HL7 FHIR R4** REST API so a clinician system can
-pull your record in a standard shape. It is gated behind a dedicated `fhir:read`
-[Bearer token scope](/reference/api-overview/#authentication).
+pull your record in a standard shape. The routes name a dedicated `fhir:read`
+[Bearer token scope](/reference/api-overview/#authentication); see the note
+below on which credentials reach them in practice.
 
 ## What FHIR is
 
@@ -39,7 +40,10 @@ the `403`; that is the switch working, not a fault.
 
 ## Endpoints
 
-All require a Bearer token with the `fhir:read` scope.
+The routes check the `fhir:read` scope, but no user-facing mint produces a
+token scoped to it — every mint grants a wildcard or an unrelated narrow scope.
+In practice the endpoints are reached with a cookie session or a wildcard
+Bearer token; the capabilities endpoint reports this as `scopeMintable: false`.
 
 | Method | Endpoint | Returns |
 | --- | --- | --- |
@@ -48,7 +52,10 @@ All require a Bearer token with the `fhir:read` scope.
 | `GET` | `/api/fhir/Observation` | Vitals + labs as LOINC-coded observations |
 | `GET` | `/api/fhir/MedicationStatement` | The medication regimen |
 | `GET` | `/api/fhir/MedicationAdministration` | Logged intake events |
-| `GET` | `/api/fhir/$everything` | A `Bundle` of every resource above |
+| `GET` | `/api/fhir/Coverage` | Insurance coverage |
+| `GET` | `/api/fhir/Patient/$everything` | A `Bundle` of every resource above |
+
+Each resource also supports read-by-id (`/api/fhir/<Resource>/{id}`).
 
 `MedicationAdministration` rows in `$everything` are bounded by
 `FHIR_MAX_MEDICATION_ADMINISTRATIONS` (default 5000) as a coarse ceiling on the
@@ -70,9 +77,12 @@ opt-in section, marked as not clinically validated.
 
 Separately from the FHIR API, a **share link** gives a clinician a scoped,
 time-limited, read-only `/c/<token>` view that you revoke after the visit
-(`GET` / `POST` / `DELETE /api/share-links`). The two are not wired together — a
-share link does **not** expose the FHIR API
-(`capabilities.share.fhirApi=false`). Each stands on its own.
+(`GET` / `POST` / `DELETE /api/share-links`). The share surface publishes
+`reportDownload: ["fhir", "pdf"]` in `/api/meta/capabilities`: a
+machine-readable FHIR bundle (and a PDF) of exactly the link's frozen selection
+is downloadable under the share token, behind the same unlock the page uses.
+`/api/fhir/*` itself still refuses a share token. Each surface stands on its
+own.
 
 A third way somebody else reads your data is a
 [shared-access grant](/guides/shared-access/) to another account on the instance,
