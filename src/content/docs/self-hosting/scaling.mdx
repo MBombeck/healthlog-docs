@@ -45,10 +45,16 @@ container — set the `BACKUP_*` vars on **both** (see
 
 ## Healthchecks and liveness
 
-- The **web** container's healthcheck polls `/api/version` every 30 seconds.
-- The **worker** exposes no port. Its liveness is written into the
-  `worker_status` table on every reminder pass and surfaced through
-  `/api/admin/status` (and the admin panel's worker-status card).
+- The **web** container's healthcheck polls `/api/health` every 30 seconds
+  (`/api/version` is the deploy-verification endpoint, not the liveness probe).
+- The **worker** exposes no port, and its liveness is in-process state only:
+  the reminder worker updates an in-memory status that `/api/admin/status`
+  (and the admin panel's worker-status card) reads from the same process. In a
+  web/worker split the web container cannot see the worker's in-memory state,
+  so the worker-status card is only meaningful in single-container (`all`)
+  mode. Monitor a split worker through its container logs and pg-boss job
+  activity instead; the failing-queues readout on the admin status page does
+  span containers, because it asks the queue tables in Postgres.
 
 Neither container depends on the other, so startup cannot deadlock; both wait
 only on Postgres being healthy.
@@ -56,18 +62,22 @@ only on Postgres being healthy.
 ## Postgres connection-pool sizing
 
 Every container that boots the image opens its own pool against
-`DATABASE_URL`, with a ceiling of **20 connections per container** by default
-(`DATABASE_POOL_MAX`). Plan total Postgres slots as
-**container count × `DATABASE_POOL_MAX`** — a stock Postgres 16 ships with
+`DATABASE_URL`, with a ceiling of **20 connections per container** by default,
+shared between Prisma and pg-boss. The operator knob is `DB_CONNECTION_LIMIT`:
+the bundled compose file substitutes it into `DATABASE_URL` as
+`connection_limit`, so setting it in `.env` reaches the container.
+(`DATABASE_POOL_MAX` still works as a legacy explicit override, but it is not
+on the compose environment whitelist.) Plan total Postgres slots as
+**container count × connection limit** — a stock Postgres 16 ships with
 `max_connections = 100`, so four web replicas plus one worker at the default
 ceiling consume all 100 slots and starve every other client (`psql`, backups,
 the Prisma CLI during a migration deploy).
 
 Rules of thumb:
 
-- Set `DATABASE_POOL_MAX` on every container that needs a non-default
+- Set `DB_CONNECTION_LIMIT` on every container that needs a non-default
   ceiling; web and worker read the same variable.
-- Keep `DATABASE_POOL_MAX ≥ 8` on web replicas — the analytics fan-out holds
+- Keep the limit at 8 or above on web replicas — the analytics fan-out holds
   up to 4 concurrent slots per request.
 - Worker replicas mostly use one connection per active job; `8` is plenty.
 - If the sum approaches `max_connections`, raise the Postgres ceiling, lower

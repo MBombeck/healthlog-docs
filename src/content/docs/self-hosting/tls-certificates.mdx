@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-HealthLog requires HTTPS in production — session cookies are `secure: true` and passkeys (WebAuthn) only work over [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) or `localhost`. This page covers how a self-hoster gets a valid [X.509 certificate](https://en.wikipedia.org/wiki/X.509) and clears up a common worry: **certificate pinning in the iOS app does not affect your self-hosted domain.**
+HealthLog requires HTTPS in production — session cookies are `secure: true` and passkeys (WebAuthn) only work over [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) or `localhost`. The one supported exception: on a trusted-network plain-HTTP deploy (LAN, Tailscale, VPN), `SESSION_COOKIE_SECURE=false` lifts the Secure flag so sign-in works, though passkeys still need TLS or `localhost`. This page covers how a self-hoster gets a valid [X.509 certificate](https://en.wikipedia.org/wiki/X.509) and clears up a common worry: **certificate pinning in the iOS app does not affect your self-hosted domain.**
 
 ## Get a valid certificate
 

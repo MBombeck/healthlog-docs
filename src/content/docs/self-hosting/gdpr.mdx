@@ -100,14 +100,13 @@ run it themselves.
 | Per-type export | CSV or JSON | Measurements, medications, intake events, mood, chosen individually. Convenient for a spreadsheet, not a complete record. |
 | Health record | PDF, FHIR R4 bundle, or a ZIP of both | The doctor-handover artefact, built from a selection you make. Written for a clinical reader, not for completeness. |
 
-Two honest limits on the full backup. Document originals and the sample-level
+One honest limit on the full backup. Document originals and the sample-level
 time series behind a workout, including GPS, are never included; the payload's
-`manifest` field discloses that and the export screen says so too. And around
-thirty of the models the backup plan marks as carried do not yet have a reader
-in the export path, which the plan names one by one rather than leaving to be
-discovered. If a request has to be complete to the row, a `pg_dump` filtered to
-the person's `userId` is the fallback, and the plan file is the checklist for
-what the export missed.
+`manifest` field discloses that and the export screen says so too. Those two
+workout sample-stream models are also the only entries the backup plan still
+marks as pending a reader; everything else the plan marks carried is read back
+by the export path. If a request has to be complete to those rows too, a
+`pg_dump` filtered to the person's `userId` is the fallback.
 
 Rectification under [Art. 16](https://gdpr-info.eu/art-16-gdpr/) needs no
 special surface. Every entry in the app is editable and deletable by the person
@@ -121,15 +120,15 @@ are erasure.
 
 | Path | Where | Scope |
 | --- | --- | --- |
-| Delete all data | Settings, then Advanced | Every row the account owns, across 87 user-scoped tables, keeping only what the account needs to sign in again |
+| Delete all data | Settings, then Advanced | Every row the account owns, across every user-scoped table (currently around a hundred), keeping only what the account needs to sign in again |
 | Delete account | Settings, then Account | The account itself and everything the schema cascades from it |
 | Wipe all data | Admin, then Danger zone | Instance-wide: every account's health data, derived from the same wipe plan since v1.37.1. See the note below. |
 
 **Delete all data** runs as one transaction. The list of tables is declared in
 one place in the source and held against the Prisma schema by a completeness
 test, so a model added to the schema has to be classified as wiped, exempt, or
-instance-scoped before it can ship. That test is the reason the number is 87 and
-not the nine it once was. What survives is the sign-in layer and nothing else:
+instance-scoped before it can ship. That test is the reason the list tracks the
+schema instead of freezing at the nine tables it once was. What survives is the sign-in layer and nothing else:
 passkeys, second-factor credentials and recovery codes, the session performing
 the wipe, per-device refresh tokens, and the in-flight challenges that expire on
 their own. Soft-deleted rows go too, because the delete carries no `deletedAt`
@@ -146,9 +145,10 @@ everything attached to it, including sharing grants in both directions. A record
 that would be left with no guardian at all is refused rather than orphaned.
 
 **The admin wipe clears health data, not identity.** Since v1.37.1 it derives
-from the same wipe plan as the per-account path and runs in one transaction: 88
-tables cleared, and every survivor is either a sign-in credential, instance
-configuration, or the single deliberate exemption of shared-access grants. A
+from the same wipe plan as the per-account path and runs in one transaction:
+every wipe-plan table is cleared, and every survivor is either a sign-in
+credential, instance configuration, or the single deliberate exemption of
+shared-access grants. A
 build-time rule fails if the route ever names a table inline again. On builds
 before v1.37.1 the route carried its own inline list, a snapshot of the schema
 from the day it was written, and cleared nine tables of the 122 in the schema
@@ -163,9 +163,11 @@ person invoking Art. 17. Use the per-account paths above.
 Backups outlive all three paths. In-database backup rows cascade away with the
 account, but objects already written to an off-host bucket stay until the
 lifecycle policy expires them, and purging those is an operator action by
-design: the backup worker holds put and get only, so a compromised worker cannot
-erase your history. When somebody invokes Art. 17, purge the bucket objects
-yourself and note in your records that you did.
+design: the backup code never deletes backup objects, so retention is a
+bucket-lifecycle rule, and if you want that guarantee as a hard capability
+bound, issue the worker credentials without delete permission. When somebody
+invokes Art. 17, purge the bucket objects yourself and note in your records
+that you did.
 
 [Data deletion](/account/data-deletion/) enumerates each path model by model.
 
