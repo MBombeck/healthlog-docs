@@ -13,7 +13,7 @@ On the [Achievements](/features/achievements-hidden/) page, every hidden achieve
 
 > **Hidden achievement**
 >
-> Keep using HealthLog — this one reveals itself when you earn it.
+> Keep tracking — you might just stumble across it.
 
 The real title, the real description, the icon, the trigger metric, the target — none of it reaches the rendered HTML, the API response, or anywhere a curious user could `Cmd-F` to spoil the surprise. You see a placeholder; the placeholder reveals itself once you've actually earned the badge.
 
@@ -28,25 +28,23 @@ After the unlock, the hidden achievement behaves exactly like a regular one — 
 
 ## Categories that exist in HealthLog
 
-The Achievements page groups badges into the following categories. Hidden ones share the same gameplay loop as the public ones; they're just initially redacted.
+The Achievements page groups badges into the following categories, rendered in this order. Hidden ones share the same gameplay loop as the public ones; they're just initially redacted.
 
 | Category | What's there |
 |---|---|
-| **Streaks** | Consecutive days of the same kind of activity — login streaks, compliance streaks, mood streaks, all-data entry streaks. |
-| **Milestones** | Cumulative counters — total weigh-ins, total BP readings, total intakes. |
-| **Consistency** | Reaching a coverage threshold inside a window — e.g. at least 25 distinct entry-days in a calendar month. |
-| **Improvement** | Personal-baseline-vs-recent comparisons — your 7-day mean is better than the prior week's, judged against your own data only, not anyone else's. |
-| **Discovery** | Engaging with parts of the app you might not otherwise notice. |
-| **Hidden** | Easter-egg achievements that paint as placeholders until earned. |
+| **Medication** | Compliance streaks and intake counters. |
+| **Vitals** | Logging streaks and counters for weight, blood pressure and the other measured signals. |
+| **Mood** | Mood-tracking streaks and counters. |
+| **Security** | Sign-in habits — creating a passkey, signing in with it, password logins. |
+| **Engagement** | Showing up — login streaks, entry-day streaks, consistent months, weekend logging. |
+| **Hidden** | Easter-egg achievements that paint as placeholders until earned. Rendered last so opaque cards don't push real progress below the fold. |
 
 :::note[Not the same as Today's milestones]
 This gamification page — streaks, counters, hidden easter eggs — is distinct from
 the **milestones** that surface on the [Today view](/insights/today/). Those are
 durable *states reached* (a personal best, a return to your usual range, a
 sustained stretch in range), framed deliberately as calm arrivals with nothing to
-keep and nothing to break — not the streak-and-counter loop described here. The
-"Milestones" category in the table above is a gamification counter and is a
-different thing from the Today milestone card.
+keep and nothing to break — not the streak-and-counter loop described here.
 :::
 
 ## Why they're hidden
@@ -61,7 +59,7 @@ The second is that the discoverability of all the other achievements depends on 
 
 For self-hosters and the merely curious: the redaction is enforced server-side. The `/api/gamification/achievements` route strips the title, description, icon name, and trigger metric out of the response body for any achievement flagged `isHidden` and not yet unlocked. The string-keyed lookup that would resolve the localized title is short-circuited at the page boundary — a `hiddenLocked` entry makes the page render the placeholder card and never look up the real strings. The DOM never sees them.
 
-The bundled English and German translations still ship with the strings (so unlocked clients can render them without a round-trip), which means a determined user can `Cmd-F` through `_next/static/chunks/*.js` and find them. That's a small known leak. For now the page-level redaction is enough — you'd have to actively dig for it.
+The bundled translations (all six languages) still ship with the strings (so unlocked clients can render them without a round-trip), which means a determined user can `Cmd-F` through `_next/static/chunks/*.js` and find them. That's a small known leak. For now the page-level redaction is enough — you'd have to actively dig for it.
 
 ## How many there are
 

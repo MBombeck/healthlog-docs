@@ -39,28 +39,39 @@ devices like the rest of the layout settings.
 1. Open the dashboard and tap the **Customize** icon in the top right (or **Settings → Dashboard**). Personal target values (BP, BMI, glucose, pulse) live in their own section at **Settings → Health Targets**.
 2. Toggle widgets on or off with the visibility switch.
 3. Drag the handle on the left of each widget to reorder.
-4. Save. Your layout persists per device and per user.
+4. Save. Your layout is stored in your account and applies on every device.
 
 Available widgets:
 
-- Quick Add buttons
-- Weight summary
-- Blood pressure summary
-- Glucose summary
-- Pulse summary
-- BMI card
-- Heart-rate variability
-- Blood oxygen (SpO₂)
-- Breathing rate
-- Wrist temperature
-- Muscle mass
-- Body water
+- Weight
+- Blood pressure
+- Pulse
+- Body fat
+- Mood
+- Medications
+- Sleep
+- Steps
+- Glucose
+- Total body water
 - Bone mass
-- Mood snapshot
-- Medication compliance
-- Today's reminders
-- Recent achievements card
-- AI Insight cards (per metric)
+- Muscle mass
+- BP in target (7d / 30d / all-time)
+- Blood oxygen (SpO₂)
+- Heart-rate variability
+- Respiratory rate
+- Recent achievements
+- VO₂max
+- Recent workouts
+- Cardio recovery
+- Six-minute walk distance
+- Stair ascent speed
+- Stair descent speed
+- Breathing disturbances
+- Wrist temperature
+- Falls
+- Walking steadiness
+- Preventive care
+- Water intake
 
 ### Tiles for more metrics
 
@@ -99,10 +110,6 @@ So if you want to see a tile for blood pressure but not the chart, you can. Exis
 
 The Customize panel has a **Reset to defaults** button. It restores the original order and visibility for every widget, but it doesn't delete any data — it only clears the layout preference.
 
-:::tip
-If you only want to hide the AI Insight cards (e.g., you haven't configured a provider yet), toggle them off here rather than disabling AI globally. The provider stays configured for the Doctor Report PDF.
-:::
-
 ## Mobile vs. Desktop
 
 The layout is shared across breakpoints. Widgets you hide on desktop are also hidden on mobile. The order is the same, but the grid collapses to a single column on small screens.
@@ -111,7 +118,7 @@ The dashboard's measurement-tile strip uses a true CSS Grid track with a 9 rem f
 
 ### 7-day trend on every tile
 
-Every metric tile in the top strip shows a coloured `(±N.N)` next to the value. That delta is the 7-day trend: the average of the last 7 days minus the average of the 7 days before that, in the metric's own units. The label below the value reads "7d trend" (EN) / "7T-Trend" (DE) instead of the previous "7d average". The colour follows what's good for that metric — green for "up is good" (steps, sleep), orange for "up is concerning" (BP, BMI), muted for "neutral" (weight). One glance tells you which way the metric is moving.
+Every metric tile in the top strip shows a coloured `(±N.N)` next to the value. That delta is the 7-day trend: the average of the last 7 days minus the average of the 7 days before that, in the metric's own units. The label below the value reads "7-day trend" (EN) / "7-Tage-Trend" (DE) instead of the previous "7d average". The colour follows what's good for that metric — green for "up is good" (steps, sleep), orange for "up is concerning" (BP, BMI), muted for "neutral" (weight). One glance tells you which way the metric is moving.
 
 The trend label is consistent across **every** chart, tile, and subtitle — there is no mix of "7d average" and "7d trend" depending on which surface you're on, and the indicator appears for mood and medication-compliance just like it does for the vitals charts. Long ranges fall back to a split-half mean delta when the per-week rate would round to zero, so the ±N never reads `0.0` when there's a real movement underneath.
 
@@ -127,7 +134,7 @@ The chart aesthetic is a clean line — no gradient fills under the lines, just 
 
 ### Mobile chart layout
 
-The chart card header switches to a mobile-first stack below `sm` — title plus chips on row 1, range tabs plus the cog right-aligned on row 2 with `flex-nowrap`, so the tabs always own a single row down to 280 px (Galaxy Fold compact). The bucket-aggregation chip and comparison captions hide on mobile to free horizontal budget. A new `useViewportWidth` hook + `x-axis-density` helper caps the visible x-axis ticks at 4 (Fold) / 6 (Pixel 5 / iPhone 12) / 8 (small tablet) / 10 (desktop), wired into HealthChart, MoodChart, MedicationComplianceChart and ComplianceLineChart, so the medication chart no longer overloads with one tick per day.
+The chart card header switches to a mobile-first stack below `sm` — title plus chips on row 1, range tabs plus the cog right-aligned on row 2 with `flex-nowrap`, so the tabs always own a single row down to 280 px (Galaxy Fold compact). The bucket-aggregation chip and comparison captions hide on mobile to free horizontal budget. A `useViewportWidth` hook + `x-axis-density` helper thins the visible x-axis ticks with a day-aware policy keyed on the data span and viewport width — on mobile, up to a week of points renders every tick, a month shows every 7th day, a quarter every 14th, and longer ranges roughly monthly, with denser steps on desktop — wired into HealthChart, MoodChart, MedicationComplianceChart and ComplianceLineChart, so the medication chart no longer overloads with one tick per day.
 
 ### Per-chart overlay toggles
 
