@@ -53,11 +53,32 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_COOKIE_SECURE` | tracks `NODE_ENV=production` | Force or disable the cookie `Secure` flag. Set `false` for trusted plain-HTTP LANs. |
-| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. See [reverse proxy](/guides/reverse-proxy/). |
+| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. See [reverse proxy](/guides/reverse-proxy/). Not whitelisted by default. |
 | `TRUST_CF_CONNECTING_IP` | unset | Set `1` **only** behind Cloudflare to trust the `cf-connecting-ip` header. |
-| `DATABASE_POOL_MAX` | `20` | The Prisma pool ceiling the app itself reads. |
+| `DATABASE_POOL_MAX` | `20` | The Prisma pool ceiling the app itself reads. Not whitelisted by default. |
 | `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | **Compose-level substitutions only** — they feed the `connection_limit` and `pool_timeout` query params of the default `DATABASE_URL`. The app never reads them directly; with a hand-written `DATABASE_URL`, set the query params yourself. |
 | `HEALTHLOG_PROCESS_TYPE` | `all` | `all` / `web` / `worker` process split. |
+
+## OIDC SSO (optional)
+
+Sign in through a self-hosted identity provider (Authentik, Keycloak, Authelia,
+and the like). Setting all three of issuer / client id / client secret enables
+the "Sign in with SSO" button on the login page; setting none leaves it
+disabled.
+
+| Variable | Purpose |
+| --- | --- |
+| `OIDC_ISSUER_URL` | Provider issuer URL (discovery document served at `<issuer>/.well-known/openid-configuration`). |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | The confidential client credentials. |
+| `OIDC_SCOPES` | Space-separated scopes requested at authorization. Default `openid email profile`. |
+| `OIDC_BUTTON_LABEL` | Label on the login page's SSO button. Default `Single Sign-On`. |
+| `OIDC_ONLY` | `true` disables password/passkey login server-side. Only takes effect when the provider group above is fully configured, so a half-configured group never locks every user out. |
+
+:::caution[`OIDC_ONLY` and the iOS app]
+The native iOS client signs in via an OIDC handoff of its own, so `OIDC_ONLY`
+works with iOS builds that ship that flow. An older iOS build that only knows
+password/passkey login is locked out of sign-in entirely.
+:::
 
 ## Device integrations (optional)
 
@@ -92,8 +113,8 @@ Missing any one disables APNs silently.
 | --- | --- |
 | `APNS_KEY_ID` / `APNS_TEAM_ID` / `APNS_BUNDLE_ID` | Apple Developer identifiers. |
 | `APNS_KEY_B64` | The `.p8` key, base64-encoded — the **recommended** form, immune to newline mangling by deployment panels. Precedence: `APNS_KEY_B64` > `APNS_KEY` > `APNS_KEY_FILE`. |
-| `APNS_KEY` / `APNS_KEY_FILE` | Raw PEM contents, or a path to the file. |
-| `APNS_PRODUCTION` | Force the production APNs gateway; default follows each device's registered environment. |
+| `APNS_KEY` / `APNS_KEY_FILE` | Raw PEM contents, or a path to the file. Not whitelisted by default; the compose file forwards `APNS_KEY_B64` only. |
+| `APNS_PRODUCTION` | Force the production APNs gateway; default follows each device's registered environment. Not whitelisted by default. |
 | `APNS_CRITICAL_ENTITLEMENT` | Set `true` only if the iOS build carries Apple's Critical Alerts entitlement; otherwise urgent alerts degrade to time-sensitive. |
 
 The `.p8` must be scoped **"Sandbox & Production"** — a Sandbox-only key fails
@@ -126,6 +147,7 @@ then these:
 | Variable | Purpose |
 | --- | --- |
 | `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. Since v1.37.1 the resolver reads them first and goes online only for an address they cannot place. |
+| `MAXMIND_LICENSE_KEY` | A free MaxMind licence key. Set it and the worker downloads the GeoLite2 City + ASN databases into `GEOLITE2_DIR` itself at boot, refreshed monthly. The third way to supply the databases, no rebuild or manual mount; a mounted database still wins. |
 | `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. |
 | `IP_GEO_LOOKUP_DISABLED` | Disable third-party IP lookups entirely (no geo egress). |
 | `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
@@ -177,6 +199,9 @@ to it lives only in the audit trail. See
 
 ## Logging & observability (optional)
 
+None of these is whitelisted by default — add the ones you use to the compose
+`environment:` block.
+
 | Variable | Purpose |
 | --- | --- |
 | `LOG_LEVEL` | Structured wide-event log level. |
@@ -199,6 +224,7 @@ to it lives only in the audit trail. See
 | `INSIGHTS_RATE_LIMIT_PER_HOUR` | Bounds `POST /api/insights/generate` per user per hour (default 10). |
 | `INSIGHTS_MAX_TOKENS` | Completion-token budget per insight generation. Default `2500`, clamped to 500–8000. Raise it when a verbose local model truncates its JSON mid-answer. |
 | `NATIVE_CANVAS` | Override for the native canvas renderer (document thumbnails, scanned-PDF rasterization). Default auto-detects AVX2 on Linux x64 and disables cleanly on CPUs without it. `off` force-disables; `on` force-enables (crashes the process on a CPU that truly lacks AVX2). |
+| `DOCUMENT_AI_LIMIT_PER_HOUR` | Per-user hourly ceiling for the document-AI actions (extract, suggest, summarise and index share one bucket). Default `6`, clamped to 1–1000. |
 
 ## Environment module (optional)
 
@@ -212,7 +238,7 @@ Not whitelisted by default.
 
 | Variable | Purpose |
 | --- | --- |
-| `TELEGRAM_WEBHOOK_SECRET` | Hardens the Telegram webhook path (the bot token itself is per-user, saved in notification settings via `PUT /api/settings/telegram`). |
+| `TELEGRAM_WEBHOOK_SECRET` | Hardens the Telegram webhook path (the bot token itself is per-user, saved in notification settings via `PUT /api/settings/telegram`). Not whitelisted by default. |
 
 ## Build-time only (not runtime)
 
