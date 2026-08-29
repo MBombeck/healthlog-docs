@@ -174,6 +174,7 @@ export default defineConfig({
 						{ slug: 'self-hosting/tls-certificates' },
 						{ slug: 'security/certificate-pinning' },
 						{ slug: 'guides/reverse-proxy' },
+						{ slug: 'self-hosting/tailscale' },
 						{ slug: 'guides/backups' },
 						{ slug: 'guides/encryption-key-rotation' },
 						{ slug: 'guides/updates-and-deploy' },

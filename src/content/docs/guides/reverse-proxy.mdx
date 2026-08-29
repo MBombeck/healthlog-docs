@@ -11,6 +11,10 @@ the forwarded headers the rate-limiter trusts, and passes streamed responses
 through unbuffered. The streaming Coach uses Server-Sent Events over plain
 HTTP, so what matters is disabled response buffering, not a WebSocket upgrade.
 
+If the instance only needs to be reachable from your own devices, none of the
+proxies below is required: [`tailscale serve`](/self-hosting/tailscale/)
+terminates trusted HTTPS on the tailnet with no extra container.
+
 ## Pre-flight env vars
 
 | Variable | Required for | Notes |
@@ -155,3 +159,8 @@ Tailscale-only), set `SESSION_COOKIE_SECURE=false` so the session, onboarding,
 and OAuth-state cookies stop emitting `Secure` and login works over HTTP. The
 trade-off is explicit: the session cookie crosses the wire unencrypted. **Never
 set this on a host that serves plain HTTP to the open internet.**
+
+For the Tailscale case specifically there is a better option than lifting the
+flag: [`tailscale serve`](/self-hosting/tailscale/) gives the same surface real
+HTTPS with a tailnet-trusted certificate, and `SESSION_COOKIE_SECURE` stays
+unset.
