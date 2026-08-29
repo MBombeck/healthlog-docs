@@ -36,7 +36,7 @@ Three conditions gate the endpoint. Until every one holds, `/mcp` returns `404`.
 | --- | --- |
 | **`APP_URL` is set** | The endpoint fails closed without a pinned canonical origin. `APP_URL` (or `NEXT_PUBLIC_APP_URL`) is what every OAuth document and audience check anchors to — the `Host` header is never trusted. Without it the surface stays invisible. |
 | **The global API is on** | The operator's instance-wide API switch must be enabled (it is by default). With it off, every token path — including `/mcp` — returns `404`. |
-| **The `mcp` module is on** | A per-account opt-in. It is the only module that ships dark; you turn it on in Settings. Until then `/mcp` answers `404` for that account. |
+| **The `mcp` module is on** | A per-account opt-in. It is one of the few modules that ship dark; you turn it on in Settings. Until then `/mcp` answers `404` for that account. |
 
 `APP_URL` is the same origin you already use for passkeys and invite links — for
 example `https://health.example`. It must be reachable by the client you are
@@ -76,9 +76,9 @@ Still under **Settings → MCP → Tokens**:
 
 </Steps>
 
-The MCP token never carries the `*` wildcard and never the `medication:ingest`
-scope the generic [REST mint endpoint](/reference/api-overview/) can produce —
-it is the least-privilege MCP scope and nothing more. The same list shows the
+The MCP token never carries the `*` wildcard and never the per-medication
+ingest grants the medication API-endpoint toggle mints — it is the
+least-privilege MCP scope and nothing more. The same list shows the
 last-used time and lets you revoke any token.
 
 Cloud clients that use OAuth (below) mint the `health:read` scope automatically,

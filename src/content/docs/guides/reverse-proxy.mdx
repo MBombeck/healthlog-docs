@@ -1,14 +1,15 @@
 ---
 title: Reverse proxy
-description: Front HealthLog with Caddy, Traefik, Nginx Proxy Manager, Coolify, or bare Nginx — TLS termination, forwarded headers, and the WebSocket upgrade.
+description: Front HealthLog with Caddy, Traefik, Nginx Proxy Manager, Coolify, or bare Nginx — TLS termination, forwarded headers, and unbuffered streaming.
 sidebar:
   order: 12
 ---
 
 The bundled compose file exposes HealthLog on plain HTTP at `localhost:3000`.
 Production deployments front it with a reverse proxy that terminates TLS, sets
-the forwarded headers the rate-limiter trusts, and preserves the WebSocket
-upgrade the streaming Coach depends on.
+the forwarded headers the rate-limiter trusts, and passes streamed responses
+through unbuffered. The streaming Coach uses Server-Sent Events over plain
+HTTP, so what matters is disabled response buffering, not a WebSocket upgrade.
 
 ## Pre-flight env vars
 
@@ -48,8 +49,8 @@ your-instance.example.com {
 }
 ```
 
-Caddy handles the WebSocket upgrade automatically; `flush_interval -1` disables
-response buffering so streamed insight events surface without batching.
+`flush_interval -1` disables response buffering so streamed insight events
+surface without batching; that is the load-bearing line for the Coach stream.
 
 ## Traefik
 
@@ -71,12 +72,16 @@ Behind Cloudflare, set `TRUST_PROXY_HOPS=2`.
 ## Nginx Proxy Manager
 
 Add a proxy host for `your-instance.example.com`, scheme `http`, forward port
-`3000`. **Enable Websockets Support** (required for streaming Coach). Request a
-Let's Encrypt cert and force SSL. Under Advanced → Custom Nginx Configuration:
+`3000`. Request a Let's Encrypt cert and force SSL. Under Advanced → Custom
+Nginx Configuration:
 
 ```nginx
 proxy_read_timeout 300s;
+proxy_buffering off;
 ```
+
+The **Enable Websockets Support** toggle is harmless but not needed; the Coach
+streams Server-Sent Events, which only require buffering off.
 
 The 300-second read timeout matters for long-running insight generations —
 anything shorter cuts streamed responses mid-flight.
@@ -132,7 +137,8 @@ server {
 
 `client_max_body_size 1600M` is load-bearing if you support Apple Health uploads
 — Nginx rejects the body before the app sees it otherwise. `proxy_buffering off`
-keeps streamed events flowing.
+keeps streamed events flowing; the `Upgrade` headers are harmless boilerplate
+you can keep or drop.
 
 ## Verify the chain
 

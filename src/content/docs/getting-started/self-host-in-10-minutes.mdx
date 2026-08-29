@@ -175,7 +175,7 @@ The recurring operator problems have their own page —
   registration enabled; the toggle lives in
   `app_settings.singleton.registrationEnabled` and the admin panel can flip it.
 - **Service unreachable on `localhost:3000`.** Check `docker compose ps` — the
-  `app` healthcheck polls `/api/version` every 30 s and marks the container
+  `app` healthcheck polls `/api/health` every 30 s and marks the container
   unhealthy while Postgres is still starting. Tail `docker compose logs db`.
 - **OAuth callbacks loop back to localhost.** Set `APP_URL` and
   `NEXT_PUBLIC_APP_URL` to the public hostname and restart `app`.

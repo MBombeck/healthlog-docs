@@ -47,7 +47,7 @@ A leaf pin is brittle: the server's certificate auto-renews roughly every 90 day
 Because validation accepts a match on *any* certificate in the chain, routine leaf renewals pass with **zero app updates** — the served chain still terminates in the pinned intermediate and root keys. Baseline X.509 evaluation (hostname, validity, revocation) always runs first, so pinning means "valid chain AND pinned key", never "pinned key alone". MITM protection is preserved: an attacker still needs a certificate that chains through the pinned CA keys *and* passes system trust. A release build refuses to launch with fewer than two well-formed pins, so a single-pin configuration cannot ship. A re-pin (and app update) is only needed when the CA rotates its intermediate or root keys, or the server moves to a different CA — rare, multi-year events announced ahead of time.
 
 :::tip[Generating the hashes]
-The hashes are produced from the live TLS chain with `scripts/extract-spki.sh <host>` in the iOS repo, which pulls the chain via `openssl s_client -showcerts` and prints the base64 SHA-256 SPKI for each certificate. For the managed cloud that's `scripts/extract-spki.sh healthlog.bombeck.io`.
+The hashes are produced from the live TLS chain with `HealthLogIOS/scripts/extract-spki.sh <host>` in the iOS repo, which pulls the chain via `openssl s_client -showcerts` and prints the base64 SHA-256 SPKI for each certificate. For the managed cloud that's `HealthLogIOS/scripts/extract-spki.sh healthlog.bombeck.io`.
 :::
 
 ## The server-side leaf alarm
@@ -103,8 +103,8 @@ openssl s_client -connect "$APP_HOST:443" -servername "$APP_HOST" </dev/null 2>/
 
 Pinning is a **client-side** concern — the server presents a normal certificate; the iOS app decides whether to trust it. The validation logic, the production pin policy (a minimum well-formed pin count enforced at build time), and the rotation runbook all live in the native client:
 
-- `HealthLog/Services/CertificatePinner.swift` — SPKI extraction + chain validation
-- `scripts/extract-spki.sh` — hash extraction
-- `project.yml` `HLPinnedSPKIHashes` — the pinned hash set
+- `HealthLogIOS/HealthLog/Services/CertificatePinner.swift` — SPKI extraction + chain validation
+- `HealthLogIOS/scripts/extract-spki.sh` — hash extraction
+- `HealthLogIOS/Config/local.yml` `HLPinnedHosts` / `HLPinnedSPKIHashes` — the pinned host and hash set (see `local.example.yml` for the template)
 
 See the [iOS repo](https://github.com/MBombeck/healthlog-iOS) for the source. Self-hosters who want to pin their *own* domain should read the [TLS Certificates](/self-hosting/tls-certificates/) guide.

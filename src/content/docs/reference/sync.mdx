@@ -1,6 +1,6 @@
 ---
 title: "Offline Sync Contract"
-description: "How a native client keeps a local copy of measurements, mood, and medication intakes current: backfill, the incremental delta feed, the opaque cursor, tombstones, and per-domain conflict rules."
+description: "How a native client keeps a local copy of measurements, mood, medication intakes, and cycle data current: backfill, the incremental delta feed, the opaque cursor, tombstones, and per-domain conflict rules."
 sidebar:
   order: 12
 ---
@@ -10,16 +10,16 @@ import syncFlow from "../../../assets/diagrams/09-sync-delta-feed.svg";
 The web PWA reads live or shows an offline indicator — it keeps no local write
 store. A native client (the [iOS app](/ios/ios-app/)) does hold a local copy,
 and this page is the contract it follows to keep that copy in step with the
-server. The wire shapes here are served by `/reference/sync/state` and
-`/reference/sync/changes`; the full envelopes are in the
+server. The wire shapes here are served by `/api/sync/state` and
+`/api/sync/changes`; the full envelopes are in the
 [OpenAPI spec](/reference/api-overview/). Authentication is the bearer-token flow from
 [Native API clients](/reference/native-clients/).
 
-<img src={syncFlow.src} alt="Offline sync flow: a client does a one-time full backfill through the list and batch endpoints, then stays current by calling GET /reference/sync/state and draining GET /reference/sync/changes page by page with an opaque cursor; each page carries tombstones applied before upserts; a cursor older than the retention horizon returns cursorExpired and the client re-initialises with a clean backfill." />
+<img src={syncFlow.src} alt="Offline sync flow: a client does a one-time full backfill through the list and batch endpoints, then stays current by calling GET /api/sync/state and draining GET /api/sync/changes page by page with an opaque cursor; each page carries tombstones applied before upserts; a cursor older than the retention horizon returns cursorExpired and the client re-initialises with a clean backfill." />
 
-## The three sync domains
+## The sync domains
 
-The delta feed serves three independent domains. Each carries the user-owned
+The delta feed serves five independent domains. Each carries the user-owned
 rows for one part of the record:
 
 | Domain | Backs | Carries on the wire |
@@ -27,6 +27,11 @@ rows for one part of the record:
 | `measurements` | Every health metric (weight, blood pressure, glucose, HealthKit metrics, …) | `type`, `value`, `unit`, `measuredAt`, `source`, `notes` |
 | `mood` | Mood entries | `date`, `mood`, `score`, `tags`, `note`, `moodLoggedAt`, `source` |
 | `intakes` | Medication intake events (a dose taken or skipped) | `medicationId`, `scheduledFor`, `takenAt`, `skipped`, `source` |
+| `cycleDays` | Per-day cycle logs (added v1.15.0) | Day-level cycle fields |
+| `cycles` | Cycle records (added v1.15.0) | Cycle-level fields |
+
+The `cycleDays` / `cycles` blocks are **module-gated**: an account with cycle
+tracking off gets both blocks empty on every page — never a `403`.
 
 The domains are walked independently — each has its own watermark in the cursor
 (see below), because each table changes at its own rate and a client may adopt
@@ -42,9 +47,12 @@ key is **not** the same across domains, and the difference is deliberate:
 | `measurements` | `externalId` — a UUID string for a single sample, or `stats:<id>:<YYYY-MM-DD>` for a per-day cumulative total | A HealthKit sample already carries a device-minted UUID that is stable across every device that sees it. Keying on that UUID means the same reading from the phone, a re-sync, and an `export.zip` import all resolve to one row instead of duplicating. |
 | `mood` | The server `id` (a cuid) | A mood entry is **minted on the server**. The client may create an optimistic local placeholder, but it discards that the moment the server returns the canonical row, so there is no client-stable id to key on — the server `id` is the only cross-device handle. |
 | `intakes` | The server `id` (a cuid) | Same as mood: an intake event is server-minted. The bulk-insert dedup hint (`idempotencyKey`) prevents a double-POST but is **not** an identity — it is not stable across devices, so tombstones and reconciliation key on the server `id`. |
+| `cycleDays` | `externalId` when present, else the server `id` | A day log imported from a device carries a stable external identity like a measurement; a day log created in the app does not, so the server `id` is the fallback handle. |
+| `cycles` | The server `id` (a cuid) | Cycle records are server-minted. |
 
-For measurements the client mirrors rows by `externalId`; for mood and intakes
-it mirrors by server `id`. Tombstones (below) follow the same key per domain.
+For measurements the client mirrors rows by `externalId`; for mood, intakes and
+cycles it mirrors by server `id`; for `cycleDays` by `externalId` when present,
+else `id`. Tombstones (below) follow the same key per domain.
 
 ## Versioning and timestamps
 
@@ -69,11 +77,11 @@ There are three moving parts, and they do not overlap:
 ### Push — the batch endpoints
 
 A client sends its local rows up through the existing write endpoints —
-`POST /reference/api-endpoints/batch`, `POST /api/mood-entries/bulk`,
-`POST /reference/api-endpoints/intake/bulk`. These are the same endpoints documented on
+`POST /api/measurements/batch`, `POST /api/mood-entries/bulk`,
+`POST /api/medications/intake/bulk`. These are the same endpoints documented on
 the per-domain API pages; there is no separate "sync push" route.
 
-### Pull — `GET /reference/sync/changes`
+### Pull — `GET /api/sync/changes`
 
 The incremental, read-only catch-up feed. It returns every row that changed
 since the cursor, split per domain into `upserts` and `tombstones`. It pages
@@ -81,7 +89,7 @@ over an opaque cursor (next section). The page size is `limit` — default `200`
 hard cap `500` — applied **per domain**.
 
 ```bash
-curl -s "https://your-instance.example.com/reference/sync/changes?cursor=<opaque>&limit=200" \
+curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limit=200" \
   -H "Authorization: Bearer hlk_..."
 ```
 
@@ -98,7 +106,7 @@ curl -s "https://your-instance.example.com/reference/sync/changes?cursor=<opaque
           {
             "id": "clx...", "externalId": "9b2e...", "type": "WEIGHT",
             "value": 81.5, "unit": "kg", "measuredAt": "2026-05-30T07:30:00.000Z",
-            "source": "HEALTHKIT", "notes": null, "syncVersion": 1,
+            "source": "APPLE_HEALTH", "notes": null, "syncVersion": 1,
             "updatedAt": "2026-05-30T07:31:00.000Z"
           }
         ],
@@ -109,7 +117,9 @@ curl -s "https://your-instance.example.com/reference/sync/changes?cursor=<opaque
         ]
       },
       "mood": { "upserts": [], "tombstones": [] },
-      "intakes": { "upserts": [], "tombstones": [] }
+      "intakes": { "upserts": [], "tombstones": [] },
+      "cycleDays": { "upserts": [], "tombstones": [] },
+      "cycles": { "upserts": [], "tombstones": [] }
     }
   },
   "error": null
@@ -124,7 +134,7 @@ The delta feed is **incremental only** — it is a catch-up mechanism, never a
 substitute for the first-pair backfill. A freshly paired client must do the
 backfill through the list + batch endpoints first.
 
-### Handshake — `GET /reference/sync/state`
+### Handshake — `GET /api/sync/state`
 
 The lightweight "should I sync?" endpoint. The client calls it on pair, on
 foreground, and before opening a fresh anchored query window. It returns the
@@ -151,7 +161,7 @@ correction.
 
 ## The opaque cursor
 
-`GET /reference/sync/changes` pages over an **opaque keyset cursor**. Keyset (a.k.a.
+`GET /api/sync/changes` pages over an **opaque keyset cursor**. Keyset (a.k.a.
 seek) [pagination](https://en.wikipedia.org/wiki/Pagination) walks the result
 set by the last row's `(updatedAt, id)` rather than a numeric `OFFSET`, so it
 stays correct and fast even as rows are inserted mid-scan. The client echoes the
@@ -179,7 +189,7 @@ its cursor and do a clean full backfill.
 The reason is correctness, not housekeeping: a deletion older than the retention
 horizon may already have been pruned, so an incremental delta from that far back
 could silently miss it. Retention is keyed to the native refresh-token lifetime
-plus a margin (`tombstoneRetentionDays` on `/reference/sync/state`), so a device that
+plus a margin (`tombstoneRetentionDays` on `/api/sync/state`), so a device that
 was offline no longer than its refresh window is always inside the safe range —
 expiry only fires when a device has been away long enough that re-pairing is
 expected anyway.
@@ -218,17 +228,17 @@ differ by domain because the domains have different mutability:
 |---|---|---|
 | Measurements — sample class (UUID `externalId`) | First-write-wins, **immutable**. A re-post of an existing sample is a no-op. | Per-entry status `duplicate`; treat as success and advance. |
 | Measurements — `stats:*` cumulative | **Server-overwrite**: the latest per-day total replaces the stored value. | Per-entry status `updated`. |
-| Mood | **Last-write-wins by `syncVersion`** — the higher version wins, the loser's edit is dropped. | A 409 returns the **full current server row** in the body, so the client replaces its local row in one step. |
+| Mood | **Last-write-wins by `syncVersion`** — the higher version wins, the loser's edit is dropped. | A write colliding with an existing entry's timestamp is refused with `409` (`meta.errorCode: mood.duplicate_timestamp`); the client re-fetches or matches the existing row by `id`. |
 | Intakes | **Immutable.** An intake is a recorded fact; a correction is a tombstone plus a fresh insert, not an in-place edit. | First-write-wins; correct by deleting (tombstone) and re-inserting. |
 
 Why the split: a single sample reading and an intake event are facts that do not
 change, so immutability is the correct model and there is no conflict to
 resolve. A cumulative `stats:*` row is a running total that legitimately grows
 through the day, so the latest total must overwrite. A mood entry is genuinely
-editable, so it needs last-write-wins plus the full winning row on the wire — for
-the immutable domains a per-entry status (and the echoed `syncVersion`) is
-enough, but an editable domain needs the winning content so the client does not
-have to make a second round-trip to fetch it.
+editable, so it needs last-write-wins — for the immutable domains a per-entry
+status (and the echoed `syncVersion`) is enough, while an editable domain
+converges on `syncVersion` and reconciles a refused duplicate by re-fetching
+the winning row.
 
 ## Authentication and token lifetimes
 
@@ -246,15 +256,16 @@ without string-matching the human-readable message:
 | `auth.refresh.invalid` | Token not found or expired. | Drop the token and re-authenticate. |
 
 The native access token defaults to a 24-hour lifetime; the native refresh
-token lives 60 days (`incrementalWindowDays` on `/reference/sync/state`). A device
+token lives 60 days (`incrementalWindowDays` on `/api/sync/state`). A device
 offline longer than the refresh window re-pairs with a full backfill — which is
 exactly the window the tombstone-retention horizon is sized to cover.
 
 ## Domain readiness
 
-The **server side of all three domains is complete and tested** — measurements,
-mood, and intakes all carry the sync columns, surface tombstones, and serve the
-delta feed today. The iOS consumer adopts **measurements first** and the other
+The **server side of every served domain is complete and tested** —
+measurements, mood, intakes and the two cycle domains all carry the sync
+columns, surface tombstones, and serve the delta feed today. The iOS consumer
+adopts **measurements first** and the other
 domains on its own schedule; mood and intakes are server-ready ahead of the
 multi-domain client, so the contract is locked and exercised before that client
 lands. Adoption pacing is an iOS-side roadmap decision, not a server gap.

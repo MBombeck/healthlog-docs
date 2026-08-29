@@ -29,9 +29,11 @@ reliable reading" means something different for each.
 
 Weight, blood pressure, pulse, body fat, SpO₂, VO₂ max: these are spot readings.
 The right answer is the most accurate instrument. A dedicated scale outranks a
-wrist estimate; a cuff leads blood pressure. The default ladder is
-`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL`. When two devices report the same point
-metric on the same source, an optional device-type tie-break resolves it.
+wrist estimate; a cuff leads blood pressure. The default ladders open with
+`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL` and continue through the other connected
+sources (Fitbit, Google Health, Oura, Polar) per metric. When two devices
+report the same point metric on the same source, an optional device-type
+tie-break resolves it.
 
 ### Cumulative metrics — pick one source per day, never sum
 
@@ -39,9 +41,14 @@ Steps, active energy, distance, flights, sleep, HRV, resting HR: these accumulat
 over a day. The danger here is **double-counting** — if both an Apple Watch and a
 Withings ScanWatch report 8,000 steps, the user did not walk 16,000. So for
 cumulative metrics HealthLog picks exactly **one source per day** and ignores the
-others for that day. HealthKit usually wins (`APPLE_HEALTH ≻ WITHINGS ≻ MANUAL`)
-because iOS already fuses watch and phone motion sensors into one canonical daily
-stream — it has done the fusion for you.
+others for that day. The defaults split this class in two. For the activity
+metrics (steps, active energy, distance, flights) HealthKit leads, because iOS
+already fuses watch and phone motion sensors into one canonical daily stream —
+it has done the fusion for you. For the overnight recovery inputs (sleep, HRV,
+resting heart rate) the worn straps lead instead: WHOOP, then Fitbit, Google
+Health, Oura, and Polar, ahead of the iPhone-relayed HealthKit summary and the
+Withings nightly summary, because a strap worn all night samples the night at
+higher resolution than a relayed summary.
 
 ## Losing rows survive
 

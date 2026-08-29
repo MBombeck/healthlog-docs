@@ -11,9 +11,10 @@ reports, imaging findings, prescriptions, referrals, insurance letters,
 vaccination records. One timeline, filtered by type, condition, year, and
 text search — no folders to maintain.
 
-It is **off by default**. Each user enables it under Settings → Modules
-("Documents"), and an operator can withhold it instance-wide through the
-module availability settings.
+It is **available by default**. Each user can turn it off under Settings →
+Modules ("Documents"), and an operator can withhold it instance-wide through
+the module availability settings. AI reading of stored documents remains a
+separate opt-in.
 
 ## What it stores — and how it is served
 
@@ -61,8 +62,8 @@ removes it permanently and returns the space.
 Documents live in PostgreSQL alongside everything else, so a normal
 `pg_dump` backup includes them and restore needs no extra steps. Plan for
 backup growth roughly linear in stored document bytes. The off-host S3
-JSON backup deliberately excludes document blobs — it stays a compact
-data-only safety net.
+JSON backup carries the encrypted document bytes too, so its size grows
+with the vault as well; budget the off-host storage accordingly.
 
 ## What the vault is not for
 

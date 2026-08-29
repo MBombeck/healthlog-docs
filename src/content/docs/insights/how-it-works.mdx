@@ -1,65 +1,48 @@
 ---
 title: How AI Insights Work
-description: An end-to-end walk-through of the AI recommendation card — rationale, confidence, citations, feedback, and the multi-provider fallback chain.
+description: What happens between opening the Insights page and seeing generated text — the snapshot, the multi-provider fallback chain, the JSON contract a response must satisfy, and the surfaces that render it.
 sidebar:
   order: 1
 ---
 
-This page walks through what actually happens between the moment you open the **Insights** page and the moment you see a recommendation card. It complements the [feature catalogue's AI section](/features/#ai-coach--insights), which lists what's there; this page explains why each piece is on the card and how the pieces fit together.
+This page walks through what actually happens between the moment you open the **Insights** page and the moment you read a generated sentence. It complements the [feature catalogue's AI section](/features/#ai-coach--insights), which lists what's there; this page explains how the pieces fit together.
 
 import coachPipeline from "../../../assets/diagrams/02-coach-pipeline.svg";
 
 <img src={coachPipeline.src} alt="Coach prompt pipeline: question → snapshot → prompt → provider chain → parser → cited reply" />
 
-The diagram above is the bird's-eye view of the same flow: your question (or the dashboard's implicit "what changed recently?") goes through a snapshot builder, then a prompt assembler that bolts the system prompt + locale + [Zod](https://zod.dev/) citation schema onto the snapshot, then a per-user provider chain that walks ChatGPT OAuth → BYOK OpenAI → BYOK Anthropic → local → admin-shared. The provider behind every step is a [large language model](https://en.wikipedia.org/wiki/Large_language_model) (LLM) — a text-prediction model that, here, is constrained to emit a strict JSON recommendation rather than free prose. The response parser validates against the schema (corrective retry on a 422) before the cited reply renders. The sections below zoom in on each card on the resulting `/insights` page.
+The diagram above is the bird's-eye view of the flow: your question (or a scheduled generation) goes through a snapshot builder, then a prompt assembler that bolts the system prompt, your locale, and the JSON response contract onto the snapshot, then a per-user provider chain that walks ChatGPT OAuth → BYOK OpenAI → BYOK Anthropic → local → admin-shared. The provider behind every step is a [large language model](https://en.wikipedia.org/wiki/Large_language_model) (LLM), a text-prediction model that is constrained here to emit structured JSON rather than free prose. The response parser validates the payload and sends one corrective retry if it is malformed. The sections below zoom in on each stage.
 
-## The recommendation card
+## What the Insights page shows
 
-Every recommendation is a single card with five parts.
+The `/insights` page is mostly **computed, not generated**. It renders a hero strip (greeting plus health score), the daily briefing, a trends row, per-metric status assessments, the derived readiness and recovery scores, rhythm events, the [ECG section](/insights/ecg-recordings/), and the Coach. Of those, only two pieces come from a language model: the **daily briefing** and the **comprehensive insight**. Everything else is server-side arithmetic over your own readings, and stays available with no AI provider configured at all.
 
-### 1. Headline + severity
+The two generated pieces are warmed **overnight** by a budget-gated background job, so opening the page is a cache read instead of a synchronous model call. If the cache is cold (a brand-new account, or before the first nightly run), the page shows a *preparing* state rather than blocking the request.
 
-The top line is the recommendation itself, in plain language. The left edge of the card carries a severity-coloured stripe — **urgent** (red), **important** (orange), **suggestion** (purple), **info** (cyan) — that also drives the card's order in the grid (urgent first, info last). Severity is decided by the model, but constrained by the schema and by post-validation: a recommendation that claims "urgent" but doesn't cite a meaningful deviation is downgraded.
+## The daily briefing
 
-### 2. Confidence meter
+The briefing is a short narrative paragraph plus up to five **key findings**: one-liners that each summarise a single trend with a tone (good / watch / info), an optional delta string ("↓ 4 mmHg"), and the metric and time window the finding was drawn from. The findings list is hard-capped at five so a runaway model cannot pad the surface with filler, and the prompt instructs the model to derive every finding from a number visible in the snapshot.
 
-On the right of the headline, a colour-banded ring + 5-bar meter shows the **confidence score** for the recommendation, from 0 to 100. The score is **server-computed**, not whatever the model claimed:
+## What the response contract actually requires
 
-- **Sample size** (up to 40 points). Log-saturating curve so going from 5 to 50 readings buys you a lot more confidence than going from 50 to 500. Below three readings, the score is hard-capped at `5 × n` regardless of the rest.
-- **Recency** (up to 30 points). Linear decay from 30 points at zero days to zero at 30 days old.
-- **Signal strength** (up to 30 points). 30 at \|z\| ≥ 1.5 [standard deviations](https://en.wikipedia.org/wiki/Standard_score) from baseline (the *z-score* — how far today sits from your normal, measured in your own spread); null signal contributes a neutral 15.
+The comprehensive insight parses against a Zod schema, and it is worth being precise about what that schema does and does not enforce.
 
-Below 25 the meter renders a small "Low confidence — based on limited data" pill. The recommendation is **still shown** — we don't hide low-confidence findings. You see them, you see why they're low, and you decide whether to act on them.
+**Required on every response:**
 
-### 3. Rationale (expandable)
+- A `summary` string.
+- A five-step `classification` of the overall picture.
+- A `findings` array and a `correlations` array.
+- A `dataQuality` block describing how much data the generation had to work with.
+- A `disclaimer` string.
 
-Click the chevron and the card expands inline to show three rows plus a mini-chart:
+**Optional on each recommendation:** a recommendation can be a plain string or a structured object. On the structured shape only the `text` is required; `severity` (info / suggestion / important / urgent), a stable `id`, a `rationale` (a data window from `last7days` / `last30days` / `last90days` / `allTime`, plus `comparedTo` and `deviation` strings), a `metricSource` naming the snapshot field the recommendation rests on, a `referenceId`, and a `confidence` value are all optional metadata the model may or may not emit.
 
-- **Window** — the time range the recommendation was derived from. One of `last_7_days`, `last_30_days`, `last_90_days`, `last_year`.
-- **Compared to** — the baseline. Usually your 90-day personal baseline, sometimes the prior period (when the comparison toggle is active), sometimes the guideline target.
-- **Deviation** — the difference in plain numbers and units. Example: "+6 mmHg systolic vs. last month".
+Two of those optional fields are still bounded when present:
 
-The mini-chart pinned beneath those three rows is the same Recharts wrapper that powers the dashboard, scoped to the rationale window. You see exactly the data the model saw, in 140 px of vertical space. If the chart series doesn't actually match the metric the recommendation talks about, that's a schema violation and the recommendation is rejected before it reaches you — the corrective retry runs first; if the model still won't comply, the recommendation is dropped.
+- `referenceId` must resolve to the curated medical-reference bundle (ids such as `esh-2023-bp-adults`, `who-2024-bmi-classification`, `aha-2023-resting-heart-rate`). A fabricated id fails parse.
+- `confidence` must be an integer between 0 and 100. It is the **model's own estimate**, nothing more: there is no server-side confidence computation. A deterministic server-side score was designed at one point but never ran in production and was removed rather than wired in.
 
-### 4. Citation footnote
-
-If the recommendation makes a normative claim ("your readings are above target", "consider increasing intake"), it has to cite a curated guideline by id. The footer renders **Source: ESH 2023 — Title** with an external-link icon; clicking opens the source guideline in a new tab. The cite-able sources are a curated bundle:
-
-- **ESH 2023** — European Society of Hypertension guidelines.
-- **ESC 2024** — European Society of Cardiology guidelines.
-- **ACC/AHA 2017** — American College of Cardiology / American Heart Association.
-- **WHO 2021** — Hypertension management guidance.
-- **WHO BMI** — Body-mass-index categories.
-- **DGE 2024** — German Nutrition Society dietary reference.
-- **AHA pulse** — American Heart Association resting heart rate guidance.
-
-The system prompt only injects references whose `metricApplicability` actually overlaps the metrics in your snapshot — a recommendation about glucose won't have a list of BP guidelines floating around in its prompt. The schema validates `referenceId` against the bundle: a fabricated id fails parse before it can render.
-
-### 5. Was-this-helpful feedback
-
-Two thumbs at the bottom of the card. Tap the up-thumb for "this was useful", the down-thumb for "this missed the point". The vote is stored against `(userId, recommendationId, recommendationText)`, so toggling within the same recommendation overwrites the previous vote — you can change your mind, you can't double-count yourself.
-
-The mutation is **optimistic** — the UI updates immediately and writes through to localStorage so the verdict survives a refresh while the backend mutation is in flight. If the mutation fails, the local state rolls back.
+**When a response is malformed**, the generation gets exactly one corrective retry: a message that names the live contract field by field and embeds a minimal valid example payload. That example is validated against the schema by a test, so the corrective prompt and the validator cannot drift apart without the suite going red. If the retry still fails, the surface shows its error or preparing state rather than a half-formed result.
 
 ## Per-metric assessments interpret, they don't enumerate
 
@@ -75,24 +58,13 @@ text; movement deep inside a healthy band is a footnote, not a headline.
 Two rules keep this honest:
 
 - **The band position is computed server-side** and handed to the model as
-  context. The model states it; it never computes it — the same
-  server-authoritative principle as the confidence score above.
+  context. The model states it; it never computes it.
 - **Metrics without an established general band say so** and are interpreted
   against your own baseline instead of a fabricated norm.
 
 And, as everywhere else, a band is a description, not a verdict — the
 [non-diagnostic standard](/explanation/non-diagnostic-standard/) applies to
 every assessment sentence.
-
-## What "low confidence" actually means
-
-When the meter shows below 25, the heuristic that produced it is one of:
-
-- **n < 3** — there literally are not enough data points to compute a stable mean. The hard cap of `5 × n` is in play.
-- **All readings older than 30 days** — recency contributes zero.
-- **Within ±0.5 SD of baseline** — there's no real signal, the model spotted noise and called it a finding.
-
-The card is shown anyway because hiding it lets the model's borderline finding stack up silently into a confidence-laundering exercise. You see the suggestion, you see the meter, you decide.
 
 ## How the multi-provider fallback chain works
 
@@ -105,52 +77,25 @@ Most users configure one provider — that's fine, the chain just has one entry.
 
 On hard fail the wrapper cascades to the next provider in your chain.
 
-**Schema 422 still bubbles.** A 422 means the response body didn't conform to the strict schema — the provider returned text, but it wasn't valid as a HealthLog recommendation. Retrying that against another provider just wastes another paid request, so the wrapper surfaces the error directly and the corrective retry on the same provider tries to fix it.
+**A malformed body does not cascade.** If a provider answered but the body failed the contract, retrying against another provider just wastes another paid request, so the corrective retry runs against the same provider instead.
 
 The **last provider that successfully answered** is cached for an hour per user. So after a vendor outage, the cascade only runs once — the next generation goes straight to the working provider. The "active provider" badge in **Settings → AI** shows which entry actually served the most recent generation, so you can see at a glance whether the fallback kicked in.
 
-## How feedback shapes future generations
+## Feedback
+
+Feedback lives on the **Coach**: every settled Coach reply carries a small per-message thumbs pair, stored against the message. A separate recommendation-feedback endpoint (`/api/insights/feedback`) stores a helpful / not-helpful verdict per user and recommendation; rating the same recommendation twice is refused rather than double-counted.
 
 Today, feedback affects two things:
 
-1. **Admin observability.** A daily aggregator (`feedback-aggregator`, runs at 04:00 Europe/Berlin) writes a per-(severity × provider × prompt-version) helpful-rate summary into `AppSettings.adminAiInsightsFeedbackSummary`. The admin can see at `/admin/ai-quality` whether one provider is producing recommendations users find useful and another isn't, or whether a new prompt version is regressing.
-2. **Per-user learning** *(not yet enabled)*. The cross-user prompt ratchet — feeding aggregate helpful-rate data back into the system prompt to nudge the model toward what users actually find helpful — is intentionally deferred until enough feedback has been collected to be statistically meaningful.
+1. **Admin observability.** A daily aggregator (`feedback-aggregator`, runs at 04:00 Europe/Berlin) writes a per-(severity × provider × prompt-version) helpful-rate summary into `AppSettings.adminAiInsightsFeedbackSummary`. The admin can see at `/admin/ai-quality` whether one provider is producing output users find useful and another isn't, or whether a new prompt version is regressing.
+2. **Per-user learning** *(not yet enabled)*. The cross-user prompt ratchet — feeding aggregate helpful-rate data back into the system prompt — is intentionally deferred until enough feedback has been collected to be statistically meaningful.
 
-Feedback is **not** used as a soft-block filter. A recommendation isn't hidden because previous similar recommendations got down-voted; that would create a feedback loop where the model only ever surfaces what's already popular and never tells you the thing you need to hear.
+Feedback is **not** used as a soft-block filter. Output isn't hidden because previous similar output got down-voted; that would create a feedback loop where the model only ever surfaces what's already popular and never tells you the thing you need to hear.
 
 ## Privacy: feedback is per-user only
 
-Your individual thumbs-up / thumbs-down votes are stored against your user id and **never leave your instance** in any form an admin can read back. The `/admin/ai-quality` aggregate is only counts, grouped by severity and provider. The per-user `RecommendationFeedback` rows are admin-invisible: there is no admin route that returns them, and the daily aggregator is the only consumer of the table.
+Your individual thumbs-up / thumbs-down votes are stored against your user id and **never leave your instance** in any form an admin can read back. The `/admin/ai-quality` aggregate is only counts, grouped by severity and provider. The per-user feedback rows are admin-invisible: there is no admin route that returns them, and the daily aggregator is the only consumer of the table.
 
 The aggregator runs **on the same Postgres** that holds the rest of your data. Cross-user feedback data is never exfiltrated to the cloud, and the daily summary only writes counts (number of up-votes / down-votes per group), not text.
 
 If you delete your account, your feedback rows cascade-delete with the rest of your data via the standard GDPR cascade — there is no orphan row left behind to feed an aggregate after you're gone.
-
-## What the schema enforces
-
-For reference, every recommendation is parsed against a strict Zod schema that requires:
-
-- A non-empty `text`.
-- A severity in `{ urgent, important, suggestion, info }`.
-- A non-empty `rationale.dataWindow` from the bucket enum, plus non-empty `comparedTo` and `deviation` strings.
-- A `referenceId` (optional, but if present must match the curated bundle).
-- A confidence number in `0..100` (which the wrapper then **overwrites** with the deterministic computation).
-- A non-empty `metricSource`.
-
-A recommendation that fails any of those is sent back to the model once with a corrective prompt. If the second attempt still fails, the recommendation is dropped — you see the rest of the response, not a half-broken card. If the entire response fails parse, you get a clean error message instead of a half-formed dashboard.
-
-## A worked example
-
-A user has 14 daily blood-pressure readings, the most recent 2 days ago, the 30-day mean is 138/85 and the 90-day mean is 132/80.
-
-The model emits a recommendation with severity `important`, dataWindow `last_30_days`, comparedTo "your 90-day personal baseline", deviation "+6 mmHg systolic over last 30 days", and `referenceId: "esh-2023"`.
-
-Server-side:
-
-- **Sample size**: n = 14 → log-saturation gives ~30 / 40 points.
-- **Recency**: 2 days old → 28 / 30 points.
-- **Signal**: \|z\| ~ 1.0 → ~20 / 30 points.
-
-Final confidence: **78** — green band, confident recommendation. The card shows the headline, the rationale opens to a 30-day BP mini-chart, the citation footer links to the ESH 2023 guideline page, and the thumbs sit at the bottom waiting for your verdict.
-
-If the same user only had 2 readings, the hard cap kicks in at `5 × 2 = 10` confidence and the "Low confidence — based on limited data" pill shows. Same recommendation text, same rationale, same citation — the difference is the meter, and the meter is honest.

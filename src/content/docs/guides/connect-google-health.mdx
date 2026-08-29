@@ -121,6 +121,10 @@ elsewhere.
 GOOGLE_HEALTH_REDIRECT_URI="https://your-instance.example.com/api/google-health/callback"
 ```
 
+`GOOGLE_HEALTH_REDIRECT_URI` is not on the compose `environment:` whitelist by
+default; variables not listed there never reach the container, so add it to the
+`environment:` block when you set it.
+
 For everyone else, no environment variable is involved: the redirect URI
 resolves from `NEXT_PUBLIC_APP_URL`, and the client ID and secret live in the
 per-user Settings card.

@@ -1,6 +1,6 @@
 ---
 title: Record allergies and family history
-description: How to keep structured, encrypted allergy and family-history records, what surfaces in the doctor-report PDF and FHIR export, and what is deliberately out of scope.
+description: How to keep structured allergy and family-history records, what is encrypted, and where they surface — the doctor-report PDF, the FHIR export, and the Coach's self-context.
 sidebar:
   order: 21
 ---
@@ -8,8 +8,8 @@ sidebar:
 import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 Two pieces of context a clinician always asks for do not fit a chart: what you
-react to, and what runs in your family. HealthLog keeps both as **structured,
-encrypted records** so they travel with the rest of your data into the
+react to, and what runs in your family. HealthLog keeps both as **structured
+records** so they travel with the rest of your data into the
 doctor-report PDF and the FHIR export — rather than living in a note you have to
 remember to mention.
 
@@ -31,12 +31,15 @@ Family history is recorded **condition-by-relative** — a condition paired with
 the relative it applies to — so the picture is structured rather than a
 paragraph. Enter and edit entries the same way as allergies.
 
-## Encrypted at rest
+## What is encrypted
 
-Both records are **encrypted at rest**, like the rest of your sensitive data.
-They are stored under the same AES-256-GCM scheme described in
-[encryption at rest](/explanation/encryption-at-rest/) — there is no plaintext
-copy.
+The free-text parts of both records — the reaction description and any notes —
+are stored under the same AES-256-GCM scheme described in
+[encryption at rest](/explanation/encryption-at-rest/). The substance and
+condition labels are deliberately queryable plaintext, following the same
+precedent as medication names, so lists and the FHIR mapping can filter on
+them; the structured enums (category, type, severity, status, relationship)
+are plaintext too.
 
 ## What surfaces where
 
@@ -52,16 +55,19 @@ copy.
   </Card>
 </CardGrid>
 
-## Kept off the AI surface
+## What the AI sees
 
-These structured records are **not exposed to the Coach or MCP**. They are not on
-the AI exposure allowlist and do not resolve through any read tool — they are
-yours to surface to a clinician, not data streamed to a model. This matches the
-deliberate exclusions in the [privacy architecture](/explanation/privacy-architecture/).
+Structured allergies and family history feed the **Coach's self-context by
+default**: the Allergies and Family history sections are on the health-profile
+AI section list, and you can exclude either one under the health-profile AI
+settings. They remain **off the MCP connector** — no MCP read tool resolves
+them. The per-section control matches the exposure model in the
+[privacy architecture](/explanation/privacy-architecture/).
 
-:::note[Immunizations are out of scope]
-HealthLog does not keep immunization records. That is a deliberate scope
-decision, not an oversight — there is no vaccination log to fill in.
+:::note[Immunizations have their own log]
+Vaccinations are tracked in their own immunization log rather than here. The
+module ships enabled, and the vaccination history is part of the health
+background section when you share your record.
 :::
 
 ## Related

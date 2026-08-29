@@ -1,6 +1,6 @@
 ---
 title: Connect Nightscout
-description: Connect a self-hosted Nightscout CGM instance — the URL + token model, the two auth modes, the public-host SSRF floor and the private/LAN opt-in, and what continuous glucose unlocks.
+description: Connect a self-hosted Nightscout CGM instance — the URL + token model, the two auth modes, the public-host SSRF floor and the operator allowlist for private/LAN instances, and what continuous glucose unlocks.
 sidebar:
   order: 8
 ---
@@ -44,7 +44,7 @@ Default to **token** — it works for both role tokens and a raw secret on moder
 
 Outbound calls to Nightscout go through HealthLog's egress guard with `requirePublicHost: true` **by default** — a host that resolves to a private, loopback or link-local address is refused, which is the SSRF floor for any user-supplied host.
 
-If your Nightscout runs on a LAN box or behind a private address, flip the **Allow private host** opt-in on the same settings card. This relaxes the public-host pin for your connection only. Treat it as a deliberate self-hoster choice: it lets HealthLog dial a private address, so only enable it for a host you control.
+If your Nightscout runs on a LAN box or behind a private address, the operator has to approve that exact origin server-side: set `NIGHTSCOUT_PRIVATE_ORIGINS` to the origin(s) in question (for example `http://192.168.1.50:1337`) in the server environment, and add the variable to the compose `environment:` whitelist, since it is not listed there by default. Users cannot weaken the outbound-request policy from the settings card; the card only shows a notice that private-network access is operator-owned. Treat the allowlist as a deliberate self-hoster choice: it lets HealthLog dial a private address, so only list hosts you control.
 
 ## Security notes
 
@@ -58,7 +58,7 @@ If your Nightscout runs on a LAN box or behind a private address, flip the **All
 
 - Confirm the URL is reachable from the server and returns JSON at `<url>/api/v1/entries.json?count=1&type=sgv`.
 - If the instance needs auth, confirm the token is set and try the other auth mode.
-- For a LAN instance, confirm **Allow private host** is on — otherwise the public-host floor refuses the call.
+- For a LAN instance, confirm the operator has listed the exact origin in `NIGHTSCOUT_PRIVATE_ORIGINS` (and whitelisted the variable in compose). Without it the public-host floor refuses the call.
 
 ### The clinical panel still says "still learning"
 

@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-The schema is defined in `prisma/schema.prisma` (61 models). It uses `cuid()`
+The schema is defined in `prisma/schema.prisma` (about 130 models). It uses `cuid()`
 primary keys, `snake_case` columns via `@map`, and keeps encrypted columns under
 `*Encrypted` suffixes (plus a few exceptions noted below). This page sketches the
 models you are most likely to touch; the schema file is the full reference.
@@ -14,8 +14,10 @@ models you are most likely to touch; the schema file is the full reference.
 
 The single table every vital flows into, regardless of source.
 
-- **Identity:** `(userId, type, measuredAt, source)` is the natural key the
-  upsert path matches on, so a re-sync updates in place rather than duplicating.
+- **Identity:** `(userId, type, measuredAt, source, sleepStage)` is the natural
+  key the upsert path matches on, so a re-sync updates in place rather than
+  duplicating. A second unique constraint on `(userId, type, source, externalId)`
+  is what sync deduplication rides on.
 - **`type`** is a `MeasurementType` enum (weight, blood pressure systolic /
   diastolic, pulse, glucose, body composition family, SpO₂, sleep stage, steps,
   HRV, and more).
@@ -35,9 +37,11 @@ main repo's `src/lib/rollups/` for the read-swap pattern.
 
 ## Medication and the dose ledger
 
-- **`Medication`** holds the schedule: `scheduleType` (`SCHEDULED` / `PRN` /
+- **`Medication`** holds the drug itself: name, route, supply. The schedule
+  lives on the separate **`MedicationSchedule`** model (one per drug since the
+  per-drug schedule migration in v1.37.10): `scheduleType` (`SCHEDULED` / `PRN` /
   `CYCLIC`), an `rrule` string, `intervalWeeks`, cyclic on/off counts, dose
-  times and windows, route, and supply.
+  times and windows.
 - The **dose ledger** is the per-slot intake record. Every expected dose becomes
   a slot with a resolved status — taken on time, taken late, skipped, missed —
   and the [compliance rate](/explanation/medication-compliance/) is computed
@@ -70,5 +74,6 @@ them. Search `prisma/schema.prisma` for `Encrypted` to enumerate.
 
 Background jobs run on `pg-boss` tables in the same database (cron + retry
 semantics live in Postgres, not a separate broker). The `push_attempts` table
-holds 90 days of notification delivery attempts; `worker_status` reports worker
-liveness; the audit log records sensitive operations with IP addresses.
+holds 90 days of notification delivery attempts; the audit log records
+sensitive operations with IP addresses. Worker liveness is tracked in-process
+(not in a database table) and surfaced through the admin status API.

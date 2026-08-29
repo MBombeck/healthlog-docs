@@ -38,10 +38,12 @@ If you record a run on an Apple Watch **and** it also lands in Strava, the same
 run arrives twice — once via Apple Health, once via Strava. HealthLog keeps one
 canonical row per logical workout using your
 [source-priority ladder](/guides/source-priority/): by default the
-device-native capture (Apple Watch, WHOOP, Withings) wins over the Strava copy,
+device-native capture (Apple Health and Withings) wins over the Strava copy,
 because a Strava activity is often a re-upload with lower-fidelity or missing
-heart-rate data. A run you record **only** on Strava (phone GPS) survives
-untouched. You can promote Strava above the wearables in **Settings → Sources**
+heart-rate data. A WHOOP twin of the same workout does not win outright;
+WHOOP is not in the workout ladder, so the Strava row stays canonical and the
+WHOOP recording enriches it with its heart-rate data. A run you record
+**only** on Strava (phone GPS) survives untouched. You can promote Strava above the wearables in **Settings → Sources**
 if you prefer the Strava copy.
 
 ## 1. Register a Strava API application

@@ -1,6 +1,6 @@
 ---
 title: Mood and wellbeing
-description: How to read a daily mood scale and the validated WHO-5, PHQ-9 and GAD-7 screens, what shifts them, and the firm line between a screening signal and a diagnosis.
+description: How to read a daily mood scale and the validated WHO-5, PHQ-9, GAD-7 and SCI screens, what shifts them, and the firm line between a screening signal and a diagnosis.
 sidebar:
   order: 14
 ---
@@ -15,7 +15,7 @@ The validated questionnaires here are **screening tools, not diagnoses**. A posi
 
 ## What it is
 
-Mood logging is subjective self-report of affective state, often a simple ordinal scale such as 1–5. Since v1.37.1 a HealthLog entry can carry five separate dimensions rather than one number: how pleasant the day felt, how much strain it carried, how much energy there was, how connected you were, and how able to act you felt. Each is an optional 0 to 10 scale, so a day can be pleasant and draining at once instead of averaging away, and a dimension you never answer is shown as not recorded rather than drawn through the middle. The quick one-tap check-in maps onto the pleasantness scale. Alongside all of that sit four structured, validated instruments: the **WHO-5** Well-Being Index, the **PHQ-9** (depression), the **GAD-7** (anxiety) and the **PSS-10** (perceived stress). The quick scales are fast and good for spotting trends; the validated screens are repeatable severity measures with published interpretation.
+Mood logging is subjective self-report of affective state, often a simple ordinal scale such as 1–5. Since v1.37.1 a HealthLog entry can carry five separate dimensions rather than one number: how pleasant the day felt, how much strain it carried, how much energy there was, how connected you were, and how able to act you felt. Each is an optional 0 to 10 scale, so a day can be pleasant and draining at once instead of averaging away, and a dimension you never answer is shown as not recorded rather than drawn through the middle. The quick one-tap check-in maps onto the pleasantness scale. Alongside all of that sit four structured, validated instruments: the **WHO-5** Well-Being Index, the **PHQ-9** (depression), the **GAD-7** (anxiety) and the **SCI** (Sleep Condition Indicator, insomnia). The quick scales are fast and good for spotting trends; the validated screens are repeatable severity measures with published interpretation.
 
 ## Why it matters
 
@@ -61,15 +61,14 @@ The standard threshold for probable generalised anxiety disorder is **10 or abov
 | 10–14 | Moderate |
 | 15–21 | Severe |
 
-### PSS-10 (perceived stress; 0–40)
+### SCI (Sleep Condition Indicator; 0–32)
 
-The developers deliberately publish **no clinical cut-off** — perceived stress is a continuous construct, not a diagnosis. The bands below are descriptive and normative (US-derived, population mean roughly 15–16), useful for tracking your own trend rather than crossing a line.[^pss]
+Eight items scored 0–4 each, and unlike the PHQ-9 and GAD-7 the direction is inverted: **higher is better sleep**. A total of **16 or below** is the published screening threshold for probable insomnia disorder.[^sci] The instrument is validated in English; HealthLog presents the original English items in every language rather than an unvalidated translation.
 
-| Score | Band |
+| Score | Reading |
 | --- | --- |
-| 0–13 | Low |
-| 14–26 | Moderate |
-| 27–40 | High |
+| 17–32 | Above threshold |
+| 0–16 | Screen-positive — probable insomnia disorder, consider professional evaluation |
 
 ## What changes it
 
@@ -103,4 +102,4 @@ This is general guidance, not medical advice, and individual variation is wide. 
 [^who5]: WHO-5 Well-Being Index — scoring, the ≤50% screen-positive threshold and the 10-point meaningful-change rule — WHO, 1998; Topp CW, et al., *Psychotherapy and Psychosomatics*, 2015. https://doi.org/10.1159/000376585
 [^phq9]: PHQ-9 severity bands, the ≥10 action threshold and item-9 self-harm flag — Kroenke K, Spitzer RL, Williams JBW, *Journal of General Internal Medicine*, 2001 https://doi.org/10.1046/j.1525-1497.2001.016009606.x; depression-screening recommendation — US Preventive Services Task Force, 2023 https://doi.org/10.1001/jama.2023.9297.
 [^gad7]: GAD-7 severity bands and the ≥10 threshold for probable generalised anxiety disorder — Spitzer RL, Kroenke K, Williams JBW, Löwe B, *Archives of Internal Medicine*, 2006. https://doi.org/10.1001/archinte.166.10.1092
-[^pss]: Perceived Stress Scale (PSS-10), continuous construct with no formal clinical cut-off — Cohen S, Kamarck T, Mermelstein R, *Journal of Health and Social Behavior*, 1983 https://doi.org/10.2307/2136404; US normative data — Cohen S, Janicki-Deverts D, 2012.
+[^sci]: Sleep Condition Indicator — scoring, direction and the ≤16 screening threshold for probable insomnia disorder — Espie CA, Kyle SD, Hames P, et al., *BMJ Open*, 2014;4:e004183. https://doi.org/10.1136/bmjopen-2013-004183

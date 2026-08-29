@@ -14,7 +14,7 @@ for reproducible problems in the iOS app or self-hosted server. Search the
 
 Include:
 
-- the HealthLog version from **Settings → About** or `/api/version`;
+- the HealthLog version (the server reports it at `/api/version`);
 - the device model and operating-system version for an app problem;
 - the affected screen or server route;
 - exact steps to reproduce the problem; and
@@ -40,10 +40,9 @@ a public issue. The hosted instance's bilingual
 maintained private contact route. A different self-hosted instance has its own
 controller and contact policy.
 
-Account deletion is also available directly in the iOS app under
-**Settings → Account → Delete account**. If the account uses multi-factor
-authentication, the app may open the authenticated web account page to complete
-the required fresh identity check.
+An account can also be deleted directly in HealthLog's account settings. When
+the account has a second factor enrolled, the deletion asks for a fresh
+identity check first.
 
 ## Report a security vulnerability
 

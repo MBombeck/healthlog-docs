@@ -31,11 +31,11 @@ Recordings list newest first, so the most recent strip is the one you open.
 
 ## The result belongs to the device, not to HealthLog
 
-The classification shown with a recording — "sinus rhythm", "atrial
-fibrillation", "inconclusive", "high heart rate", and the like — is the
-**recording device's own result**. HealthLog reproduces it verbatim and
-**attributes it to the device**. It does not re-run, second-guess, or add to that
-classification.
+The classification shown with a recording is the **recording device's own
+result**, attributed to the device. HealthLog collapses the device-native
+labels into three verdicts on import — "Atrial fibrillation detected", "No
+signs of atrial fibrillation", and "Inconclusive recording" — and does not
+re-run, second-guess, or add to that classification.
 
 **HealthLog does not read or interpret the waveform.** There is no model, no
 heuristic, and no analysis of the trace anywhere in the app. The strip is drawn
@@ -50,19 +50,14 @@ condition out, and a device is not a cardiologist. This is the
 one surface where it matters most.
 :::
 
-## A plain-language descriptor
+## The attribution line
 
-Alongside the strip and the device's own result, a recording carries a short
-**plain-language descriptor** in Insights — a calm sentence that reads the
-recording's own facts back in words (its device-reported classification, its
-average heart rate, its duration) rather than leaving you to parse a grid. It is
-**strictly non-diagnostic** and **device-attributed**: it restates what your
-device recorded and never adds a reading of its own.
-
-The descriptor changes nothing about the boundary below. HealthLog does not
-interpret the trace; the descriptor narrates the same device-produced facts the
-surface already shows, in a form that's easier to read and to hand on. A fresh
-recording also surfaces gently in the [Today view](/insights/today/).
+Alongside the strip, the device's result carries an explicit attribution:
+"Recorded result: …, as reported by the recording device." The average heart
+rate and duration render as their own metadata rows beside it. Everything on
+the surface restates what your device recorded; nothing adds a reading of its
+own. A fresh recording also surfaces gently in the
+[Today view](/insights/today/).
 
 ## When a result is not normal
 
@@ -80,14 +75,17 @@ than a verdict, see
 ## What the AI never sees
 
 The waveform trace is a picture your device recorded, not a health metric the
-Coach or insights reason over. It is not folded into the snapshot the
-[AI Insights](/insights/how-it-works/) prompt is built from, and no provider is
-asked to interpret it. The recording is yours to view and to share with a
-clinician — the only place an ECG belongs for a reading.
+Coach or insights reason over. No provider is ever sent the trace or asked to
+interpret it. What the insight-generation snapshot may carry is a small
+device-verdict summary: how many recordings exist, the device's own verdicts,
+and the latest recording's recency and average heart rate. The prompt binds
+that block to a strict device-verdict-only rule — the model may note that a
+recording exists and attribute its result to the device, and must never
+present a verdict as its own or read the waveform.
 
 ## Sharing it
 
-An ECG recording travels with the rest of your record: it prints in the
-doctor-report PDF and can be handed to a clinician the same way as any other
-finding. Bring the strip to the appointment — a clinician reading it in context
-is the reading that counts.
+An ECG recording is viewable in the app and is covered by the full backup
+export. It does not print in the doctor-report PDF or the health-record
+export, so for an appointment, show the strip on the device or export the
+backup. A clinician reading it in context is the reading that counts.
