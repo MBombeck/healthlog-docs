@@ -96,6 +96,13 @@ operator mounts them for: a login IP the local databases can place stays on the
 host. An address they cannot place still goes online, so the only switch that
 closes the egress completely is `IP_GEO_LOOKUP_DISABLED=1`.
 
+While the databases are absent and online lookups are still on, the admin
+account is notified once. The notice is sent once per configuration state: it
+does not repeat on every worker restart (that repeat was fixed in v1.37.33,
+#851), and it comes back only if the host leaves that state and re-enters it.
+A host running `IP_GEO_LOOKUP_DISABLED=1` gets no notice, since there is no
+egress to warn about.
+
 On builds before v1.37.1 the order was inverted. The resolver asked the online
 provider first and read the databases only when that returned nothing, so an
 operator who mounted them specifically to keep login addresses on the host kept

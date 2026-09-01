@@ -28,6 +28,15 @@ expectation for BYOK: a daily briefing runs at roughly 4–8k input tokens +
 weekly report typically spends a few dollars per month on a full-size hosted
 model.
 
+Reading a lab-report photo or a document image needs a vision-capable model.
+On OpenAI that is `gpt-5*`, `gpt-4o*`, `gpt-4.1*`, `gpt-4-turbo*` and the full
+`o1` / `o3` / `o4` reasoning models (their `-mini` and `-preview` variants take
+no image input); on Anthropic, the Claude 3, 3.5, 3.7 and 4 families. Since
+v1.38.1 a report the provider could not process is answered with `502` and a
+message saying the configured provider could not process it, instead of a hint
+to retake the photo, and the upstream status and model land in the request's
+wide event so the operator can see which step failed.
+
 ## BYOK vs admin-shared
 
 Two key-provisioning modes coexist:
@@ -214,6 +223,13 @@ connection** button per provider; a failed probe returns a localisable
   refresh tokens lapse after extended idle periods. Reconnect via **Connect
   ChatGPT** — the device-code flow re-runs and the new tokens land in the same
   encrypted columns.
+- **A shared provider is failing for everyone.** Since v1.37.31 the admin AI
+  section shows a provider-health card: one row per provider type with how many
+  users' chains have recorded an outcome for it, how many are currently
+  failing, the longest uninterrupted failure run, and the last success and
+  failure times. Operator-managed providers sort first, since their failure
+  takes the shared fallback down for everyone relying on it. The card reports
+  counts and timestamps, never which user a row belongs to.
 - **Chain falls through every entry.** Run the per-provider connection test
   from `/settings/ai` to identify the failing step. The most common cause is a
   stale or revoked BYOK key earlier in the chain; remove or disable that entry

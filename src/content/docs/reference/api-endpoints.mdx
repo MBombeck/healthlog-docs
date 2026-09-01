@@ -32,8 +32,8 @@ The core ingest and read surface. Batch endpoints power the native client.
 | Method | Endpoint | Notes |
 | --- | --- | --- |
 | `GET` | `/api/measurements` | List (paginated, filterable by type / source / date) |
-| `POST` | `/api/measurements` | Create one measurement |
-| `POST` | `/api/measurements/batch` | Bulk ingest; see the overwrite note below |
+| `POST` | `/api/measurements` | Create one measurement, or up to five in an array. Also accepts a `measurements:write` token |
+| `POST` | `/api/measurements/batch` | Bulk ingest, up to 500 entries; see the overwrite note below. Also accepts a `measurements:write` token |
 | `DELETE` | `/api/measurements/by-external-ids` | Soft-delete rows by external id (HealthKit deletion reconciliation) |
 | `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
 | `GET` | `/api/analytics/range` | Trend summaries over a window |
@@ -48,6 +48,13 @@ other externalId prefix keeps first-write-wins immutability, because each sample
 is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
 `"inserted"` for a fresh row.
 :::
+
+The two `POST` endpoints are the only routes a `measurements:write` token can
+reach. Such a token writes on its owner's own record only (a request carrying
+the account selector is refused with `403` before any sharing grant is read),
+its rows are attributed `MANUAL`, an entry naming `APPLE_HEALTH` is refused
+with `422`, and a batch from it does not move the phone's sync checkpoint. See
+[Push readings from your own hardware](/guides/ingest-token/).
 
 ## Medications
 
@@ -98,6 +105,18 @@ avatar, source priority, and the Codex device-OAuth flow.
 | `POST` | `/api/auth/refresh` | Per-device refresh-token rotation |
 | `POST` | `/api/auth/codex/device-start` · `/device-poll` · `/disconnect` | ChatGPT device-OAuth |
 | `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs |
+
+## API tokens
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `GET` | `/api/tokens` | The account's tokens with their scopes and expiry |
+| `POST` | `/api/tokens/measurements` | Mint a `measurements:write` token. Cookie only; the raw `hlk_` value is in this one response and nowhere else. Expires after 365 days unless a shorter `expiresInDays` is given; ten mints a minute |
+| `DELETE` | `/api/tokens/{id}` | Revoke one token |
+
+MCP connector tokens have their own list and mint under `/api/mcp/tokens`
+(see [the MCP reference](/reference/mcp/)), and a medication's intake token is
+minted from that medication's own API endpoint card.
 
 ## Shared access
 

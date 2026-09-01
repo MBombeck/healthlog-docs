@@ -111,6 +111,8 @@ database as an audit trail. Override per user under **Settings → Sources**.
   Withings**; credentials are per user, not server env vars.
 - **`Callback URI mismatch`** — the redirect URL must exactly match an entry in
   the developer-portal app's callback list, including the `https://` scheme.
+  The integration card can warn about a callback origin that differs from the address in the browser;
+  [troubleshooting](/self-hosting/troubleshooting/#oauth-callbacks-land-on-localhost-or-the-wrong-host) says when that check works.
 - **Webhook stopped firing.** Subscriptions can lapse after a token revoke.
   Disconnect and reconnect from the settings page to re-run `Notify.subscribe()`
   with a fresh URL. Test the inbound path:

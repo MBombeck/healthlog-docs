@@ -18,10 +18,12 @@ single-instance host the canonical sequence is:
 # 1. Pull the new image.
 docker pull ghcr.io/mbombeck/healthlog:vX.Y.Z
 
-# 2. Run migrations against the live DB using the new image.
+# 2. Run migrations against the live DB using the new image. The production
+#    image carries no pnpm or npm; call the bundled Prisma CLI through node,
+#    the same way the entrypoint does.
 docker run --rm --env-file .env.production \
   ghcr.io/mbombeck/healthlog:vX.Y.Z \
-  pnpm prisma migrate deploy
+  sh -c 'NODE_PATH=/opt/prisma-cli/node_modules node /opt/prisma-cli/node_modules/prisma/build/index.js migrate deploy'
 
 # 3. Recreate the app container so it picks up the new image.
 docker compose up -d app
@@ -90,6 +92,43 @@ pnpm dlx tsx scripts/assert-deploy.ts <version>   # e.g. the tag you deployed
 
 Pass `--only=prod` / `--only=demo` for a single target, or
 `--attempts=N --interval=ms` to widen the retry window while a slow pull settles.
+
+## Pin the image by digest
+
+Tags (`:latest`, `:v1.38.0`) are mutable aliases. The digest is the image's
+only immutable identity, and it is what the release signature covers. The
+compose file's `app` image is `ghcr.io/mbombeck/healthlog${HEALTHLOG_IMAGE_REF:-:latest}`,
+so set `HEALTHLOG_IMAGE_REF` in the `.env` next to the compose file (or in the
+deployment platform's env vars) to change the reference without editing the
+file: `:v1.38.0` pins a tag, `@sha256:<digest>` pins the digest. Resolve a
+release's digest with
+
+```bash
+docker buildx imagetools inspect ghcr.io/mbombeck/healthlog:vX.Y.Z | grep -m1 Digest
+```
+
+which returns the manifest-list digest covering both architectures.
+
+Every release image is signed keyless through Sigstore by the release
+workflow, so a digest can be verified before it is pinned:
+
+```bash
+cosign verify \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/MBombeck/HealthLog/\.github/workflows/docker-publish\.yml@refs/tags/v.*' \
+  ghcr.io/mbombeck/healthlog:vX.Y.Z
+```
+
+:::caution[A pin is sticky, and a stale pin is silent]
+A pinned instance never follows a release on its own. Every later deploy ships
+the pinned reference until somebody changes it, and the deploy still reports
+success. If you pin, bumping the pin is part of shipping. After any deploy
+check two things: `/api/version` reports the version and commit you shipped,
+and the running container's image is the one you expect
+(`docker inspect <container> --format '{{.Config.Image}}'`). Probe
+`/api/version` more than once a few seconds apart: during the container swap a
+single probe can be answered by the outgoing container.
+:::
 
 ## Web/worker split for scale
 

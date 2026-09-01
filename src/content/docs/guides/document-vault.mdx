@@ -123,8 +123,9 @@ Honest limits:
 - Content search is **whole-word**: it matches complete words, not substrings,
   prefixes, or typos. Substring matching on the short fields (title, filename)
   still works and is unioned with content matches.
-- Indexing needs a provider: a vision-capable provider reads images and (on the
-  Claude path) PDFs; with local OCR enabled, images are read on your device and
+- Indexing needs a provider: a vision-capable provider (the
+  [AI providers guide](/guides/ai-providers/#provider-matrix) lists which
+  models qualify) reads images and (on the Claude path) PDFs; with local OCR enabled, images are read on your device and
   only the text is sent to the server to index. PDFs cannot be read by local
   OCR.
 - Per-document **Index for search** indexes one document; **Index all for
