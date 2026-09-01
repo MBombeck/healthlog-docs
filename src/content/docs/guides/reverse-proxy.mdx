@@ -23,6 +23,10 @@ terminates trusted HTTPS on the tailnet with no extra container.
 | `APP_URL` | Server-side absolute URLs from background jobs | Mirror of the above; both must match |
 | `TRUST_PROXY_HOPS` | `X-Forwarded-For` chain trust | Defaults to `1` |
 
+A mismatch between `NEXT_PUBLIC_APP_URL` and the address you actually use shows
+up first as OAuth callbacks landing on the wrong host; see
+[troubleshooting](/self-hosting/troubleshooting/#oauth-callbacks-land-on-localhost-or-the-wrong-host) for the symptom and the in-app warning.
+
 ### `TRUST_PROXY_HOPS`
 
 `getClientIp` reads the `X-Forwarded-For` chain from the **right**, counting back

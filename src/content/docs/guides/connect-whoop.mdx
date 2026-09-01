@@ -77,7 +77,7 @@ WHOOP_WEBHOOK_SECRET="$(openssl rand -hex 32)"
   syncs on the safety-net cron pull — only the near-real-time push is lost.
 
 Both variables are already on the compose `environment:` whitelist — set them
-in `.env` and restart.
+in `.env` and restart. The integration card can warn about a callback origin that differs from the address in the browser; [troubleshooting](/self-hosting/troubleshooting/#oauth-callbacks-land-on-localhost-or-the-wrong-host) says when that check works.
 
 ## The signals it brings
 

@@ -1,84 +1,138 @@
 ---
-title: HealthLog Documentation
-description: Self-hosted, privacy-first health tracking. User and operator documentation for HealthLog — install, integrate devices, and understand how it works.
-template: splash
-hero:
-  tagline: Self-hosted, privacy-first health tracking. Your vitals, your devices, your server.
-  actions:
-    - text: Self-host in 10 minutes
-      link: /getting-started/self-host-in-10-minutes/
-      icon: right-arrow
-      variant: primary
-    - text: View on GitHub
-      link: https://github.com/MBombeck/HealthLog
-      icon: external
-      variant: minimal
+title: What HealthLog is
+description: An overview of HealthLog, a self-hosted health tracking PWA with a native iOS client, device sync, multi-provider AI insights, and a clinician-ready export.
 ---
 
-import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+HealthLog is a self-hosted personal health tracker that runs from a single
+`docker compose up`. It covers the metrics most people actually log (weight,
+blood pressure, pulse, body composition, blood glucose, sleep, mood, menstrual
+cycle, and medication compliance), plus
+[clinical signals](/guides/clinical-signals/) (validated mental-wellbeing
+self-checks, grip strength, a pain score, waist measures, and a longevity lab
+panel), on by default and inert until data arrives, and structured
+[records](/guides/structured-records/) for allergies and
+family history. It brings them together in one dashboard with clinical reference
+ranges, overridable with the targets your clinician set.
 
-## What this site covers
+HealthLog is a personal health record-keeping and wellness tool. It is not a
+medical device and does not diagnose, treat, cure, or prevent any disease. It
+helps you log, visualise, and export your own data, and leaves clinical
+judgement to a clinician. See the [non-diagnostic standard](/explanation/non-diagnostic-standard/).
 
-HealthLog is a self-hosted personal-health-tracking app — a PWA plus a native
-iOS client — that brings weight, blood pressure, pulse, glucose, body
-composition, sleep, mood, menstrual cycle, and medication tracking onto one
-timeline you own. It runs from a single `docker compose up` on a NAS, homelab,
-or small VPS, syncs from the devices you already own, and keeps everything
-encrypted at rest.
+Try the [live demo](https://demo.healthlog.dev) to see what a working install
+looks like, or jump straight to
+[Self-host in 10 minutes](/getting-started/self-host-in-10-minutes/).
 
-These docs are organised the way the [Diátaxis](https://diataxis.fr/) framework
-suggests: a learning-oriented tutorial to get you running, task-oriented
-how-to guides for specific jobs, factual reference material, and explanation
-pages that cover the reasoning behind the design.
+## What it does
 
-<CardGrid>
-  <Card title="Getting Started" icon="rocket">
-    Stand up an instance, create your first user, and connect the iOS app.
-    Begin with the [introduction](/getting-started/introduction/), then
-    [self-host in 10 minutes](/getting-started/self-host-in-10-minutes/),
-    [first steps](/getting-started/first-steps/), and
-    [connect the iOS app](/getting-started/connect-ios-app/).
-  </Card>
-  <Card title="How-to Guides" icon="setting">
-    Task-oriented walkthroughs: connect [Withings](/guides/connect-withings/),
-    [WHOOP](/guides/connect-whoop/), [Google Health](/guides/connect-google-health/)
-    or [Apple Health](/guides/import-apple-health/); set up
-    [medications](/guides/track-medications/), [reminders](/guides/reminder-channels/),
-    [backups](/guides/backups/), [invites](/guides/invites/), and a
-    [reverse proxy](/guides/reverse-proxy/).
-  </Card>
-  <Card title="Reference" icon="open-book">
-    Factual specs: the [REST API overview](/reference/api-overview/) and
-    [endpoints](/reference/api-endpoints/), every
-    [environment variable](/reference/environment-variables/), the
-    [data model](/reference/data-model/), the [FHIR read API](/reference/fhir-api/),
-    and the [webhook surfaces](/reference/webhooks/).
-  </Card>
-  <Card title="Explanation" icon="information">
-    The reasoning behind the design:
-    [cadence-aware compliance](/explanation/medication-compliance/), how the
-    [health scores](/explanation/health-scores/) are built,
-    [what leaves your instance](/explanation/privacy-architecture/), and the
-    [encryption model](/explanation/encryption-at-rest/).
-  </Card>
-</CardGrid>
+- **Every vital on one timeline.** Weight, blood pressure, pulse, glucose,
+  body composition, sleep, SpO₂, mood, and cycle, charted with trends, moving
+  averages, and reference ranges from established guidelines.
+- **Your devices, one server.** [Withings](/guides/connect-withings/),
+  [WHOOP](/guides/connect-whoop/), [Oura](/guides/connect-oura/),
+  [Polar](/guides/connect-polar/) and [Strava](/guides/connect-strava/) sync
+  over OAuth2,
+  [Fitbit and Pixel](/guides/connect-google-health/) connect through Google
+  Health (or the [classic Fitbit API](/guides/connect-fitbit/) until its 2026
+  retirement), a
+  [Nightscout](/guides/connect-nightscout/) instance streams continuous glucose,
+  an [Apple Health `export.zip`](/guides/import-apple-health/) folds your full
+  history in, and the native iOS app streams HealthKit live. A per-metric
+  [source priority](/guides/source-priority/) decides which reading is canonical
+  when wearables overlap.
+- **Medication tracking that tells the truth.** Flexible schedules (weekly
+  injections, weekday-only, intervals, PRN, cyclic), a configurable intake
+  window per dose, and a traceable dose history where every slot reads taken,
+  late, skipped, or missed. This is the same ledger the
+  [compliance rate](/explanation/medication-compliance/) is computed from.
+- **AI insights you own.** A daily briefing, a
+  [Health Score](/explanation/composite-health-score/) that grades each pillar
+  against a published band and says which areas of health it rests on,
+  correlations, and a conversational coach grounded in your own measurements,
+  with calm [proactive check-ins](/explanation/proactive-coach/) it suppresses
+  when there is nothing genuine to say. Bring your own OpenAI or Anthropic key,
+  use ChatGPT via Codex or an admin-shared key, or point at a local endpoint so
+  nothing leaves your network.
+- **Open to your own assistant.** An off-by-default
+  [MCP connector](/guides/mcp-server/) can expose your own record to an external
+  assistant over OAuth, read-only by default, with narrow confirmed writes only
+  when you opt in.
+- **Context that explains the numbers.** An
+  [environmental module](/explanation/environmental-module/), on by default,
+  folds weather, daylight, and temperature in as influence signals; the
+  weather fetch itself stays off until you configure a home location.
+- **Clinician-ready output.** A doctor-report PDF generated client-side, a
+  read-only [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited
+  share links you revoke after the visit.
+- **[Shared access](/guides/shared-access/) for a household.** One account can
+  give another account on the same instance access to its record, so a partner
+  or an adult child can look after somebody without anybody sharing a password.
+  Nothing happens until the invitation is accepted. A grant is read, read plus a
+  short closed list of entries the other person may add, or manage, which can
+  also revise what is already there under its own name. An invitation can open
+  named parts of the record instead of all of it, and either side can end it at
+  any time. A record can also exist for somebody with no login at all, such as a
+  child, as a [managed profile](/guides/managed-profiles/).
+- **Private by construction.** AES-256-GCM
+  [encryption at rest](/explanation/encryption-at-rest/) with zero-downtime key
+  rotation, passkey login, server-side sessions, strict CSP, and no third-party
+  tracking anywhere.
 
-<LinkCard
-  title="Health Knowledge"
-  description="Plain-language, guideline-backed explainers for every metric HealthLog tracks — blood pressure, glucose, HRV, sleep, VO₂max and more, each with its sources."
-  href="/knowledge/"
-/>
+## Who it is for
 
-<LinkCard
-  title="Support and contact"
-  description="Report a bug, ask a setup question, or find the private routes for privacy and security requests."
-  href="/support/"
-/>
+HealthLog is built for people who want their health data on their own server
+(a NAS, a homelab, or a small VPS) and who do not want to hand it to a vendor
+cloud to read a seven-day weight trend. It does not ship a sensor and does not
+try to be a ring or a strap; instead it aggregates the readings your devices
+already collect, plus the ones they do not hold (cuff blood pressure,
+finger-stick or CGM glucose, medication intake), and keeps them on hardware you
+control. See [how it compares](/features/#how-it-compares).
+
+A household is a normal shape for an instance. Everybody gets their own account
+rather than sharing one, and if one person needs to keep an eye on another's
+readings, that is a [shared-access grant](/guides/shared-access/) between the two
+accounts.
+
+## Status
+
+Active development; new releases land roughly weekly. Behaviour, API shapes,
+and database schema can change between minor versions; migrations are
+forward-only. If you self-host, pin a tag, take a backup before every upgrade,
+and skim the [changelog](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md)
+before pulling `latest`. The
+[latest release](https://github.com/MBombeck/HealthLog/releases) is the current
+line; `/api/version` on a running instance reports exactly what it serves.
+
+## Licence
+
+HealthLog is licensed under the
+[PolyForm Noncommercial License 1.0.0](/license/): free to use, self-host, and
+modify for noncommercial purposes. Releases up to and including v1.15.18 were
+published under AGPL-3.0 and remain available under that licence.
+
+## How these docs are organised
+
+The site follows the [Diátaxis](https://diataxis.fr/) layout. A
+learning-oriented tutorial gets you running
+([Self-host in 10 minutes](/getting-started/self-host-in-10-minutes/), then
+[first steps](/getting-started/first-steps/) and
+[connecting the iOS app](/getting-started/connect-ios-app/)). Task-oriented
+[how-to guides](/guides/) cover one job each, such as connecting a device or
+setting up backups. The [reference](/reference/) section holds the factual
+material: the REST API, every environment variable, the data model, the FHIR
+read API. [Explanation](/explanation/) pages give the reasoning behind the
+design. Two sections sit outside that layout: the
+[Health Knowledge](/knowledge/) pages are plain-language, guideline-backed
+explainers for every metric HealthLog tracks, each with its sources, and
+[Support and contact](/support/) is where to report a bug, ask a setup
+question, or find the private routes for privacy and security requests.
 
 :::caution[Not medical advice]
-HealthLog is a tracking and visualisation tool, not a medical device. Nothing
-in this documentation or the app is medical advice. Reference ranges and
-classifications link to the original guideline or source so you can read them
-in context; always discuss your own numbers and targets with a qualified
-clinician.
+HealthLog is a personal health record-keeping and wellness tool, not a medical
+device, and nothing it shows is medical advice. Validated self-checks are
+screens, not diagnoses, and the Coach describes your data rather than concluding
+from it. Reference ranges and classifications link to the original guideline or
+source so you can read them in context. Discuss your own numbers and targets
+with a qualified clinician; see the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/).
 :::

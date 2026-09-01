@@ -59,7 +59,7 @@ The second is that the discoverability of all the other achievements depends on 
 
 For self-hosters and the merely curious: the redaction is enforced server-side. The `/api/gamification/achievements` route strips the title, description, icon name, and trigger metric out of the response body for any achievement flagged `isHidden` and not yet unlocked. The string-keyed lookup that would resolve the localized title is short-circuited at the page boundary — a `hiddenLocked` entry makes the page render the placeholder card and never look up the real strings. The DOM never sees them.
 
-The bundled translations (all six languages) still ship with the strings (so unlocked clients can render them without a round-trip), which means a determined user can `Cmd-F` through `_next/static/chunks/*.js` and find them. That's a small known leak. For now the page-level redaction is enough — you'd have to actively dig for it.
+The bundled translations (all seven languages) still ship with the strings (so unlocked clients can render them without a round-trip), which means a determined user can `Cmd-F` through `_next/static/chunks/*.js` and find them. That's a small known leak. For now the page-level redaction is enough — you'd have to actively dig for it.
 
 ## How many there are
 

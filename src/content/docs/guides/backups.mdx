@@ -52,8 +52,17 @@ After deploying, hit `POST /api/admin/backup/test` (admin-only). It performs a
 latencies. Credentials are never returned.
 
 ```json
-{ "endpoint": "https://...r2.cloudflarestorage.com", "bucket": "healthlog-backups",
-  "region": "auto", "putLatencyMs": 142, "getLatencyMs": 38, "ok": true }
+{
+  "data": {
+    "endpoint": "https://...r2.cloudflarestorage.com",
+    "bucket": "healthlog-backups",
+    "region": "auto",
+    "putLatencyMs": 142,
+    "getLatencyMs": 38,
+    "ok": true
+  },
+  "error": null
+}
 ```
 
 ## Bucket lifecycle
@@ -83,13 +92,16 @@ pnpm dlx tsx scripts/restore-backup.ts \
   /tmp/restored.json
 ```
 
-The script downloads the object, decrypts it, and writes the JSON dump to disk.
-Importing the dump back into an instance is left to the operator (`prisma db
-seed` or a custom script).
+The script downloads the object, decrypts it, and writes the JSON dump to disk
+with owner-only permissions (`0600`), since the file is decrypted health data
+in plaintext (v1.37.33). Importing the dump back into an instance is left to
+the operator (`prisma db seed` or a custom script).
 
-:::caution[Run scripts with `pnpm dlx tsx`]
-The production standalone image strips `tsx`, so a bare `pnpm tsx scripts/...`
-fails inside the container. Always invoke one-shot scripts via `pnpm dlx tsx`.
+:::caution[Run the restore from a source checkout]
+The script imports the full application dependency graph, which the minimal
+production image does not carry, and the image strips `tsx` as well. Run it
+from a checkout of the repository with the backup variables exported, through
+`pnpm dlx tsx` as above, not inside the container.
 :::
 
 ## What a backup does not carry

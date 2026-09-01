@@ -114,7 +114,7 @@ The resolved `redirect_uri` is asserted at connect time to be absolute, `https`
 (or `http` on localhost), to target exactly `/api/google-health/callback`, and
 — when `GOOGLE_HEALTH_REDIRECT_URI` is set alongside `NEXT_PUBLIC_APP_URL` — to
 share its origin. A misconfigured value fails closed rather than redirecting
-elsewhere.
+elsewhere. The integration card can warn about a callback origin that differs from the address in the browser; [troubleshooting](/self-hosting/troubleshooting/#oauth-callbacks-land-on-localhost-or-the-wrong-host) says when that check works.
 
 ```env
 # Only when the callback origin differs from NEXT_PUBLIC_APP_URL:

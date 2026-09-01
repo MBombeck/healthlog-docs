@@ -53,11 +53,12 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_COOKIE_SECURE` | tracks `NODE_ENV=production` | Force or disable the cookie `Secure` flag. Set `false` for trusted plain-HTTP LANs. |
-| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. See [reverse proxy](/guides/reverse-proxy/). Not whitelisted by default. |
+| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. See [reverse proxy](/guides/reverse-proxy/). On the compose whitelist since v1.37.33. |
 | `TRUST_CF_CONNECTING_IP` | unset | Set `1` **only** behind Cloudflare to trust the `cf-connecting-ip` header. |
 | `DATABASE_POOL_MAX` | `20` | The Prisma pool ceiling the app itself reads. Not whitelisted by default. |
 | `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | **Compose-level substitutions only** — they feed the `connection_limit` and `pool_timeout` query params of the default `DATABASE_URL`. The app never reads them directly; with a hand-written `DATABASE_URL`, set the query params yourself. |
 | `HEALTHLOG_PROCESS_TYPE` | `all` | `all` / `web` / `worker` process split. |
+| `HEALTHLOG_IMAGE_REF` | `:latest` | **Compose-level substitution only**: the suffix of the `app` image reference. `:v1.38.0` pins a tag, `@sha256:<digest>` pins the immutable digest. See [pin the image by digest](/guides/updates-and-deploy/#pin-the-image-by-digest). |
 
 ## OIDC SSO (optional)
 
@@ -149,7 +150,7 @@ then these:
 | `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. Since v1.37.1 the resolver reads them first and goes online only for an address they cannot place. |
 | `MAXMIND_LICENSE_KEY` | A free MaxMind licence key. Set it and the worker downloads the GeoLite2 City + ASN databases into `GEOLITE2_DIR` itself at boot, refreshed monthly. The third way to supply the databases, no rebuild or manual mount; a mounted database still wins. |
 | `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. |
-| `IP_GEO_LOOKUP_DISABLED` | Disable third-party IP lookups entirely (no geo egress). |
+| `IP_GEO_LOOKUP_DISABLED` | Disable third-party IP lookups entirely (no geo egress). Also silences the one-time admin notice about online lookups, since there is nothing to warn about. |
 | `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
 
 ## Off-host backups (all-or-none)
