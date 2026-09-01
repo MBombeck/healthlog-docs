@@ -37,7 +37,7 @@ see movement between checks rather than a single snapshot.
 - **WHO-5** (wellbeing) — five positively worded items over the last two
   weeks, scaled to **0–100** per the official WHO scheme. A low score gently
   points toward the PHQ-9 as a next step — a hint, never a verdict. The
-  official WHO translations ship in all six app languages.
+  official WHO translations ship in all seven app languages.
 - **SCI** (Sleep Condition Indicator) — an eight-item validated sleep
   questionnaire. It is validated in English only; locales without a validated
   translation show the English items with an honest note rather than a
@@ -112,7 +112,15 @@ reference range printed beside it, and that source range decides in or out of
 range everywhere the value shows, because the physician evaluates against the
 printed range, not a general one. The chart draws the source range as a second
 band and marks where it diverges from the catalogue; a value without a printed
-range keeps the catalogue as its net. See
+range keeps the catalogue as its net.
+
+In the lab list each value sits on a bar spanning its reference window, with a
+value outside the window kept clear of the bar's edge so it reads as outside,
+and a small trend line beside it (v1.38.1). A printed window whose lower bound
+sits at or above its upper bound is not used for a verdict: a transposed pair
+says the transcription is wrong, not which of the two numbers is, so the
+extraction drops the pair, the review screen refuses the edit, and the bar and
+trend line draw no in-or-out reading from it. See
 [the longevity lab panel](/knowledge/longevity-labs/).
 
 ## Where they show up
