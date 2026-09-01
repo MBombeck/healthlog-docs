@@ -1,0 +1,145 @@
+---
+title: The composite Health Score
+description: How the Health Score on the dashboard ring and the Insights card is built. Seven pillars, five areas of health, published reference bands, and a number that says how broad it is.
+sidebar:
+  order: 2
+---
+
+The Health Score is the single number on the dashboard's Today ring and on the
+Insights card. It is a 0 to 100 average of up to seven pillars, each graded
+against a published reference band, and below full breadth it carries a line
+saying how many areas of health it rests on. This page explains what goes in,
+how the number is formed, what the tiers mean, and what the card tells you
+when the set behind the number changes.
+
+The [derived wellness metrics](/explanation/health-scores/) (readiness,
+recovery, the sleep score, and the rest) are a separate tier with their own
+page. They compare you against your own baseline. The Health Score compares
+each pillar against a band somebody published.
+
+The Health Score is a descriptive summary of your own record, not a clinical
+verdict. Which pillars count is yours to choose, so the combined number is not
+itself a clinical standard. See the
+[non-diagnostic standard](/explanation/non-diagnostic-standard/).
+
+## Seven pillars, five areas of health
+
+| Pillar | Area of health | What is graded | Reference band | Source |
+| --- | --- | --- | --- | --- |
+| Blood pressure | Cardiometabolic | A representative reading from the last 90 days, from at least 12 paired readings | 120–129 / 70–79 mmHg under 65; 130–139 / 70–79 mmHg from 65 | ESH 2023 |
+| Glycaemia | Cardiometabolic | The latest HbA1c from the last 180 days; without one, the median fasting glucose over the last 90 days, from at least 8 readings | HbA1c 5–5.6 %; fasting glucose 70–99 mg/dL | ADA 2025; Selvin 2010 |
+| Lipids | Cardiometabolic | The latest complete lipid panel from the last 365 days, marker by marker | The reporting laboratory's own printed reference ranges | The laboratory that issued the panel |
+| Activity | Activity | Mean steps per day over the last 28 days, from at least 21 days | Benefit plateaus at 10,000 steps a day under 60 and at 8,000 from 60 | Paluch 2022 |
+| Sleep | Sleep | Minutes asleep per night over the last 28 nights, from at least 14; regularity joins in from 21 nights | At least the age-band need (7 hours for an adult); long sleep is not penalised | NSF 2015; Ai 2021; Daghlas 2019; Windred 2024 |
+| Adiposity | Adiposity | Waist-to-height ratio from the latest waist measurement in the last 180 days | Below 0.5 | NICE 2022 |
+| Wellbeing | Wellbeing | The latest completed screener from the last 90 days | PHQ-9 0–4; GAD-7 0–4; WHO-5 52–100 | Kroenke 2001; Spitzer 2006; WHO 1998 |
+
+Three of the seven pillars (blood pressure, glycaemia, lipids) share the
+cardiometabolic area. That matters for the breadth rule below: blood pressure,
+glucose and cholesterol together are three pillars but one area of health.
+
+Two pillars, activity and wellbeing, do not rest on a physiological
+measurement. That fact travels with the score as a label. It does not change
+how the score is computed and it no longer decides whether a score exists.
+
+Daily mood does not feed the wellbeing pillar; only the validated screeners
+do. A PHQ-9 whose ninth item is answered above zero is left unscored for that
+window, and the app's crisis signposting takes over instead.
+
+## Published bands, not invented targets
+
+Every scored band is one of three kinds: a clinical threshold, a population
+band, or a guideline band. There is deliberately no fourth kind. No band is
+derived from a profile field you did not set. Where a pillar reads your age or
+height, it does so only to pick a row in a published table (the ESH 2023 age
+bands for blood pressure, the two step plateaus Paluch 2022 publishes, the NSF
+2015 sleep-need table) or to form the observation itself (height divides the
+waist measurement into a ratio; the 0.5 threshold is the same for everybody).
+Blood pressure waits for a date of birth rather than guessing an age band.
+
+Your own yardstick is not excluded from the app, only from the scored band. A
+blood-pressure target your clinician set is shown beside the ESH band and
+labelled as a personal target; it never replaces the band the pillar is graded
+against. The weight goal stays unscored context next to the score.
+
+Earlier versions graded weight against a target computed from height (22 times
+height squared, widened by 2 kg either side). That band was removed in v1.34,
+and since v1.38 a structural test holds every pillar to the rule above.
+
+## How the number is formed
+
+- Each pillar with enough recent data produces a 0 to 100 score. A pillar
+  without enough data is left out, not counted as zero.
+- The Health Score is the rounded, equal-weighted mean of the pillars that
+  count.
+- Green starts at 70, yellow at 50, red below that. The weakest pillar can pull
+  the overall band down: if one pillar sits in a lower band than the mean, the
+  score keeps its number but takes that pillar's band, and the card names which
+  pillar set it.
+- A weekly comparison appears only when both windows were computed over the
+  same pillar set, under the same method and the same pillar selection, and
+  only when the move clears the combined measurement noise of the pillars
+  involved. Slow markers such as a lipid panel contribute to the level but
+  never to the weekly comparison. When there is no comparison, the card says
+  why.
+
+## Breadth: full, partial, minimal
+
+Three areas of health is the breadth the method recommends, not a requirement.
+The score is computed the same way at every breadth; what changes is the
+label.
+
+| Tier | Distinct areas counted |
+| --- | --- |
+| `full` | Three or more |
+| `partial` | Two |
+| `minimal` | One |
+
+An account scoring on activity alone gets a `minimal` score that says on its
+face what it rests on. The only refusal left is an account with no readable
+pillar at all: a mean over nothing is an absent score, not a low one. The card
+then reads "Nothing has enough recent data to score yet. One area of health is
+enough to start, and the score will say which areas it rests on."
+
+Because the tier counts areas rather than pillars, the server resolves it and
+sends it with every score as a `scoreBasis` block (`domains`, `recommended`,
+`tier`, `physiological`). A client counting pillars would get it wrong
+whenever two cardiometabolic pillars are both in play.
+
+The pillar selection under Settings follows the same rule: a selection with at
+least one pillar saves, and the page still recommends three.
+
+## What the card shows
+
+- **The basis line.** Below full breadth the Insights card and the Today ring
+  carry one line, "Based on 2 of 3 areas of health." The number stays at full
+  size in its band colour at every tier. At full breadth the line is absent.
+- **The composition notice.** When a pillar joins or leaves the set behind the
+  number since the last stored day (a window rolled past its floor, a source
+  went quiet, a new area got its first readings), the card says which area left
+  or joined and, for a departure, the same reason the pillar shows on its own
+  row. It can be dismissed and comes back only if the set moves again. Two
+  changes do not raise it, because they carry a notice of their own: the method
+  changed, or you changed which pillars count.
+- **The composition list.** The pillars behind the number are one tap away,
+  each with its observed value, its reference band, and the source of that
+  band.
+
+## What changed in v1.38
+
+Until v1.38 the score existed only when the pillars behind it spanned at least
+three distinct areas of health and at least one of them was a physiological
+measurement; anything narrower showed "not enough data". Since v1.38 that
+floor is a recommendation: one or two areas produce a score by the same
+arithmetic, labelled by the basis line, and only an account with nothing
+readable is refused. The method version moved from 3 to 4; days stored under
+the old version keep it, and the weekly comparison is suppressed across the
+change. Older notes that describe the three-area floor describe the earlier
+rule.
+
+:::caution[Not medical advice]
+The Health Score summarises your own record against published bands. It is
+not a diagnosis, not a risk score, and not a substitute for a clinician's
+reading of the same numbers. Discuss your values and targets with a qualified
+clinician.
+:::
