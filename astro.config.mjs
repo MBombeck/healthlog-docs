@@ -73,6 +73,7 @@ export default defineConfig({
 						{ slug: 'guides/connect-fitbit' },
 						{ slug: 'guides/connect-nightscout' },
 						{ slug: 'guides/import-apple-health' },
+						{ slug: 'guides/ingest-token' },
 						{ slug: 'guides/source-priority' },
 						{ slug: 'guides/track-medications' },
 						{ slug: 'guides/nutrients' },
