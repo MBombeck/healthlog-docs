@@ -96,12 +96,14 @@ registered at the provider matches the app's callback path **exactly** — e.g.
 [Withings](/guides/connect-withings/). A single trailing slash or an `http`
 scheme mismatch is enough for the provider to refuse the flow.
 
-Since v1.38.0 the integration cards under **Settings → Integrations** can show
-a warning when the origin of the callback address differs from the address in
-the browser. The check compares against the `NEXT_PUBLIC_APP_URL` compiled into
-the client bundle, so it only works on an image you built yourself with that
-variable set at build time; the published GHCR image has no value baked in and
-shows no warning. A `*_REDIRECT_URI` override is not consulted by the check.
+Since v1.38.1 the integration cards under **Settings → Integrations** show a
+warning when the origin of the callback address differs from the address in the
+browser, and each setup guide on those cards shows the full callback address.
+Both values are the ones the server registers with the provider, resolved from
+`NEXT_PUBLIC_APP_URL` or the matching `*_REDIRECT_URI` override at request
+time. In v1.38.0 the check read the app address from the browser bundle, which
+the published image is built without, so on that version the warning never
+appeared and the guide showed only a path.
 
 ## The dashboard briefing / insights are empty
 
