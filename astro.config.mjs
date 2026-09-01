@@ -24,6 +24,8 @@ export default defineConfig({
 		'/api/sync/': '/reference/sync/',
 		'/admin/backups/': '/guides/backups/',
 		'/settings/ai-providers/': '/guides/ai-providers/',
+		// The introduction now lives at the site root.
+		'/getting-started/introduction/': '/',
 	},
 	integrations: [
 		starlight({
@@ -51,7 +53,7 @@ export default defineConfig({
 				{
 					label: 'Getting Started',
 					items: [
-						{ slug: 'getting-started/introduction' },
+						{ label: 'What HealthLog is', link: '/' },
 						{ slug: 'getting-started/self-host-in-10-minutes' },
 						{ slug: 'getting-started/first-steps' },
 						{ slug: 'getting-started/connect-ios-app' },
@@ -107,6 +109,7 @@ export default defineConfig({
 						{ slug: 'explanation', label: 'Overview' },
 						{ slug: 'explanation/non-diagnostic-standard' },
 						{ slug: 'explanation/medication-compliance' },
+						{ slug: 'explanation/composite-health-score' },
 						{ slug: 'explanation/health-scores' },
 						{ slug: 'explanation/source-priority' },
 						{ slug: 'explanation/proactive-coach' },

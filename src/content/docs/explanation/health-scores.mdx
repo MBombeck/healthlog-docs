@@ -15,6 +15,11 @@ when its minimum inputs are missing.
 These are **descriptive wellness framings, not clinical or training-grade
 assessments.**
 
+This page covers the derived tier only. The composite Health Score on the
+dashboard ring and the Insights card, built from seven pillars graded against
+published reference bands, has its own page:
+[the composite Health Score](/explanation/composite-health-score/).
+
 ## The signals underneath
 
 Most of the recovery-style scores lean on two physiological signals your wearable
@@ -44,11 +49,17 @@ underlying research supports. The same logic applies to RHR.
 
 ## Degrade honestly
 
-Every score has a minimum-input gate. If you have not worn a device long enough
-to establish a baseline, or a night's HRV is missing, the score does not
-guess — it returns "not enough data." A score is only **stored** once its minimum
-inputs are present. The recovery score persists as a daily 0–100 series that the
-dashboard, charts, and native client read without recomputing.
+Every derived score has a minimum-input gate. If you have not worn a device
+long enough to establish a baseline, or a night's HRV is missing, the score
+does not guess. It returns "not enough data." A score is only **stored** once
+its minimum inputs are present. The recovery score persists as a daily 0–100
+series that the dashboard, charts, and native client read without recomputing.
+
+The composite Health Score refuses more narrowly. A pillar without enough
+recent data is left out and the remaining pillars are scored as usual, with a
+line on the card saying how many areas of health the number rests on. The
+composite returns "not enough data" only when no pillar is readable at all.
+See [breadth: full, partial, minimal](/explanation/composite-health-score/#breadth-full-partial-minimal).
 
 ## The derived metrics
 
