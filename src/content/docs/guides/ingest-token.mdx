@@ -1,0 +1,207 @@
+---
+title: Push readings from your own hardware
+description: Mint a measurement ingest token and post readings from a scale, a watch bridge, or a Home Assistant rule to your own record, with a worked rest_command and the error responses explained.
+sidebar:
+  order: 21
+---
+
+HealthLog pulls from Withings, WHOOP, Fitbit, Oura, Polar and Strava over
+OAuth. A local sensor has no such door: a Bluetooth scale, a Garmin bridge or a
+Zigbee thermometer lives in your own automation platform and has to push. This
+page covers that path, a token you mint yourself and the two endpoints it
+reaches.
+
+Nothing here is specific to Home Assistant. Node-RED, a cron job with `curl`,
+or anything else that can set a header works the same way.
+
+## Mint a token
+
+**Settings → API & Tokens → Measurement tokens.** Name it after the thing you
+are pasting it into, because that name is what you will be reading later when
+you decide whether to revoke it.
+
+The token is shown **once**. It is stored as an HMAC, so no page can show it to
+you again. If you lose it, mint another and revoke the old one.
+
+A token expires after a year unless you pick a shorter lifetime when minting
+(1 to 365 days; a year is also the longest allowed). It appears in the token
+list on the same page alongside every other credential on the account and is
+revoked there.
+
+Minting needs a browser session. `POST /api/tokens/measurements` accepts the
+session cookie only, so no API token can mint one of these, not even the
+wildcard token a native sign-in holds. The reason is lifetime rather than
+reach: the sign-in a phone holds lasts a day, and what it could mint here lasts a year, so a credential that
+leaked for an afternoon would leave behind one that outlives cancelling it.
+Mints are limited to ten per minute, and if the operator has switched the API
+off in the admin panel the mint is refused with `403`.
+
+## What the token can and cannot do
+
+It can add readings, on your own record, through:
+
+- `POST /api/measurements`: one reading, or an array of up to five
+- `POST /api/measurements/batch`: up to 500 entries per call
+
+That is the whole list. It **cannot** read a reading back, change or delete
+one, reach the export, or mint another token. The read, edit and delete
+endpoints name no scope, so a request from this token is refused with `403`
+before the handler runs. That is the point of it being a separate credential
+rather than a general one: a container you do not fully trust, a Home
+Assistant add-on or a script from a forum, holds something whose worst case is
+junk in your own record, not your health history leaving the building.
+
+It also cannot be pointed at somebody else's record. If an account has
+[shared their record with you](/guides/shared-access/), a request carrying the
+`X-HealthLog-Account` selector is refused with `403` before the sharing grant is
+even read, so no future change to what sharing permits can widen what one of
+these tokens reaches. Use the web app for that.
+
+## Readings arrive as manually entered
+
+Rows written with this token carry `source: MANUAL`, the same label a reading
+you type in by hand gets. Two consequences worth knowing:
+
+- You can correct them in the app. Readings owned by a connected provider are
+  read-only; these are not.
+- They do not claim to be from Apple Health. An entry that explicitly names
+  `APPLE_HEALTH` is refused with `422` (`measurement.create.source_not_permitted`
+  on the single endpoint, `measurement.batch.source_not_permitted` on the batch
+  endpoint) rather than quietly relabelled. That source is half the
+  deduplication key the iOS app writes into, and a bridge borrowing it would
+  corrupt the phone's sync rather than merely mislabel a row.
+
+For the same reason, a push through this token does not move the phone's sync
+checkpoint. That checkpoint records that your phone delivered what it was
+holding, and a scale advancing it could make the phone skip a window of its own
+samples.
+
+## Home Assistant example
+
+Add a `rest_command` to `configuration.yaml`. Keep the token in
+`secrets.yaml`, not here.
+
+```yaml
+rest_command:
+  healthlog_measurement:
+    url: "https://healthlog.example.com/api/measurements"
+    method: POST
+    headers:
+      Authorization: !secret healthlog_token
+      Content-Type: "application/json"
+    payload: >-
+      {
+        "type": "{{ type }}",
+        "value": {{ value }},
+        "measuredAt": "{{ now().isoformat() }}"
+      }
+```
+
+```yaml
+# secrets.yaml
+healthlog_token: "Bearer hlk_replace_me"
+```
+
+Then call it from an automation. This one forwards a scale whenever it reports
+a new weight:
+
+```yaml
+automation:
+  - alias: "Push weight to HealthLog"
+    trigger:
+      - platform: state
+        entity_id: sensor.bathroom_scale_weight
+    condition:
+      - condition: template
+        value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable'] }}"
+    action:
+      - service: rest_command.healthlog_measurement
+        data:
+          type: WEIGHT
+          value: "{{ trigger.to_state.state | float }}"
+```
+
+The `condition` is not decoration. Home Assistant sensors publish `unknown` and
+`unavailable` as ordinary states, and forwarding one produces a `422` on every
+restart.
+
+## Measurement types
+
+`type` is an enum, not free text. Some of the ones a Garmin or scale
+integration tends to have:
+
+| What the sensor reports        | `type`                   | Unit expected |
+| ------------------------------ | ------------------------ | ------------- |
+| Weight                         | `WEIGHT`                 | kg            |
+| Body fat                       | `BODY_FAT`               | %             |
+| Resting heart rate             | `RESTING_HEART_RATE`     | bpm           |
+| Heart-rate variability (SDNN)  | `HEART_RATE_VARIABILITY` | ms            |
+| Heart-rate variability (RMSSD) | `HRV_RMSSD`              | ms            |
+| Blood oxygen                   | `OXYGEN_SATURATION`      | %             |
+| VO₂ max                        | `VO2_MAX`                | ml/kg/min     |
+| Respiratory rate               | `RESPIRATORY_RATE`       | breaths/min   |
+| Sleep duration                 | `SLEEP_DURATION`         | minutes       |
+| Steps                          | `ACTIVITY_STEPS`         | count         |
+| Body temperature               | `BODY_TEMPERATURE`       | °C            |
+
+Units are derived server-side from the type, so send the number in the unit
+above and do not send a `unit` field. Each type also has a plausibility range
+(a respiratory rate of 200 is refused with `422`, for instance). The full enum
+is under `MeasurementType` in
+[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml).
+
+## Sending several readings at once
+
+A bare array writes up to five readings in one request, which is the shape to
+use for blood pressure, since that is two rows:
+
+```bash
+curl -X POST https://healthlog.example.com/api/measurements \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Content-Type: application/json" \
+  -d '[
+        { "type": "BLOOD_PRESSURE_SYS", "value": 118, "measuredAt": "2026-03-14T07:20:00Z" },
+        { "type": "BLOOD_PRESSURE_DIA", "value": 76,  "measuredAt": "2026-03-14T07:20:00Z" }
+      ]'
+```
+
+For a backfill of hundreds of rows, use `/api/measurements/batch` instead. It
+takes up to 500 entries and reports a per-entry status (`inserted`, `updated`,
+`duplicate`, `skipped` or `failed`), so a partial failure tells you which rows
+to retry. A batch of more than 500 entries is refused whole with `422`
+(`measurement.batch.too_large`), and nothing from it is written.
+
+## Retries and duplicates
+
+Both endpoints honour an `Idempotency-Key` header. Send a value your automation
+can reproduce for the same reading, and a retry with the same key returns the
+original response instead of writing a second row:
+
+```yaml
+headers:
+  Authorization: !secret healthlog_token
+  Content-Type: "application/json"
+  Idempotency-Key: "{{ type }}-{{ now().strftime('%Y-%m-%dT%H') }}"
+```
+
+Independently of that, a reading on `/api/measurements` with the same type,
+timestamp and source as an existing row is refused with `409`
+(`measurement.duplicate_timestamp`), so a duplicate push is a visible error
+rather than a duplicated data point. The batch endpoint reports such an entry
+as `duplicate` instead of failing the call; `skipped` means the entry did not
+pass validation.
+
+## When it stops working
+
+| Response | What it means                                                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401`    | The token is wrong, revoked, or expired. Mint a new one.                                                                                                       |
+| `403`    | The endpoint is outside the token's scope (check you are calling one of the two above and not a read), or the request named another account's record.       |
+| `409`    | A reading with this type, timestamp and source already exists (single endpoint only).                                                                          |
+| `422`    | The payload is wrong: an unknown `type`, a non-numeric or implausible `value`, an `unavailable` sensor state, an entry naming `APPLE_HEALTH`, or a batch over 500. |
+| `429`    | Too many requests. The batch route allows 60 calls per minute per account.                                                                                     |
+
+The response envelope is `{ "data": ..., "error": null }` on success and
+`{ "data": null, "error": "<message>", "meta": { "errorCode": "..." } }` on
+failure, so logging `error` from the body will usually say exactly what was
+wrong. The conventions are on the [API overview](/reference/api-overview/).
