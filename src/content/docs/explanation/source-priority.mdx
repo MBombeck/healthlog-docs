@@ -5,6 +5,8 @@ sidebar:
   order: 3
 ---
 
+import sourcePriority from "../../../assets/diagrams/04-source-priority.svg";
+
 When several devices report the same metric, HealthLog does not average them and
 does not silently pick the newest. It applies a per-metric **source priority** —
 a deliberate ranking of which sensor to trust for which metric. This page covers
@@ -24,6 +26,8 @@ metric class and take the best one.
 
 HealthLog ranks sources differently for two metric classes, because "the most
 reliable reading" means something different for each.
+
+<img src={sourcePriority.src} alt="Three sources (an Apple Watch via HealthKit, a Withings scale and cuff, a manual entry) submit readings for the same day. The resolver keeps one canonical row per metric: the step count from Apple Health, the weight and blood pressure from Withings. The losing rows stay in the measurements list but drop out of aggregation." />
 
 ### Point measurements — pick the best single sensor
 

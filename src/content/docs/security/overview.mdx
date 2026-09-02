@@ -5,6 +5,8 @@ sidebar:
   order: 0
 ---
 
+import securityModel from "../../../assets/diagrams/05-security-model.svg";
+
 This page is the one place that states what HealthLog protects, what it does
 not, and how you check the claims yourself instead of taking them on trust.
 Nothing here is a certification. A SOC 2 or HIPAA attestation certifies the
@@ -117,6 +119,8 @@ user-supplied host it can also pin a connect-time public-address check, which is
 what closes SSRF via DNS rebinding and via redirect.
 
 ## The threat model, briefly
+
+<img src={securityModel.src} alt="Three layers a request passes through: an auth perimeter (passkey first, Argon2id password fallback), a session perimeter (HttpOnly SameSite cookie, Postgres-backed sessions, requireAuth and requireAdmin), and the encrypted core (AES-256-GCM under versioned keys, Bearer tokens stored as HMAC digests). Side rails: rate limiter, audit log, CSP and HSTS, SSRF guard, API tokens, refresh tokens, off-host backup, per-user scope." />
 
 Self-hosting changes *who holds the data*. It does not make the data
 unreachable, and the honest version of that is short.
