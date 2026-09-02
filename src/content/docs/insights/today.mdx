@@ -6,6 +6,7 @@ sidebar:
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import dashboardToday from '../../../assets/screenshots/dashboard-today.png';
 
 The dashboard opens with a **Today** view: the day's read at the top, the
 familiar tiles and charts unchanged below it. It is the surface that turns
@@ -30,6 +31,11 @@ number comes from.
   check-up coming due, a fresh ECG, a milestone reached.
 - **A coach check-in.** When a coach plan is due for a look-back, it surfaces
   here as a calm card (see below).
+
+<figure>
+  <img src={dashboardToday.src} alt="HealthLog dashboard: a good-morning card with a blood-pressure read, an all-clear line and a health-score ring showing 88, above a grid of metric tiles for weight, blood pressure, pulse, heart-rate variability, oxygen saturation, respiratory rate, body composition, mood, sleep, steps and glucose" />
+  <figcaption>The Today view sitting above the tile strip. Nothing needed attention on the account that was captured, so the card shows the all-clear line instead of a worth-a-look rail.</figcaption>
+</figure>
 
 The greeting stays; the tiles and charts sit just below, unchanged. A layout
 saved with the older opt-in hero card simply ignores that setting — the two

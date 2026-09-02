@@ -8,6 +8,8 @@ sidebar:
 This page walks through what actually happens between the moment you open the **Insights** page and the moment you read a generated sentence. It complements the [feature catalogue's AI section](/features/#ai-coach--insights), which lists what's there; this page explains how the pieces fit together.
 
 import coachPipeline from "../../../assets/diagrams/02-coach-pipeline.svg";
+import insightsOverview from "../../../assets/screenshots/insights-overview.png";
+import insightsDailyBriefing from "../../../assets/screenshots/insights-daily-briefing.png";
 
 <img src={coachPipeline.src} alt="Coach prompt pipeline: question → snapshot → prompt → provider chain → parser → cited reply" />
 
@@ -19,9 +21,19 @@ The `/insights` page is mostly **computed, not generated**. It renders a hero st
 
 The two generated pieces are warmed **overnight** by a budget-gated background job, so opening the page is a cache read instead of a synchronous model call. If the cache is cold (a brand-new account, or before the first nightly run), the page shows a *preparing* state rather than blocking the request.
 
+<figure>
+  <img src={insightsOverview.src} alt="Top of the Insights page: a greeting and a briefing paragraph on the left, a health-score card reading 88 out of 100 with seven pillar bars for blood pressure, glycaemia, activity, sleep, adiposity, wellbeing and lipids on the right, and a row of readiness, recovery, sleep and cycle rings below" />
+  <figcaption>The head of the Insights page: the briefing narrative, the score card with its per-pillar bars, and the derived rings underneath. The instance that was captured had no AI provider configured, so the narrative here is seeded text rather than a model response.</figcaption>
+</figure>
+
 ## The daily briefing
 
 The briefing is a short narrative paragraph plus up to five **key findings**: one-liners that each summarise a single trend with a tone (good / watch / info), an optional delta string ("↓ 4 mmHg"), and the metric and time window the finding was drawn from. The findings list is hard-capped at five so a runaway model cannot pad the surface with filler, and the prompt instructs the model to derive every finding from a number visible in the snapshot.
+
+<figure>
+  <img src={insightsDailyBriefing.src} alt="Daily Briefing card with three signals of the day covering blood pressure, sleep and resting heart rate, then four key findings on blood pressure, weight, medication adherence and mood, two of them carrying a delta value on the right" />
+  <figcaption>The rendered briefing: signals of the day above, key findings below, each with its one-line explanation and an optional delta. The text in this capture is seeded, not generated.</figcaption>
+</figure>
 
 ## What the response contract actually requires
 

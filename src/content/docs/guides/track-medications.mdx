@@ -6,6 +6,7 @@ sidebar:
 ---
 
 import { Steps } from '@astrojs/starlight/components';
+import medicationHistory from '../../../assets/screenshots/medication-history.png';
 
 HealthLog's medication tracking is built on a single recurrence engine and a
 **dose ledger**: every expected dose becomes a slot with an explicit status —
@@ -25,6 +26,11 @@ the reminder card), **Bestand** (supply), **Verlauf** (history), **API** (the
 per-medication ingest token), and **Erweitert** (advanced). Injectables get an
 extra **Injektion** tab. Reminders live with the schedule they gate; charts
 load on demand.
+
+<figure>
+  <img src={medicationHistory.src} alt="Medication detail page on a phone: the drug name, a 5 mg dose, an active badge, an every-day-at-08:00 schedule line, the tab bar, and an intake-history card with a 97 per cent adherence bar, an on-time, late and missed split, and a day-by-day list of doses with their planned and actual times" width="360" />
+  <figcaption>The History tab of one medication: the adherence figure over the chosen window, and the dose ledger it is read from, one row per expected dose.</figcaption>
+</figure>
 
 ## Pick a cadence
 

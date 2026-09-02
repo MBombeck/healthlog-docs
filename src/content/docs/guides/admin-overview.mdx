@@ -5,6 +5,9 @@ sidebar:
   order: 29
 ---
 
+import adminSystemStatus from '../../../assets/screenshots/admin-system-status.png';
+import adminBackups from '../../../assets/screenshots/admin-backups.png';
+
 You are the admin of an instance and want to know which console section
 controls a given thing. This page walks the Admin navigation top to bottom.
 Each entry says what the section does, what it needs, and which environment
@@ -29,6 +32,11 @@ databases. A separate card lists failing background jobs, but only when a
 queue has actually given up. The geo row reflects `GEOLITE2_DIR`,
 `MAXMIND_LICENSE_KEY` and `IP_GEO_LOOKUP_DISABLED`; see
 [Offline geolocation](/self-hosting/geolite2/).
+
+<figure>
+  <img src={adminSystemStatus.src} alt="Admin System Status page: a two-hour host-load chart plotting load average against memory, then a status card with database connected, the process start time, one user, 4,141 measurements, no active API tokens, one active session, the job worker running, and a geo-data row advising that GeoLite2 databases be mounted" />
+  <figcaption>The runtime card an operator checks first. The geo-data row is amber here because no offline database was mounted on the captured instance.</figcaption>
+</figure>
 
 ## General
 
@@ -133,6 +141,11 @@ sharing is off after a restore until re-enabled. Optional off-site copies use
 `BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY`,
 `BACKUP_S3_SECRET_KEY` and `BACKUP_ENCRYPTION_KEY`. Full procedure in
 [Backups](/guides/backups/).
+
+<figure>
+  <img src={adminBackups.src} alt="Admin Backups page: an upload-backup panel that validates a JSON file, a table with one row showing the user, a weekly automatic snapshot of 3.00 MB and its timestamp with download and restore actions, a 90-day retention note, and a 'Backup now' button" />
+  <figcaption>The snapshot table with its download and restore actions. The single row here was made by pressing Backup now; a fresh instance shows an empty table until the weekly job has run.</figcaption>
+</figure>
 
 ## Encryption
 
