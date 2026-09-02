@@ -8,7 +8,7 @@ sidebar:
 import { Steps } from '@astrojs/starlight/components';
 
 This tutorial takes a fresh host from `git clone` to a running instance with a
-working first user. Budget about ten minutes if Docker is already installed —
+working first user. Budget about ten minutes if Docker is already installed,
 longer if you also want a TLS-fronted public hostname (see
 [Reverse proxy](/guides/reverse-proxy/) for that).
 
@@ -17,8 +17,12 @@ longer if you also want a TLS-fronted public hostname (see
 - **Docker 24+ with Compose v2.** The bundled `docker-compose.yml` pulls a
   multi-arch image from GitHub Container Registry (`linux/amd64` +
   `linux/arm64`), so a Raspberry Pi 5 or an x86 VPS both work unchanged.
-- **2 GB RAM, 10 GB free disk.** The Postgres data volume grows with history;
-  the Apple Health import worker can briefly hold a 1.5 GB upload in `/tmp`.
+- **2 GB RAM, 10 GB free disk.** The Postgres data volume grows with history.
+  The app container is capped at `mem_limit: ${APP_MEMORY_LIMIT:-1g}` in the
+  compose file; the Apple Health import worker can briefly hold a 1.5 GB
+  `export.zip` in `/tmp`, so raise `APP_MEMORY_LIMIT` in `.env` (for example
+  `APP_MEMORY_LIMIT=2g`) before importing a large export, or the container is
+  OOM-killed mid-import.
 - **Outbound HTTPS** to `ghcr.io` for image pulls, plus whichever integration
   endpoints you enable later.
 - **Optional but recommended:** a reverse proxy that terminates TLS in front of
@@ -72,10 +76,28 @@ longer if you also want a TLS-fronted public hostname (see
    once `docker compose logs -f app` shows the Next.js banner, the instance is
    live.
 
-4. **Create the first user.** Open `http://localhost:3000` in a browser and
-   register a username, email, and password. **The first user that registers is
-   promoted to admin automatically.** Every subsequent registration creates a
-   regular user.
+4. **Decide how you will reach the app, then open it.** If you open the
+   instance over plain HTTP on anything other than `localhost` (a NAS IP such
+   as `http://192.168.1.20:3000`, a hostname on your LAN, a Tailscale address),
+   add this line to `.env` before your first login:
+
+   ```env
+   SESSION_COOKIE_SECURE=false
+   ```
+
+   Without it the session cookie carries the `Secure` flag, the browser drops
+   it over HTTP, and login appears to succeed but the next page load sends you
+   back to the sign-in form. This is the single most common self-host snag; the
+   compose file says the same in its header comment. Leave the variable unset
+   when a TLS reverse proxy serves HTTPS, and never set it to `false` on a host
+   that serves plain HTTP to the open internet. Passkeys still need HTTPS or
+   `localhost` either way. If you added the line, run `docker compose up -d`
+   again so the container picks it up.
+
+5. **Create the first user.** Open `http://localhost:3000` (or the address you
+   chose above) in a browser and register a username, email, and password.
+   **The first user that registers is promoted to admin automatically.** Every
+   subsequent registration creates a regular user.
 
 </Steps>
 
@@ -92,9 +114,21 @@ accounts, which stays revocable and leaves each person's credentials their own.
 
 **Save the admin password in a manager.** No email is configured out of the
 box, so password reset has no self-service path until you set up SMTP (see
-[reminder channels](/guides/reminder-channels/#email)). A locked-out solo
-admin with no SMTP recovers only via the CLI reset script in the main repo's
-ops docs.
+[reminder channels](/guides/reminder-channels/#email)). Two recovery paths
+exist without it. An admin who can still sign in resets any other user from
+the admin panel (**Admin → Users**, backed by
+`POST /api/admin/users/{id}/reset-password`), which sets a new password and
+signs that user out everywhere. A locked-out solo admin runs the reset script
+that ships in the image, from the host:
+
+```bash
+docker compose exec app node scripts/reset-password.mjs <username-or-email>
+```
+
+It prompts for the new password without echoing it (minimum 12 characters)
+and writes the same Argon2id hash the app would. See
+[Sign in and account security](/guides/sign-in-and-security/) for the full
+picture of passwords, passkeys, and second factors.
 :::
 
 ## The bundled compose file
@@ -106,8 +140,8 @@ load-bearing line.
 ```yaml
 services:
   app:
-    image: ghcr.io/mbombeck/healthlog:latest
-    pull_policy: always          # load-bearing — see note below
+    image: ghcr.io/mbombeck/healthlog${HEALTHLOG_IMAGE_REF:-:latest}
+    pull_policy: always          # load-bearing, see note below
     container_name: healthlog-app
     security_opt:
       - no-new-privileges:true
@@ -121,7 +155,9 @@ services:
       NEXT_PUBLIC_APP_URL: "${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
       APP_URL: "${APP_URL:-http://localhost:3000}"
       HEALTHLOG_PROCESS_TYPE: "${HEALTHLOG_PROCESS_TYPE:-all}"
+      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-}"
       # … plus the backup, WHOOP, FHIR, deploy-webhook, and TLS-pin vars
+    mem_limit: "${APP_MEMORY_LIMIT:-1g}"
     depends_on:
       db:
         condition: service_healthy
@@ -148,10 +184,12 @@ digest every time and pulls when a fresher manifest exists. The small bandwidth
 cost is the price of digest-correctness.
 :::
 
-The compose `environment:` block is a **whitelist** — variables not listed there
+The compose `environment:` block is a **whitelist**: variables not listed there
 never reach the container even when `.env` defines them. This is intentional;
 when a guide tells you to set a new variable, it also tells you to add it to the
-whitelist.
+whitelist. `HEALTHLOG_IMAGE_REF` lets you pin a release instead of `:latest`
+(`HEALTHLOG_IMAGE_REF=:v1.38.1` or an `@sha256:…` digest), and
+`APP_MEMORY_LIMIT` raises the app container's memory cap.
 
 ## Where to go next
 
@@ -174,6 +212,9 @@ The recurring operator problems have their own page —
 - **Registration shows "registration disabled".** The bundled image ships with
   registration enabled; the toggle lives in
   `app_settings.singleton.registrationEnabled` and the admin panel can flip it.
+- **Login succeeds and immediately bounces back to the sign-in form.** You
+  opened the app over plain HTTP on a non-`localhost` address without
+  `SESSION_COOKIE_SECURE=false`; see step 4 above.
 - **Service unreachable on `localhost:3000`.** Check `docker compose ps` — the
   `app` healthcheck polls `/api/health` every 30 s and marks the container
   unhealthy while Postgres is still starting. Tail `docker compose logs db`.
