@@ -175,6 +175,7 @@ export default defineConfig({
 					label: 'Self-hosting & Operations',
 					items: [
 						{ slug: 'self-hosting/coolify' },
+						{ slug: 'self-hosting/portainer-and-unraid' },
 						{ slug: 'self-hosting/tls-certificates' },
 						{ slug: 'security/certificate-pinning' },
 						{ slug: 'guides/reverse-proxy' },
@@ -183,6 +184,7 @@ export default defineConfig({
 						{ slug: 'guides/encryption-key-rotation' },
 						{ slug: 'guides/updates-and-deploy' },
 						{ slug: 'self-hosting/scaling' },
+						{ slug: 'self-hosting/geolite2' },
 						{ slug: 'self-hosting/troubleshooting' },
 					],
 				},
