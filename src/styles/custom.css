@@ -18,3 +18,23 @@
 	--sl-color-accent: #7c3aed;
 	--sl-color-accent-high: #3b1f6e;
 }
+
+/* Screenshots. A hairline frame keeps a light-theme capture from bleeding into
+   the page background, and figcaption carries the line that says what the
+   reader is looking at. */
+.sl-markdown-content figure {
+	margin: 1.5rem 0;
+}
+
+.sl-markdown-content figure img {
+	display: block;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+}
+
+.sl-markdown-content figcaption {
+	margin-top: 0.5rem;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+	line-height: 1.5;
+}
