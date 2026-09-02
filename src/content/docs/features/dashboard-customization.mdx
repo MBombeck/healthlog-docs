@@ -150,7 +150,7 @@ Defaults are all off, so the default look is a clean line. Each switch is **per 
 
 The **comparison toggle** — *off / vs. last month / vs. last year* — is a single global preference under **Settings → Dashboard**. The picker lives in `User.dashboardWidgetsJson.comparisonBaseline` and every chart consumes it. The cog menu on each chart card still handles trend, trend-arrow, and target-range overlays separately. With the toggle on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
 
-The AI insights surface narrates the comparison ("your average BP improved by 4 mmHg vs. last month") when the toggle is active. See [Comparison views](/dashboard/comparison/) for the full walk-through.
+AI Insights narrates the comparison ("your average BP improved by 4 mmHg vs. last month") when the toggle is active. See [Comparison views](/dashboard/comparison/) for the full walk-through.
 
 Once you finish the onboarding checklist, the dashboard stops re-fetching the checklist gates on every load — opening the dashboard is roughly a second faster for established accounts because two background requests no longer fire. Insights chart bundles also load on demand on the **Insights** page, so the first paint is faster for everyone.
 
