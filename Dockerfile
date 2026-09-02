@@ -4,7 +4,7 @@ WORKDIR /app
 # `npm ci` against a stale package-lock.json drifted out of sync and broke the
 # build; use pnpm with the frozen lockfile to match the repo toolchain.
 RUN npm install -g pnpm@10
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm run build

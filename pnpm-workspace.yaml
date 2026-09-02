@@ -1,0 +1,26 @@
+overrides:
+  # CVE-2026-53571 / CVE-2026-53632: `server.fs.deny` is bypassable through
+  # Windows alternate paths, and launch-editor leaks an NTLMv2 hash via UNC
+  # path handling. Arrives under Astro; 6.4.3 is a patch on the same line.
+  "vite@<=6.4.2": "^6.4.3"
+  # CVE-2026-73646 / CVE-2026-69153: an attacker-controlled sourceMappingURL in
+  # a CSS comment makes PostCSS read an arbitrary .map file off disk.
+  "postcss@<8.5.23": "^8.5.26"
+  # CVE-2026-67213 / CVE-2026-67214: the non-secure generators spin forever on a
+  # zero or negative size.
+  "nanoid@<3.3.18": "^3.3.18"
+  # CVE-2026-59869 / CVE-2026-53550: merge-key chains and !!omap resolution burn
+  # quadratic CPU while parsing. js-yaml parses our frontmatter.
+  "js-yaml@<4.3.1": "^4.3.2"
+  # CVE-2026-73650: the removeScripts plugin leaves some executable scripts in
+  # the SVG it claims to have sanitised.
+  "svgo@>=4.0.0 <4.0.2": "^4.0.2"
+  # CVE-2026-9358: uncontrolled AST recursion lets a crafted selector stall the
+  # process.
+  "postcss-selector-parser@>=6.1.0 <6.1.3": "^6.1.3"
+  # esbuild's dev server allowed an arbitrary file read on Windows. Only the
+  # 0.27 copy is in range; the 0.25 one Vite pins is unaffected.
+  "esbuild@>=0.27.3 <0.28.1": "^0.28.1"
+  # CVE-2026-33327 / CVE-2026-33328 / CVE-2026-35590 / CVE-2026-35591: libvips
+  # flaws inherited by sharp < 0.35.0.
+  "sharp@<0.35.0": "^0.35.4"
