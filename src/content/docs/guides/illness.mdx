@@ -1,0 +1,93 @@
+---
+title: Log an illness
+description: Open an illness episode, log how each day went, mark yourself recovered, and read the retrospective that compares your vitals before, during and after.
+sidebar:
+  order: 33
+---
+
+You are coming down with something, or managing a condition that flares, and
+want a record of it next to your vitals. The illness module keeps episodes
+with per-day logs, freezes streaks while you are unwell, and afterwards
+shows a retrospective of how your body tracked against how you felt. It is
+on by default and can be switched off under Settings, Modules; with the
+module off, every illness route refuses, including for the native app.
+
+The retrospective looks backwards only. It never predicts, and a red flag
+only ever escalates to "consider seeking care"; it never reassures.
+
+## Open an episode
+
+On `/illness`, start an episode with:
+
+- **Label**, your own words ("cold", "hay fever").
+- **Type**: infection, allergy, injury, mental health, autoimmune, chronic,
+  or other.
+- **Lifecycle**: acute (default), chronic ongoing, recurring, or flare. A
+  flare can be threaded under a parent condition.
+- **Onset**; defaults to now.
+- **Note**, encrypted at rest.
+
+A chronic ongoing episode has no end date by design. Any other episode is
+closed with **Mark recovered**, or by setting the resolved date when editing.
+Deletion is soft with undo.
+
+## Log a day
+
+Each episode takes one log per calendar day:
+
+- **Functional impact** on a four-step slider, from fully functional to
+  bedbound.
+- **Fever** in degrees Celsius, optional; stored as a plain number so the
+  fever curve can be drawn.
+- **Symptoms** from a short catalog (runny nose, stuffy nose, sneezing, sore
+  throat, cough, headache, body aches, fatigue), each with a severity from 1
+  to 3.
+- **Note**, encrypted.
+
+## While you are unwell
+
+An active episode puts the account into rest mode. The health score keeps
+its value with a "you were unwell" note instead of dropping, achievement
+streaks freeze rather than break, and cadence nudges pause. Rest mode carries
+only the label, type and onset; the note is never read.
+
+Sustained low blood oxygen or sustained fever raise a red flag notification.
+The thresholds are the app's fixed clinical floors and are not configurable.
+
+## The retrospective
+
+Once an episode has at least four days of data, the app looks at your vitals
+(resting heart rate, temperature, respiratory rate, blood pressure, HRV,
+recovery, blood oxygen) against a 30-day baseline that ends before the
+episode, and reports three things:
+
+1. **Pre-onset anomalies**: which vitals had already moved in the seven days
+   before onset, in robust standard deviations from your own baseline.
+2. **Nadir**: how far each vital strayed during the episode.
+3. **Recovery gap**: the difference in days between the day your vitals were
+   back in band for three consecutive days and the day you marked yourself
+   better. A positive gap means the body lagged the feeling.
+
+A vital with fewer than seven baseline days is left out rather than guessed.
+Across episodes, the insights view tallies how often you were ill by month
+and type and shows a typical recovery gap once at least three episodes with
+enough coverage exist and the median gap is at least two days; otherwise it
+is withheld.
+
+The same read is available to the Coach and through the MCP
+`get_illness_recovery` tool.
+
+## Settings and where it goes
+
+Settings, Appearance, Illness holds the card-or-list view and the manual
+order; both are stored in the browser. Episodes are a leaf of the standard
+doctor-report template and are exported to FHIR as a Condition with a
+bounding Encounter. Episodes can be linked to a visit and to documents.
+
+## API
+
+`GET` and `POST /api/illness/episodes`; `GET`, `PATCH` and `DELETE
+/api/illness/episodes/{id}`; `POST .../restore`; `PATCH .../resolve`; `GET`
+and `POST .../day-logs`; `GET .../correlation` for the per-episode
+retrospective; and `GET /api/illness/insights?windowDays=` (30 to 1095 days,
+with `includeRecoveryGap=true` to compute gaps for up to 24 episodes).

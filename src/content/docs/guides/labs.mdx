@@ -1,0 +1,114 @@
+---
+title: Track lab results
+description: Record blood-work and other lab results by hand or by scanning a report, understand the reference-range bar and where its bounds come from, and manage your biomarker catalog.
+sidebar:
+  order: 31
+---
+
+You have a lab report and want the values in HealthLog, compared against a
+reference window and charted over time. The Labs module does that, and this
+page walks through adding results, what the range bar shows, how a scanned
+report becomes rows, and how the biomarker catalog works.
+
+The module is on by default and can be switched off under Settings, Modules.
+The switch hides the surface; the doctor report and the preventive-care
+reminder read lab rows either way. Nothing here interprets a value. A number
+outside its window is information for you and your clinician, and the app
+shows it without alarm colours or verdicts.
+
+## Add a result by hand
+
+Open `/labs` and choose **Add** (or **Add manually** when the scan option is
+also offered). A result has:
+
+- **Analyte**, free text or picked from the catalog. Picking a catalog entry
+  pre-fills unit and range.
+- **Value** as a number, or a **text result** such as "negative" for
+  qualitative tests. Exactly one of the two.
+- **Unit.** Free text; the app never converts units.
+- **Sample date and time.**
+- Optionally a **panel** label, the **reference range printed on the report**,
+  and a **note**. The note is encrypted at rest.
+
+"Save and add another" keeps the form open for the next line of the report.
+Every result is linked to a biomarker in your catalog: if the analyte name
+does not exist yet (matched case-insensitively), a catalog entry is created
+from what you typed. Two spellings of the same name resolve to one entry.
+
+Results are grouped per biomarker on `/labs`, newest first, with the latest
+value, the range badge, the range bar and a small trend line. Open a group for
+the history chart (30, 90, 365 days or all) and the full list of readings,
+where each one can be edited or deleted. A deletion is soft and offers undo.
+
+## Scan a report
+
+When your configured AI provider can read images, **Add** offers **Scan a
+report**. Pick a photo or PDF (PDF only where the provider supports it). The
+image is sent to the provider for extraction, never stored, and never logged.
+Each proposed row comes back with analyte, value, unit, the printed reference
+text verbatim, a date, and a confidence per field.
+
+Nothing is written at this point. A review screen lets you confirm, edit or
+discard every row, and flags duplicates, low-confidence fields and analytes
+that would create a new catalog entry. Only the rows you confirm are saved,
+marked with the source "OCR"; a row that duplicates an existing reading is
+skipped. If the document vault is on, the file is also filed there and each
+saved row keeps a link back to it.
+
+If your provider is text-only, enable **local OCR** in the Labs settings. The
+image is then read in your browser (German and English models), and only the
+recognised text goes to the provider. It is less accurate than a vision
+model, which is why the review step exists; it cannot read PDFs.
+
+Reports that arrive in the [document vault](/guides/document-vault/) take the
+other direction: a stored document that looks like a lab report is staged as
+pending facts for the same kind of review, never committed on its own.
+
+## Reference ranges and the range bar
+
+Each reading is judged against one window, chosen by a single rule that every
+surface shares (the list, the chart, the doctor report, Coach, MCP and the
+FHIR export):
+
+1. The **range printed on the report** for that reading wins, when it yields
+   at least one numeric bound.
+2. Otherwise the **catalog bound** of the biomarker applies.
+3. With neither, the reading shows no verdict.
+
+The badge says below, within or above the window. Bounds are inclusive, so a
+value exactly on the limit counts as within. Qualitative results never get a
+verdict. When the printed range is in force and disagrees with your catalog
+bound, a small note says so and names both.
+
+The range bar places the value on the window. It is omitted for qualitative
+results and for windows with no bounds. A one-sided limit ("up to 116") is
+drawn with a synthetic opposite edge purely for layout; the label still shows
+the one-sided limit.
+
+A window whose low bound is higher than its high bound (a transcription
+error) is never swapped. The bounds are dropped and the printed text is kept,
+because the pair says the transcription is wrong, not which number is. Typing
+such a range by hand is refused as an error.
+
+Catalog ranges are editable defaults, not sex- or age-specific. The report's
+own printed window is where that adjustment reaches the app.
+
+## The biomarker catalog
+
+Your catalog is your own list of biomarkers, each with a canonical name and
+unit, optional bounds, a panel, a note on what it means (encrypted), and a
+hidden flag that removes it from pickers without deleting readings. A seed
+list of 31 common analytes across ten panels (lipids, glucose, thyroid, iron,
+vitamins, inflammation, renal, liver, electrolytes, blood count) is offered
+when you add an entry; you accept or override its unit and range. The
+catalog is managed under Settings, Appearance, Labs, together with view mode,
+sort order and the local-OCR switch.
+
+## Where results go
+
+Lab rows appear in the doctor report, in the Coach's data snapshot (latest
+reading per biomarker over the last 12 months, notes excluded), through the
+MCP `get_labs` tool, and as FHIR `Observation` resources with a LOINC code
+where one is confidently known. They can be linked to a visit (see
+[Checkups and practitioners](/guides/checkups-and-practitioners/)) and picked
+as an efficacy target for a medication.

@@ -1,0 +1,111 @@
+---
+title: Checkups, visits and practitioners
+description: Set up recurring preventive-care reminders, keep a list of your practitioners, record past and upcoming visits with their reminders, and link documents, labs and conditions to a visit.
+sidebar:
+  order: 36
+---
+
+You want the app to remind you of a recurring check (a blood panel, a skin
+check, a blood-pressure reading), to keep your doctors in one place, and to
+record visits, past and upcoming. All of this lives under `/checkups`, which
+has two tabs: **Checkups** (preventive care) and **Visits**. None of it is a
+module. Preventive-care reminders can target core vitals and free-text exams
+that belong to no module, so they are available to every account and cannot
+be switched off, by users or by the admin. The only module influence is on
+the link pickers: linking a lab result, a document or an illness episode to
+a visit follows the module that owns it.
+
+## Preventive-care reminders
+
+Add a reminder with a label, what it targets, an interval, a first due date,
+and the hour to notify (09:00 by default). Targets come in three kinds:
+
+- **A vital**: weight, systolic blood pressure, pulse, blood glucose, blood
+  oxygen, body temperature.
+- **A body-composition value**: body fat, fat mass, fat-free mass, muscle
+  mass, lean body mass, bone mass, total body water, visceral fat, BMI, waist
+  circumference.
+- **A mental-wellbeing screening**: PHQ-9, GAD-7, WHO-5, SCI. These default
+  to every 28 days.
+- **Free text** with no target: a blood panel, a dermatology check. These are
+  satisfied only by marking them done.
+
+Intervals are presets of 7, 14, 28, 30, 90, 180 or 365 days, a custom "every N
+days", or an RFC 5545 rule such as `FREQ=YEARLY`. An optional location field
+records where the check happens.
+
+Each reminder is a card sorted by its next due date, which the server
+computes; the card stays neutral whatever the state, and due-ness reads as
+"today", "tomorrow", "in N days" or "overdue since N days" in calendar days
+of your profile timezone. The action depends on the target: a free-text exam
+is simply marked done; a measurement-linked reminder opens the measurement
+form, so completing a blood-pressure reminder records an actual reading. You
+can also snooze or skip (a skip does not count as done), and each reminder
+keeps a history. A dashboard card shows the next few due.
+
+Reminders notify through the ordinary channels (APNs, Telegram, ntfy, Web
+Push, webhook) as the measurement-reminder type, which is on by default; see
+[Reminder channels](/guides/reminder-channels/). Booster reminders from the
+[vaccination record](/guides/vaccinations/) are reminders of this kind too.
+
+## Practitioners
+
+`/checkups/practitioners` is your own list of doctors and practices. Each has
+a name (a person or a practice, whichever you think of first), a free-text
+specialty, practice, address, phone, and an encrypted note (parking, which
+entrance, who to ask for). The list is scoped to your account so one
+household member's cardiologist never appears in another's picker. It is
+deliberately not in Settings: a list of your doctors is record content, not
+configuration.
+
+## Visits
+
+A visit records a date and time, a status (planned, done, cancelled,
+no-show), a kind (routine, acute, specialist, preventive, emergency,
+hospital, therapy, other), a practitioner, an encrypted reason and an
+encrypted outcome. Future dates are allowed up to ten years ahead; that is
+what makes a visit an appointment. Cancelled and no-show visits keep their
+row so the history stays honest. The list shows upcoming visits soonest-first
+and past visits newest-first.
+
+A visit can link up to 100 documents, lab results and illness episodes each,
+and a vaccination dose can point at the visit it was given at. When a
+document's date is within seven days of a visit, the app suggests the link.
+Filing a visit from a due checkup marks that checkup satisfied.
+
+### Appointment reminders
+
+A planned visit automatically gets one reminder that fires on the day of the
+appointment at the appointment's own hour, through the same channels as any
+other reminder. There is no lead time to configure. It is a one-shot: with
+no cadence it can never fire twice. Rescheduling re-anchors the same
+reminder; cancelling or marking no-show disables it without deleting it. The
+notification carries no done or later buttons, because the appointment is
+managed through the visit itself. These reminders are kept out of the
+checkup list, the daily digest and the preventive-care insight so the list
+does not fill with appointments.
+
+### Report for a visit
+
+With a planned visit within the next 14 days, the health-record export panel
+offers to prepare a report for that appointment. Pressing it only sets the
+end of the custom date range; nothing changes until you press it, and you
+can dismiss it.
+
+## Where it goes
+
+Visits are a selectable leaf of the doctor report, not in the standard
+template. The FHIR export carries no visits section yet. Through MCP,
+upcoming appointments are a field on the preventive-care tool and past
+visits have their own tool.
+
+## API
+
+Practitioners: `GET` (with `q` search) and `POST /api/practitioners`; `GET`,
+`PATCH`, `DELETE /api/practitioners/{id}`; `POST .../restore`. Visits: `GET`
+and `POST /api/encounters`; `GET`, `PATCH`, `DELETE /api/encounters/{id}`;
+`POST .../restore`; `POST` and `DELETE .../links`; `GET
+/api/encounters/suggest`. Reminders: `GET` and `POST
+/api/measurement-reminders`; `GET`, `PATCH`, `DELETE
+/api/measurement-reminders/{id}`; `POST .../complete`, `.../satisfy`,
+`.../skip`, `.../snooze`; `GET .../history`.

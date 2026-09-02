@@ -1,0 +1,80 @@
+---
+title: Keep a vaccination record
+description: Record each dose from your vaccination pass, let the app count series positions per antigen, set a booster reminder you confirm yourself, and see where the record travels.
+sidebar:
+  order: 32
+---
+
+You have a vaccination pass and want the doses in HealthLog, with the series
+position worked out for you and a booster reminder you control. The
+vaccinations module is on by default; switch it off under Settings, Modules
+if you do not want the surface. Switching it off hides the page and the
+navigation entry, but a booster reminder you already confirmed keeps firing,
+because it is an ordinary preventive-care reminder.
+
+The module records what happened. It never computes what you are due from
+your age, sex or history; that judgement stays with you and your clinician.
+
+## Record a dose
+
+Open `/vaccinations` and add a dose. One row is one dose. Fields:
+
+- **Date.** Day only, no time; a future date is refused.
+- **Vaccine.** Pick an antigen or combination from the catalog, or type the
+  name printed in your pass (a trade name is fine). One of the two is
+  required.
+- **Dose number** (1 to 20) and, optionally, the **series length** if your
+  schedule differs from the catalog's typical count.
+- **Lot number**, kept as plain text so it can be searched.
+- **Site**: left or right arm, left or right thigh, oral, nasal, other.
+- **Practitioner** and **visit**, both optional links to your own records
+  (see [Checkups and practitioners](/guides/checkups-and-practitioners/)).
+- **Note**, the one free-text field, encrypted at rest. Reactions belong here.
+
+You can also attach scanned pass pages from the
+[document vault](/guides/document-vault/); when a document's date lies within
+seven days of a dose, the app suggests the link. Deleting a dose is soft and
+can be undone.
+
+## The catalog and series counting
+
+The catalog is a fixed list of 38 entries over 26 antigens, each with its
+components, a typical series length, a booster interval in months, a category
+(standard, standard from 60, childhood, indication, travel) and a source
+citation. It carries no trade names. A combination vaccine counts into each of
+its components: one Tdap dose is a dose of tetanus, diphtheria and pertussis
+at their own positions.
+
+The "dose 3 of 3" label is computed on the server over all your live doses per
+antigen. The number written in your pass wins over the chronological index;
+the total is your own override, else the catalog's typical count, else
+nothing. Once a series is complete, further doses are shown as boosters.
+
+## Booster reminders
+
+After a dose, the app can prefill a booster reminder from the catalog's
+interval. Nothing is written until you confirm or edit it. The confirmed
+reminder is a normal preventive-care reminder that appears on `/checkups`,
+in the daily digest and through the MCP preventive-care tool, on a rolling
+interval capped at ten years, notifying at 09:00 unless you change it. There
+is at most one booster reminder per antigen; confirming again re-anchors it
+rather than duplicating it. Logging a later dose of any matching component
+clears the reminder.
+
+## Where the record goes
+
+- **Doctor report.** The immunisation section is part of the standard
+  template and lists your lifetime doses with series positions. The
+  encrypted note is never read into the report.
+- **Backup and restore.** Doses and their document links round-trip.
+- **FHIR export.** Not included; there is no Immunization resource in the
+  bundle yet.
+
+## API
+
+`GET` and `POST /api/vaccinations`, `GET`, `PATCH` and `DELETE
+/api/vaccinations/{id}`, `POST /api/vaccinations/{id}/restore`, `POST
+/api/vaccinations/{id}/booster` to mint or re-anchor the reminder, `POST` and
+`DELETE /api/vaccinations/{id}/links` for documents, and `GET
+/api/vaccinations/suggest?anchor=<date>`. The routes stay reachable with the
+module off so restore and import keep working.
