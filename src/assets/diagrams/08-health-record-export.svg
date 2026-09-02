@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" font-family="ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif" role="img" aria-labelledby="title desc">
   <title id="title">Health-record export to an HL7 FHIR R4 bundle</title>
-  <desc id="desc">A single export request reads from the same aggregator the PDF uses. The selected date range and per-domain sections feed one rollup read, which becomes the PDF and the HL7 FHIR R4 document Bundle. The Bundle's Patient resource is built from the optional profile identity fields. Vitals become LOINC-coded Observations (a blood-pressure panel groups systolic and diastolic), medications become MedicationStatements, and a DiagnosticReport ties the Observations together. The optional AI summary is marked not clinically validated. The package format zips the PDF, the FHIR JSON, and a README together.</desc>
+  <desc id="desc">A single export request reads from the same aggregator the PDF uses. The selected date range and leaf-level selection list feed one rollup read, which becomes the PDF and the HL7 FHIR R4 document Bundle. The Bundle's Patient resource is built from the optional profile identity fields. Vitals become LOINC-coded Observations (a blood-pressure panel groups systolic and diastolic), medications become MedicationStatements, and a DiagnosticReport ties the Observations together. The package format zips the PDF, the FHIR JSON, and a README together.</desc>
 
   <rect x="0" y="0" width="1200" height="640" fill="#282a36" />
 
@@ -21,7 +21,7 @@
     <text x="165" y="232" text-anchor="middle" fill="#bd93f9" font-size="11">date window (≤ 365 days)</text>
 
     <rect x="60" y="250" width="210" height="40" rx="8" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" />
-    <text x="165" y="275" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">sections (per-domain toggles)</text>
+    <text x="165" y="275" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">selection (leaf-level list, required)</text>
   </g>
 
   <!-- Aggregator -->
@@ -68,11 +68,6 @@
     <rect x="910" y="338" width="230" height="64" rx="8" fill="#44475a" stroke="#bd93f9" stroke-width="1.5" />
     <text x="1025" y="362" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">DiagnosticReport</text>
     <text x="1025" y="382" text-anchor="middle" fill="#bd93f9" font-size="11">ties the Observations together</text>
-
-    <!-- AI summary, opt-in -->
-    <rect x="910" y="414" width="230" height="64" rx="8" fill="#44475a" stroke="#ff5555" stroke-width="1.5" stroke-dasharray="3 3" />
-    <text x="1025" y="438" text-anchor="middle" fill="#f8f8f2" font-size="12" font-weight="600">AI summary (opt-in)</text>
-    <text x="1025" y="458" text-anchor="middle" fill="#ff5555" font-size="11">marked not clinically validated</text>
 
     <text x="905" y="510" text-anchor="middle" fill="#6272a4" font-size="11">LOINC + UCUM conventions match the iOS client, so records interchange.</text>
     <text x="905" y="554" text-anchor="middle" fill="#6272a4" font-size="11">format: package zips the PDF + FHIR JSON + README together.</text>

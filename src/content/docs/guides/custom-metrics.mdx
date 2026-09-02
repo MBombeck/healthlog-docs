@@ -1,0 +1,61 @@
+---
+title: Track a custom metric
+description: Define your own numeric metric with a unit and an optional target band, log values, chart them, and opt it into correlation discovery.
+sidebar:
+  order: 35
+---
+
+You want to track something HealthLog has no built-in type for: grip
+strength, a symptom score, reps, anything with a number. Custom metrics are
+a plain numeric store with a chart and an optional target band. They are not
+a module: there is no switch for them, no admin kill-switch, and no separate
+navigation entry. The list sits on the Measurements page.
+
+## Define a metric
+
+On `/measurements`, add a custom metric with:
+
+- **Name**, up to 120 characters, unique within your account.
+- **Unit**, a free-text label up to 40 characters ("kg", "reps", "score").
+- **Target low** and **target high**, each optional; when both are set, low
+  must not exceed high. They are drawn as a band on the chart.
+- **Decimals** from 0 to 6, or leave it for a sensible default.
+- **Description**, up to 2000 characters, stored in plain text.
+- **Include in correlations**, off by default (see below).
+
+Name, unit and description are plain text so the list can sort and search.
+There is no type or aggregation setting; every metric is a series of numbers.
+Deleting a metric is soft; creating a metric with a name you deleted earlier
+revives the old definition rather than refusing.
+
+## Log values
+
+Open the metric and add a value with a timestamp (up to 50 years back) and an
+optional note. The unit is copied onto each entry at write time, so changing
+the metric's unit later does not rewrite history. Entries can be edited and
+soft-deleted with undo. The detail page shows a trend chart with the target
+band, a stat strip, and the full value list at `/custom-metrics/{id}/values`.
+
+## Where custom metrics do and do not appear
+
+Charts read entries live; there is no rollup tier. A custom metric is not a
+measurement type: it does not sync to the iOS app's measurement store, does
+not appear in the doctor report, and has no FHIR resource. It is included in
+backups and in the data wipe.
+
+The one bridge into the rest of the app is **Include in correlations**. With
+it on, the metric becomes a bounded behaviour channel in correlation
+discovery, so Insights and the Coach can relate it to your other data. Leave
+it off and the metric stays isolated.
+
+Inside someone else's shared record the custom-metric section is not shown;
+defining a metric is not a delegated action.
+
+## API
+
+`GET` and `POST /api/custom-metrics`; `GET`, `PATCH` and `DELETE
+/api/custom-metrics/{id}`; `GET` and `POST /api/custom-metrics/{id}/entries`
+(paged, up to 500 per page); `PATCH` and `DELETE
+/api/custom-metrics/{id}/entries/{entryId}`; and `POST
+/api/custom-metrics/{id}/entries/restore`. A live name collision on create
+returns 409. No limit on the number of metrics is enforced.

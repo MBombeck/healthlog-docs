@@ -1,0 +1,165 @@
+---
+title: Portainer and Unraid
+description: Deploy HealthLog through the Portainer app template or on Unraid via Compose Manager or the Community Applications template, and the one setting that makes LAN logins fail.
+sidebar:
+  order: 7
+---
+
+You want HealthLog running on a NAS or homelab box that you manage through
+Portainer or Unraid rather than from a shell. Both paths run the same published
+image, `ghcr.io/mbombeck/healthlog:latest` (amd64 and arm64), and both end with
+the same first-boot behaviour: the app waits for PostgreSQL, runs its migrations,
+and the first account you register becomes the admin.
+
+## Before you start
+
+Generate three secrets, each a 64-character hex string:
+
+```bash
+openssl rand -hex 32
+```
+
+Run it three times, one value each for `POSTGRES_PASSWORD`, `ENCRYPTION_KEY`,
+and `API_TOKEN_HMAC_KEY`. Back up `ENCRYPTION_KEY` somewhere outside the box.
+It encrypts your health data at rest; if it is lost, the encrypted columns
+cannot be recovered.
+
+Decide how you will reach the app. On a plain-HTTP LAN address such as
+`http://nas:3000` you must set `SESSION_COOKIE_SECURE=false`. Left unset, the
+session cookie carries the `Secure` flag, the browser refuses to send it over
+HTTP, and login "does nothing": the page reloads to the sign-in screen without
+an error. Set it to `true` (or leave it unset) only when a TLS reverse proxy
+serves HealthLog over HTTPS, and then point `NEXT_PUBLIC_APP_URL` and `APP_URL`
+at the `https://` address.
+
+## Portainer
+
+HealthLog ships a Portainer app template that deploys the app and its
+PostgreSQL 16 database as one stack from the project's `docker-compose.yml`.
+
+1. In Portainer open **Settings, App Templates** and set the URL to
+
+   ```
+   https://raw.githubusercontent.com/MBombeck/HealthLog/main/docs/self-hosting/portainer/templates.json
+   ```
+
+   Save. HealthLog now appears under **App Templates**.
+
+2. Open **App Templates, HealthLog** and fill in the variables the template
+   asks for:
+
+   | Variable                | Value                                                                   |
+   | ----------------------- | ----------------------------------------------------------------------- |
+   | `POSTGRES_PASSWORD`     | one of your generated secrets                                           |
+   | `ENCRYPTION_KEY`        | one of your generated secrets (back it up)                              |
+   | `API_TOKEN_HMAC_KEY`    | one of your generated secrets                                           |
+   | `SESSION_COOKIE_SECURE` | `false` for plain-HTTP or LAN access; `true` only behind an HTTPS proxy |
+   | `NEXT_PUBLIC_APP_URL`   | how users reach the app, e.g. `http://nas:3000`                         |
+   | `APP_URL`               | normally identical to `NEXT_PUBLIC_APP_URL`                             |
+
+3. **Deploy the stack**. The app waits for PostgreSQL, runs migrations on first
+   boot, then starts serving.
+
+4. Open the app URL and register. The first account becomes the admin.
+
+Verify the running version from any machine that can reach the host:
+
+```bash
+curl -s http://<host>:3000/api/version
+```
+
+All persistent state lives in one named volume, `pgdata`, the Postgres data
+directory. The app container is stateless, so backing up the database backs up
+everything (see [Backups](/guides/backups/)). To upgrade deliberately rather
+than track `:latest`, set `HEALTHLOG_IMAGE_REF=:vX.Y.Z` in the stack's
+environment; the compose file expands it into the image reference. Read the
+CHANGELOG and take a backup first, because migrations are forward-only.
+
+## Unraid
+
+HealthLog runs on Unraid in two ways. **Compose Manager** installs the app and
+its database together, exactly as the project's compose file describes, and is
+the recommended path. The **Community Applications** template gives you the
+per-container Unraid UI, but because a CA template describes a single container
+you install PostgreSQL yourself and wire the two together. Unraid 6.12 or newer
+is required for either.
+
+### Compose Manager (recommended)
+
+1. Install **Compose Manager** from Community Applications.
+2. Under **Settings, Docker, Compose Manager** add a new stack named
+   `healthlog`.
+3. Paste the project's
+   [`docker-compose.yml`](https://github.com/MBombeck/HealthLog/blob/main/docker-compose.yml)
+   into the stack's compose file.
+4. Edit the stack's `.env` and set:
+
+   ```env
+   POSTGRES_PASSWORD=<generated>
+   ENCRYPTION_KEY=<generated>
+   API_TOKEN_HMAC_KEY=<generated>
+   SESSION_COOKIE_SECURE=false
+   NEXT_PUBLIC_APP_URL=http://tower:3000
+   APP_URL=http://tower:3000
+   ```
+
+   Replace `tower` with your server's hostname or IP.
+
+5. **Compose Up**, then open `http://tower:3000` and register the first
+   account.
+
+### Community Applications template
+
+Install PostgreSQL 16 first. In **Apps**, pick a community PostgreSQL
+container, install version 16, and set `POSTGRES_USER=healthlog`,
+`POSTGRES_PASSWORD=<generated>`, and `POSTGRES_DB=healthlog`. Map its data
+path to a share on the array (for example `/mnt/user/appdata/healthlog-db`) so
+the database survives container updates, and note the container's IP or name.
+
+Then add the HealthLog template. It lives in the app repository at
+[`docs/self-hosting/unraid/healthlog.xml`](https://github.com/MBombeck/HealthLog/blob/main/docs/self-hosting/unraid/healthlog.xml).
+Either paste the raw URL under **Docker, Add Container, Template**, or copy the
+file into `/boot/config/plugins/dockerMan/templates-user/` and pick it from the
+template dropdown. Fill in the fields:
+
+| Field                   | Value                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| WebUI Port              | `3000`                                                                           |
+| `DATABASE_URL`          | `postgresql://healthlog:<password>@<postgres-host>:5432/healthlog?schema=public` |
+| `ENCRYPTION_KEY`        | your generated key                                                               |
+| `API_TOKEN_HMAC_KEY`    | your generated key                                                               |
+| `SESSION_COOKIE_SECURE` | `false` for plain-HTTP LAN access                                                |
+| `NEXT_PUBLIC_APP_URL`   | `http://tower:3000`, or your HTTPS domain behind a reverse proxy                 |
+| `APP_URL`               | same as `NEXT_PUBLIC_APP_URL`                                                    |
+
+The template also exposes `ENCRYPTION_KEYS` and `ENCRYPTION_ACTIVE_KEY_ID` as
+advanced fields. Leave them empty unless you are
+[rotating the encryption key](/guides/encryption-key-rotation/); a normal
+install uses `ENCRYPTION_KEY` alone. The container runs with
+`--security-opt no-new-privileges:true` and has no persistent volume of its
+own; every byte of state sits in the PostgreSQL container you installed, so
+that is the one to back up.
+
+Apply, open `http://tower:3000`, and register the first account.
+
+## Updates
+
+Pin a release tag (`ghcr.io/mbombeck/healthlog:vX.Y.Z`) and bump it yourself,
+or track `:latest` and let Unraid's update check or Portainer re-pull. In the
+compose file `pull_policy: always` is what makes a re-pull actually fetch the
+new digest instead of reusing a cached one. Skim the CHANGELOG before upgrading
+and back up the database first. Migrations run automatically on container
+start and are forward-only. The wider procedure is in
+[Updates and deploy](/guides/updates-and-deploy/).
+
+## Health checks
+
+`/api/health` and `/api/version` both answer without a session. `/api/health`
+returns `200` when the database and background worker are up and `503`
+otherwise; the image's own container health probe calls it. `/api/version`
+returns the version, build SHA, and build timestamp, which is how you confirm
+a deploy actually landed.
+
+If login loops back to the sign-in screen on a LAN install, check
+`SESSION_COOKIE_SECURE` before anything else. More symptoms are collected in
+[Troubleshooting](/self-hosting/troubleshooting/).

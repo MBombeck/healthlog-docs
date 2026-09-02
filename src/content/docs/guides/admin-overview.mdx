@@ -1,0 +1,156 @@
+---
+title: Admin overview
+description: Every section of the Admin console in navigation order, what each one controls, which environment variable or stored setting backs it, and why none of it is reachable with an API token.
+sidebar:
+  order: 29
+---
+
+You are the admin of an instance and want to know which console section
+controls a given thing. This page walks the Admin navigation top to bottom.
+Each entry says what the section does, what it needs, and which environment
+variable or stored setting stands behind it.
+
+One rule applies to the whole console. Admin routes accept a browser session
+only. The admin check resolves the session cookie and nothing else; a Bearer
+token, even one with full scope, is refused. The native app is not an admin
+client and cannot become one. On the web, the console is visible only to
+accounts with the admin role, and the first account registered on a fresh
+instance gets that role.
+
+A few admin actions also require a fresh second factor (confirmed within the
+last five minutes); those are marked "step-up" below.
+
+## System status
+
+Host metrics chart and a status card: database, start time, user and
+measurement counts, active tokens and sessions, worker state, last reminder
+check, and the state of Umami, GlitchTip, Web Push, and the offline geo
+databases. A separate card lists failing background jobs, but only when a
+queue has actually given up. The geo row reflects `GEOLITE2_DIR`,
+`MAXMIND_LICENSE_KEY` and `IP_GEO_LOOKUP_DISABLED`; see
+[Offline geolocation](/self-hosting/geolite2/).
+
+## General
+
+Instance-wide settings stored in the database: registration on or off,
+require a second factor for everyone, default display language, default
+timezone for new accounts, and the document vault's per-file size limit and
+per-user quota. The second-factor policy redirects a web sign-in without a
+factor to enrolment; it does not block API or native access for an account
+that has not enrolled yet. Registration can be closed and reopened here; with
+registration closed, an invite still admits a signup.
+
+## Services
+
+Four global kill-switches: Telegram, ntfy, Web Push, and the API. Each is a
+stored setting. Turning a channel off here hides its card for every user;
+turning the API off refuses ingest and every MCP route regardless of the
+tokens users hold.
+
+## Integrations
+
+Three cards. Umami analytics (enable, script URL, website id, test action),
+GlitchTip error reporting (enable, DSN, environment, test action), and Web
+Push VAPID keys, which you can generate here or supply through
+`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`. Umami and
+GlitchTip are stored settings, not environment variables.
+
+## Coach
+
+Six cards for everything AI-related at the instance level. The assistant
+flags (a master switch plus Coach, daily briefing, per-metric insight status,
+and correlation narration; the master forces the rest off). The server-side
+provider key that sits at the end of every user's chain and needs each user's
+consent before it is used; its base URL is HTTPS-only with an allowlist you
+can extend through `ADMIN_AI_BASE_URL_ALLOWLIST`. The central Codex
+connection (device-code flow, off until connected). Provider health. And the
+two feedback-quality tables for Coach and Insights, filled by a daily
+aggregation job. User-side setup is in [AI providers](/guides/ai-providers/).
+
+## Module availability
+
+One switch per optional module, applied server-wide above each user's own
+preference. Only an explicit off disables a module; the core domains (weight,
+blood pressure, pulse) cannot be switched off and the write path refuses the
+attempt. A user whose module is disabled here sees the switch greyed out
+under [Settings, Modules](/guides/settings-overview/#modules).
+
+## Reminders
+
+The two medication-reminder thresholds, late and missed, in minutes (defaults
+120 and 240), a send-test-notification action, a manual reminder check, and a
+notification health panel showing the last 24 hours of push attempts by
+channel and result plus the count of channels the dispatcher has auto-disabled. Channel setup for users is in
+[Reminder channels](/guides/reminder-channels/).
+
+## Users
+
+The account table with role and status, and three actions per row: edit
+(username, email, document quota, and the per-user second-factor override),
+reset password, and force logout. A password reset sets a new password that
+must pass the strength and breach checks, then destroys the user's sessions,
+API tokens, refresh tokens and trusted devices in one transaction, and writes
+an audit row. None of these actions is step-up gated. See
+[Sign-in and security](/guides/sign-in-and-security/#password-reset).
+
+## Invites
+
+Mint invite links with a maximum number of uses, reveal the link and a QR
+code, see status and redemptions, and revoke. Invites are how people join an
+instance whose registration is closed under General. See
+[Invites](/guides/invites/).
+
+## API tokens
+
+A read-only, instance-wide list of every personal API token with owner,
+scope, and status (active, expired, revoked). There is deliberately no create
+action here; users mint their own tokens under Settings, API & Tokens.
+
+## Login overview
+
+The audit log with an action filter, a date-range preset (24 hours, 7 days,
+30 days, all), page size, CSV download, and IP and location columns per row.
+Location comes from the geo resolver described in
+[Offline geolocation](/self-hosting/geolite2/). Client IP resolution behind a
+proxy honours `TRUST_PROXY_HOPS` and `TRUST_CF_CONNECTING_IP`; see
+[Reverse proxy](/guides/reverse-proxy/).
+
+## App logs
+
+The wide-event log with a level filter (debug, info, warn, error), a time
+preset (15 minutes, 1 hour, 6 hours, all), refresh, and a detail dialog per
+event. Optional shipping to Loki is configured with `LOKI_USERNAME` and
+`LOKI_PASSWORD`.
+
+## Backups
+
+The backup table with run now, upload, download, a summary, and restore. A
+backup is a database row, not a file on disk, and the payload never reaches
+the browser except through the download action. Restore asks you to type
+`RESTORE` and is credential-free by design: API tokens, trusted devices,
+step-up elevations, known devices and clinician share links are excluded, so
+sharing is off after a restore until re-enabled. Optional off-site copies use
+`BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY`,
+`BACKUP_S3_SECRET_KEY` and `BACKUP_ENCRYPTION_KEY`. Full procedure in
+[Backups](/guides/backups/).
+
+## Encryption
+
+Three cards: encryption coverage, rotation status with a trigger, and the
+per-column key-id breakdown. Rotation is the one admin action behind a
+step-up gate; a 401 here means you need a fresh second factor, or have none
+enrolled. Backed by `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY_ID`, or the
+legacy `ENCRYPTION_KEY`; keys must be 64 hex characters or the app refuses to
+start. Procedure in
+[Encryption key rotation](/guides/encryption-key-rotation/).
+
+## Danger zone
+
+One action: wipe all data on the instance. It requires typing `DELETE ALL`,
+which the server checks as well, and the response reports a count per table
+that held rows. It is not step-up gated; the typed confirmation is the gate.
+
+## About
+
+The same version card users see under Settings, About: running version, an
+update check, and links to the repository, changelog, docs and credits.

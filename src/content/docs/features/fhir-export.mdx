@@ -1,47 +1,32 @@
 ---
 title: FHIR export and API
-description: The HL7 FHIR R4 surfaces in HealthLog — the health-record export (PDF + FHIR + package), the read-only FHIR REST API gated behind the fhir:read scope, and the shareable clinician record.
+description: What HealthLog gives you in HL7 FHIR R4 and where to find it. The health-record export, the read-only FHIR API, and the clinician share link, each in one paragraph.
 ---
 
-HealthLog speaks [HL7 FHIR R4](https://hl7.org/fhir/R4/), the standard wire format clinical systems use to exchange health records. Three distinct surfaces use it: a one-off **health-record export**, a read-only **FHIR REST API**, and a **shareable clinician record**. They share the same underlying aggregator, so the numbers describe an identical record regardless of which surface a clinician reaches it through.
+import exportFlow from "../../../assets/diagrams/08-health-record-export.svg";
 
-## Health-record export
+HealthLog speaks [HL7 FHIR R4](https://hl7.org/fhir/R4/), the wire format clinical systems use to exchange health records. You meet it in three places. This page says what each one is for and where you reach it in the app; the endpoint table, the resource list, the scope rules, and the module gate are on the reference page, [FHIR read API](/reference/fhir-api/).
 
-`POST /api/export/health-record` produces a selectable export driven by a strict selection payload: an optional date range, a required leaf-level `selection` list naming exactly which metrics and record types to include, and optional charts. A scope has to be stated; the older grouped section toggles are rejected rather than silently defaulted, because an absent key used to resolve to "included". Three output formats:
+## The health-record export
 
-| Format | Content type | What it is |
-| ------ | ------------ | ---------- |
-| `pdf` | `application/pdf` | An enhanced clinical report — vital summaries, BP/BMI/glucose classification, compliance, custom-threshold badges |
-| `fhir` | `application/fhir+json` | An HL7 FHIR R4 document Bundle: LOINC-coded [observations](https://www.hl7.org/fhir/R4/observation.html), a blood-pressure panel, [medication statements](https://www.hl7.org/fhir/R4/medicationstatement.html), and a diagnostic report |
-| `package` | `application/zip` | The PDF and the FHIR Bundle together with a short README |
+Open **Settings → Health record**, pick a date range and exactly which metrics and record types to include, and download one of three files: a clinical PDF for a doctor handover, a FHIR R4 document Bundle (`application/fhir+json`) for a system that reads FHIR, or a zip package with both and a short README. The PDF and the Bundle read the same aggregator, so they carry identical numbers. If you fill in your name, insurer, and insurance number under **Settings → Account**, they appear on the PDF cover and in the Bundle's `Patient` resource.
 
-Both formats read the same aggregator, so the PDF and the FHIR Bundle describe identical numbers. There is no AI summary in this export: it was removed along with the grouped toggles, because its text came from a cached briefing whose scope could not be proven against the selection.
+<img src={exportFlow.src} alt="One export request with a format, a date range, and a leaf-level selection list reads the shared aggregator once and produces two artefacts: an enriched PDF for a doctor handover, and an HL7 FHIR R4 document Bundle holding a Patient resource, LOINC-coded Observations with a blood-pressure panel, MedicationStatements, and a DiagnosticReport that ties the Observations together" />
 
-If you fill in your patient identity on **Account** (name, insurer, insurance number), it feeds the report cover and the FHIR [`Patient`](https://www.hl7.org/fhir/R4/patient.html) resource. The export endpoint is rate-limited (a shared `export:<userId>` bucket) and audit-logged.
+The export is [scoped by selection](/reference/fhir-api/#health-record-export): what you did not tick is not in the file. It honours the doctor-report module switch under **Settings → Modules**; with the module off, the export and the FHIR API both answer 403 rather than the record, and nothing is deleted.
 
-## Read-only FHIR REST API
+## The read-only FHIR API
 
-A read-only FHIR R4 REST API lets a clinical system pull your record in a standard shape. Every endpoint is gated behind a dedicated `fhir:read` token scope — a bearer token minted with only that scope can read FHIR resources and nothing else.
+A clinical system, or a script of your own, can pull your record as FHIR resources from `GET /api/fhir/*` with a Bearer token minted under **Settings → API & Tokens**. It is read-only; nothing can be written through it. Start at `/api/fhir/metadata`, which describes what this server supports. The full list is under [Endpoints](/reference/fhir-api/#endpoints).
 
-| Method | Endpoint | Resource |
-| ------ | -------- | -------- |
-| `GET` | `/api/fhir/metadata` | CapabilityStatement (what the server supports) |
-| `GET` | `/api/fhir/Patient` | The token owner's `Patient` |
-| `GET` | `/api/fhir/Observation` | Vitals and labs as LOINC-coded observations |
-| `GET` | `/api/fhir/MedicationStatement` | Medication regimen |
-| `GET` | `/api/fhir/MedicationAdministration` | Logged intake events |
-| `GET` | `/api/fhir/Coverage` | Insurance coverage |
-| `GET` | `/api/fhir/Patient/$everything` | A Bundle of every resource above |
+## The clinician share link
 
-The collection endpoints also support read-by-id (`/api/fhir/Patient/[id]`, `/api/fhir/Observation/[id]` and so on). Start at `/api/fhir/metadata` — the CapabilityStatement tells a client exactly which resources and search parameters this server exposes.
+For a person with no account and no software, the **Sharing** card under **Settings → Health record** mints a time-limited, passphrase-protected link to a read-only view of a frozen selection of your record. The same link offers the PDF and the FHIR Bundle of that selection for download, and you revoke it when the visit is over. A share link never opens the FHIR API. See [Sharing documents with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
 
-## Shareable clinician record
+## Another account on your instance gets none of these
 
-Instead of handing a clinician a bearer token, you can create a scoped, time-limited **share link**. The clinician opens the read-only `/c/<token>` view, and you revoke the link when the visit is over.
+A [shared-access grant](/guides/shared-access/) lets somebody with their own account read or maintain your record inside the app, but a delegate cannot export it, reach the FHIR API, or mint a share link at any grant level. Taking a copy of a record out is a different act from keeping the record; the reasoning is in [What a shared record is](/explanation/record-sharing/).
 
-- Each link carries an explicit expiry (`expiresAt`) and can be revoked at any time (`revokedAt`); a link is active only while it is unrevoked and unexpired.
-- Share links **do not** expose the FHIR REST API. There is no capability flag to flip: a share link structurally cannot reach the FHIR routes, so it is a human-readable view, not a programmatic FHIR endpoint.
-
-The two surfaces are deliberately separate: the FHIR API is for system-to-system integration behind a token scope; the share link is for handing a person with no account a read-only view. A share link granting API access is a future consideration, not the current behaviour.
-
-Giving access to somebody who *does* have an account on your instance is a third surface, [shared access](/guides/shared-access/), and it does not touch either of these. A delegate cannot export your record, cannot reach the FHIR API, and cannot mint a share link, at any grant level, manage included. Those three live on the account side of the line every grant stops at, and taking a copy of a record out is a different act from keeping the record.
+:::caution[Read-only and not a clinical record system]
+The FHIR API and the export describe your tracked data in a standard shape. They are for sharing with a clinician, not for use as a system of record or for any automated clinical decision.
+:::

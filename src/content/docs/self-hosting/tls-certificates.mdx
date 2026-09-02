@@ -25,11 +25,7 @@ That is the entire TLS story for the vast majority of self-hosters: point a reve
 
 ## Self-hosted domains are never pin-locked
 
-The HealthLog iOS app uses [certificate pinning](/security/certificate-pinning/), but it pins **only** the managed-cloud domain `*.bombeck.io`. Every other host — including your self-hosted domain — is validated with standard, CA-validated system-trust TLS.
-
-:::tip[No action needed]
-If you self-host on your own domain with a normal Let's Encrypt (or any CA-issued) certificate, the iOS app trusts it like any other modern app. There is no pin to satisfy and no lockout. You do **not** need to do anything special.
-:::
+Nothing to do here. A normal Let's Encrypt (or any CA-issued) certificate on your own domain is all the iOS app needs: the app pins only the managed-cloud domain, and every other host gets standard, CA-validated system-trust TLS, so there is no pin to satisfy and no lockout. Why the app pins at all, why only that one domain, and how the pin set survives certificate renewals is explained under [Only the managed-cloud domain is pinned](/security/certificate-pinning/#only-bombeckio-is-pinned).
 
 ## Optional: pin your own domain (advanced)
 

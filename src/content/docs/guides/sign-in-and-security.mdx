@@ -1,0 +1,213 @@
+---
+title: Sign-in and security
+description: How to sign in with a password or passkey, add a second factor, handle forced enrolment, sign in through your own identity provider with OIDC, and what to do when a password is lost.
+sidebar:
+  order: 30
+---
+
+You want to set up how you and the people on your instance sign in, and know
+what happens when something goes wrong. This page covers the password and
+passkey paths, second factors, the admin's enrolment policy, single sign-on
+through an OpenID Connect provider, the native app's sign-in leg, and password
+reset. The account-side controls all live under **Settings, Security**; the
+session, trusted-device and activity cards are under **Settings, Data &
+Privacy**.
+
+## Passwords
+
+Registration asks for an email address, a username and a password. The
+password must be at least 12 characters and score well on a strength check
+that knows your username and email, and it is checked against a breach
+corpus (by hashed prefix, so the password itself is never sent). Passwords are
+stored as Argon2id hashes. Sign-in accepts email or username, case-insensitive,
+and is limited to five attempts per 15 minutes per address. Failed attempts are
+audited without the typed identifier.
+
+Registration is open by default. The admin can close it under Admin, General;
+a closed instance still accepts a valid invite link, and a fresh instance with
+no accounts always allows the first signup, which becomes the admin.
+
+To change your password, open Settings, Security and use the password card.
+It asks for the current password, and for a fresh second factor if you have
+one enrolled.
+
+## Passkeys
+
+A passkey is a primary sign-in method, not a second factor: it replaces the
+password at sign-in and counts as a satisfied second factor for the session it
+creates. Add one under Settings, Security. Before the browser can start the
+enrolment you must re-prove an existing factor: a password, an authenticator
+code, or an existing passkey or security key. Re-proving with a password
+authorises that one enrolment only; re-proving with a strong factor also
+refreshes the session's step-up window. Removing a passkey asks for a fresh
+factor as well, and the last passkey on an account with no password cannot be
+removed.
+
+An account can end up with a passkey and no password (for example one
+provisioned through single sign-on that later adds a passkey). Sign-in then
+offers the passkey directly. Self-registration always requires a password, so
+there is no passkey-only signup.
+
+## Second factors
+
+Two kinds of second factor exist, both managed under Settings, Security:
+
+- **Authenticator app (TOTP).** Scan the QR code and confirm one code. On
+  confirmation you receive ten recovery codes in the form `XXXXX-XXXXX`. Each
+  works once, they are stored hashed, and you can regenerate the whole set
+  later (which asks for a fresh factor).
+- **Security keys.** Hardware or platform WebAuthn keys registered as a
+  second factor. These are kept separately from passkeys.
+
+With a second factor enrolled, a correct password no longer creates a session
+on its own. Sign-in returns a short-lived ticket and the second-factor step
+offers the methods you have: authenticator code, recovery code, or security
+key. At that step you can tick **remember this device**. A remembered device
+skips the second factor for 30 days, but only the second factor: the password
+is still required, and a session that came in through a remembered device
+does not count as freshly verified. A recovery-code sign-in never remembers
+the device.
+
+Disabling the second factor, removing a security key, and regenerating
+recovery codes are step-up actions.
+
+### Step-up (fresh factor)
+
+Some actions ask you to confirm a second factor again even though you are
+signed in. The window is five minutes. Actions behind it, for accounts with a
+second factor: disabling the second factor, regenerating recovery codes,
+removing a security key or passkey, changing the password, deleting the
+account, resetting all data, the passphrase-encrypted export, creating an
+access invite, and creating or deleting a managed profile or its guardians.
+Encryption-key rotation in the admin console is behind the same gate. An
+account with no second factor passes the conditional gates without a prompt.
+
+The native app can satisfy a step-up through a short-lived elevation minted
+from a re-proved factor; a recovery code is deliberately not accepted there,
+so an app-only user who lost the authenticator uses the web.
+
+### Forced enrolment
+
+The admin can require a second factor for the whole instance (Admin, General)
+or for one account (Admin, Users). The effective requirement is either one.
+An account under the policy that signs in on the web without a factor is sent
+to `/enroll-mfa`, a page that shows the same security cards plus a sign-out
+link, and cannot reach the rest of the app until it enrols. A primary passkey
+satisfies the policy, as does an authenticator or a security key.
+
+This is a nudge for web sessions, not an API wall. A native client or an
+automation using a long-lived token keeps working until the user enrols; there
+is no server-side way to mint a factor on someone's behalf, and locking a
+native client out of its own data would leave it no path to enrol. To hard-gate
+one account, disable it or revoke its tokens instead. The redirect clears the
+moment enrolment completes.
+
+## Single sign-on (OIDC)
+
+HealthLog can delegate sign-in to a self-hosted OpenID Connect provider such
+as Authentik, Keycloak, Authelia or Pocket-ID, using the authorization-code
+flow with PKCE against one env-configured provider. By default SSO is
+additive: the button appears next to password and passkey sign-in.
+
+1. Register a confidential client at your provider with the redirect URI
+   `${NEXT_PUBLIC_APP_URL}/api/auth/oidc/callback`. The comparison at the
+   provider is byte-exact, including scheme, port and trailing slash.
+2. Set all three of `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` and
+   `OIDC_CLIENT_SECRET`. Anything less keeps SSO fully off. The issuer must
+   serve `<issuer>/.well-known/openid-configuration` and must equal the
+   `issuer` inside that document.
+3. Optionally set `OIDC_SCOPES` (default `openid email profile`) and
+   `OIDC_BUTTON_LABEL` (default `Single Sign-On`).
+4. Make sure every `OIDC_*` variable is on the compose `environment:`
+   whitelist; the shipped file lists them. `pnpm check-env` flags a
+   half-configured group.
+
+How identities are matched: the first SSO sign-in either provisions a new
+account (subject to the registration setting) or links to an existing account
+by email, and only when the provider asserts `email_verified: true`. Either
+way the account is pinned to the provider's issuer and subject, and every later
+sign-in matches on that pair alone. An email change at the provider updates
+the displayed email but can never re-point the login. An email that already
+belongs to an account pinned to a different identity is refused and audited.
+There is no unlink or relink flow; moving an account to a new identity is an
+operator's manual database edit.
+
+An SSO session never satisfies a step-up gate, because the app did not see
+whatever the provider checked. Accounts with their own second factor keep it:
+after the provider round-trip they land in the same second-factor step
+password sign-in uses. Enforce MFA at the provider for SSO-provisioned
+accounts; the app's own factor remains available on top.
+
+### `OIDC_ONLY`
+
+`OIDC_ONLY="true"` disables password and passkey sign-in and registration
+server-side: those routes return 403 with `oidc_only`, so hiding the buttons
+is not the boundary. Before turning it on:
+
+- Existing sessions survive; the flag gates new sign-ins only.
+- It takes effect only while the three provider variables are fully set, so a
+  typo cannot lock everyone out.
+- The native app needs a build that ships the SSO handoff (below). Older
+  password-only builds are locked out.
+- The token exchange that completes a native SSO sign-in, the second-factor
+  verify step and the refresh route are deliberately not blocked.
+
+### Break-glass
+
+If the provider is down or misconfigured: unset `OIDC_ONLY` (or set it to
+`"false"`) and `docker compose up -d`. Password and passkey sign-in are live
+again immediately. Accounts that were provisioned through SSO have no
+password; set one from the host as described under
+[Password reset](#password-reset).
+
+Troubleshooting for discovery mismatches, redirect-URI errors, clock skew
+and the `email_verified` refusal is in the app repository's
+[SSO runbook](https://github.com/MBombeck/HealthLog/blob/main/docs/self-hosting/sso.md).
+
+## The native app
+
+The iOS app signs in with password or passkey, or through the SSO handoff.
+For SSO it opens `GET /api/auth/oidc/login?client=native` with a PKCE
+challenge in a system web session; the callback returns to the fixed
+`healthlog://oidc-callback` scheme with a one-time `hlh_` code (or a
+second-factor ticket when the account has one), valid for 90 seconds. The app
+exchanges the code at `POST /api/auth/oidc/native/token` for its normal token
+bundle. A PKCE mismatch burns the code. The token pair never rides a URL, the
+redirect target is compiled in (there is no `redirect_uri` parameter to
+abuse), and the resulting session is never marked as freshly verified. Device
+setup is in [Connect the iOS app](/getting-started/connect-ios-app/).
+
+## Sessions, devices and activity
+
+Web sessions last 30 days and slide: after a day of use the expiry is
+extended back to a full 30 days. Under Settings, Data & Privacy you can see
+every session with device label, masked IP, location and last activity, sign
+one out, or sign out everywhere else. Signing out everywhere else also revokes
+the native app's refresh tokens, forgets every remembered device and clears
+step-up elevations; it leaves API tokens alone, since those are managed under
+Settings, API & Tokens. The same page lists remembered devices and a read-only feed of
+security events: sign-ins, factor changes, password changes, session
+revocations, exports and deletions.
+
+## Password reset
+
+There is no self-service "forgot password" flow. Recovery paths are:
+
+- **Recovery codes** for a lost authenticator, as above.
+- **An admin reset.** Under Admin, Users, the reset action sets a new password
+  (subject to the same strength and breach checks) and in one transaction
+  destroys the user's sessions, API tokens, refresh tokens and trusted
+  devices, then writes an audit row. It is a cookie-only admin call
+  (`POST /api/admin/users/{id}/reset-password`); an API token cannot invoke
+  it.
+- **The operator CLI**, for when no admin can sign in. It runs under plain
+  `node` inside the image and uses the app's own Argon2id parameters:
+
+  ```sh
+  docker compose exec app node scripts/reset-password.mjs <username-or-email>
+  ```
+
+  It prompts for the new password without echoing it. The identifier matches
+  username or email case-insensitively and must resolve to exactly one user;
+  the password must be at least 12 characters. Prefer the prompt over passing
+  the password as a second argument, which would land in shell history.
