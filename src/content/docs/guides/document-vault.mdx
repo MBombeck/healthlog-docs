@@ -5,6 +5,8 @@ sidebar:
   order: 25
 ---
 
+import documentsEmpty from '../../../assets/screenshots/documents-empty.png';
+
 The Dokumente module is a flat, encrypted, searchable store for the paper
 trail a household accumulates: doctor letters, discharge summaries, lab
 reports, imaging findings, prescriptions, referrals, insurance letters,
@@ -15,6 +17,11 @@ It is **available by default**. Each user can turn it off under Settings →
 Modules ("Documents"), and an operator can withhold it instance-wide through
 the module availability settings. AI reading of stored documents remains a
 separate opt-in.
+
+<figure>
+  <img src={documentsEmpty.src} alt="Documents page with a title reading 'Every letter, report, and scan in one searchable place, encrypted at rest', a search field, an all-types filter, an upload button, and a dashed panel saying the document vault is empty with an 'Upload a first document' button" />
+  <figcaption>The vault before the first upload, with the search field and type filter that the timeline gets once documents are in it.</figcaption>
+</figure>
 
 ## What it stores — and how it is served
 

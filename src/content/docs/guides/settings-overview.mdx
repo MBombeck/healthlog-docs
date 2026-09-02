@@ -5,6 +5,9 @@ sidebar:
   order: 28
 ---
 
+import settingsModules from '../../../assets/screenshots/settings-modules.png';
+import settingsHealthScore from '../../../assets/screenshots/settings-health-score.png';
+
 You are looking for the place in Settings where a particular thing is
 configured. This page walks the left-hand navigation top to bottom. Each entry
 says what the section does, what it needs before it is useful, and which
@@ -64,6 +67,11 @@ vaccinations. Weight, blood pressure and pulse are core and cannot be turned
 off. Most modules are on by default; MCP and nutrients are opt-in. A switch
 is greyed out when the admin has disabled that module server-wide, and the
 Coach switch additionally needs the admin's assistant flags to be on.
+
+<figure>
+  <img src={settingsModules.src} alt="Settings page 'What you track': a list of module rows for cycle, mood, glucose, lab results, illness journal, sleep, workouts, recovery, achievements and Coach, each with a one-line description and a toggle switched on" />
+  <figcaption>The module switches. Turning one off removes it from the navigation, the tiles and the insights, and leaves the data it holds untouched.</figcaption>
+</figure>
 
 ## Integrations
 
@@ -130,6 +138,11 @@ Which pillars count toward the composite score, with a notice when the
 composition changed. Pillar availability follows the enabled modules. The
 method is explained in
 [Composite health score](/explanation/composite-health-score/).
+
+<figure>
+  <img src={settingsHealthScore.src} alt="Health Score settings page: an explainer card about what counts toward the score, a choice between starting from all pillars or a saved selection, and pillar rows for blood pressure, glycaemia and lipids each labelled 'Counting toward your score' with a toggle" />
+  <figcaption>Choosing which pillars move the number. A pillar switched off here is still recorded and still shown everywhere else in the app.</figcaption>
+</figure>
 
 ## Medical history
 

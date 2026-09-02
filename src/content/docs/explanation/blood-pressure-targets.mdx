@@ -5,6 +5,8 @@ sidebar:
   order: 6
 ---
 
+import bloodPressureTarget from '../../../assets/screenshots/blood-pressure-target.png';
+
 HealthLog charts blood pressure against reference ranges so a reading reads in
 context rather than as a bare number. The defaults follow established clinical
 guidelines, and you can override them with the targets your own clinician set.
@@ -32,6 +34,11 @@ at an office systolic BP ≥ 140 mmHg or diastolic ≥ 90 mmHg, graded:
 
 (ESH also stages patients by risk factors and organ damage in addition to these
 BP-based grades.)
+
+<figure>
+  <img src={bloodPressureTarget.src} alt="Blood-pressure target card on a phone in dark theme: banded systolic and diastolic scales with a marker sitting in the green band, a Normal verdict chip, a 30-day average of 121 over 74, seven of seven readings in range, a link reading 'Source: ESH 2023', and a paragraph explaining pulse pressure and mean arterial pressure" width="360" />
+  <figcaption>How the bands reach the reader: the current value against the reference scale, the verdict, and a link to the guideline the bands come from.</figcaption>
+</figure>
 
 ## Why guidelines differ
 

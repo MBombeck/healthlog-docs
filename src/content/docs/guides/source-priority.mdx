@@ -5,6 +5,8 @@ sidebar:
   order: 5
 ---
 
+import sourcePriority from '../../../assets/screenshots/settings-source-priority.png';
+
 When two providers report the same metric — a Withings scale and an Apple Watch
 both logging weight, or HealthKit and Fitbit both reporting steps — HealthLog
 keeps every row as an audit trail but applies a per-metric **source priority** to
@@ -49,6 +51,11 @@ metric class) you can:
 - Reorder the source ladder with the up/down arrow buttons.
 - Set an optional **device-type tie-break** so two devices reporting under the
   same source resolve deterministically.
+
+<figure>
+  <img src={sourcePriority.src} alt="Settings page titled 'Source priority by metric': the Steps ladder with eight numbered sources, Apple Health first and manual entry last, each row carrying an up and a down arrow, and a reset-to-defaults action in the card header" />
+  <figcaption>The Steps ladder under Settings, Source priority. The top source that reported a given day is the one that counts; the arrows move a source up or down.</figcaption>
+</figure>
 
 Changes are per user and audit-logged. The API surface is
 `GET` / `PUT /api/auth/me/source-priority`.

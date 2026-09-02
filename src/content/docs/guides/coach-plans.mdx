@@ -6,11 +6,17 @@ sidebar:
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import coachConversation from '../../../assets/screenshots/coach-conversation.png';
 
 A coach plan is a durable, personal if-then intention that comes out of a Coach
 conversation: a cue, an action, and optionally a target — "if it's 21:30, then
 start winding down; target: lights out by 23:00." Plans give a conversation a
 shape you can keep, instead of advice that scrolls away.
+
+<figure>
+  <img src={coachConversation.src} alt="Coach page in the web app: a question about how blood pressure has been trending, the answer paragraph beneath it, a collapsed 'What I'm looking at' disclosure, and the message composer at the foot of the page" />
+  <figcaption>A Coach conversation with the grounding disclosure that lists what the answer was built from. No proposal card is in this frame; a plan proposal needs a live AI provider, and the captured instance had none.</figcaption>
+</figure>
 
 ## Proposed, never self-activated
 

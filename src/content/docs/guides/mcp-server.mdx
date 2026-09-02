@@ -6,6 +6,7 @@ sidebar:
 ---
 
 import { Steps } from '@astrojs/starlight/components';
+import settingsMcp from '../../../assets/screenshots/settings-mcp.png';
 
 HealthLog can expose **one user's own health record** to an external client
 (Claude.ai, ChatGPT, Claude Desktop) over the Model Context Protocol (MCP). The
@@ -53,6 +54,11 @@ In the app, open **Settings → MCP**. The card has three parts:
 - **Connections** — cloud clients that completed the OAuth flow appear here; you
   can revoke any of them.
 - **Tokens** — manual connector tokens (next section).
+
+<figure>
+  <img src={settingsMcp.src} alt="MCP settings page in dark theme: an enable switch for the MCP endpoint, a read-only connector URL field, an empty 'Connected assistants' panel, and a 'Connector tokens' card explaining that new tokens are read-only, with an allow-logging toggle and a token-name field" />
+  <figcaption>The MCP card with the endpoint still switched off and no assistant connected yet. The connector URL field shows the origin of the instance you are signed in to, so yours reads your own hostname rather than the capture instance's.</figcaption>
+</figure>
 
 ## Mint a connector token
 

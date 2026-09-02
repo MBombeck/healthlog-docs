@@ -5,6 +5,8 @@ sidebar:
   order: 26
 ---
 
+import sharedAccess from '../../../assets/screenshots/settings-shared-access.png';
+
 Two accounts on the same instance can be connected so that one of them can open
 the other's health record. A parent and an adult child, two partners, somebody
 keeping an eye on a relative's blood pressure: the case this exists for is a
@@ -70,6 +72,11 @@ be offered from anywhere, and accepting any of the three can be done anywhere.
 5. Optionally fill in **Access ends on**. Leave it empty and the grant runs
    until somebody ends it.
 6. Choose **Send invitation**.
+
+<figure>
+  <img src={sharedAccess.src} alt="Shared access settings: an 'Invite someone' form with a username field, three access levels labelled Can view, Can view and add, and Can manage, each with a sentence explaining what it covers, a choice between the entire record and only selected sections, and an optional access-end date" />
+  <figcaption>The invitation form with the three levels and their explanations, the scope choice, and the optional end date.</figcaption>
+</figure>
 
 Nothing is shared yet. The invitation sits in their own settings and gives them
 nothing until they accept it, and until then your record is exactly as private
