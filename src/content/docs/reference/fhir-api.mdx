@@ -66,12 +66,19 @@ serialised Bundle size.
 `POST /api/export/health-record` produces a **selectable** export: an enriched
 clinical PDF, a machine-readable FHIR R4 document Bundle (LOINC-coded
 observations, a BP panel, medication statements, a diagnostic report), or both
-packaged as one zip. The selection chooses date range and per-domain sections.
-Both formats read the same aggregator, so they describe identical numbers.
+packaged as one zip with a short README. The body carries a `format` (`pdf`,
+`fhir`, or `package`), an optional `range` (a date window of at most 365 days),
+and a required leaf-level `selection` list naming exactly which metrics and
+record types to include. A scope has to be stated: the older grouped `sections`
+toggles are rejected with a 422 rather than defaulted, because an absent key
+used to resolve to "included". Both formats read the same aggregator, so they
+describe identical numbers.
 
 Optional patient identity (name, insurer, insurance number) on the account feeds
-the report cover and the FHIR `Patient`. An optional AI summary is an explicit
-opt-in section, marked as not clinically validated.
+the report cover and the FHIR `Patient`. There is no AI summary in this export;
+it was removed with the grouped toggles, because its text came from a cached
+briefing whose scope could not be proven against the selection. The endpoint is
+rate-limited (a shared `export:<userId>` bucket) and audit-logged.
 
 ## Shareable clinician record
 
@@ -94,6 +101,5 @@ a door that would survive the delegate's own revocation.
 :::caution[Read-only and not a clinical record system]
 The FHIR API and the export describe your tracked data in a standard shape. They
 are for sharing with a clinician, not for use as a system of record or for any
-automated clinical decision. The optional AI summary is explicitly not clinically
-validated.
+automated clinical decision.
 :::
