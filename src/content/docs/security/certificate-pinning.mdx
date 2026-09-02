@@ -33,7 +33,7 @@ This is the part that matters for self-hosters: **the app pins only the managed-
 - **Host is `*.bombeck.io`** → the SPKI pin set is enforced. A non-matching chain aborts the connection.
 - **Any other host** (including a self-hosted instance on your own domain) → the app falls back to **standard, CA-validated system-trust TLS**. There is no pin to satisfy, so you are never locked out.
 
-In other words, pinning is a hardening measure for the hosted service the maintainer operates; it does not constrain people running their own instance. If you self-host, your TLS works exactly the way it would for any other modern app pointed at your domain. (A self-hoster who rebuilds the app under their own bundle id can opt into pinning their own domain via the `HLPinnedHosts` + `HLPinnedSPKIHashes` build-time keys.)
+In other words, pinning is a hardening measure for the hosted service the maintainer operates; it does not constrain people running their own instance. If you self-host, your TLS works exactly the way it would for any other modern app pointed at your domain. A self-hoster who rebuilds the app under their own bundle id can opt into pinning their own domain; the steps are in [TLS certificates](/self-hosting/tls-certificates/#optional-pin-your-own-domain-advanced).
 
 ## CA-level pinning: the rotation-survival strategy
 
