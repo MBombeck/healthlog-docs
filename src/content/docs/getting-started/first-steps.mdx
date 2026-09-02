@@ -21,19 +21,37 @@ history elsewhere, do not type it in by hand; use a device sync
 
 ## Tour the admin panel
 
-The first user is an admin. Open `/admin` to find:
+The first user is an admin. Open `/admin` to find the admin console, split
+into sections in this order:
 
-- **Worker status** — whether the pg-boss job worker is alive and when it last
-  ran a reminder pass.
-- **Audit log** — a viewer over every sensitive operation, with IP addresses.
-- **Optional channels** — configure a Telegram bot, ntfy, Web Push VAPID keys,
-  or a shared AI key here. These are stored encrypted in the database, not in
+- **System Status** (`/admin/system-status`): database connection, user and
+  measurement counts, active sessions and API tokens, host load, and the job
+  worker (running or stopped, and when it last ran a reminder pass).
+- **General**: the registration toggle, default language, and default timezone
+  for new accounts.
+- **Services**: the global switches for Telegram, ntfy, Web Push (with VAPID
+  key generation), and the API, plus optional Umami analytics and GlitchTip
+  error tracking. These settings are stored encrypted in the database, not in
   `.env`. See [Reminder channels](/guides/reminder-channels/).
-- **Invites** — mint expiring invite links when you close open registration.
+- **Integrations**: instance-wide settings for the device integrations.
+- **Coach**: the assistant surface toggles, an optional shared AI key or
+  ChatGPT connection for every user, AI provider health, and the feedback
+  quality tables for the Coach and AI Insights.
+- **Modules**: which optional modules are available on this instance.
+- **Reminders**: reminder dispatch and notification health.
+- **Users**: the account list, roles, passkeys, and per-user password reset.
+- **Invites**: mint expiring invite links when you close open registration.
   See [Invites](/guides/invites/).
+- **API Tokens**: every issued token across accounts.
+- **Login Overview**: the sign-in history and audit viewer, with IP addresses
+  and, when geo data is configured, locations.
+- **App Logs**, **Backups**, **Encryption**, **Danger Zone**, and **About**:
+  logs, [off-host backups](/guides/backups/), encryption coverage and
+  [key rotation](/guides/encryption-key-rotation/), destructive operations,
+  and the version and update check.
 
 `requireAdmin()` is **cookie-only** by construction. A Bearer API token, even
-with `["*"]` scope, cannot reach any `/api/admin/*` endpoint — admin is a
+with `["*"]` scope, cannot reach any `/api/admin/*` endpoint: admin is a
 browser-session boundary, not a token scope.
 
 ## Point the instance at a public hostname

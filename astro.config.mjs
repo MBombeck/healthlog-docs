@@ -42,6 +42,15 @@ export default defineConfig({
 				baseUrl: 'https://github.com/MBombeck/healthlog-docs/edit/main/',
 			},
 			lastUpdated: true,
+			head: [
+				// Social preview card. Starlight emits og:title / og:description per
+				// page but no image; public/og-image.png is 1200x630.
+				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://docs.healthlog.dev/og-image.png' } },
+				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://docs.healthlog.dev/og-image.png' } },
+			],
 			customCss: ['./src/styles/custom.css'],
 			expressiveCode: {
 				themes: ['dracula', 'github-light'],

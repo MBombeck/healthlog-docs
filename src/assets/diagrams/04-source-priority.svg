@@ -41,7 +41,7 @@
   <g>
     <rect x="90" y="450" width="220" height="60" rx="10" fill="#44475a" stroke="#bd93f9" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.7" />
     <text x="200" y="476" text-anchor="middle" fill="#f8f8f2" font-size="13" font-weight="600">Legacy CSV / JSON import</text>
-    <text x="200" y="494" text-anchor="middle" fill="#6272a4" font-size="11">source = IMPORT (lowest rank)</text>
+    <text x="200" y="494" text-anchor="middle" fill="#6272a4" font-size="11">source = IMPORT · unranked, used only when nothing else exists</text>
   </g>
 
   <!-- Resolver -->
@@ -52,11 +52,11 @@
 
     <text x="520" y="298" text-anchor="middle" fill="#bd93f9" font-size="11" font-weight="600">Cumulative metrics</text>
     <text x="520" y="316" text-anchor="middle" fill="#f8f8f2" font-size="11">APPLE_HEALTH ≻ WITHINGS</text>
-    <text x="520" y="332" text-anchor="middle" fill="#f8f8f2" font-size="11">≻ MANUAL ≻ IMPORT</text>
+    <text x="520" y="332" text-anchor="middle" fill="#f8f8f2" font-size="11">≻ other wearables ≻ MANUAL</text>
 
     <text x="520" y="360" text-anchor="middle" fill="#bd93f9" font-size="11" font-weight="600">Point measurements</text>
     <text x="520" y="378" text-anchor="middle" fill="#f8f8f2" font-size="11">WITHINGS ≻ APPLE_HEALTH</text>
-    <text x="520" y="394" text-anchor="middle" fill="#f8f8f2" font-size="11">≻ MANUAL ≻ IMPORT</text>
+    <text x="520" y="394" text-anchor="middle" fill="#f8f8f2" font-size="11">≻ other wearables ≻ MANUAL</text>
   </g>
 
   <!-- Override box -->
@@ -64,7 +64,7 @@
     <rect x="420" y="450" width="200" height="80" rx="10" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" stroke-dasharray="3 3" />
     <text x="520" y="476" text-anchor="middle" fill="#f8f8f2" font-size="13" font-weight="600">Per-user override</text>
     <text x="520" y="494" text-anchor="middle" fill="#bd93f9" font-size="11">User.sourcePriorityJson</text>
-    <text x="520" y="510" text-anchor="middle" fill="#6272a4" font-size="11">/settings/thresholds → Sources</text>
+    <text x="520" y="510" text-anchor="middle" fill="#6272a4" font-size="11">Settings → Source priority (/settings/sources)</text>
   </g>
 
   <!-- Output swimlane: kept -->

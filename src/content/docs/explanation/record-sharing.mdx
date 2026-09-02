@@ -70,16 +70,9 @@ type it in, which is the part that fails on a bad evening.
 
 So write exists. What it is not is the mirror image of read. Read is a large
 surface because looking at a record cannot damage it. Write is a list of acts,
-enumerated once, and the list is closed:
-
-- entering a reading, singly or in a batch;
-- entering a lab result, which may mint the analyte into the record's own
-  catalogue;
-- adding a biomarker to that catalogue;
-- opening an illness episode;
-- recording a side effect against one of the owner's medications;
-- adding a medication with its schedule;
-- marking a dose taken or skipped, one at a time or by clearing what is due.
+enumerated once, and the list is closed; the seven entries on it are spelled
+out in the guide under
+[What each level may do](/guides/shared-access/#what-each-level-may-do).
 
 Every member of that list is a *create*. Nothing on it changes or removes
 anything that is already there, and that is the line the write level is built
@@ -187,7 +180,7 @@ is made is the honest version; the alternative is a scope that reads tighter
 than it is.
 
 **Whole-record figures need the whole record.** The dashboard overview, the
-health score and the daily digest appear only when the entire record is shared,
+Health Score and the daily digest appear only when the entire record is shared,
 because a figure computed from part of a record still reads as a figure about
 the person, and nothing on the surface would say which parts it left out.
 
@@ -441,7 +434,9 @@ this is worth stating plainly.
 ## Operator obligations
 
 Sharing needs no configuration and does nothing until one account invites
-another. Five consequences are yours to know about.
+another. The settings and the numbers are in the guide under
+[For operators](/guides/shared-access/#for-operators); this is why each of
+them matters.
 
 **Invitations disclose whether a username exists.** An invitation to a name
 nobody uses is refused with "no account on this instance carries that name".
@@ -456,9 +451,7 @@ record and what they did in it is built from audit rows, so
 and the floor is 7: a smaller value is ignored rather than obeyed, so a window
 entered in seconds by mistake cannot empty a fresh table. Shortening it shortens
 that view, and the interface says which number your instance uses rather than a
-hardcoded one. It says it in two places, the caption under the activity list and
-the dialog that ends somebody's access, and both take the value the server
-resolved from your variable. See
+hardcoded one. See
 [Audit-trail retention](/reference/environment-variables/#audit-trail-retention).
 
 This matters more with every level above read. Authorship of a delegate's entry

@@ -5,11 +5,20 @@ sidebar:
   order: 5
 ---
 
+import dataFlow from "../../../assets/diagrams/01-data-flow.svg";
+
 HealthLog is built so that, by default, nothing about your health leaves the
 server you run. This page is the honest accounting of every case where data
 *does* cross the boundary, and the controls that keep it minimal.
 
 ## The baseline: nothing leaves
+
+Every reading walks the same path inside the instance, from the device or
+form that produced it, through an ingest endpoint and the source-priority
+resolver, into Postgres, and out to the dashboard, AI Insights, the Coach, and
+the doctor report. Nothing on that path crosses the network.
+
+<img src={dataFlow.src} alt="Five-stage pipeline: sources (Withings, an Apple Health export, iPhone HealthKit, manual entry, OAuth wearable syncs) feed ingest endpoints, which write to the Postgres Measurement and MeasurementRollup tables, which the dashboard tiles, Insights cards, the Coach, and the doctor PDF read" />
 
 - **No telemetry.** HealthLog phones no home. There is no usage analytics beacon,
   no crash-reporting-by-default, no "anonymous statistics."
@@ -121,7 +130,7 @@ holding manage grants on it. The reasoning is in
 | Flow | Leaves the instance? | Control |
 | --- | --- | --- |
 | Viewing your own data | No | Stays in your Postgres |
-| AI insights | Only if you set a provider; never with a local one | BYOK, per user |
+| AI Insights | Only if you set a provider; never with a local one | BYOK, per user |
 | Device sync | Inbound pull you initiated | OAuth, scoped to your account |
 | Notifications | Only to channels you enable | Per-channel opt-in |
 | Telemetry / analytics | No | None exists |

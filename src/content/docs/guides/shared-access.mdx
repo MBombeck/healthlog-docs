@@ -36,10 +36,8 @@ That line is drawn on the server, and it does not move with the level.
 
 There is no way to raise a grant you already sent. Moving somebody up a level
 means ending the grant they have and inviting them again at the level you mean,
-which they accept again. The higher levels need both consents, yours because it
-is your record and theirs because they are being asked to write into somebody
-else's health record. Acceptance is the one moment those two meet, so it happens
-once per grant rather than being edited afterwards by one side.
+which they accept again. Why a level is fixed at the invitation is explained in
+[What a shared record is](/explanation/record-sharing/#it-is-a-grant-never-a-shared-login).
 :::
 
 ## Before you start
@@ -79,9 +77,7 @@ as it was a minute ago. The level and the scope travel with the invitation, so
 what they accept is what you offered.
 
 If the name you typed does not belong to an account on this instance, the form
-says so rather than creating a pending invitation nobody will ever see. That is
-deliberate: a silent pending row after a typo is a worse failure than a clear
-refusal.
+says so rather than creating a pending invitation nobody will ever see.
 
 The endpoint allows ten invitations an hour per account. If you are setting up
 several people at once and hit that, wait and carry on.
@@ -106,10 +102,7 @@ Once an invitation is accepted, the record appears in the user menu under **Open
 a record**. Choosing it reloads the app into that person's record.
 
 A strip across the top of every page names whose record is open and what the
-grant admits, with a button back to your own. It is loud on purpose. Somebody
-who forgets they are switched will read the wrong week, or log their own weight
-into another person's record, and an entry that was never theirs is a mess to
-unpick.
+grant admits, with a button back to your own.
 
 To leave, use the button in the strip or pick **My own record** from the same
 menu.
@@ -147,27 +140,19 @@ family history and the facts under Anamnesis), and can read the insights
 generated from the record. Everything they do is recorded under their own name,
 with a verb that says what it was rather than "made a change".
 
-Two refusals hold at every level, manage included.
-
-**Deferring one of your reminders is yours alone.** Marking a dose and pushing a
-reminder back an hour look like the same action from the medication card, and
-they are not. Recording that a dose went down is a fact about your day.
-Postponing the reminder you set for yourself is a change to your schedule, made
-by somebody who does not have to live with it.
-
-**A dose that already has a decision keeps it.** Re-sending the same decision is
-fine, because a second tap, a phone catching up after no signal and a retry
-after a partial sweep all look like that. Turning your "taken" into a "skipped"
-is not, at any level.
+Two refusals hold at every level, manage included. A delegate cannot defer one
+of your reminders, even though that button sits next to the one that marks a
+dose. And a dose that already has a decision keeps it: re-sending the same
+decision is accepted (a second tap, or a phone catching up after no signal,
+looks like that), but turning your "taken" into a "skipped" is refused. The
+reasoning is in
+[Why write is a list rather than a permission](/explanation/record-sharing/#why-write-is-a-list-rather-than-a-permission).
 
 The document vault is read at every level. A delegate can open the list, read a
-document and open its file, because a clinical letter is health data belonging to
-the record and reading it is much of the reason to hand somebody the record.
-Uploading, retyping, discarding, linking a document to an illness episode and
-every AI action stay with you.
+document and open its file. Uploading, retyping, discarding, linking a document
+to an illness episode and every AI action stay with you.
 
-Saving confirms where the entry went, naming the record by its owner, so a
-mistake is visible at the moment it happens rather than a week later.
+Saving confirms where the entry went, naming the record by its owner.
 
 ## Sharing only part of the record
 
@@ -198,20 +183,19 @@ contain anything at all; share that section only if the person may read all of
 it.
 
 **The whole-record views need the whole record.** The dashboard overview, the
-health score and the daily digest appear only when the entire record is shared,
-because a figure computed from part of a record would read as a figure about the
-person.
+Health Score and the daily digest appear only when the entire record is shared.
 
 Three more properties worth knowing.
 
-- **Manage is always whole-record.** There is no way to hand somebody everything
-  about part of you, for the reason above: a note in one section can be about any
-  other. An invitation that names both is refused rather than quietly narrowed.
-- **A scope never grows.** A grant written when this list held eight sections
-  opens those of the eight it named and nothing added in a later release. A new
-  section is a consent question, so it takes a new invitation.
+- **Manage is always whole-record.** An invitation that names both a scope and
+  manage is refused rather than quietly narrowed.
+- **A scope never grows.** A grant opens the sections it named when it was sent
+  and nothing added in a later release; a new section takes a new invitation.
 - **Every grant written before v1.37.0 opens the entire record** and is
   untouched. Nobody has to agree to anything again.
+
+The reasoning behind all three is in
+[Why a scope can name sections but a manage grant cannot](/explanation/record-sharing/#why-a-scope-can-name-sections-but-a-manage-grant-cannot).
 
 ## What a delegate cannot reach at any level
 
@@ -221,8 +205,7 @@ tokens or the MCP connector. Not the connected services, so they cannot re-point
 a sync or feed their own wearable into your record. Not the notification
 channels, so your reminders cannot be redirected to another phone. Not the
 exports, the health-record archive or the clinician share links. Not the Coach,
-and not generating a fresh insight, because that sends your data to a provider
-under a consent you gave for your own use. Not sharing itself, so a delegate can
+and not generating a fresh insight. Not sharing itself, so a delegate can
 neither invite a third person nor pass their access on.
 
 Display preferences stay with the person at the keyboard. Reading somebody
@@ -238,13 +221,9 @@ turned down. The reasoning is written up in
 
 An entry a delegate makes is stored as yours. It carries your account, appears
 in your charts and exports, and reads the same as anything you typed in
-yourself. It is a fact about your body, and it belongs in your record whoever
-happened to be holding the phone.
-
-Who wrote it down is kept in the audit trail rather than on the row. That is a
-deliberate split. The record stays one person's, so nothing in it has to be
-read twice to work out whether it counts, and the question "who put this here"
-still has an answer months later.
+yourself. Who wrote it down is kept in the audit trail rather than on the row,
+and shows up in the activity view described below. The reasoning is in
+[Why a delegate's entry is stored as the owner's](/explanation/record-sharing/#why-a-delegates-entry-is-stored-as-the-owners).
 
 ## See what the access is being used for
 
@@ -303,7 +282,7 @@ their side under
 ## End the access
 
 Either side can end it, and neither needs a second factor or a typed
-confirmation. Reducing access should never be harder than granting it was.
+confirmation.
 
 - **As the owner:** **Settings → Shared access → Who can open my record**,
   then **End access**. If the invitation was never accepted, the same row offers
@@ -351,8 +330,9 @@ inviting again. Through the API it is `expiresAt` on
 ## Sharing with a clinician is a different thing
 
 **Settings → Shared access** is for another account on this instance.
-**Settings → Sharing** mints a public, time-boxed, passphrase-protected link for
-somebody with no account at all, which is what you hand a doctor at the desk.
+The **Sharing** card under **Settings → Health record** mints a public,
+time-boxed, passphrase-protected link for somebody with no account at all,
+which is what you hand a doctor at the desk.
 The two do not overlap, and a delegate cannot mint one of those links from
 inside your record. See
 [Sharing documents with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
@@ -371,8 +351,7 @@ Four things are worth knowing before somebody asks.
   walked.
 - Deleting an account removes the grants it is party to. Audit rows naming that
   account as the one who opened somebody's record stay and render as "a deleted
-  account", because nulling them would turn "your daughter opened your record"
-  into "you opened your record".
+  account".
 - Write and manage access raise what your audit retention is worth. Authorship
   of a delegate's entry lives in the audit trail and nowhere else, so
   `AUDIT_LOG_RETENTION_DAYS` is the window in which "who entered this" has an
@@ -382,9 +361,12 @@ Four things are worth knowing before somebody asks.
   [Audit-trail retention](/reference/environment-variables/#audit-trail-retention).
 - A refusal a delegate earns carries no reason on the wire. Every case answers
   with the same status and the same body: a record nobody shared, a section the
-  grant does not open, a write on a read grant. That is what stops the surface
-  becoming a way to find out which accounts exist on your instance. The reason
-  reaches the record owner's activity feed and your audit trail instead.
+  grant does not open, a write on a read grant. The reason reaches the record
+  owner's activity feed and your audit trail instead. See
+  [Why every refusal reads the same](/explanation/record-sharing/#why-every-refusal-reads-the-same).
+
+Why each of these is the way it is, and what it asks of you, is in
+[Operator obligations](/explanation/record-sharing/#operator-obligations).
 
 Backups do not carry grants. Restoring onto the same instance leaves shared
 access exactly as it was; restoring onto a fresh instance means both people have
