@@ -93,6 +93,7 @@ export default defineConfig({
 						{ slug: 'guides/managed-profiles' },
 						{ slug: 'guides/mcp-server' },
 						{ slug: 'guides/invites' },
+						{ slug: 'guides/sign-in-and-security' },
 					],
 				},
 				{
