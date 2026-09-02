@@ -1,0 +1,180 @@
+---
+title: Offline geolocation (GeoLite2)
+description: Keep sign-in IP addresses on your own host by giving the login overview MaxMind's GeoLite2 databases, either fetched by the app with a licence key or mounted read-only, and how to switch the online lookup off entirely.
+sidebar:
+  order: 9
+---
+
+You want the admin login overview to show where a sign-in came from without
+sending every visitor's IP address to a third party. The resolver behind that
+column has two tiers, and the order between them is the point of this page.
+
+- **Offline.** MaxMind's GeoLite2-City and GeoLite2-ASN databases read from a
+  local directory. The resolver reads these first. An address the databases can
+  place never leaves the host. The ASN database is the authoritative source for
+  the carrier and AS number.
+- **Online.** A keyless third-party lookup, `https://ipwho.is` by default. On a
+  host without the databases it is the only tier, which means every login IP of
+  every account on the instance goes to that provider. With the databases in
+  place it only ever sees the addresses they could not place, and it can be
+  turned off outright.
+
+Private and loopback addresses are never looked up at all, and a resolved
+address is cached in memory for a while so a burst of events from one client
+does not repeat the work.
+
+The offline tier is optional and absent by default. The published image only
+carries the databases when its build had a MaxMind licence key, which is a
+decision made at release time, not one you control when you pull `:latest`.
+Two ways put the offline tier onto a stock self-host: let the app fetch the
+databases itself, or bring your own copy and mount it.
+
+:::note[Order matters, and it changed]
+From v1.18.10 until v1.37 the resolver asked the online provider first and
+used the local databases only as a fallback, while the documentation
+described it the other way round. A host that had mounted the databases to
+stop the egress was still sending every login IP out. Since v1.37.1 the
+databases are read first. If you are on an older release, only
+`IP_GEO_LOOKUP_DISABLED=1` stops the egress.
+:::
+
+## Runtime fetch (one env var)
+
+Set a MaxMind licence key and the app downloads the databases itself. No
+rebuild, no mount, no `geoipupdate` on the host.
+
+1. Create a free MaxMind account at
+   [maxmind.com/en/geolite2/signup](https://www.maxmind.com/en/geolite2/signup),
+   then a licence key under **My Account, Manage License Keys**. GeoLite2 is
+   free; the account and key exist because MaxMind requires them for the
+   download.
+
+2. Put the key in `.env`:
+
+   ```env
+   MAXMIND_LICENSE_KEY="your-licence-key"
+   ```
+
+   `MAXMIND_LICENSE_KEY` is on the compose `environment:` whitelist, so a value
+   in `.env` reaches the container. Leave `GEOLITE2_DIR` unset to use the
+   default `/opt/geolite2`, which the image already owns as the app user for
+   exactly this write.
+
+3. `docker compose up -d`. On the next worker boot the app fetches
+   `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` into `GEOLITE2_DIR` and starts
+   reading them. Afterwards it refreshes both databases once a month (on the
+   8th, past MaxMind's first-Tuesday reissue) and swaps the reader in place,
+   so a keyed host stays current without a cron of your own.
+
+The fetch is fail-soft. If the key is wrong or MaxMind is unreachable, the
+previous state stands, the online provider keeps answering, and the worker log
+carries the reason. A partial database is never written.
+
+If you would rather the app did not reach MaxMind on its own schedule, for
+example because you keep a curated copy, skip the key and mount your own. The
+two do not conflict: a read-only bind mount wins, because the runtime fetch
+cannot write over it and simply fails soft.
+
+## Bring your own (mount a copy)
+
+You need a free MaxMind account and licence key as above, plus `geoipupdate`
+(MaxMind's own downloader, packaged by most distributions and available as a
+container image) or any other way to get the two `.mmdb` files onto the host.
+
+1. Pick a directory on the host and fetch both databases into it. With
+   `geoipupdate`, `/etc/GeoIP.conf` looks like this:
+
+   ```conf
+   AccountID <your-account-id>
+   LicenseKey <your-licence-key>
+   EditionIDs GeoLite2-City GeoLite2-ASN
+   DatabaseDirectory /srv/healthlog/geolite2
+   ```
+
+   Run `geoipupdate`. The directory should end up holding
+   `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb`. The City file is the one the
+   readiness check looks for; the ASN file fills the carrier and AS number.
+
+2. Mount the directory into the app container read-only. The `app` service in
+   `docker-compose.yml` carries a commented `volumes:` block for exactly this:
+
+   ```yaml
+   volumes:
+     - ./geolite2:/opt/geolite2:ro
+   ```
+
+   Swap the host side for your directory, e.g. `/srv/healthlog/geolite2`.
+
+3. `/opt/geolite2` is the default value of `GEOLITE2_DIR`, so mounting at that
+   container path needs no env var. Only if you mount somewhere else do you set
+   it:
+
+   ```env
+   GEOLITE2_DIR="/var/lib/geolite2"
+   ```
+
+   `GEOLITE2_DIR` is on the compose `environment:` whitelist too.
+
+4. `docker compose up -d` and sign in once. **Admin, System status** shows
+   `Geo data: Offline (GeoLite2)` when the databases are being read, and names
+   the online provider when they are not. `/api/version` carries the same
+   fact as `offlineGeoEnabled`.
+
+The reader loads each database once per worker process and holds it, so a
+refreshed file on the host is picked up at the next container restart, not
+immediately. A weekly `geoipupdate` followed by `docker compose restart app`
+keeps the two in step. A stale City database is quietly wrong rather than
+loudly broken: it keeps answering with last month's allocations.
+
+## Turning the online lookup off entirely
+
+With the databases in place, the third-party lookup already only sees the
+addresses they could not place. To remove that remainder too:
+
+```env
+IP_GEO_LOOKUP_DISABLED="1"
+```
+
+The resolver then uses only the local databases and returns nothing when they
+miss, rather than asking anyone. This also skips the runtime fetch (the whole
+tier is treated as deliberately off) and silences the one-time admin notice
+about online lookups, since there is nothing left to warn about. An instance
+holding other people's health data is a reasonable place to make that trade.
+
+`IP_GEO_LOOKUP_URL` moves the online lookup to a different provider; it does
+not stop it. A plain-HTTP provider is refused unless `IP_GEO_ALLOW_INSECURE=true`
+is set as well. All of these variables are listed in
+[Environment variables](/reference/environment-variables/).
+
+## Licence and attribution
+
+The databases are downloaded under your own MaxMind account, so their terms
+are between you and MaxMind: read the
+[GeoLite End User License Agreement](https://www.maxmind.com/en/geolite/eula).
+It incorporates CC BY-SA 4.0 by reference and requires attribution to MaxMind
+if you make the data available to anyone else. HealthLog's own attribution
+("This product includes GeoLite2 data created by MaxMind, available from
+https://www.maxmind.com") sits on the `/about` page, which is served without a
+session for exactly that reason. Keep it reachable.
+
+## Troubleshooting
+
+**System status still names the online provider.** The readiness check
+requires `GeoLite2-City.mmdb` to exist in `GEOLITE2_DIR` with no `.empty`
+marker file beside it. Check from inside the container:
+`docker compose exec app ls -l /opt/geolite2` (or your `GEOLITE2_DIR`). An
+empty listing means the bind mount did not land. A `.empty` file means the
+image was built without a licence key and you are still looking at the
+baked-in directory rather than your own; the runtime fetch removes that marker
+when it succeeds.
+
+**The variable has no effect.** Confirm it reached the process:
+`docker compose exec app printenv GEOLITE2_DIR`. If it prints nothing, the
+value is in `.env` but not on the compose `environment:` whitelist.
+
+**The carrier column is empty.** With `GeoLite2-City.mmdb` present but no
+`GeoLite2-ASN.mmdb`, an address the City database places has no carrier to go
+with it, because the online provider (which would otherwise fill the carrier)
+only runs for addresses the City database could not place. Mount the ASN
+database as well. With neither database the online provider fills both,
+unless `IP_GEO_LOOKUP_DISABLED="1"` is set.

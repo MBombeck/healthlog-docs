@@ -1,0 +1,118 @@
+---
+title: Track your cycle
+description: Turn cycle tracking on, log periods and daily observations, decide whether you want predictions at all, and understand what stays encrypted and how deletion works.
+sidebar:
+  order: 34
+---
+
+You want to log your menstrual cycle in HealthLog. This page is the how-to;
+the background on cycle physiology and what the observations mean is in
+[Menstrual cycle](/knowledge/menstrual-cycle/). Predictions here are
+descriptive. They are shown as a band, never a single date, and nothing in
+the app is a contraception-grade or "safe day" claim.
+
+## Turn it on
+
+Cycle tracking follows its own switch, not the general module preference.
+Under Settings, Modules the cycle switch writes that setting directly. When
+it has never been set, the account's gender decides: accounts registered as
+female start with it on, everyone else with it off. The admin can disable the
+module for the whole instance. With it off, every cycle route refuses.
+
+The `/cycle` page holds the goal (general health by default), your typical
+cycle, period and luteal lengths (bounded to 15 to 60, 1 to 15 and 10 to 16
+days), which secondary sign you track (cervical mucus or cervix), whether
+predictions are computed at all, a raw chart mode without interpreted
+overlays, discreet notifications, and the sensitive-category encryption
+switch described below.
+
+## Log a period
+
+One tap starts or ends a period. Starting one opens a new cycle, closes the
+previous one, and records medium flow for the day. You can also set the
+period end, mark or confirm ovulation, and delete a cycle. Each day can carry
+one log, and a day log can be edited or removed later (removal leaves a
+tombstone so an offline phone learns it went away).
+
+## Log a day
+
+A day log holds:
+
+- **Flow** and **spotting** outside the period window.
+- **Basal body temperature** in degrees Celsius, with an **excluded** flag for
+  a disturbed reading (fever, alcohol, late measurement). An excluded reading
+  is dropped from both the baseline and the shift evaluation.
+- **Ovulation test** result and **cervical mucus** observation.
+- **Cervix** position, firmness and opening.
+- **Symptoms** from the catalog or your own custom symptoms (custom labels are
+  encrypted), each with a severity from 1 to 4.
+- **Sexual activity**, **protection**, **pregnancy test**, **progesterone
+  test** and **contraceptive**.
+- **Note**, always encrypted.
+
+Bulk entry accepts up to 500 day logs in one request, which is how the iOS
+app syncs.
+
+## Predictions
+
+When predictions are on, the app computes the next period start as a range
+with a confidence value, and, depending on your goal, a fertile window and
+predicted ovulation. The method uses robust statistics (median and median
+absolute deviation) over your completed cycles with outlier trimming, plus a
+symptothermal layer that re-implements published double-check rules: a
+three-over-six temperature shift confirmed by the mucus or cervix peak. With
+few cycles the band is wider and the confidence lower. The iOS app runs the
+same method with the same constants.
+
+Turn predictions off and the app computes and stores none; it becomes a
+plain logbook.
+
+## What stays encrypted
+
+Free-text notes are always encrypted. With **sensitive-category encryption**
+on (the default), sexual activity, protection, pregnancy test, progesterone
+test and contraceptive are stored only inside an encrypted envelope. The
+trade is that those five then drop out of correlation and rollup queries.
+Flow, temperature, test results, mucus observations and cycle dates stay
+plaintext because the prediction and correlation engines read them.
+
+## Notifications and export
+
+Three notification types exist (period soon, confirm period, fertile window
+soon) and all are off by default. Discreet notifications keep the event name
+off the lock screen. The doctor report has a cycle leaf that is not part of
+the standard template; when selected it carries statistics only (last period,
+recent cycles, median length and variability, current phase), never
+predictions or notes.
+
+## Deleting cycle data
+
+Three things mean "delete" and they differ:
+
+1. **Deleting an entry** hides it from every read, export and report, but
+   leaves a tombstone row so offline devices can sync the removal. No job
+   clears these tombstones on a schedule.
+2. **Delete all cycle data** (`DELETE /api/cycle/all`) hard-deletes day logs,
+   custom symptoms, cycles, predictions and the cycle audit trail, and
+   resets goal and length priors to neutral defaults. The tracking switch and
+   settings row survive.
+3. **Deleting the account** cascades everything.
+
+Self-hosting means there is no cloud vendor to hand the data over, but it does
+not make the data unreachable: a host image, a VPS snapshot, a database
+backup and a device holding a live session are yours to protect. The app
+repository's
+[reproductive-health data note](https://github.com/MBombeck/HealthLog/blob/main/docs/self-hosting/reproductive-health-data.md)
+covers the operator side, including keeping `ENCRYPTION_KEYS` off the
+database host.
+
+## API
+
+`POST` and `GET /api/cycle/day-logs`, `PATCH` and `DELETE
+/api/cycle/day-logs/{id}`, `POST /api/cycle/day-logs/bulk`, `POST
+/api/cycle/period`, `GET /api/cycle/cycles`, `DELETE /api/cycle/cycles/{id}`,
+`GET /api/cycle/calendar`, `GET /api/cycle/insights`, `GET /api/cycle/profile`,
+`DELETE /api/cycle/all`, the custom-symptom routes under
+`/api/cycle/symptoms/custom`, and `GET` and `PATCH /api/auth/me/cycle-prefs`,
+which is the one route that flips the switch and therefore does not enforce
+it.

@@ -1,0 +1,195 @@
+---
+title: Settings overview
+description: Every section of the Settings area in navigation order, what each one does, what it needs, and which module, admin toggle, or environment variable governs it.
+sidebar:
+  order: 28
+---
+
+You are looking for the place in Settings where a particular thing is
+configured. This page walks the left-hand navigation top to bottom. Each entry
+says what the section does, what it needs before it is useful, and which
+switch outside the section (a module, an admin toggle, an environment
+variable) can hide or disable it. Where a longer guide exists, it is linked.
+
+Two rules apply throughout. Sections that depend on a tracking module only
+appear in the navigation while that module is on, and a module can be
+switched off for the whole instance by the admin under
+[Module availability](/guides/admin-overview/#module-availability). A few
+actions ask for a fresh second factor (confirmed within the last five
+minutes) when the account has one enrolled; those are marked "step-up".
+
+## Account
+
+Profile fields: username, gender, height, date of birth, display language,
+avatar. A separate block holds the identity details that end up on the
+doctor report (full name, insurer, insurance number). Needs nothing beyond a
+signed-in session. Cycle tracking is not switched on here; that lives under
+Modules.
+
+## Security
+
+Second-factor setup (authenticator app and security keys), recovery codes,
+the list of passkeys, and the password change. Cookie session only; a Bearer
+token cannot manage these. Disabling the second factor, removing a security
+key or passkey, and changing the password are all step-up actions. The admin
+can require a second factor instance-wide, in which case a web sign-in without
+one is sent to enrolment first. Details in
+[Sign-in and security](/guides/sign-in-and-security/).
+
+## Shared access
+
+Who else on this instance may open your record, which records you may open,
+managed profiles for people without a login of their own, and the activity
+log of who opened what. Reachable only while you are in your own record, not
+while acting on someone else's. Creating an access invite and adding or
+removing a guardian are step-up actions. Guides:
+[Give another account access](/guides/shared-access/) and
+[Records with no login of their own](/guides/managed-profiles/).
+
+## Data & Privacy
+
+A read-only summary of encryption state, what is stored, retention, export
+and deletion paths, and the AI posture, followed by the live cards for
+sessions, trusted devices and recent security activity. The encryption line
+reflects `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY_ID` or the legacy
+`ENCRYPTION_KEY`. Background in
+[Privacy architecture](/explanation/privacy-architecture/).
+
+## Modules
+
+One switch per optional tracking domain: cycle, mood, sleep, glucose,
+workouts, recovery, labs, illness, achievements, Coach, insights, medications,
+doctor report, environment, MCP, inbound documents, mental health, nutrients,
+vaccinations. Weight, blood pressure and pulse are core and cannot be turned
+off. Most modules are on by default; MCP and nutrients are opt-in. A switch
+is greyed out when the admin has disabled that module server-wide, and the
+Coach switch additionally needs the admin's assistant flags to be on.
+
+## Integrations
+
+Connection cards for Withings, WHOOP, Fitbit, Google Health, Apple Health,
+Polar, Oura, Strava and Nightscout, the nutrients intake card (only with the
+nutrients module on), and the delivery channels group (Telegram, ntfy, Web
+Push, webhook, email) at the `#channels` anchor. Each OAuth provider needs
+its client id, secret and redirect URI in the environment before the card can
+connect; each channel needs the matching admin toggle under Services, and Web
+Push needs VAPID keys. The connect guides are listed on the
+[guides index](/guides/).
+
+## Source priority
+
+The source-priority ladder, global and per metric: when two connected
+sources report the same metric, which one wins. Move entries up or down, or
+reset to the defaults. Only meaningful once more than one source is
+connected. See [Source priority](/guides/source-priority/).
+
+## Health record
+
+The full health-record export (format, reporting window, practice line,
+scope picker) and, below it, clinician share links: time-boxed read-only
+links whose token is shown exactly once, with active and revoked lists.
+Always listed; the doctor-report module still governs the data layer. Sharing
+is explained in [Record sharing](/explanation/record-sharing/).
+
+## Export & Import
+
+CSV exports for measurements, medications and mood; the full backup either
+as a passphrase-encrypted `.hlx` file or as plain JSON; and the import cards
+for Apple Health, CSV, JSON and dose history. The encrypted export is a
+step-up action for accounts with a second factor. See
+[Backups](/guides/backups/) and
+[Import Apple Health](/guides/import-apple-health/).
+
+## Appearance
+
+A hub of sub-pages for arranging each surface: dashboard, insights,
+medications, mood, labs, illness, and preventive care. The medications, mood,
+labs and illness sub-pages only appear while their module is on; preventive
+care is not a module and is always listed. The older `/settings/<module>`
+addresses redirect here. Dashboard layout is described in
+[Dashboard customization](/features/dashboard-customization/).
+
+## Targets
+
+Personal thresholds per metric, with per-metric and reset-all resets, plus the
+glucose reference card that chooses which reference band the app applies.
+Needs nothing beyond a session. Background in
+[Blood pressure targets](/explanation/blood-pressure-targets/).
+
+## Notifications
+
+The reminder types that are not tied to a specific integration: the mood
+reminder (needs the mood module) and the low-stock warning for medications
+(needs the medications module). Links onward to the notification matrix and
+to the channels group under Integrations. Channel setup itself is covered in
+[Reminder channels](/guides/reminder-channels/).
+
+## Health Score
+
+Which pillars count toward the composite score, with a notice when the
+composition changed. Pillar availability follows the enabled modules. The
+method is explained in
+[Composite health score](/explanation/composite-health-score/).
+
+## Medical history
+
+Conditions, an "about me" note, health-profile facts, allergies, family
+history, the emergency profile, and the switch that decides whether this
+profile is included in what the AI features see. Always shown; not a module.
+This is the one section a guardian or a delegate with manage rights can edit
+inside a shared record. See
+[Record allergies and family history](/guides/structured-records/).
+
+## Location & weather
+
+Home location (with a place search), travel overrides for periods away, and
+a backfill of weather and daylight over a date range. Needs the environment
+module, which is on by default; no outbound weather request is made until a
+location is set. The data source can be pointed elsewhere with
+`OPENMETEO_BASE_URL` and `OPENMETEO_GEOCODING_URL`. Background in
+[Environmental module](/explanation/environmental-module/).
+
+## AI provider
+
+Provider, model and your own API key for AI Insights: Anthropic, OpenAI,
+an OpenAI-compatible endpoint, Codex, or a local model, plus the fallback
+chain, auto-read, response timeout and the consent card. The admin's server
+key, if one is configured, sits at the end of the chain and never overrides a
+key you set yourself; using it needs your consent. The admin's assistant
+master flag gates every AI surface. See [AI providers](/guides/ai-providers/).
+
+## Coach
+
+The Coach on/off switch, then (only while it is on) preferences, the nudge
+card, remembered facts with per-fact deletion, and Coach reminders. Needs the
+coach module and the admin's Coach flag. See
+[Coach plans](/guides/coach-plans/).
+
+## API & Tokens
+
+The list of endpoints a personal token can reach, the measurement ingest
+token (mint or rotate), and the table of personal API tokens with revoke.
+Governed by the admin's API toggle under Services; token hashing needs
+`API_TOKEN_HMAC_KEY` in the environment. How-to:
+[Push readings from your own hardware](/guides/ingest-token/).
+
+## MCP Connector
+
+The switch for the opt-in MCP module, connected external assistants with
+revoke, and the `health:read` tokens used to connect one. The entry is always
+listed so the switch stays reachable. Serving `/mcp` needs the module on, the
+admin's API toggle on, and a public origin in `APP_URL` or
+`NEXT_PUBLIC_APP_URL`; there is no separate MCP environment flag. See
+[Enable the MCP connector](/guides/mcp-server/).
+
+## Advanced
+
+Two destructive actions behind confirmation dialogs: reset all data, and
+delete the account. Account deletion is a step-up action. See
+[Data deletion](/account/data-deletion/).
+
+## About this app
+
+Running version with an update check, and links to the repository, the
+changelog, these docs, and the credits page. The same card is shown to the
+admin under Admin, About.
