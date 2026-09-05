@@ -32,6 +32,15 @@ an error. Set it to `true` (or leave it unset) only when a TLS reverse proxy
 serves HealthLog over HTTPS, and then point `NEXT_PUBLIC_APP_URL` and `APP_URL`
 at the `https://` address.
 
+Everyday use over plain HTTP is fine once that flag is set, uploads included.
+What you give up is the short list of things a browser hands out only to an
+HTTPS page: passkey sign-in, web-push notifications, and installing HealthLog
+to the home screen as an app. The last two ride on a service worker, which no
+browser registers on a plain-HTTP origin, and passkeys are WebAuthn, which the
+browser refuses outside a secure context. No server setting restores any of
+them. Password sign-in, two-factor codes, and every other feature work as
+normal, and all three come back the day a TLS proxy fronts the app.
+
 ## Portainer
 
 HealthLog ships a Portainer app template that deploys the app and its
