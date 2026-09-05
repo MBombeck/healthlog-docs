@@ -1,0 +1,11 @@
+# `COPY . .` runs after `pnpm install`, so anything left here overwrites the
+# install the build stage just did. A host node_modules carries the host's
+# platform binaries — the Markdown processor is a native module now, and a
+# macOS build of it is useless to an Alpine image. Keep the copy to sources.
+node_modules
+dist
+.astro
+.git
+.github
+.vscode
+.DS_Store
