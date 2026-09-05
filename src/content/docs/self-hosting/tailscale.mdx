@@ -71,6 +71,12 @@ described on the [TLS certificates](/self-hosting/tls-certificates/) page
 exists for serving the raw `http://host:3000` surface across a trusted network
 without a TLS front; once `serve` fronts the app you do not need it.
 
+Prefer `serve` over exposing the raw port even on a network you trust, because
+the certificate buys back more than the cookie flag. Browsers keep passkey
+sign-in, web-push notifications, and home-screen installation for HTTPS pages
+only, and a plain-HTTP origin loses all three however the server is
+configured. Real HTTPS on the tailnet gives you all of them.
+
 `serve` is a single proxy hop in front of the app, which is the topology the
 default `TRUST_PROXY_HOPS=1` assumes. If the log shows a null client IP after
 the switch, or every caller lands in one shared rate-limit bucket, the

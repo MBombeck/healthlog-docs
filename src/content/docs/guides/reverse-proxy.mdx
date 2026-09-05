@@ -164,6 +164,12 @@ and OAuth-state cookies stop emitting `Secure` and login works over HTTP. The
 trade-off is explicit: the session cookie crosses the wire unencrypted. **Never
 set this on a host that serves plain HTTP to the open internet.**
 
+The rest of the app, uploads included, works over plain HTTP. What the flag
+cannot buy back is the set of features a browser reserves for HTTPS pages:
+passkey sign-in, web-push notifications, and installing the app to the home
+screen. All three need a real certificate, so the cost of staying on HTTP is
+the unencrypted cookie plus those three features, not day-to-day use.
+
 For the Tailscale case specifically there is a better option than lifting the
 flag: [`tailscale serve`](/self-hosting/tailscale/) gives the same surface real
 HTTPS with a tailnet-trusted certificate, and `SESSION_COOKIE_SECURE` stays
