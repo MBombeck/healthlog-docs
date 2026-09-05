@@ -1,0 +1,259 @@
+---
+title: Import a CSV
+description: Bring measurements in from a spreadsheet or a meter export - the exact column set, the timestamp and unit rules, what happens to a bad row, and what a re-upload does.
+sidebar:
+  order: 4
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+You have readings somewhere else: a spreadsheet you kept for years, a glucose
+meter that exports a table, a tracker you are leaving. The CSV import is the
+cold-start path for that data. It writes measurements only, one row per
+reading, and it tells you line by line what it did.
+
+## Where it lives
+
+<Steps>
+
+1. **Open Settings, then Export & Import.** The import cards sit under the
+   Import heading. The one you want is titled **CSV file**.
+
+2. **Get the example file.** The **Download example** button writes
+   `healthlog-import-example.csv` to your machine. It is four rows and a
+   header, and it is the shape the server expects. Open it in your spreadsheet
+   and replace the rows.
+
+3. **Load your file.** **Upload file** reads the file into the box on the card,
+   or you can paste the text in directly. Nothing is sent while you are
+   editing.
+
+4. **Run Preview first.** **Preview** sends the file for parsing and validation
+   but writes nothing. You get the same per-line report the real import
+   produces, so you can fix the file before anything lands in your record.
+
+5. **Import.** The card reports how many rows were inserted, how many updated,
+   and how many were skipped, with a reason per skipped line.
+
+</Steps>
+
+## The columns
+
+The first line is a header and it is required. Column names are matched
+case-insensitively and in any order, and columns the importer does not know
+are ignored, so an export carrying extra fields does not need trimming first.
+
+| Column | Required | What it holds |
+| --- | --- | --- |
+| `type` | yes | The measurement type, e.g. `WEIGHT`. An enum value, not free text. |
+| `value` | yes | A number, expressed in whatever the `unit` cell says. |
+| `unit` | yes | The canonical unit for that type, or one of the accepted alternatives below. |
+| `measuredAt` | yes | An ISO-8601 timestamp carrying an explicit offset. |
+| `glucoseContext` | no | Only on `BLOOD_GLUCOSE` rows. One of `FASTING`, `POSTPRANDIAL`, `RANDOM`, `BEDTIME`, or blank. |
+| `notes` | no | Free text, up to 200 characters. Stored encrypted at rest. |
+| `externalId` | no | A stable id from the source system. Up to 120 characters. It is what makes a re-upload idempotent. |
+
+Quoted cells, doubled quotes inside a quoted cell, commas and newlines inside
+quotes, a leading UTF-8 byte-order mark, and both CRLF and LF line endings are
+all handled. Blank lines are dropped.
+
+## Timestamps carry their own offset
+
+`measuredAt` must end in `Z` or in an offset such as `+02:00`. A timestamp
+without one is skipped. The importer never guesses which timezone you meant,
+because a guess quietly moves a morning reading into the previous evening for
+half the year.
+
+`2026-05-01T08:05:00+02:00` and `2026-05-01T06:05:00Z` are both accepted and
+mean the same instant. `2026-05-01 08:05` and `2026-05-01T08:05:00` are not.
+
+Two bounds apply to the instant itself. It may not be more than five minutes in
+the future, which is the tolerance for a clock running fast, and it may not
+predate 1900, which catches an epoch-zero cell that a spreadsheet produced from
+an empty date.
+
+## Units per type
+
+The unit cell is checked against the canonical unit for the type. A few common
+alternatives are converted for you; anything else is refused rather than stored
+under the wrong label. Matching ignores case, so `KG` and `kg` are the same
+cell.
+
+| Type | Canonical unit | Also accepted |
+| --- | --- | --- |
+| `WEIGHT` | `kg` | `lb`, `lbs`, `pound`, `pounds` |
+| `BLOOD_PRESSURE_SYS`, `BLOOD_PRESSURE_DIA` | `mmHg` | |
+| `PULSE`, `RESTING_HEART_RATE` | `bpm` | |
+| `BLOOD_GLUCOSE` | `mg/dL` | `mmol/L`, `mmol` |
+| `BODY_FAT`, `OXYGEN_SATURATION` | `%` | |
+| `SLEEP_DURATION` | `minutes` | |
+| `ACTIVITY_STEPS` | `steps` | |
+| `BODY_TEMPERATURE` | `celsius` | `c`, `°c`, `f`, `°f`, `fahrenheit` |
+| `WAIST_CIRCUMFERENCE` | `cm` | `in`, `inch`, `inches` |
+| `HEART_RATE_VARIABILITY` | `ms` | |
+
+The same lb-to-kg conversion covers the other body-mass types
+(`FAT_MASS`, `FAT_FREE_MASS`, `MUSCLE_MASS`, `LEAN_BODY_MASS`,
+`TOTAL_BODY_WATER`, `BONE_MASS`, `GRIP_STRENGTH`), and the Fahrenheit
+conversion covers `SKIN_TEMPERATURE` and `WRIST_TEMPERATURE`. Every other type
+takes its canonical unit and nothing else. The full type list is the
+`MeasurementType` enum in
+[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml).
+
+Conversion happens before the plausibility check, so a weight of `180 lb` is
+range-checked as `81.6 kg`. Each type has such a range: weight 1 to 500 kg,
+systolic 40 to 300 mmHg, pulse 20 to 300 bpm, glucose 20 to 800 mg/dL, oxygen
+saturation 50 to 100 percent. A value outside it is skipped rather than stored.
+
+## The glucose context column
+
+`glucoseContext` classifies a glucose reading as `FASTING`, `POSTPRANDIAL`,
+`RANDOM` or `BEDTIME`. It is optional on `BLOOD_GLUCOSE` rows, and a blank cell
+is stored as no context at all rather than as a guessed one, which is what a
+continuous sensor export needs: the sensor takes a reading every few minutes
+and classifies none of them.
+
+Two ways to get it wrong. A value that is not one of the four is skipped with
+`glucose context is not one of the allowed values`. A non-empty context on a
+row that is not blood glucose is skipped with `glucose context set on a row
+that is not blood glucose`, rather than being ignored, because a context in the
+wrong column usually means the columns have shifted.
+
+## A bad row does not stop the file
+
+Validation is per row. Every row that passes is written; every row that fails
+is reported with its line number and a reason, and the rest of the file lands
+regardless. Line 1 is the header, so the first data row is line 2.
+
+Three things are refused at file level, and each one means nothing at all is
+written: a file with no header row (`The CSV is empty — a header row is
+required.`), a header missing one of the four required columns, and a file
+carrying more than 10 000 valid rows.
+
+These are the reasons a row can be skipped, in the wording the card shows:
+
+| Reason shown | What it means |
+| --- | --- |
+| unknown measurement type | The `type` cell is not a `MeasurementType` value. Check the spelling and the upper case. |
+| value is not a number | The `value` cell is empty or not numeric. A decimal comma is a frequent cause. |
+| value outside the plausible range | The number converted to its canonical unit falls outside the range for the type. |
+| unit not recognised for this type | The `unit` cell is neither the canonical unit nor an accepted alternative. |
+| timestamp has no timezone offset | `measuredAt` ends without `Z` or an offset. |
+| timestamp could not be read | `measuredAt` is empty or not a date. |
+| timestamp is in the future or before 1900 | The instant is outside the bounds above. |
+| glucose context set on a row that is not blood glucose | A non-empty `glucoseContext` on a row of another type. |
+| glucose context is not one of the allowed values | The context is not one of the four. |
+| note is too long | The `notes` cell exceeds 200 characters. |
+| external ID is too long | The `externalId` cell exceeds 120 characters. |
+| external ID is not stable across exports | The id is a memory address (`0x…`) or an object description (`<Class: 0x…>`). Such a value changes on every run of the exporting app and would mint a fresh row every time. |
+| already imported | A row for this type and instant already exists. See below. |
+
+## What a re-upload does
+
+Rows are written under the `IMPORT` source, and duplicate handling depends on
+whether the row carries an `externalId`.
+
+With an `externalId`, the row is matched on your account, the type, the
+`IMPORT` source and the id. A second upload of the same id updates the existing
+row in place, rewriting value, unit, timestamp, notes and glucose context, and
+reports the line as updated. A row you had deleted comes back, because import
+rows are meant to be re-importable. If the same id appears twice inside one
+file, the last occurrence wins.
+
+Without an `externalId`, a row that matches an existing `IMPORT` row on type
+and instant is skipped as `already imported`, never overwritten. Each such row
+is treated as a canonical reading, so the first write stands. Matching is
+scoped to the `IMPORT` source, so a CSV row never collides with a reading your
+watch or scale delivered at the same second.
+
+So if you expect to re-export and re-upload the same history as it grows, put a
+stable id from the source system in `externalId`. If you upload once, you can
+leave the column out entirely.
+
+## Limits
+
+The body is capped at 16 MB, refused with `That file is too large (limit 16
+MB).` A file may hold at most 10 000 valid rows; beyond that the server answers
+`CSV has 12000 valid rows — the limit is 10000 per import` and writes nothing,
+so split a larger history into several files. Imports are limited to five per
+hour per account, shared with the JSON import card, and the sixth is refused
+with `Too many imports this hour (limit 5). Please try again later.`
+
+## A file that imports cleanly
+
+This is the downloadable example, unchanged:
+
+```csv
+type,value,unit,measuredAt,glucoseContext,notes,externalId
+WEIGHT,80.5,kg,2026-05-01T08:00:00Z,,morning,
+BLOOD_GLUCOSE,5.3,mmol/L,2026-05-01T08:05:00+02:00,FASTING,,meter-001
+BLOOD_GLUCOSE,5.9,mmol/L,2026-05-01T08:20:00+02:00,,,sensor-001
+BLOOD_PRESSURE_SYS,120,mmHg,2026-05-01T08:05:00+02:00,,,
+```
+
+Four rows insert. The two glucose readings convert to mg/dL on the way in, the
+second one deliberately carrying no context. The weight and blood-pressure rows
+have no `externalId`, so uploading this file twice inserts them once and skips
+them the second time, while the two glucose rows update in place.
+
+## A file that is refused
+
+```csv
+type,value,measuredAt
+WEIGHT,80.5,2026-05-01T08:00:00Z
+```
+
+The `unit` column is missing, so the whole file is refused and nothing is
+written:
+
+```
+Missing required column(s): unit. Required header: type,value,unit,measuredat[,glucosecontext,notes,externalid].
+```
+
+Compare that with a file whose header is complete but whose rows are not:
+
+```csv
+type,value,unit,measuredAt
+WEIGHT,80.5,kg,2026-05-01T08:00:00Z
+WEIGHT,81.0,kg,2026-05-02 08:00:00
+WEIGHT,810,kg,2026-05-03T08:00:00Z
+```
+
+The first row imports. Line 3 is skipped with `timestamp has no timezone
+offset` and line 4 with `value outside the plausible range`, and the card
+reports `Imported 1 new and updated 0, 2 skipped.`
+
+## What this import is not for
+
+It handles measurements. Three neighbouring jobs have their own path:
+
+An Apple Health `export.zip` goes through the Apple Health card, which streams
+the archive, maps workouts and correlations as well as records, and dedupes on
+the archive's own identifiers. See
+[Import Apple Health](/guides/import-apple-health/).
+
+Medication dose history goes through the dose history card in the same panel.
+It has its own columns and its own dedup rules, because a dose is an event
+against a schedule rather than a reading.
+[Track medications](/guides/track-medications/) covers the medication side.
+
+A full backup is restored from the JSON or encrypted `.hlx` export, not from a
+CSV. The JSON import card next to this one also carries mood entries, which the
+CSV importer does not accept. See [Backups and restore](/guides/backups/).
+
+For a device or a script that should push readings as they happen instead of in
+one file, mint a token and post them.
+See [Push readings from your own hardware](/guides/ingest-token/).
+
+## Where the rows end up
+
+Imported rows carry the `IMPORT` source, which sits lowest in the ranking that
+decides whose reading is canonical when two sources report the same metric. A
+value your scale later delivers for the same day outranks the imported one for
+display, while both stay in your history. See
+[Source priority](/guides/source-priority/).
+
+The measurement CSV export on the same settings page writes
+`type,value,unit,measuredAt,source,notes,glucoseContext`, with the offset on
+every timestamp. The extra `source` column is ignored on the way back in, so an
+export can be edited in a spreadsheet and fed back to this importer.
