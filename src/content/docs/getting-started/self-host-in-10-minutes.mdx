@@ -61,7 +61,8 @@ longer if you also want a TLS-fronted public hostname (see
 
    There is no connection string to edit: the compose file derives
    `DATABASE_URL` from `POSTGRES_PASSWORD` in its `environment:` block, and
-   that block overrides anything in `.env`.
+   that block overrides anything in `.env`. To use a PostgreSQL you already
+   run instead of the bundled one, see [External PostgreSQL](/self-hosting/external-postgres/).
 
 3. **Bring the stack up.**
 
