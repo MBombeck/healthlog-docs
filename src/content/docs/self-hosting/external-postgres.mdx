@@ -1,0 +1,173 @@
+---
+title: External PostgreSQL
+description: Run HealthLog against a PostgreSQL you already operate instead of the bundled db service, what the database role needs, how to point the compose stack at it, and how to size and secure the connection.
+sidebar:
+  order: 4
+---
+
+The compose file ships its own `db` service and derives `DATABASE_URL` from
+`POSTGRES_PASSWORD`, so a first install never edits a connection string. If
+you already run PostgreSQL, for other applications or on a host you back up
+anyway, HealthLog can use that instance instead. This page is what the
+database has to provide, how to point the stack at it, and what changes in
+operation once the database is no longer part of the stack.
+
+## What the database has to provide
+
+**PostgreSQL 16.** The bundled service runs `postgres:16` and every release is
+tested against it. Use the same major version for an external instance.
+
+**A role that owns the database.** HealthLog needs no superuser and installs
+no extensions. What it does need is the right to create objects: on first
+start it creates its tables in `public` and the `_prisma_migrations` table
+that tracks schema versions, and the job queue creates a schema of its own
+named `pgboss`. Making the application role the owner of the database covers
+all of that, on PostgreSQL 15 and later including the `public` schema, which
+belongs to the database owner there.
+
+```sql
+CREATE ROLE healthlog LOGIN PASSWORD 'a-long-random-password';
+CREATE DATABASE healthlog OWNER healthlog;
+```
+
+Two things this deliberately does not grant: `SUPERUSER`, and `CREATEDB`.
+Neither is used.
+
+If the database already exists and is owned by another role, the equivalent
+grants are `CREATE` on the database (for the `pgboss` schema) and `ALL` on the
+`public` schema, plus ownership of the tables the migrations create. Ownership
+is the simpler arrangement and the one to prefer for a database that is only
+HealthLog's.
+
+**Migrations run on every start.** The container entrypoint waits until the
+host and port in `DATABASE_URL` accept a TCP connection, then runs the pending
+schema migrations, then starts the application. There is no separate migrate
+step for you to run, and an upgrade is the same as a first start.
+
+## Pointing the stack at it
+
+`DATABASE_URL` is set inside the compose file's `environment:` block, and that
+block wins over `.env`. Rather than editing the shipped file, put the change
+in a `docker-compose.override.yml` next to it. Compose merges the two, and the
+override survives the next `git pull`.
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      DATABASE_URL: "postgresql://healthlog:${POSTGRES_PASSWORD}@10.0.0.5:5432/healthlog?schema=public&connection_limit=20&pool_timeout=20"
+    depends_on: !reset []
+```
+
+Then start the application alone:
+
+```bash
+docker compose up -d app
+```
+
+The `!reset` tag clears the `depends_on` that ties `app` to the bundled `db`
+service, so `app` starts without it; because nothing depends on `db` any
+more, `up -d app` creates only the application container. `!reset` needs
+Compose 2.24 or newer, which every current Docker Desktop and Docker Engine
+install carries. Keep `POSTGRES_PASSWORD` in `.env` as the password of your
+external role, or write the password into the URL directly and drop the
+variable.
+
+If you would rather not use an override, copy `docker-compose.yml`, delete
+the `db` service, the `pgdata` volume and the `depends_on:` block under
+`app`, and set `DATABASE_URL` in the copy.
+
+Portainer and Unraid users already fill in `DATABASE_URL` as a template field;
+the [template guide](/self-hosting/portainer-and-unraid/) covers that path.
+
+### Reaching the host
+
+The container has to reach the database over the network. A PostgreSQL in
+another Compose project on the same machine is reachable by container name
+once both are on a shared Docker network; a PostgreSQL on the host itself is
+reachable as `host.docker.internal` on Docker Desktop, or by the host's LAN
+address on a Linux server, provided `postgresql.conf` has `listen_addresses`
+covering that interface and `pg_hba.conf` admits the container's address.
+
+The entrypoint probes the port for up to 30 seconds and then exits with
+`Database not reachable after 30s, aborting`, after which Compose restarts
+the container and it tries again. A wrong host or a closed port therefore
+shows up as that line repeating in `docker compose logs app`. A
+`pg_hba.conf` refusal or a wrong password passes the port probe and fails
+one step later, in `Running database migrations...`, with the server's own
+message.
+
+## Sizing the connection pool
+
+Both database clients in the application, the ORM and the job queue, share
+one budget, taken from `connection_limit` in the URL or from the
+`DB_CONNECTION_LIMIT` environment variable. The default is 20 per container:
+2 for the job queue and 18 for everything else. A container running with
+[a separate worker](/self-hosting/scaling/) counts twice.
+
+Set PostgreSQL's `max_connections` so that HealthLog's containers together
+stay below it with room for your other applications, your own `psql`
+sessions and backups. On a shared instance that already serves other
+software, lowering HealthLog's limit is usually the right adjustment, not
+raising the server's.
+
+## TLS to the database
+
+Both clients read the standard `sslmode` parameter from the URL, and they
+read it strictly: `require` is treated as `verify-full`, so the server
+certificate must be signed by an authority the container trusts and must
+name the host you connect to.
+
+| `sslmode`                                        | Behaviour                                                                                      |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `disable`                                        | Plain connection. Fine on a private Docker network or a Tailscale link.                        |
+| `require` or `verify-full`                       | TLS with full certificate verification against the system trust store.                        |
+| `verify-full&sslrootcert=/certs/ca.pem`          | TLS verified against a CA file you mount into the container. Use this for a self-signed setup. |
+| `no-verify`                                      | TLS without certificate verification. Encrypted, but a spoofed server would not be noticed.    |
+
+For a self-signed certificate, mount the CA and name it:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      DATABASE_URL: "postgresql://healthlog:${POSTGRES_PASSWORD}@db.example.internal:5432/healthlog?schema=public&sslmode=verify-full&sslrootcert=/certs/ca.pem"
+    volumes:
+      - ./ca.pem:/certs/ca.pem:ro
+    depends_on: !reset []
+```
+
+The file has to exist inside the container at that path; a missing file fails
+the connection rather than silently downgrading to an unverified one.
+
+## What changes in operation
+
+**Backups.** The in-app backups, the weekly encrypted snapshot and the
+optional off-host copy, work the same against any database; they read
+through the application, not through the container. What changes is the
+database-level backup: the `pg_dump` commands in the
+[backups guide](/guides/backups/) address the bundled `db` service, so run
+the equivalent against your own instance as part of whatever backup you
+already have for it.
+
+**Upgrades.** A new HealthLog release migrates the schema on start, as
+before. A PostgreSQL major-version upgrade is now yours to schedule; do it
+with the application stopped, and keep to version 16 until the release notes
+say otherwise.
+
+**Moving an existing install.** To take a HealthLog database out of the
+bundled service and into your instance, stop the application, dump from the
+old service and restore into the new one, then switch the URL:
+
+```bash
+docker compose stop app
+docker compose exec -T db pg_dump -U healthlog -Fc healthlog > healthlog.dump
+pg_restore -h 10.0.0.5 -U healthlog -d healthlog --no-owner --no-privileges healthlog.dump
+docker compose up -d app
+```
+
+`--no-owner --no-privileges` matters when the dump was taken as one role and
+restored as another; the application role ends up owning everything it
+restores. Encrypted columns travel as they are: the encryption keys live in
+the application's environment, not in the database, so `ENCRYPTION_KEY` stays
+exactly as it was.

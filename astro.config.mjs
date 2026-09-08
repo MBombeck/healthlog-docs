@@ -196,6 +196,7 @@ export default defineConfig({
 					items: [
 						{ slug: 'self-hosting/coolify' },
 						{ slug: 'self-hosting/portainer-and-unraid' },
+						{ slug: 'self-hosting/external-postgres' },
 						{ slug: 'self-hosting/tls-certificates' },
 						{ slug: 'security/certificate-pinning' },
 						{ slug: 'guides/reverse-proxy' },
