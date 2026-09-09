@@ -65,17 +65,18 @@ data (steps, active energy, distance, floors) arrives through the
 
    `WITHINGS_WEBHOOK_SECRET` is the path-segment token the webhook handler
    validates against — a 64-char hex value keeps it indistinguishable from
-   random. It is on the compose `environment:` whitelist; the
-   `WITHINGS_REDIRECT_URI` override is not, so add that one to the whitelist
-   if you set it. Restart the `app` container after saving.
+   random. Both it and the `WITHINGS_REDIRECT_URI` override are already on the
+   compose `environment:` whitelist — set them in `.env` and restart the `app`
+   container.
 
 3. **Link from the Settings page.** On **Settings → Integrations**, click
    **Connect Withings**. The flow redirects to Withings, exchanges the
    returned code for an access + refresh token (stored
-   AES-256-GCM-encrypted), subscribes the webhook URL, and triggers an
-   initial sync of the past 30 days. The page then shows **Connected** with
-   the last-sync timestamp. Subsequent syncs run automatically on every
-   webhook delivery, plus hourly safety-net cron pulls.
+   AES-256-GCM-encrypted), and subscribes the webhook URL. The first sync
+   runs on the next hourly pass or the first webhook delivery, reaching back
+   30 days. The page then shows **Connected** with the last-sync timestamp.
+   Subsequent syncs run automatically on every webhook delivery, plus hourly
+   safety-net cron pulls.
 
 </Steps>
 
@@ -131,7 +132,8 @@ action; the OAuth grant itself is managed on the Withings side. Existing
 measurements tagged `source = WITHINGS` stay in the database — disconnect does
 not delete data. Re-linking the same Withings account merges back onto the same
 metric timeline: the upsert path matches on `(userId, type, measuredAt,
-source)`, so previously-synced rows update in place instead of duplicating.
+source, sleepStage)`, so previously-synced rows update in place instead of
+duplicating.
 
 ## Connection test
 

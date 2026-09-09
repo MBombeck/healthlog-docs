@@ -101,7 +101,7 @@ Restore drills are part of the operator manual — see [Ops → Backup & Restore
 
 ## Logs and observability
 
-Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth) — the wide-event log lines are pre-formatted for Loki's structured-log path. Note that none of the three `LOKI_*` variables is on the shipped compose file's `environment:` whitelist, so setting them in `.env` alone does nothing: add them to the compose `environment:` block yourself, or set them in Coolify's per-service environment UI.
+Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth) — the wide-event log lines are pre-formatted for Loki's structured-log path. All three `LOKI_*` variables are on the shipped compose whitelist, so a value in `.env` or in Coolify's per-service environment UI reaches the container.
 
 Glitchtip and Umami land in the admin-panel monitoring section; both honour the SSRF guard and only emit when explicitly configured.
 

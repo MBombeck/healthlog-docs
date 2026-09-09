@@ -88,9 +88,8 @@ Only when the callback origin differs from `NEXT_PUBLIC_APP_URL`:
 FITBIT_REDIRECT_URI="https://your-instance.example.com/api/fitbit/callback"
 ```
 
-Unlike the Polar, Oura, Strava and WHOOP redirect overrides, this variable is
-not on the compose `environment:` whitelist by default. Add it there when you
-set it; the Withings and Google Health overrides share this caveat.
+This variable is already on the compose `environment:` whitelist — set it in
+`.env` and restart. The Withings and Google Health overrides are there too.
 
 The integration card can warn about a callback origin that differs from the address in the browser; [troubleshooting](/self-hosting/troubleshooting/#oauth-callbacks-land-on-localhost-or-the-wrong-host) says when that check works.
 
