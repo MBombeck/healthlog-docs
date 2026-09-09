@@ -135,6 +135,9 @@ they are and land in the same record as the tab you switched in. See
 - A medication, with its schedule.
 - Marking a dose taken or skipped, one at a time or by clearing everything due
   at once.
+- A doctor visit.
+- A practitioner in your address book.
+- A vaccination, or a booster on one.
 
 Every member of that list makes something new. A write-level delegate cannot
 correct the medication they added ten seconds ago with a typo in the dose, and
@@ -144,7 +147,12 @@ entry, bulk actions and importing a file are yours.
 **Manage** adds the other half. A manager can change and remove entries,
 including ones you wrote yourself, can record your health background (allergies,
 family history and the facts under Anamnesis), and can read the insights
-generated from the record. Everything they do is recorded under their own name,
+generated from the record. Three kinds of entry are *created* at manage rather
+than at write, because the whole section is a manage section: a mood entry, a
+mental-health screener, and a cycle entry.
+
+The document vault is the one section no grant writes to. Upload, filing,
+sharing and the AI verbs on a document stay with the owner at every level. Everything they do is recorded under their own name,
 with a verb that says what it was rather than "made a change".
 
 Two refusals hold at every level, manage included. A delegate cannot defer one
