@@ -34,7 +34,9 @@ wildcard token a native sign-in holds. The reason is lifetime rather than
 reach: the sign-in a phone holds lasts a day, and what it could mint here lasts a year, so a credential that
 leaked for an afternoon would leave behind one that outlives cancelling it.
 Mints are limited to ten per minute, and if the operator has switched the API
-off in the admin panel the mint is refused with `403`.
+off in the admin panel the mint is refused with `403`. You may hold ten live
+tokens at once; the eleventh mint is refused with `409` and the remedy is to
+revoke one, not to wait.
 
 ## What the token can and cannot do
 
