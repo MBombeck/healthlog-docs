@@ -20,6 +20,7 @@ automatically. For what each provider sees, read
 | Anthropic | [console.anthropic.com](https://console.anthropic.com/settings/keys) | `claude-sonnet-4-6` | Anthropic default | Context sent to Anthropic |
 | Local | none (your endpoint) | your model | OpenAI-compatible URL you control | Stays on your network |
 | ChatGPT OAuth | sign in with your ChatGPT account | Codex-routed | Codex-routed | Via your ChatGPT subscription |
+| OpenAI-compatible gateway | the credential your gateway issues, if it wants one | your model | the gateway URL you configure | Context sent to your gateway |
 
 The model is overridable per provider in `/settings/ai` — e.g. a lighter
 `gpt-4o-mini` trades some reasoning headroom for a lower per-token cost. Cost
@@ -96,9 +97,11 @@ Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
 The **Local** provider speaks the plain OpenAI chat-completions dialect, so it
 also covers gateways and routers, not just single-model servers: LiteLLM,
 OpenRouter, vLLM, LM Studio, or any proxy that exposes an OpenAI-compatible
-`/v1` endpoint. A gateway always goes through **Local**: the OpenAI provider
-deliberately pins `api.openai.com`, so an OpenAI API key is never forwarded to
-a custom host. Point the base URL at the gateway (it ends with `/v1` — e.g.
+`/v1` endpoint. A gateway also has its own provider entry, **OpenAI-compatible
+gateway**, with its own base URL, model and optional key, held in three
+dedicated columns so neither the OpenAI base URL nor the OpenAI key can leak
+into it; the OpenAI provider deliberately pins `api.openai.com`, so an OpenAI
+API key is never forwarded to a custom host. Point the base URL at the gateway (it ends with `/v1` — e.g.
 `https://openrouter.ai/api/v1`), pick the model name the gateway routes, and
 set the API key field if the gateway expects one — the Bearer header is
 optional and simply omitted when no key is configured.

@@ -9,9 +9,10 @@ import adminSystemStatus from '../../../assets/screenshots/admin-system-status.p
 import adminBackups from '../../../assets/screenshots/admin-backups.png';
 
 You are the admin of an instance and want to know which console section
-controls a given thing. This page walks the Admin navigation top to bottom.
-Each entry says what the section does, what it needs, and which environment
-variable or stored setting stands behind it.
+controls a given thing. This page walks the Admin navigation top to bottom, in
+its five groups — System, Connectivity, AI, Account, Your data. Each entry says
+what the section does, what it needs, and which environment variable or stored
+setting stands behind it.
 
 One rule applies to the whole console. Admin routes accept a browser session
 only. The admin check resolves the session cookie and nothing else; a Bearer
@@ -55,6 +56,10 @@ stored setting. Turning a channel off here hides its card for every user;
 turning the API off refuses ingest and every MCP route regardless of the
 tokens users hold.
 
+## About
+
+The same version card users see under Settings, About: running version, an
+update check, and links to the repository, changelog, docs and credits.
 ## Integrations
 
 Three cards. Umami analytics (enable, script URL, website id, test action),
@@ -62,6 +67,12 @@ GlitchTip error reporting (enable, DSN, environment, test action), and Web
 Push VAPID keys, which you can generate here or supply through
 `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`. Umami and
 GlitchTip are stored settings, not environment variables.
+
+## API tokens
+
+A read-only, instance-wide list of every personal API token with owner,
+scope, and status (active, expired, revoked). There is deliberately no create
+action here; users mint their own tokens under Settings, API & Tokens.
 
 ## Coach
 
@@ -108,12 +119,6 @@ code, see status and redemptions, and revoke. Invites are how people join an
 instance whose registration is closed under General. See
 [Invites](/guides/invites/).
 
-## API tokens
-
-A read-only, instance-wide list of every personal API token with owner,
-scope, and status (active, expired, revoked). There is deliberately no create
-action here; users mint their own tokens under Settings, API & Tokens.
-
 ## Login overview
 
 The audit log with an action filter, a date-range preset (24 hours, 7 days,
@@ -153,8 +158,8 @@ Three cards: encryption coverage, rotation status with a trigger, and the
 per-column key-id breakdown. Rotation is the one admin action behind a
 step-up gate; a 401 here means you need a fresh second factor, or have none
 enrolled. Backed by `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY_ID`, or the
-legacy `ENCRYPTION_KEY`; keys must be 64 hex characters or the app refuses to
-start. Procedure in
+legacy `ENCRYPTION_KEY`; a key is 64 hex characters or 32 bytes of base64, and
+anything else stops the container at startup. Procedure in
 [Encryption key rotation](/guides/encryption-key-rotation/).
 
 ## Danger zone
@@ -163,7 +168,3 @@ One action: wipe all data on the instance. It requires typing `DELETE ALL`,
 which the server checks as well, and the response reports a count per table
 that held rows. It is not step-up gated; the typed confirmation is the gate.
 
-## About
-
-The same version card users see under Settings, About: running version, an
-update check, and links to the repository, changelog, docs and credits.

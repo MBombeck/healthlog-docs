@@ -41,7 +41,7 @@ Builds ship frequently. The [iOS repository CHANGELOG](https://github.com/MBombe
 The app authenticates against your own server — there is no central HealthLog account service.
 
 1. On first launch, enter the **base URL** of your instance (for example `https://health.example.com`).
-2. Sign in with a **passkey** (Face ID or Touch ID via [WebAuthn](https://en.wikipedia.org/wiki/WebAuthn)), or with the email-and-password fallback you configured on the server.
+2. Sign in with a **passkey** (Face ID or Touch ID via [WebAuthn](https://en.wikipedia.org/wiki/WebAuthn)), with your username or e-mail and password, or through your instance's single-sign-on provider, which opens in a system browser sheet and returns to the app. An instance running `OIDC_ONLY=true` offers only the last of the three.
 3. The server returns a bearer access token plus a refresh token. The app stores them in the iOS Keychain and rotates the refresh token automatically. The wire contract for this exchange is documented under [Native API clients](/reference/native-clients/).
 
 Refresh-token rotation is per device, and reuse detection revokes the family if a stolen token is replayed. A normal sign-out revokes the device's tokens server-side.

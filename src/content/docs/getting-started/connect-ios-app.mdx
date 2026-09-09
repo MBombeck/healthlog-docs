@@ -45,11 +45,10 @@ configured. This is an all-or-none set of environment variables:
 | `APNS_KEY_B64` | The `.p8` auth key contents, base64-encoded |
 
 :::caution[`.p8` key gotchas]
-`APNS_KEY_B64` is the variable the stock `docker-compose.yml` passes through to
-the container. The code also accepts `APNS_KEY` (raw contents) and
-`APNS_KEY_FILE` (a path), but neither is on the compose `environment:`
-whitelist, so setting them in `.env` with the stock compose file does nothing
-unless you add them there yourself. Prefer the base64 form anyway, because
+The code accepts three key sources — `APNS_KEY_B64` (base64), `APNS_KEY` (raw
+contents) and `APNS_KEY_FILE` (a path) — all three on the compose whitelist;
+precedence is `APNS_KEY_B64` > `APNS_KEY` > `APNS_KEY_FILE`. Prefer the base64
+form, because
 `env_file` mangling of the `.p8` body's literal newlines is the most common
 failure. The
 key must be scoped **Sandbox & Production** in the Apple Developer Portal; a

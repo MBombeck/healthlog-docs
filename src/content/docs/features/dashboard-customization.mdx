@@ -17,7 +17,7 @@ The daily briefing and the comprehensive insight are warmed **overnight** by a b
 
 The dashboard hero can carry up to **three score rings**, picked from a closed
 set of four: **readiness**, **recovery**, **sleep score**, and **today's
-doses**. Select and reorder them under **Settings → Dashboard** — changes
+doses**. Select and reorder them under **Settings → Appearance → Dashboard** — changes
 apply instantly, and the order you set is the order the hero renders.
 
 Rings are honest about their inputs:
@@ -36,7 +36,7 @@ devices like the rest of the layout settings.
 
 ## Customize the Layout
 
-1. Open the dashboard and tap the **Customize** icon in the top right (or **Settings → Dashboard**). Personal target values (BP, BMI, glucose, pulse) live in their own section at **Settings → Health Targets**.
+1. Open the dashboard and tap the **Customize** icon in the top right (or **Settings → Appearance → Dashboard**). Personal target values (BP, BMI, glucose, pulse) live in their own section at **Settings → Health Targets**.
 2. Toggle widgets on or off with the visibility switch.
 3. Drag the handle on the left of each widget to reorder.
 4. Save. Your layout is stored in your account and applies on every device.
@@ -96,7 +96,7 @@ same [7-day trend chip](#7-day-trend-on-every-tile) and per-metric colour as the
 rest.
 
 Like every other widget, the new tiles are **toggleable and reorderable** under
-**Settings → Dashboard** — hide the ones you don't follow, drag the ones you do
+**Settings → Appearance → Dashboard** — hide the ones you don't follow, drag the ones you do
 to the top. The [tile / chart split](#tile-and-chart-toggles-separately) applies
 here too, so you can keep a metric's tile without its chart.
 
@@ -148,7 +148,7 @@ Defaults are all off, so the default look is a clean line. Each switch is **per 
 
 ### Comparison overlays
 
-The **comparison toggle** — *off / vs. last month / vs. last year* — is a single global preference under **Settings → Dashboard**. The picker lives in `User.dashboardWidgetsJson.comparisonBaseline` and every chart consumes it. The cog menu on each chart card still handles trend, trend-arrow, and target-range overlays separately. With the toggle on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
+The **comparison toggle** — *off / vs. last month / vs. last year* — is a single global preference under **Settings → Appearance → Dashboard**. The picker lives in `User.dashboardWidgetsJson.comparisonBaseline` and every chart consumes it. The cog menu on each chart card still handles trend, trend-arrow, and target-range overlays separately. With the toggle on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
 
 AI Insights narrates the comparison ("your average BP improved by 4 mmHg vs. last month") when the toggle is active. See [Comparison views](/dashboard/comparison/) for the full walk-through.
 

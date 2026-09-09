@@ -38,12 +38,18 @@ worker, but the admin smoke test runs in the web container — set `BACKUP_*` on
 
 ```
 magic   = "HLBK"           (4 bytes, ASCII)
-version = 0x01             (1 byte)
+version = 0x03             (1 byte)
 iv      = 12 random bytes  (AES-GCM nonce)
-authTag = 16 bytes         (AES-GCM tag)
-ciphertext = N bytes       (AES-256-GCM, key = BACKUP_ENCRYPTION_KEY)
-plaintext  = JSON dump (UTF-8)
+ciphertext = N bytes       (AES-256-GCM over gzip(JSON dump), key = BACKUP_ENCRYPTION_KEY)
+authTag = 16 bytes         (AES-GCM tag, trailing)
 ```
+
+The trailing tag is what lets the object be written as a stream: GCM only
+produces the tag once the last block is in, so a leading tag means the whole
+object has to exist before its first byte can be sent. Versions `0x01` (JSON
+encrypted directly) and `0x02` (gzipped first, tag in front) are still read, so
+older objects restore unchanged and the restore script needs no flag to tell
+them apart.
 
 ## Smoke test
 
@@ -67,9 +73,11 @@ latencies. Credentials are never returned.
 
 ## Bucket lifecycle
 
-The worker prunes objects older than `BACKUP_RETENTION_DAYS`, but the provider's
-own lifecycle rule is the canonical safety net. For Cloudflare R2, add from the
-bucket's **Settings → Lifecycle**: expire all objects after 30 days.
+The worker never deletes a backup object — its grant is `PutObject`,
+`GetObject` and `AbortMultipartUpload` only — so the provider's lifecycle rule
+is the only thing that expires them; set it to match `BACKUP_RETENTION_DAYS`
+(default 30). For Cloudflare R2, add it from the bucket's
+**Settings → Lifecycle**: expire all objects after 30 days.
 
 ## Restore
 
