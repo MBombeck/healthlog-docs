@@ -22,9 +22,21 @@ Two things a token cannot do at all, both structurally rather than by policy: of
 A request opts in by sending **either**:
 
 - `X-Client-Type: native` header, **or**
-- `User-Agent` starting with `HealthLog-iOS/`
+- a `User-Agent` starting with `HealthLog-iOS`, `HealthLog-iPad`, `HealthLog-Watch`, `n8n`, or `Health-Connect`
 
 The browser flow is unchanged: without one of those signals you get only the session cookie.
+
+### Single sign-on
+
+An instance with OIDC configured offers a third route to the same bundle. The
+app opens `GET /api/auth/oidc/login?client=native&code_challenge=<S256>` in a
+system browser sheet; the callback returns to the compiled-in scheme
+`healthlog://oidc-callback` with a one-time handoff code (or an `mfa_ticket`
+when the account carries a second factor), and the app exchanges that code at
+`POST /api/auth/oidc/native/token` for the standard native bundle. The
+`redirect_uri` is a compile-time constant rather than a parameter, and the
+token pair never rides a URL — only the opaque code does. An instance running
+`OIDC_ONLY=true` offers this flow alone.
 
 ### Response shape (native)
 
@@ -54,7 +66,7 @@ curl -s -X POST https://your-instance.example.com/api/auth/refresh \
   -d '{"refreshToken": "hlr_z9y8x7w6..."}'
 ```
 
-**Reuse-detection**: presenting the same refresh token a second time revokes **every** refresh token for the user. The legitimate device gets a forced re-login; the attacker holding a stolen token is now locked out. Send `revoke: true` on a normal logout to mark both the refresh row and its paired access token as revoked.
+**Reuse-detection**: presenting the same refresh token a second time revokes every refresh token for that device. Only a token issued before per-device families existed, or one presented with a device id that does not match the stored row, escalates to a user-wide revoke. The affected device gets a forced re-login; the attacker holding a stolen token is now locked out. Send `revoke: true` on a normal logout to mark both the refresh row and its paired access token as revoked.
 
 A stable `errorCode` on the refresh response lets a client tell a **revoked family** (the device must re-authenticate) apart from a **transient failure** (retry is safe), so the app doesn't bounce a user to login on a network blip.
 

@@ -165,8 +165,10 @@ total Postgres slots as **container_count × pool_max**. A stock Postgres 16 shi
 | 3 | 1 | 4 | 80 | 20 |
 | 4 | 1 | 5 | 100 | 0 (do not exceed) |
 
-Override per container with `DATABASE_POOL_MAX`. Past the "0 headroom" row,
-every other client (`psql`, backups, the Prisma CLI during a migration) gets
-`FATAL: sorry, too many clients already`. Either raise `max_connections`, lower
-`DATABASE_POOL_MAX`, or front Postgres with PgBouncer in transaction-pooling
-mode.
+Override per container with `DB_CONNECTION_LIMIT`, which the bundled compose
+folds into `DATABASE_URL`; `DATABASE_POOL_MAX` is still read but is not on the
+compose whitelist, so setting it in `.env` alone does nothing. Past the
+"0 headroom" row, every other client (`psql`, backups, the Prisma CLI during a
+migration) gets `FATAL: sorry, too many clients already`. Either raise
+`max_connections`, lower `DB_CONNECTION_LIMIT`, or front Postgres with PgBouncer
+in transaction-pooling mode.

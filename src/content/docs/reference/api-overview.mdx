@@ -139,7 +139,7 @@ sanitised against the echoed input.
 ## Idempotency
 
 Write endpoints (`POST` / `PUT` / `PATCH` / `DELETE`) honour an
-`Idempotency-Key: <uuid>` header. The first request runs and the response is
+`Idempotency-Key` header of 8 to 128 characters from `A-Za-z0-9_-:.`. The first request runs and the response is
 cached; a replay with the same key returns the cached response instead of
 re-running the mutation.
 
@@ -155,14 +155,14 @@ This is what makes the native client's retries safe over flaky mobile networks.
 
 ## Rate limits
 
-Protected endpoints return rate-limit headers on every response:
+A rate-limited endpoint attaches these headers to its `429`:
 
 | Header | Meaning |
 | --- | --- |
 | `X-RateLimit-Remaining` | Requests left in the current window |
 | `X-RateLimit-Reset` | ISO-8601 timestamp when the window resets |
 
-Over the limit returns `429`. Limits live in Postgres (a single atomic SQL
+Limits live in Postgres (a single atomic SQL
 upsert), so multi-instance correctness is structural. The bucket key is
 `<surface>:<identifier>` — `userId` for authenticated routes, the trusted-proxy
 IP for anonymous ones (see [`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).

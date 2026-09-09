@@ -43,7 +43,8 @@ The core ingest and read surface. Batch endpoints power the native client.
 :::note[Batch overwrite contract]
 `POST /api/measurements/batch` recognises `externalId` values starting with
 `stats:` (e.g. `stats:HKQuantityTypeIdentifierStepCount:YYYY-MM-DD`) as
-**overwrites** — a re-post replaces value / unit / measuredAt / deviceType. Every
+**overwrites** — a re-post replaces value, unit, measuredAt, externalSourceVersion,
+deviceType and sleepStage. Every
 other externalId prefix keeps first-write-wins immutability, because each sample
 is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
 `"inserted"` for a fresh row.
