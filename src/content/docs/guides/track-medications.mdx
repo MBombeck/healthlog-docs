@@ -76,7 +76,12 @@ inside its multi-day catch-up window reads as late, not missed.
 Mark a dose taken, skipped, or snoozed from the card, the detail page, or a
 reminder action button. The write path attributes the intake to the slot whose
 window it falls in. A take outside every window records as **ad-hoc** rather than
-snapping to a far-off slot. Marking taken or skipped recomputes the history and
+snapping to a far-off slot. A taken, skipped or auto-missed row resolves
+exactly one occurrence, the one nearest its anchor, so on a schedule whose
+doses sit closer than twelve hours (19:49 and 23:59, say, or 08:00 and 12:00)
+logging the first dose leaves the second one due on the card rather than
+skipping to tomorrow; the compliance cycle on the card follows the same rule.
+That holds since v1.38.17. Marking taken or skipped recomputes the history and
 rate immediately. A skip is a pause and not a miss: it leaves the denominator on
 every surface that shows a rate, the dashboard tile included, so deciding
 against a dose does not read as forgetting one.

@@ -108,7 +108,7 @@ from `NEXT_PUBLIC_APP_URL`.
 | `POLAR_REDIRECT_URI` | Callback override for Polar. |
 | `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Optional shared [Strava](/guides/connect-strava/) app fallback; per-user Settings credentials are the primary path and always win. |
 | `STRAVA_REDIRECT_URI` | Callback override for Strava; defaults to `${NEXT_PUBLIC_APP_URL}/api/strava/callback`. |
-| `NIGHTSCOUT_PRIVATE_ORIGINS` | Nightscout origins on your own network the per-user connection form should accept, comma-separated (e.g. `http://nightscout.lan:1337`). Without it a private address is refused as an SSRF target. See [Connect Nightscout](/guides/connect-nightscout/). |
+| `NIGHTSCOUT_PRIVATE_ORIGINS` | Nightscout origins on your own network the per-user connection form should accept, comma-separated (e.g. `http://nightscout.lan:1337`). Without it a private address is refused as an SSRF target. Same grammar as `NOTIFICATION_PRIVATE_ORIGINS` below; unchanged in v1.38.17. See [Connect Nightscout](/guides/connect-nightscout/). |
 | `INTEGRATION_FAILURE_ALERT_THRESHOLD` | Consecutive failures before an integration is reported as persistently failing and notified about. Default `3`, minimum `1`. |
 
 ## APNs — iOS push (all-or-none)
@@ -147,6 +147,44 @@ then these:
 | --- | --- |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | The VAPID key pair. |
 | `VAPID_SUBJECT` | `mailto:` contact embedded in pushes. |
+
+## Notification targets on a private network (optional)
+
+Since v1.38.17. Webhook and ntfy targets are resolved at send time and
+refused when the answer is a private, loopback, link-local or CGNAT address,
+which is the DNS-rebinding defence and which also stops a Gotify or an ntfy
+behind a LAN reverse proxy. The operator opens a target by listing its exact
+origin; nothing else widens.
+
+| Variable | Purpose |
+| --- | --- |
+| `NOTIFICATION_PRIVATE_ORIGINS` | Comma-separated exact origins of webhook and ntfy targets on your own network, e.g. `https://gotify.example.com,http://ntfy.lan:8080`. Read from the server environment only; it must be on the compose `environment:` whitelist (the published `docker-compose.yml` lists it) and needs a restart. See [Reminder channels](/guides/reminder-channels/#targets-on-a-private-network). |
+
+The grammar, shared with `NIGHTSCOUT_PRIVATE_ORIGINS`:
+
+- One entry is one `scheme://host[:port]`, `http` or `https`. Scheme, host
+  and effective port must all match the URL the user saved:
+  `https://gotify.example.com:8443` and `https://gotify.example.com` are two
+  different grants.
+- No path, query, credentials, wildcard (`*.lan`), suffix or CIDR
+  (`10.0.0.0/8`). A range grant would let a DNS rebinding to any address in
+  the range pass the connect-time pin, so an operator with several relays
+  lists several origins.
+- Listing a host does not list its sub-hosts or sibling ports, public or
+  not.
+- Loopback (`http://127.0.0.1:8080`, `http://localhost:8080`, `::1`) is
+  grantable when listed exactly, for a relay on host networking.
+- Link-local, the cloud-metadata range (`169.254.0.0/16`, `fe80::/10`) and
+  the unspecified address (`0.0.0.0`, `::`) are never grantable. A literal
+  entry is refused at parse time; a listed name that resolves there is
+  refused at dial time.
+- A malformed entry is logged once at first use, without its query or
+  credentials, and grants nothing. The valid entries beside it keep working.
+
+A listed origin is still dialled through the pinned resolver with redirects
+forbidden, so a relay that answers with a redirect to another host is
+refused. Telegram, email and Web Push are not affected: their hosts are not
+user-supplied.
 
 ## IP geolocation (sign-in overview)
 
