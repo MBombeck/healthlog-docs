@@ -173,6 +173,19 @@ did not come from one of these buckets carries none of them, because there is no
 bucket to describe: a daily AI budget and a provider's own refusal relayed
 onward both look like that.
 
+Since v1.38.16 the single-record creates share one bucket per acting account:
+`POST /api/measurements`, `/api/mood-entries`, `/api/medications/intake`,
+`/api/medications/{id}/intake`, `/api/labs`, `/api/custom-metrics/{id}/entries`,
+`/api/cycle/day-logs`, `/api/vaccinations`, `/api/allergies`, `/api/biomarkers`
+and `/api/encounters`, at 300 requests a minute. The check runs after
+authentication and before the body is read, so a client looping on a 422 spends
+its allowance too, and it is keyed on the caller rather than the record, so a
+delegate burns their own allowance and cannot collect a fresh one by switching
+records. Its 429 carries the four headers and, uniquely among the limiter's
+refusals, `meta.errorCode: record_write.rate_limited`, which is how a client
+tells the shared bucket from a route's own. The batch endpoints keep their own
+60-a-minute buckets.
+
 Limits live in Postgres (a single atomic SQL
 upsert), so multi-instance correctness is structural. The bucket key is
 `<surface>:<identifier>` — `userId` for authenticated routes, the trusted-proxy
@@ -186,19 +199,32 @@ IP for anonymous ones (see [`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).
 | `201` | Resource created |
 | `202` | Accepted (async job queued) |
 | `204` | Success, no body |
-| `400` | Bad request |
+| `400` | Bad request, including a body that is not parseable JSON. `meta.errorCode` is `<surface>.body.invalid_json` on the routes that name it |
 | `401` | Not authenticated |
 | `403` | Forbidden |
 | `404` | Not found |
 | `413` | Payload too large (per-route body cap) |
-| `422` | Validation error (multi-issue Zod envelope) |
+| `422` | The body parsed but failed the schema; `details.issues` names every field. One route, `PUT /api/auth/me/health-score-config`, answers a non-JSON body with 422 too, because its published contract promised that |
 | `429` | Rate limit exceeded |
 | `500` | Internal error |
 
-## Auth error codes
+## Error codes
+
+Every `meta.errorCode` the server emits is enumerated, grouped by the surface
+that emits it, in the `ErrorEnvelope` description of the
+[OpenAPI document](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml):
+257 codes across 47 surfaces at v1.38.16, plus a small group that carries no
+prefix, held to the source by a guard that fails when a code is emitted and not
+listed or listed and no longer emitted. Four spellings coexist (`dot.case`, bare
+`snake_case`, a `camelCase` segment, a hyphen) and none is renamed, because a
+shipped client branches on the value. Two families are deliberately outside the
+list: `assistant.disabled.<surface>` is built from a template, and the
+integration probes' classes (`credentials_rejected`, `rate_limited`,
+`upstream_error`, `timeout`, `connection_failed`) are enumerated on each `/test`
+operation instead.
 
 The generic auth gates, the ones every route passes through before its own body
-runs, name their reason in `meta.errorCode`. Branch on that field: the English
+runs, are the codes every client meets first. Branch on the field: the English
 sentence beside it may be reworded or localised at any time.
 
 | Code | Status | Means |

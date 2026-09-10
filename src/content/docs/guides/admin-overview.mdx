@@ -69,7 +69,15 @@ Three cards. Umami analytics (enable, script URL, website id, test action),
 GlitchTip error reporting (enable, DSN, environment, test action), and Web
 Push VAPID keys, which you can generate here or supply through
 `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`. Umami and
-GlitchTip are stored settings, not environment variables.
+GlitchTip are stored settings, not environment variables. The GlitchTip badge
+tracks delivery, not intent: it is green only while a report has actually left
+this host inside the last fourteen days, amber while a target is set and
+nothing has come back from it, and it names the reason when the last attempt
+was refused (a wrong key, a wrong project id and a host that stopped answering
+all parse). The card names the host reports go to and never the key. Press
+**Test** to prove the target; that send is recorded like any other. There is
+no default target: reports leave the host only after somebody typed a DSN
+here.
 
 ## API tokens
 
@@ -146,7 +154,8 @@ event. Optional shipping to Loki is configured with `LOKI_USERNAME` and
 
 ## Backups
 
-The backup table with run now, upload, download, a summary, and restore. A
+Two cards. The backup table with run now, upload, download, a summary, and
+restore. A
 backup is a database row, not a file on disk, and the payload never reaches
 the browser except through the download action. Restore asks you to type
 `RESTORE` and replaces rather than merges: every row the account gained after
@@ -163,6 +172,13 @@ off after a restore until re-enabled. Optional off-site copies use
 `BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY`,
 `BACKUP_S3_SECRET_KEY` and `BACKUP_ENCRYPTION_KEY`. Full procedure in
 [Backups](/guides/backups/).
+
+Below the table, since v1.38.16, **Off-host copies**: one row per account with
+the state of its newest object in your bucket (fresh, due, stale, never, or no
+record yet), the size, and when the nightly run last checked it, stale first.
+It reads the worker's ledger, not the bucket, and says plainly when off-host
+backup is not configured. See
+[Which account has no copy](/guides/backups/#which-account-has-no-copy).
 
 <figure>
   <img src={adminBackups.src} alt="Admin Backups page: an upload-backup panel that validates a JSON file, a table with one row showing the user, a weekly automatic snapshot of 3.00 MB and its timestamp with download and restore actions, a 90-day retention note, and a 'Backup now' button" />
