@@ -138,10 +138,12 @@ sanitised against the echoed input.
 
 ## Idempotency
 
-Write endpoints (`POST` / `PUT` / `PATCH` / `DELETE`) honour an
-`Idempotency-Key` header of 8 to 128 characters from `A-Za-z0-9_-:.`. The first request runs and the response is
-cached; a replay with the same key returns the cached response instead of
-re-running the mutation.
+Idempotency is opt-in per route, not a property of the method. A route that
+declares it accepts an `Idempotency-Key` header of 8 to 128 characters from
+`A-Za-z0-9_-:.`, and the OpenAPI document names the header on every route that
+honours it. The first request runs and the response is cached; a replay with
+the same key returns the cached response with `X-Idempotent-Replay: true`
+instead of re-running the mutation.
 
 - Keys are **user-scoped** — a composite unique index by
   `userId_key_method_path` means a client cannot replay another user's key.

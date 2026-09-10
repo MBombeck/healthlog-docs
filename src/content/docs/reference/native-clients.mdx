@@ -94,7 +94,7 @@ The measurement delete routes **soft-delete** (write a tombstone) rather than ha
 
 An [idempotent](https://en.wikipedia.org/wiki/Idempotence) request can be safely retried without changing the result beyond the first attempt — essential for a mobile client on a flaky network that can't tell a lost request from a lost response. HealthLog implements the [`Idempotency-Key` HTTP header](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header) convention (an IETF draft, still the canonical reference for the pattern).
 
-`POST` / `PUT` / `PATCH` / `DELETE` handlers honour an `Idempotency-Key: <8-128 chars>` header. Re-sending the same key for the same `(userId, method, path)` within 24 hours replays the original response with `X-Idempotent-Replay: true`.
+A route that declares idempotency honours an `Idempotency-Key: <8-128 chars>` header, and the OpenAPI document names the header on each one; the method alone does not decide it. Measurement, mood, lab, cycle, document and medication writes are covered, including adding a medication, logging a side effect and registering a supply container, which an offline queue replays after a lost response. Re-sending the same key for the same `(userId, method, path)` within 24 hours replays the original response with `X-Idempotent-Replay: true`.
 
 ```bash
 curl -X POST https://your-instance.example.com/api/measurements \

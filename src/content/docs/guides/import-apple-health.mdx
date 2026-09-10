@@ -48,7 +48,7 @@ The parser folds three XML element types into the schema:
 
 | XML element | Maps to | Notes |
 | --- | --- | --- |
-| `<Record>` | `Measurement` rows | One row per spot sample. Keyed by `HKMetadataKeyExternalUUID` when present, otherwise a deterministic `sample:<sha256>` fallback so re-imports stay idempotent. |
+| `<Record>` | `Measurement` rows | One row per spot sample. Keyed by `HKMetadataKeyExternalUUID` when present, otherwise a deterministic `sample:<sha256>` fallback so re-imports stay idempotent. The record's own `unit` attribute is converted before storage. |
 | `<Workout>` | `Workout` rows | Activity type + duration + energy + distance. |
 | `<Correlation>` | `Measurement` rows | Compound samples like blood pressure explode into per-metric children; the child Records import individually. |
 
@@ -63,6 +63,25 @@ convention. The external ID format is `stats:<HKType>:<YYYY-MM-DD>` (e.g.
 `stats:HKQuantityTypeIdentifierStepCount:2026-05-15`). The day boundary respects
 your [timezone preference](/explanation/timezone-model/), defaulting to
 `Europe/Berlin` when none is set.
+
+### Units come from the archive, not from the type
+
+Apple stamps every quantity `<Record>` with the account's own display unit, so
+the same archive reports walking distance in `km` for a metric account and `mi`
+for an imperial one, body mass in `kg`, `lb` or `st`, and energy in `kcal` or
+`kJ`. The importer converts each value out of the unit the record carries before
+storing it, through the same table the workout import uses. A unit string it
+cannot place is stored unconverted rather than rescaled on a guess.
+
+Archives imported before v1.38.14 folded walking distance as if the number were
+already metres, so a metric account reads a kilometre day as a couple of metres.
+Re-uploading the same `export.zip` on this release or later rewrites every
+affected day; the fold UPSERTs the same rows, so nothing duplicates. For an
+account that no longer has its archive, the
+[walking-distance repair runbook](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/apple-health-distance-repair.md)
+covers `scripts/repair-apple-health-distance.ts`, which reports without writing
+by default and must be run at most once per account: an account that was
+re-imported must not then be repaired.
 
 ### Re-import idempotency
 

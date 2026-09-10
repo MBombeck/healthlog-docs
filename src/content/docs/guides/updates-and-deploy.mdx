@@ -93,6 +93,40 @@ pnpm dlx tsx scripts/assert-deploy.ts <version>   # e.g. the tag you deployed
 Pass `--only=prod` / `--only=demo` for a single target, or
 `--attempts=N --interval=ms` to widen the retry window while a slow pull settles.
 
+## Walk the synthetic journey
+
+The version check proves the instance serves the right build. It does not prove
+a person can use it. `scripts/synthetic-journey.mjs` warms the instance, checks
+`/api/version` against the tag you deployed, signs in, writes a reading with an
+idempotency key, reads it back and deletes it again, printing one line per leg
+with its elapsed time and stopping at the first failure:
+
+```bash
+BASE_URL=https://your-instance.example.com \
+SYNTHETIC_USERNAME=<probe account> \
+SYNTHETIC_PASSWORD=<its password> \
+EXPECTED_VERSION=vX.Y.Z \
+  node scripts/synthetic-journey.mjs
+```
+
+It is plain Node 22 with no dependencies, so it runs from a workstation, a
+runner or the deploy host. Two preconditions on the probe account: it must be
+password-only, because the password flow stops at the MFA ticket for an account
+with a second factor, and the target must not be a demo instance, where every
+mutation is blocked and the write leg would be red for a reason that has nothing
+to do with the deploy.
+
+A red leg names the layer. `version` means the instance serves a different build
+than the tag; check the image digest and `pull_policy` first. `sign in` means
+sessions are broken, or the probe account gained a second factor. `write` means
+the database, the encryption keys or a migration that did not run. `read back`
+means a value was written and cannot be read back; roll back. `delete` means the
+reversible delete is broken and the probe reading is still on the account.
+
+The same journey runs by hand as the **Synthetic journey** workflow in the
+server repository. Nothing calls it from the deploy path. Full runbook:
+[Ops → Deploy](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/deploy.md).
+
 ## Pin the image by digest
 
 Tags (`:latest`, `:v1.38.0`) are mutable aliases. The digest is the image's
