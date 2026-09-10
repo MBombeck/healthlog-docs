@@ -168,7 +168,7 @@ See [Backups](/guides/backups/).
 | `BACKUP_S3_ACCESS_KEY` / `BACKUP_S3_SECRET_KEY` | Credentials. |
 | `BACKUP_S3_REGION` | Defaults to `auto`. |
 | `BACKUP_ENCRYPTION_KEY` | Separate AES key — **must not** equal `ENCRYPTION_KEY`. |
-| `BACKUP_RETENTION_DAYS` | Defaults to `30`. |
+| `BACKUP_RETENTION_DAYS` | Not read by the app. The number for your bucket's lifecycle rule, kept here so the two agree. |
 
 ## Audit-trail retention
 

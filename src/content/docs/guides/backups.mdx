@@ -26,7 +26,7 @@ The backup runs at **02:30 Europe/Berlin** daily from the worker container
 | `BACKUP_S3_ACCESS_KEY` | yes | |
 | `BACKUP_S3_SECRET_KEY` | yes | |
 | `BACKUP_S3_REGION` | no | defaults to `auto` (Cloudflare R2) |
-| `BACKUP_RETENTION_DAYS` | no | defaults to `30` |
+| `BACKUP_RETENTION_DAYS` | no | Not read by the app. The number you set your bucket's lifecycle rule to. |
 
 These are **all-or-none**: setting some but not all disables backups silently.
 The set is on the compose `environment:` whitelist. If you run a
@@ -75,9 +75,11 @@ latencies. Credentials are never returned.
 
 The worker never deletes a backup object — its grant is `PutObject`,
 `GetObject` and `AbortMultipartUpload` only — so the provider's lifecycle rule
-is the only thing that expires them; set it to match `BACKUP_RETENTION_DAYS`
-(default 30). For Cloudflare R2, add it from the bucket's
-**Settings → Lifecycle**: expire all objects after 30 days.
+is the only thing that expires them, and nothing in the app reads
+`BACKUP_RETENTION_DAYS`. Set the rule to the number of days you want the
+history to survive, and set the variable to the same number so the two agree
+on paper. For Cloudflare R2, add it from the bucket's
+**Settings → Lifecycle**.
 
 ## Restore
 

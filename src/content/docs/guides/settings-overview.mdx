@@ -24,10 +24,14 @@ minutes) when the account has one enrolled; those are marked "step-up".
 ## Account
 
 Profile fields: username, gender, height, date of birth, display language,
-avatar. A separate block holds the identity details that end up on the
-doctor report (full name, insurer, insurance number). Needs nothing beyond a
-signed-in session. Cycle tracking is not switched on here; that lives under
-Modules.
+avatar. A field the server refuses, a height outside the accepted range or a
+date it will not take, is reported underneath the input that holds it, in the
+interface language, and the save waits instead of moving on with the value
+dropped. The first-run profile step behaves the same way and will not mark
+setup finished over a refused field. A separate block holds the identity
+details that end up on the doctor report (full name, insurer, insurance
+number). Needs nothing beyond a signed-in session. Cycle tracking is not
+switched on here; that lives under Modules.
 
 ## Security
 

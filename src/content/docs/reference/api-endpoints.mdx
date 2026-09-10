@@ -72,6 +72,13 @@ with `422`, and a batch from it does not move the phone's sync checkpoint. See
 The compliance numbers come from the dose ledger — see
 [Medication compliance](/explanation/medication-compliance/).
 
+Adding a medication (`POST /api/medications`), logging a side effect
+(`POST /api/medications/{id}/side-effects`) and registering a supply container
+(`POST /api/medications/{id}/inventory`) honour `Idempotency-Key`. A replay
+after a lost response returns the first answer with `X-Idempotent-Replay: true`
+instead of creating a second row, which is what the native client's offline
+queue relies on.
+
 ## Insights & coach
 
 The largest group. Per-metric status endpoints, the comprehensive payload, the
@@ -338,8 +345,12 @@ that already has access.
 
 ## Integrations
 
-OAuth connect / sync / test / resume for Withings, WHOOP, Oura, Polar, Strava,
-Nightscout, and Google Health/Fitbit, plus the inbound webhooks. See the integration guides
+Connect / sync / test / resume for Withings, WHOOP, Oura, Polar, Strava and
+Google Health/Fitbit over OAuth, plus the inbound webhooks. Nightscout is not an
+OAuth provider: `POST /api/nightscout/connect` takes a URL and a token and
+encrypts both at rest, and `/api/nightscout/{sync,status,test,disconnect}`
+complete the set. All five are in the OpenAPI document, so a client generating
+from the contract finds them. See the integration guides
 ([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Google Health](/guides/connect-google-health/)) and
 [Webhooks](/reference/webhooks/).

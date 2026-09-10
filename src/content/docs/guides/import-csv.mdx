@@ -111,7 +111,11 @@ saturation 50 to 100 percent. A value outside it is skipped rather than stored.
 `RANDOM` or `BEDTIME`. It is optional on `BLOOD_GLUCOSE` rows, and a blank cell
 is stored as no context at all rather than as a guessed one, which is what a
 continuous sensor export needs: the sensor takes a reading every few minutes
-and classifies none of them.
+and classifies none of them. An untagged reading is a bucket of its own, not a
+lesser row: it fills the Blood Glucose tile, carries its value and trend, gets a
+target card judged against the random-reading band, and reaches the doctor
+report and the FHIR export. A meter synced through Apple Health writes no
+meal-time metadata, so for many accounts this is every reading they have.
 
 Two ways to get it wrong. A value that is not one of the four is skipped with
 `glucose context is not one of the allowed values`. A non-empty context on a
