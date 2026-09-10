@@ -157,12 +157,21 @@ This is what makes the native client's retries safe over flaky mobile networks.
 
 ## Rate limits
 
-A rate-limited endpoint attaches these headers to its `429`:
+A `429` the rate limiter produced carries four headers:
 
 | Header | Meaning |
 | --- | --- |
-| `X-RateLimit-Remaining` | Requests left in the current window |
-| `X-RateLimit-Reset` | ISO-8601 timestamp when the window resets |
+| `Retry-After` | Whole seconds to wait. Rounded up, never below 1 |
+| `X-RateLimit-Limit` | Requests the bucket allows per window |
+| `X-RateLimit-Remaining` | Requests left in the current window, `0` on a refusal |
+| `X-RateLimit-Reset` | ISO-8601 instant the window rolls over, not epoch seconds |
+
+Back off on `Retry-After` rather than guessing, which is what an offline queue
+that tripped a cap needs. Every limited route carries the four, the batch
+endpoints, `/api/sync/changes` and `/api/auth/refresh` among them. A `429` that
+did not come from one of these buckets carries none of them, because there is no
+bucket to describe: a daily AI budget and a provider's own refusal relayed
+onward both look like that.
 
 Limits live in Postgres (a single atomic SQL
 upsert), so multi-instance correctness is structural. The bucket key is
@@ -185,6 +194,27 @@ IP for anonymous ones (see [`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).
 | `422` | Validation error (multi-issue Zod envelope) |
 | `429` | Rate limit exceeded |
 | `500` | Internal error |
+
+## Auth error codes
+
+The generic auth gates, the ones every route passes through before its own body
+runs, name their reason in `meta.errorCode`. Branch on that field: the English
+sentence beside it may be reworded or localised at any time.
+
+| Code | Status | Means |
+| --- | --- | --- |
+| `auth.missing` | `401` | No session cookie and no Bearer header. Send the user to sign in |
+| `auth.token.expired` | `401` | The Bearer token's lifetime has passed. Refresh and retry |
+| `auth.token.invalid` | `401` | Unknown, revoked, or the owning account is gone. Discard the credential; retrying will not help |
+| `auth.mfa.code_invalid` | `401` | A second factor presented on a step-up flow did not verify. Re-prompt for a code and keep the session |
+| `auth.stepup.required` | `401` | The route needs a fresh factor. Re-prove and retry |
+| `auth.scope.insufficient` | `403` | The credential is valid but its scope does not reach this route, which includes any Bearer token against an admin surface |
+| `auth.admin.required` | `403` | A cookie session that is not an admin's |
+
+A route that checks a credential of its own, meaning sign-in, the MFA challenge
+exchange or a password confirmation, may still answer `401` with prose and no
+code. A missing `meta.errorCode` there means the route refused the credential it
+was handed, not that the response is malformed.
 
 ## Example
 

@@ -33,7 +33,10 @@ generated from the record.
 
 What none of the three reaches is the account around the record: your login,
 your second factor, your connected services, your API tokens, where your
-notifications go, which modules and thresholds are on, and who else has access.
+notifications go, the module and threshold settings themselves, and who else has
+access. A delegate does see which parts of the record are switched on, because
+the navigation has to follow the record rather than their own account, and a
+scoped grant sees that only for the sections it opens.
 That line is drawn on the server, and it does not move with the level.
 
 There is no way to raise a grant you already sent. Moving somebody up a level
@@ -206,6 +209,11 @@ Three more properties worth knowing.
   manage is refused rather than quietly narrowed.
 - **A scope never grows.** A grant opens the sections it named when it was sent
   and nothing added in a later release; a new section takes a new invitation.
+- **A scope hides what it does not open.** The module map a delegate's client
+  reads is masked to the sections the grant names, so somebody scoped to your
+  readings does not learn whether you track your cycle, run the screeners, keep
+  an illness journal or log supplements. The cycle flag reads as off outside a
+  grant that opens it, whatever the record's own setting says.
 - **Every grant written before v1.37.0 opens the entire record** and is
   untouched. Nobody has to agree to anything again.
 

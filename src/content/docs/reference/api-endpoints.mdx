@@ -202,6 +202,25 @@ with:
 it as a closed set and would fail on a third case, so `MANAGE` does not go
 there. `GET /api/account/grants` reports the level on every row.
 
+Two fields on the payload describe the **record** rather than the caller, and
+everything else on it describes the caller. `modules` and `cycleTrackingEnabled`
+report the active record's state, because every surface they gate shows the
+record's data, and under a scoped grant both are masked to the sections the
+grant opens. With no active switch, which is every Bearer request, the two are
+the same account and nothing is masked. Beside the booleans, `moduleAccess`
+carries one of `enabled`, `disabled`, `not_granted` or `unavailable` per module.
+Precedence runs highest first: `unavailable` (the operator switched the module
+off for the whole instance) beats `not_granted` (the grant's sections do not
+open it) beats `disabled` (the record turned it off) beats `enabled`.
+`modules[key]` is exactly `moduleAccess[key] === "enabled"` for every key, so
+the reason is extra information and never a second gate. `notificationPrefs`
+carries the resolved preferences, including
+`notificationPrefs.medication.clientManaged`.
+
+The record's own module map is read and written at `GET` and
+`PATCH /api/record-settings/modules` while the browser is switched into it, so a
+guardian changes the child's modules without touching their own.
+
 ### One refusal, everywhere
 
 Every one of these answers `403` with `meta.errorCode: sharing.access.denied`,
@@ -283,6 +302,9 @@ is a `MANAGE` grant with the profile as the grantor. See
 | Method | Endpoint | Notes |
 | --- | --- | --- |
 | `POST` | `/api/managed-profiles` | Create a profile and become its first guardian, in one transaction. Cookie only, unconditional fresh second factor, ten an hour |
+| `GET` | `/api/managed-profiles/{id}` | The record's identity as it stands, the read an edit form fills itself from. Cookie only, an actor surface, no step-up |
+| `PATCH` | `/api/managed-profiles/{id}` | Change the record's identity. Cookie only, unconditional fresh second factor, ten an hour |
+| `DELETE` | `/api/managed-profiles/{id}` | End the record and everything in it. Cookie only, unconditional fresh second factor. This is the documented way out of the last-guardian floor |
 | `GET` | `/api/managed-profiles/{id}/guardians` | Who looks after this record now. Cookie only, no step-up. An actor surface: it answers from a guardian's own account |
 | `POST` | `/api/managed-profiles/{id}/guardians` | Invite another guardian. Ten an hour per caller |
 | `DELETE` | `/api/managed-profiles/{id}/guardians/{grantId}` | End somebody else's guardianship |
@@ -291,12 +313,23 @@ There is deliberately no list endpoint. The profiles a guardian looks after are
 the `recordKind: "managed"` entries of `accountAccess.accounts` on
 `/api/auth/me`, so re-read the account payload after any change in this family.
 
-`POST /api/managed-profiles` answers with
-`{ id, displayName, dateOfBirth | null, locale, timezone, recordKind }`.
+`POST /api/managed-profiles` takes `displayName`, `locale` and `timezone`, plus
+an optional `dateOfBirth` and an optional `gender` (`MALE`, `FEMALE`, `OTHER`
+or null), and answers with the record as it now stands:
+`{ id, displayName, dateOfBirth | null, gender | null, locale, timezone, recordKind }`.
 `locale` and `timezone` belong to the record rather than to the guardian reading
 it: they decide how the profile's own reminders are worded and when its day
 starts. `dateOfBirth` is an optional `YYYY-MM-DD` and is never synthesised from
-a year.
+a year. `gender` is what the cycle module derives its default from, so a record
+created for somebody who does not need it starts with the module off.
+
+`GET /api/managed-profiles/{id}` answers with that same shape, and
+`PATCH /api/managed-profiles/{id}` takes the same five fields, every one
+optional and at least one required: an empty body is a `422` rather than a no-op
+that audits a change nobody made. Absence leaves a field alone, and an explicit
+null on `dateOfBirth` or `gender` clears it. A value the route will not take
+refuses the whole body with a `422` naming every issue, so a save never lands
+half-applied.
 
 A guardian row carries five fields and no more: `grantId`, `account`
 (`{ id, username, displayName }`, never an e-mail address), `state`
@@ -385,7 +418,10 @@ shared AI config. Bearer tokens cannot reach any of these.
 | --- | --- | --- |
 | `GET` / `POST` / `DELETE` | `/api/admin/invites` · `/{id}` | [Invite links](/guides/invites/) |
 | `GET` | `/api/admin/notifications/diagnostic` | Masked tokens + last 20 attempts |
+| `POST` | `/api/admin/notifications/reminder-check` | Run the medication-reminder sweep. Instance-wide with no body; send `userId` to sweep one account |
 | `POST` | `/api/admin/backup/test` | S3 round-trip probe |
+| `POST` | `/api/admin/backups/{id}/restore` | Restore one stored snapshot over its owner's record. Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key` |
+| `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot |
 
 ## Meta & health
 

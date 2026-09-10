@@ -97,6 +97,11 @@ expects bare base64 and will throw on that prefix. So:
 Run rotation in a window where you have a fresh DB snapshot and the new image has
 been smoke-tested in production for at least 24 hours.
 
+If a stored backup was written under a key you have since removed from
+`ENCRYPTION_KEYS`, the console refuses to restore, download or preview it with
+`422` and `meta.errorCode: backup.payload.undecryptable`. Keep the retired entry
+in the map until the rotation script reports zero rows on it.
+
 ## Troubleshooting
 
 - `Encryption key id 'v1' is not configured` — the DB still has `v1.`-prefixed

@@ -60,6 +60,10 @@ If a client manages its own local reminders, it can set `clientManaged: true` on
 `MEDICATION_REMINDER` APNs. Only the APNs leg is skipped; Telegram, ntfy, and
 Web Push still deliver. Each skip emits a
 `medication_reminder_suppressed_client_managed` annotation.
+`GET /api/auth/me` reports the resolved value back as
+`notificationPrefs.medication.clientManaged`, so the web settings page can tell
+the person that their phone owns those reminders instead of leaving a switch
+that decides nothing.
 
 ## Diagnostics
 

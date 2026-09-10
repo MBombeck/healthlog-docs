@@ -129,6 +129,13 @@ other enabled channel (Telegram, ntfy, webhook, email, Web Push) still
 delivers, and each skip is annotated
 (`medication_reminder_suppressed_client_managed`).
 
+`GET /api/auth/me` publishes the resolved preference as
+`notificationPrefs.medication.clientManaged`, so the medication notification
+card can say so on screen. With it on, the card marks the server-side medication
+reminder as decided by your phone rather than by the switch in front of you,
+which is the honest reading: flipping that switch changes nothing for a paired
+device that reminds you itself.
+
 ## Diagnostics
 
 `/api/admin/notifications/diagnostic` surfaces masked device tokens, per-channel
