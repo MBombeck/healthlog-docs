@@ -15,9 +15,12 @@ the app is a contraception-grade or "safe day" claim.
 
 Cycle tracking follows its own switch, not the general module preference.
 Under Settings, Modules the cycle switch writes that setting directly. When
-it has never been set, the account's gender decides: accounts registered as
-female start with it on, everyone else with it off. The admin can disable the
-module for the whole instance. With it off, every cycle route refuses.
+it has never been set, the recorded gender decides: a record registered as
+female starts with it on, everyone else with it off. For a record with no login
+of its own that is the gender a guardian recorded when the record was created or
+edited, and recording one later moves the default rather than leaving the record
+stuck where it started. The admin can disable the module for the whole instance.
+With it off, every cycle route refuses.
 
 The `/cycle` page holds the goal (general health by default), your typical
 cycle, period and luteal lengths (bounded to 15 to 60, 1 to 15 and 10 to 16

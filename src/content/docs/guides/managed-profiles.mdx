@@ -31,8 +31,12 @@ first.
    record by, and it appears wherever the record does.
 4. Optionally give a **date of birth**. Leave it empty if you would rather not
    record one. Nothing is guessed from a year you did not give.
-5. Pick the **language of this record** and its **timezone**.
-6. Confirm your second factor.
+5. Optionally record the **gender** of the person the record is for. It is what
+   cycle tracking derives its default from, so a record created for somebody
+   who does not need it starts with the module off. Leave it empty and nothing
+   is derived.
+6. Pick the **language of this record** and its **timezone**.
+7. Confirm your second factor.
 
 The language and the timezone belong to the record rather than to you. They
 decide how text written into it is worded, when its days start and end, and how
@@ -48,12 +52,32 @@ The endpoint allows ten profiles an hour per account, the same ceiling the
 guardian invitation carries. If you are setting up a household at once and hit
 that, wait and carry on.
 
+## Change what the record is
+
+A guardian can change the five fields creation asked for: the name, the date of
+birth, the language, the timezone and the gender. Open the profile's panel under
+**Records you look after** and choose **Edit**. The form asks for your second
+factor, the same gate creating and deleting the record carry, and it allows ten
+edits an hour per account.
+
+Leaving a field alone keeps it, because the form sends only what you changed.
+Clearing the date of birth or the gender is a different answer from leaving it
+as it was, and the form sends that as an explicit clear. A value the server will
+not take refuses the whole save with a `422` and writes nothing, so a save is
+never half-applied.
+
+Nothing else about the record is reachable here. Credentials it does not have,
+its connected services and its health background are not identity, and the
+record's wider configuration lives under its own settings, described below.
+
 ## Keep its settings
 
 A guardian can keep the profile's own settings: its modules, its units, its
 language and timezone, its thresholds and its notification preferences. Each of
 those is read and written as that record's setting rather than as yours, so
-turning a module off for the profile leaves your own record alone.
+turning a module off for the profile leaves your own record alone. The
+navigation follows the record's own map while you are in it, so you see the
+doors that record has open rather than the ones yours does.
 
 Connected services are the exception. Inside a managed profile they show a
 status and nothing else. Connecting, syncing and disconnecting a wearable on

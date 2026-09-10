@@ -69,7 +69,10 @@ does not count as freshly verified. A recovery-code sign-in never remembers
 the device.
 
 Disabling the second factor, removing a security key, and regenerating
-recovery codes are step-up actions.
+recovery codes are step-up actions. Each asks for confirmation in a dialog, and
+the dialog closes once the server has answered, whichever way it went, so a
+refusal (usually a step-up that has gone stale) is readable on the card instead
+of painting underneath the overlay.
 
 ### Step-up (fresh factor)
 
@@ -78,7 +81,8 @@ signed in. The window is five minutes. Actions behind it, for accounts with a
 second factor: disabling the second factor, regenerating recovery codes,
 removing a security key or passkey, changing the password, deleting the
 account, resetting all data, the passphrase-encrypted export, creating an
-access invite, and creating or deleting a managed profile or its guardians.
+access invite, and creating, editing or deleting a managed profile or its
+guardians.
 Encryption-key rotation in the admin console is behind the same gate. An
 account with no second factor passes the conditional gates without a prompt.
 

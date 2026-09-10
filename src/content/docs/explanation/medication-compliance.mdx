@@ -52,7 +52,7 @@ percentage can never disagree with the timeline beneath it.
 | --- | --- |
 | **Taken on time** | Logged inside the dose window |
 | **Taken late** | Logged after the window but inside the catch-up reach |
-| **Skipped** | Explicitly skipped by the user |
+| **Skipped** | Explicitly skipped by the user. A skip leaves the denominator rather than counting against it, so a dose you decided not to take is a pause and never a miss. A day that is wholly skipped drops out of the window altogether |
 | **Missed** | The window (and catch-up reach) closed with no intake |
 | **Upcoming** | Pending — the window has not closed yet |
 
@@ -76,6 +76,12 @@ The cadence-aware rate is the single source of truth across every surface that
 shows a percentage — the coach prompt, the blood-pressure status gate, the
 dashboard pillar, the card, the detail page, and more. They all read the same
 `src/lib/analytics/compliance.ts`, so there is no second implementation to drift.
+
+The dashboard tile runs a schedule-anchored engine of its own rather than the
+ledger read, and until v1.38.15 it counted a deliberate skip as expected and
+missed, so the same day could read two rates. It subtracts the day's skips now,
+capped at the slots that day minted, and one test feeds both engines the same
+fixture and asserts one figure.
 
 :::note[Tracking, not advice]
 HealthLog tracks whether doses were taken on schedule. It does not advise on

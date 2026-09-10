@@ -114,6 +114,36 @@ from a checkout of the repository with the backup variables exported, through
 `pnpm dlx tsx` as above, not inside the container.
 :::
 
+## Restore from the console
+
+The bucket object is the disaster path. The routine one is the backup table
+under `/admin/backups`, which holds each account's stored snapshots as database
+rows. Pick a row, choose **Restore**, and type `RESTORE`.
+
+Two things to know before you do.
+
+**A restore replaces, it does not merge.** Every row the account gained after
+the snapshot was taken is removed along with the rest of its class, so a reading
+entered this morning is gone if the snapshot is from last night. That is the
+point of the action, and it is why the typed confirmation is there.
+
+**The instance settings stay put unless you ask.** The checkbox beside the
+confirmation, **Restore instance settings**, is off by default. Off, the restore
+touches one account's data. On, it also rewrites the singleton settings row:
+registration, the second-factor requirement, the default language and timezone,
+module availability, notification and AI configuration, and the document size
+cap and quota. Those apply to every account on the installation, so tick it only
+when you are rebuilding a host.
+
+A stored copy the instance cannot open is refused rather than reported as a
+crash. Restore, download and preview each answer `422` with
+`meta.errorCode: backup.payload.undecryptable`, and nothing is changed. There
+are two ways to earn it: the key that wrote the copy is no longer in
+`ENCRYPTION_KEYS`, which is a rotation that dropped the legacy entry too early,
+or the stored bytes are not the ones that were written. A copy that decrypts and
+then fails schema validation is a different thing and is reported as the server
+fault it is.
+
 ## What a backup does not carry
 
 Every credential-shaped row is left out, and this is a decision rather than an

@@ -29,7 +29,10 @@ last five minutes); those are marked "step-up" below.
 Host metrics chart and a status card: database, start time, user and
 measurement counts, active tokens and sessions, worker state, last reminder
 check, and the state of Umami, GlitchTip, Web Push, and the offline geo
-databases. A separate card lists failing background jobs, but only when a
+databases. Each row carries its state on the indicator beside it rather than in
+the colour of the text, so the wording stays readable in every state, including
+the worker-absent one a split deployment shows on the page served from the web
+process. A separate card lists failing background jobs, but only when a
 queue has actually given up. The geo row reflects `GEOLITE2_DIR`,
 `MAXMIND_LICENSE_KEY` and `IP_GEO_LOOKUP_DISABLED`; see
 [Offline geolocation](/self-hosting/geolite2/).
@@ -99,7 +102,13 @@ under [Settings, Modules](/guides/settings-overview/#modules).
 The two medication-reminder thresholds, late and missed, in minutes (defaults
 120 and 240), a send-test-notification action, a manual reminder check, and a
 notification health panel showing the last 24 hours of push attempts by
-channel and result plus the count of channels the dispatcher has auto-disabled. Channel setup for users is in
+channel and result plus the count of channels the dispatcher has auto-disabled.
+The console button sweeps the whole instance and dispatches into every account
+with an overdue dose and a configured channel, which is what you want when the
+worker has been down. Debugging one account is a different job: send `userId` on
+`POST /api/admin/notifications/reminder-check` and the sweep narrows to that
+account instead of becoming a second writer for everybody else. The selector
+narrows the query only and never the authorisation. Channel setup for users is in
 [Reminder channels](/guides/reminder-channels/).
 
 ## Users
@@ -140,9 +149,17 @@ event. Optional shipping to Loki is configured with `LOKI_USERNAME` and
 The backup table with run now, upload, download, a summary, and restore. A
 backup is a database row, not a file on disk, and the payload never reaches
 the browser except through the download action. Restore asks you to type
-`RESTORE` and is credential-free by design: API tokens, trusted devices,
-step-up elevations, known devices and clinician share links are excluded, so
-sharing is off after a restore until re-enabled. Optional off-site copies use
+`RESTORE` and replaces rather than merges: every row the account gained after
+the snapshot was taken is removed with the rest of its class. Beside the typed
+confirmation sits a **Restore instance settings** checkbox, off by default. Off,
+the restore touches the snapshot owner's data only and leaves registration, the
+second-factor requirement, the default language and timezone, module
+availability, the notification and AI configuration and the document caps
+exactly as they are. Tick it only when you are rebuilding a host from a
+snapshot, because those settings apply to every account on the installation.
+The restore is credential-free by design: API tokens, trusted devices, step-up
+elevations, known devices and clinician share links are excluded, so sharing is
+off after a restore until re-enabled. Optional off-site copies use
 `BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY`,
 `BACKUP_S3_SECRET_KEY` and `BACKUP_ENCRYPTION_KEY`. Full procedure in
 [Backups](/guides/backups/).
