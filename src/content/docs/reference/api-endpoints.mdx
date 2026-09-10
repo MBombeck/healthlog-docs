@@ -120,23 +120,36 @@ avatar, source priority, and the Codex device-OAuth flow.
 
 ### Onboarding (the needs-based flow)
 
-Server side since v1.38.16; the web wizard that asks the questions follows in
-a later release, so today's first-run steps are unchanged.
+Server side since v1.38.16, the screens since v1.38.18: `/onboarding` asks
+the questions and these three routes carry them. See
+[First steps](/getting-started/first-steps/#answer-the-setup-questions) for
+what the screens do.
 
 | Method | Endpoint | Notes |
 | --- | --- | --- |
-| `PATCH` | `/api/onboarding/answers` | One step at a time: `{ step, answer }` or `{ step, skip: true }`, never both. Idempotent by construction. Own record only; refuses under a switch with `403 sharing.not_permitted`. 120 writes per ten minutes, `onboarding.answers.rateLimited` |
-| `POST` | `/api/onboarding/complete` | Stamps the flow done and derives the module map from the answers exactly once, only when every question is answered or deliberately passed. Turns on what the answers name and writes an explicit off for the rest, but never a module switched on by hand and never one whose section already holds rows |
-| `POST` | `/api/onboarding/restart` | Re-asks the questions and keeps the module map; clears the once-only latch so a later confirm may derive again. Ten a ten-minute window, `onboarding.restart.rateLimited` |
+| `PATCH` | `/api/onboarding/answers` | One step at a time: `{ step, answer }` or `{ step, status: "skipped" }`, never both; `who` has no skip arm. Idempotent by construction. The `units` step also writes `glucoseUnit` and `unitPreference` on the account, in one transaction with the answer. Own record only; refuses under a switch with `403 sharing.not_permitted`. 120 writes per ten minutes, `onboarding.answers.rateLimited` |
+| `POST` | `/api/onboarding/complete` | Stamps the account past the first run and, for a record that finished the questions, derives the module map from the answers exactly once: on for what they name, an explicit off for the rest, never a module switched on by hand and never one whose section already holds rows. Seeds the dashboard order from the answers while the layout is unset. An empty body is the welcome screen's **Skip for now**: the stamp, and nothing derived. `managedRecordId` applies the derived map to a managed profile the caller guards instead of the caller's own record; `404 onboarding.complete.recordNotFound` when it is not one, `422 onboarding.complete.recordTargetMismatch` when the first answer was not `someone-else` |
+| `POST` | `/api/onboarding/restart` | Re-asks the questions with the answers kept as prefill, clears the completion stamp, the once-only latch and the first result, and writes no module state. Ten a ten-minute window, `onboarding.restart.rateLimited` |
+| `POST` | `/api/onboarding/disclaimer` · `/api/onboarding/tour` | The one-time disclaimer acknowledgement and the tour progress; unchanged |
 
-All three are actor-only and on the demo allowlist. The state rides on
+All five are actor-only and on the demo allowlist. The state rides on
 `GET /api/auth/me` as `onboarding`: the nine ordered steps (`who`, `areas`,
 `medication`, `sources`, `visit`, `units`, `confirm`, `first-result`, `done`)
-with `pending | done | skipped` each, the answers as given, `completedAt`
-(distinct from `onboardingCompletedAt`, which stays the first-run redirect's
-gate) and the one first result the flow offered. A record that never entered
-the flow reads as nine pending steps, so branch on the statuses, not on the
-field's presence.
+with `pending | done | skipped` each, the answers as given under `needs`,
+`completedAt` (distinct from `onboardingCompletedAt`, which stays the
+first-run redirect's gate) and `firstResult`, the one task the flow offered
+(`connect-source`, `add-medication` or `log-reading`, its target, and when it
+produced its result). `units` reads `done` for an account that already holds
+both unit preferences even though nobody answered it. A record that never
+entered the flow reads as nine pending steps, so branch on the statuses, not
+on the field's presence.
+
+The five-step wizard is gone with v1.38.18: `POST /api/onboarding/step`, the
+six goal slugs and the `users.onboarding_step` / `users.onboarding_goals`
+columns (migration `0339_retire_wizard_columns`). The native client never
+called the route or read the columns. See
+[Updates and deploy](/guides/updates-and-deploy/#migration-0339-in-v13818)
+before upgrading.
 
 ## API tokens
 

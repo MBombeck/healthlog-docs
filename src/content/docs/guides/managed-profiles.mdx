@@ -52,6 +52,51 @@ The endpoint allows ten profiles an hour per account, the same ceiling the
 guardian invitation carries. If you are setting up a household at once and hit
 that, wait and carry on.
 
+The setup flow creates one too. Answer **someone I look after** to its first
+question and the confirm screen shows this same form in place of your own
+baseline; the profile is created there, and the module map the answers imply
+is applied to the new record rather than to yours. Finishing without creating
+it derives nothing onto your record either, and a profile you create later
+here starts from the defaults below. See
+[First steps](/getting-started/first-steps/#answer-the-setup-questions).
+
+## What a new profile starts with
+
+A profile created here holds no module preferences of its own yet, so it
+reads the registry defaults: every ordinary module is on (mood, sleep,
+glucose, workouts, recovery, labs, illness, medications, doctor report,
+achievements, insights, Coach, environment, inbound documents, mental health,
+vaccinations), and the two opt-in modules, MCP and nutrients, are off. Weight,
+blood pressure and pulse are core and are always there. Cycle tracking is
+derived from the recorded gender: on for a record recorded as female, off
+otherwise, until somebody moves the switch by hand.
+
+A profile created on the setup flow's confirm screen starts from the answers
+instead: what they name is on, everything else is written off, vaccinations
+is on because the record is somebody else's, and cycle is switched on when
+the answers asked for it and otherwise left to the derivation above.
+
+## Switch a profile's modules
+
+The module map belongs to the record, so it is edited from inside the record.
+
+1. Open the account menu and choose the profile under **Open a record**.
+2. Open **Settings → Modules**. While you are switched in, the page is that
+   record's form, not yours.
+3. Move the switches you want to change.
+4. Choose **Save**. The whole map is written in one request to
+   `PATCH /api/record-settings/modules`, and the change is recorded under your
+   own name in the record's activity.
+
+The cycle switch is sent only when you moved it. A profile created with no
+recorded gender derives cycle off, and writing that off as an explicit answer
+on every save would freeze the derivation, so a gender recorded later could no
+longer switch it on.
+
+A change in your own record never propagates to a profile you look after, and
+a change inside the profile never reaches your own record: the two maps are
+two rows. The same holds for every other guardian.
+
 ## Change what the record is
 
 A guardian can change the five fields creation asked for: the name, the date of
@@ -72,7 +117,8 @@ record's wider configuration lives under its own settings, described below.
 
 ## Keep its settings
 
-A guardian can keep the profile's own settings: its modules, its units, its
+A guardian can keep the profile's own settings: its modules (see
+[Switch a profile's modules](#switch-a-profiles-modules)), its units, its
 language and timezone, its thresholds and its notification preferences. Each of
 those is read and written as that record's setting rather than as yours, so
 turning a module off for the profile leaves your own record alone. The

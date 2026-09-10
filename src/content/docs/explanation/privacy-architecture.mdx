@@ -77,6 +77,17 @@ User-supplied URLs are also validated at input time against an `isPublicUrl`
 floor that rejects every private-IP notation class (octal/hex/decimal IPv4,
 IPv4-mapped IPv6, ULA, CGNAT, link-local, loopback, metadata addresses).
 
+The floor has exactly one kind of exception, and it is the operator's, not the
+user's: an exact origin listed in the server environment
+(`NIGHTSCOUT_PRIVATE_ORIGINS` for a Nightscout instance, and since v1.38.17
+`NOTIFICATION_PRIVATE_ORIGINS` for a webhook or ntfy relay on the same
+network). A listed origin is still dialled through the pinned resolver with
+redirects forbidden, link-local and the metadata range stay refused even when
+listed, and a granted send is marked in the wide event as
+`notification.egress.private_origin` with the channel and origin. Grammar and
+refusal codes are on the
+[environment-variables reference](/reference/environment-variables/#notification-targets-on-a-private-network-optional).
+
 ## Redaction at the boundary
 
 Secrets are redacted **centrally at the egress boundary** — in the wide-event log

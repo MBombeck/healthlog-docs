@@ -1,6 +1,6 @@
 ---
 title: First steps
-description: After your first user lands, add a measurement, set up the admin panel, and point the instance at a public hostname.
+description: After your first user lands, answer the five setup questions, get a first result on the dashboard, tour the admin panel, and point the instance at a public hostname.
 sidebar:
   order: 3
 ---
@@ -10,14 +10,126 @@ import { Steps } from '@astrojs/starlight/components';
 Once you have a running instance and a first (admin) user, these are the things
 worth doing before you invite anyone or connect a device.
 
-## Add your first measurement
+## Answer the setup questions
 
-Open `/measurements` and add a weight or a blood-pressure reading. This confirms
-the data path is wired end to end — the entry lands in the `Measurement` table,
-the dashboard tile updates, and the chart picks it up. If you have years of
-history elsewhere, do not type it in by hand; use a device sync
-([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/)) or an
-[Apple Health import](/guides/import-apple-health/) instead.
+The first sign-in lands on `/onboarding`. Since v1.38.18 the first run is a
+short set of questions that decide what the record shows first, not a
+walkthrough: five questions, a sixth about units when one is needed, a
+confirm screen, one first result, and a done screen. It takes about two
+minutes, and nothing in it is final.
+
+The welcome screen offers **Set up** and **Skip for now**. Both sit behind the
+one-time medical disclaimer, which you acknowledge once per version. **Skip
+for now** is a real exit: the account is past the first run, the dashboard
+opens with the getting-started checklist, the record keeps the default module
+map (the ordinary modules on, MCP and nutrients off), and the questions stay
+one click away under Settings.
+
+The questions, in order:
+
+1. **Who is this record for?** Me, someone I look after, or both. The one
+   question that cannot be skipped.
+2. **What do you want to keep an eye on?** Any number of: blood pressure,
+   weight and body, blood glucose, sleep and recovery, mood and mental
+   wellbeing, cycle, activity and workouts, lab results, illnesses and
+   symptoms.
+3. **Do you take medication on a schedule?** Yes, no, or sometimes.
+4. **Where do your readings come from today?** Any number of: typed in,
+   Apple Health on an iPhone, Withings, Oura, WHOOP, Polar, Fitbit, Strava,
+   Nightscout, or a file you already have.
+5. **Is there a doctor's visit coming up?** Within a month, later, or no.
+6. **Which units do you use?** Asked only when an area needs one (blood
+   glucose in mg/dL or mmol/L; weight and height in metric or imperial) and
+   the account does not hold that preference yet. An account that already
+   holds both is never asked.
+
+Every answer is saved the moment it is given, so leaving and coming back
+resumes at the same step, and every question but the first can be skipped. The
+counter at the top counts questions only.
+
+### The confirm screen
+
+One look before anything is written. It shows what the answers switch on,
+read from the same derivation the server applies, so the list you confirm is
+the list that lands; the three modules that are always on (insights,
+achievements, the document vault) beside the core readings (weight, blood
+pressure, pulse); and the units, language and timezone the account holds.
+For your own record it also asks for the baseline the clinical surfaces derive
+from: height, date of birth, sex and a display name, each refused underneath
+its own field rather than silently dropped.
+
+What the answers switch on:
+
+| Answer | Switches on |
+| --- | --- |
+| Blood pressure, weight and body | Nothing beyond the core readings; the narrative layer (insights) is always on |
+| Blood glucose | Glucose |
+| Sleep and recovery | Sleep, recovery |
+| Mood and mental wellbeing | Mood, mental-health check-ins |
+| Cycle | Cycle tracking |
+| Activity and workouts | Workouts |
+| Lab results, illnesses and symptoms | Labs, illness |
+| Medication: yes or sometimes | Medications |
+| A visit within a month or later | Doctor report |
+| Someone I look after, or both | Vaccinations |
+
+Everything else gets an explicit off and stays one click away under
+**Settings → Modules**. A skipped question counts as its conservative answer
+(no medication, no visit). The map is derived once: a module you switched on
+by hand, or one whose section already holds rows, is never turned off by a
+choice here, and the dashboard order is seeded from the answers only while
+you have not arranged one yourself.
+
+Answering **someone I look after** changes what the confirm screen asks for.
+Instead of your baseline it shows the managed-profile form, and the profile is
+created right there, with your second factor; the module map from the answers
+is applied to that new record, and your own is left alone. **Finish without
+the profile** is allowed: nothing is derived onto your record either, and a
+profile you create later under **Settings → Shared access** starts from the
+defaults. See [Records with no login of their own](/guides/managed-profiles/).
+
+### The first result
+
+After confirming, the flow ends on one task, chosen by a fixed priority:
+
+- **Connect a source** the browser can finish on its own (Withings, Oura,
+  WHOOP, Polar, Fitbit, Strava, Nightscout), if you named one. Apple Health
+  needs the phone and a file is an import, so neither is offered here.
+- Otherwise **add the first medication** with a reminder, if you said yes to
+  a schedule.
+- Otherwise **log one reading** for the first area you picked. Blood pressure,
+  weight, glucose, sleep and steps open the measurement form inline; mood,
+  cycle, labs and illness have their own page, and the screen waits for you to
+  come back and mark the entry done.
+
+The task can be skipped. Whatever the priority passed over goes to the
+checklist. If you have years of history elsewhere, do not type it in by hand;
+use a device sync or an [Apple Health import](/guides/import-apple-health/)
+instead. For **someone I look after** there is no first-result screen: the
+flow ends at the confirm screen, and the done screen opens the new record so
+the first entry lands in the right place.
+
+### The done screen
+
+The dashboard is one click away, already ordered, with the checklist open.
+The short tour is offered, not launched. A guardian is offered the record of
+the person they look after (or, after **both**, the button that creates it),
+and the AI panel shows a labelled sample briefing with the three ways to turn
+insights on; setup works without any of them.
+
+The checklist has six rows for every record (profile, first reading, first
+medication, a data source, a notification channel, insights), a **prepare the
+visit** row when you said a visit is within a month, and a **create the
+profile** row after **someone I look after** or **both**. Once the answers are
+confirmed the rows are ordered from them; nothing is removed.
+
+### Coming back to it
+
+Under **Settings → Account → Setup**, **Set up again** asks the questions once
+more with your old answers prefilled. It resets the steps and the first result
+and keeps the module map: a re-run never switches off a module you turned on
+by hand. **Show the checklist again** brings back rows this browser hid; the
+dismissals live in the browser, not in the account.
 
 ## Tour the admin panel
 
@@ -107,9 +219,10 @@ are intentionally absent from the compose whitelist.
 1. [Connect the iOS app](/getting-started/connect-ios-app/) for live HealthKit
    sync and reminders with action buttons.
 
-2. Pick a device integration: [Withings](/guides/connect-withings/),
-   [WHOOP](/guides/connect-whoop/), [Google Health](/guides/connect-google-health/),
-   or an [Apple Health import](/guides/import-apple-health/).
+2. Pick a device integration the setup flow did not offer:
+   [Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
+   [Google Health](/guides/connect-google-health/), or an
+   [Apple Health import](/guides/import-apple-health/).
 
 3. Set up [medications](/guides/track-medications/) and
    [reminders](/guides/reminder-channels/).

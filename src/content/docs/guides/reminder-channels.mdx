@@ -78,7 +78,38 @@ A generic outbound POST for homelab relays — Gotify, Discord, Slack, a
 Matrix bridge, Home Assistant. The user supplies a public URL and optionally
 one custom header (e.g. `Authorization: Bearer <token>`); HealthLog POSTs a
 small plain-text JSON envelope. Outbound goes through the SSRF-guarded
-fetch path with the DNS-rebinding pin, since the host is user-supplied.
+fetch path with the DNS-rebinding pin, since the host is user-supplied. A
+relay on your own network needs the operator grant described next.
+
+## Targets on a private network
+
+Every webhook and ntfy target is resolved at send time and refused when the
+answer is a private, loopback, link-local or CGNAT address. That is the
+DNS-rebinding defence, and it applies to a public-looking name with a LAN A
+record (a Gotify behind a reverse proxy with a DNS-01 certificate) exactly as
+it applies to `http://192.168.1.20`. Since v1.38.17 the operator can open a
+target by listing its exact origin in `NOTIFICATION_PRIVATE_ORIGINS`, the
+same grammar as `NIGHTSCOUT_PRIVATE_ORIGINS`; the rules are on the
+[environment-variables reference](/reference/environment-variables/#notification-targets-on-a-private-network-optional).
+
+What you see on the card:
+
+- Saving a private target that is not listed answers `422` with
+  `meta.errorCode: private_origin_not_approved`; the message names the
+  variable to list it in. Nothing is stored.
+- Saving a link-local, metadata or unspecified target answers
+  `private_origin_not_grantable` instead. No grant can open it, so the
+  message says so rather than sending you to the operator.
+- The **Test** button answers the same code for the same reason, instead of a
+  bare `500` that sent the operator to the log. The save, the test and the
+  scheduled delivery take one decision, so a test that fails on this means
+  nothing would have arrived either.
+- A DNS name the save cannot classify (a `.lan` name, a Docker service name,
+  a public name with a private A record) is accepted at save and refused
+  when the test or a reminder dials it, unless its origin is listed.
+
+The resolved address is never shown to the user. Telegram, email and Web Push
+are not affected: their hosts are not user-supplied.
 
 ## Email
 
