@@ -201,7 +201,7 @@ pass validation.
 | `403`    | The endpoint is outside the token's scope (check you are calling one of the two above and not a read), or the request named another account's record.       |
 | `409`    | A reading with this type, timestamp and source already exists (single endpoint only).                                                                          |
 | `422`    | The payload is wrong: an unknown `type`, a non-numeric or implausible `value`, an `unavailable` sensor state, an entry naming `APPLE_HEALTH`, or a batch over 500. |
-| `429`    | Too many requests. The batch route allows 60 calls per minute per account. The response carries `Retry-After` in whole seconds plus `X-RateLimit-Limit`, `-Remaining` and `-Reset`; wait out `Retry-After` rather than retrying on a timer of your own. |
+| `429`    | Too many requests. The batch route allows 60 calls per minute per account; the single route shares a 300-a-minute bucket with the other one-row writes and says so with `meta.errorCode: record_write.rate_limited`. The response carries `Retry-After` in whole seconds plus `X-RateLimit-Limit`, `-Remaining` and `-Reset`; wait out `Retry-After` rather than retrying on a timer of your own. |
 
 The response envelope is `{ "data": ..., "error": null }` on success and
 `{ "data": null, "error": "<message>", "meta": { "errorCode": "..." } }` on

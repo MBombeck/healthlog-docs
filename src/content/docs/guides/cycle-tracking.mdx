@@ -119,3 +119,9 @@ database host.
 `/api/cycle/symptoms/custom`, and `GET` and `PATCH /api/auth/me/cycle-prefs`,
 which is the one route that flips the switch and therefore does not enforce
 it.
+
+`GET /api/cycle/insights` answers a grant scoped to the cycle with the phase
+pattern alone and adds the outcome columns (weight, resting heart rate, HRV,
+sleep, steps, glucose, temperatures, mood) only for a grant that also opens the
+section each belongs to; the owner and a whole-record grant see everything.
+`POST /api/cycle/symptoms/custom` honours `Idempotency-Key`.

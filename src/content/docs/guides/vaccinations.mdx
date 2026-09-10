@@ -78,3 +78,9 @@ clears the reminder.
 `DELETE /api/vaccinations/{id}/links` for documents, and `GET
 /api/vaccinations/suggest?anchor=<date>`. The routes stay reachable with the
 module off so restore and import keep working.
+
+Under a shared-access grant the dose is a Health background write, but the
+booster it suggests is a Readings row, so the mint answers `403` with
+`meta.errorCode: vaccination.booster-out-of-scope` for a grant that opens only
+Health background, and nothing is written. Since v1.38.16 the pass offers add,
+edit and delete only to a grant whose level and sections reach them.

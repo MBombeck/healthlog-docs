@@ -140,7 +140,7 @@ they are and land in the same record as the tab you switched in. See
   at once.
 - A doctor visit.
 - A practitioner in your address book.
-- A vaccination, or a booster on one.
+- A vaccination dose.
 
 Every member of that list makes something new. A write-level delegate cannot
 correct the medication they added ten seconds ago with a typo in the dose, and
@@ -150,9 +150,13 @@ entry, bulk actions and importing a file are yours.
 **Manage** adds the other half. A manager can change and remove entries,
 including ones you wrote yourself, can record your health background (allergies,
 family history and the facts under Anamnesis), and can read the insights
-generated from the record. Three kinds of entry are *created* at manage rather
-than at write, because the whole section is a manage section: a mood entry, a
-mental-health screener, and a cycle entry.
+generated from the record. Some entries are *created* at manage rather than at
+write, and the split runs by entry rather than by section: an allergy, a
+family-history entry, a mood entry, a screener, a cycle day, a water entry and
+a preventive-care reminder are all created at manage, in sections a write grant
+can otherwise add to. A screener also writes its total score as one point in
+the readings, so a grant scoped to Mood and mind adds a point to the owner's
+measurement series; the invitation screen says so.
 
 The document vault is the one section no grant writes to. Upload, filing,
 sharing and the AI verbs on a document stay with the owner at every level. Everything they do is recorded under their own name,
@@ -165,6 +169,12 @@ decision is accepted (a second tap, or a phone catching up after no signal,
 looks like that), but turning your "taken" into a "skipped" is refused. The
 reasoning is in
 [Why write is a list rather than a permission](/explanation/record-sharing/#why-write-is-a-list-rather-than-a-permission).
+
+One entry needs two sections rather than a higher level. Planning the booster
+a vaccination suggests files it as a preventive-care reminder, which lives
+under Readings, so a grant that opens Health background alone logs the dose
+and is refused the booster. The dose is recorded either way, and the app does
+not offer the booster to a grant that cannot plan it.
 
 The document vault is read at every level. A delegate can open the list, read a
 document and open its file. Uploading, retyping, discarding, linking a document
@@ -201,7 +211,13 @@ contain anything at all; share that section only if the person may read all of
 it.
 
 **The whole-record views need the whole record.** The dashboard overview, the
-Health Score and the daily digest appear only when the entire record is shared.
+Health Score, the daily digest and every insight appear only when the entire
+record is shared, and not equally then: the digest and the dashboard's snapshot
+answer at read, the Health Score, the dashboard's summary and the insights need
+manage. A view inside one section that compares against another is trimmed
+rather than withheld: the cycle insights show the phase pattern to a grant
+scoped to the cycle, and add the weight, heart-rate, sleep, glucose and mood
+columns only for a grant that also opens Readings or Mood and mind.
 
 Three more properties worth knowing.
 

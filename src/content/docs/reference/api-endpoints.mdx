@@ -68,16 +68,18 @@ with `422`, and a batch from it does not move the phone's sync checkpoint. See
 | `GET` | `/api/medications/{id}/cadence` | Read the cadence; schedule edits go through `PUT /api/medications/{id}` |
 | `POST` | `/api/medications/extract` | Parse a label into a draft |
 | `POST` | `/api/medications/intake/bulk` | Native bulk intake |
+| `GET` / `POST` | `/api/medications/{id}/glp1` | GLP-1 titration log. `POST` honours `Idempotency-Key` |
 
 The compliance numbers come from the dose ledger — see
 [Medication compliance](/explanation/medication-compliance/).
 
 Adding a medication (`POST /api/medications`), logging a side effect
-(`POST /api/medications/{id}/side-effects`) and registering a supply container
-(`POST /api/medications/{id}/inventory`) honour `Idempotency-Key`. A replay
-after a lost response returns the first answer with `X-Idempotent-Replay: true`
-instead of creating a second row, which is what the native client's offline
-queue relies on.
+(`POST /api/medications/{id}/side-effects`), registering a supply container
+(`POST /api/medications/{id}/inventory`) and, since v1.38.16, logging a GLP-1
+titration step (`POST /api/medications/{id}/glp1`) honour `Idempotency-Key`. A
+replay after a lost response returns the first answer with
+`X-Idempotent-Replay: true` instead of creating a second row, which is what the
+native client's offline queue relies on.
 
 ## Insights & coach
 
@@ -100,7 +102,9 @@ SSE coach stream, and the self-context surface.
 
 A dedicated group (day logs, periods, calendar, predictions, insights, profile,
 prefs). Cycle data has its own threat model; see the main repo's
-`docs/security/cycle-data-threat-model.md`.
+`docs/security/cycle-data-threat-model.md`. Day logs, the period marker and,
+since v1.38.16, a custom symptom (`POST /api/cycle/symptoms/custom`) honour
+`Idempotency-Key`.
 
 ## Auth & account
 
@@ -113,6 +117,26 @@ avatar, source priority, and the Codex device-OAuth flow.
 | `POST` | `/api/auth/refresh` | Per-device refresh-token rotation |
 | `POST` | `/api/auth/codex/device-start` · `/device-poll` · `/disconnect` | ChatGPT device-OAuth |
 | `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs |
+
+### Onboarding (the needs-based flow)
+
+Server side since v1.38.16; the web wizard that asks the questions follows in
+a later release, so today's first-run steps are unchanged.
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `PATCH` | `/api/onboarding/answers` | One step at a time: `{ step, answer }` or `{ step, skip: true }`, never both. Idempotent by construction. Own record only; refuses under a switch with `403 sharing.not_permitted`. 120 writes per ten minutes, `onboarding.answers.rateLimited` |
+| `POST` | `/api/onboarding/complete` | Stamps the flow done and derives the module map from the answers exactly once, only when every question is answered or deliberately passed. Turns on what the answers name and writes an explicit off for the rest, but never a module switched on by hand and never one whose section already holds rows |
+| `POST` | `/api/onboarding/restart` | Re-asks the questions and keeps the module map; clears the once-only latch so a later confirm may derive again. Ten a ten-minute window, `onboarding.restart.rateLimited` |
+
+All three are actor-only and on the demo allowlist. The state rides on
+`GET /api/auth/me` as `onboarding`: the nine ordered steps (`who`, `areas`,
+`medication`, `sources`, `visit`, `units`, `confirm`, `first-result`, `done`)
+with `pending | done | skipped` each, the answers as given, `completedAt`
+(distinct from `onboardingCompletedAt`, which stays the first-run redirect's
+gate) and the one first result the flow offered. A record that never entered
+the flow reads as nine pending steps, so branch on the statuses, not on the
+field's presence.
 
 ## API tokens
 
@@ -215,7 +239,12 @@ open it) beats `disabled` (the record turned it off) beats `enabled`.
 `modules[key]` is exactly `moduleAccess[key] === "enabled"` for every key, so
 the reason is extra information and never a second gate. `notificationPrefs`
 carries the resolved preferences, including
-`notificationPrefs.medication.clientManaged`.
+`notificationPrefs.medication.clientManaged`. `onboarding` is a third
+record-scoped field since v1.38.16: it describes the active record's setup
+state, the same record `modules` and the counts describe, and under a scoped
+grant its answers come back empty for the reason the module map is masked. It
+is required on the payload, so a strict decoder built from an older spec should
+treat it as optional until regenerated.
 
 The record's own module map is read and written at `GET` and
 `PATCH /api/record-settings/modules` while the browser is switched into it, so a
@@ -290,7 +319,14 @@ Every endpoint in this group except the switch refuses while the caller is
 already acting on another account (`403`,
 `meta.errorCode: sharing.not_permitted`). A delegate cannot invite, widen,
 transfer or end anybody's access from inside a record they were given. The
-switch endpoint stays reachable because it is the way back out.
+switch endpoint stays reachable because it is the way back out. So do the three
+operations that act on the whole of an account and name no record:
+`DELETE /api/settings/data`, `DELETE /api/settings/account` and
+`POST /api/export/encrypted` refuse the same way. They always did, because the
+fresh-factor gate opens with the plain authentication that refuses any switch;
+since v1.38.16 the contract says so, byte-identical to the refusal above, and a
+test drives each through a live whole-record manage switch and asserts that
+neither record moved and no archive rode along with the 403.
 :::
 
 ## Managed profiles
@@ -366,10 +402,12 @@ appears twice:
 | `422` | `managed_profile.guardian.managed_invitee` | A record with no self cannot look after another one |
 
 A client branching on the status first tells somebody to check a spelling when
-the real answer is that they no longer administer the record. Rate-limit
-refusals carry no `errorCode` anywhere in this application, and
-`POST /api/account/grants` answers an unknown identifier with a bare `404` too,
-so the two codeless arms match their siblings rather than their neighbours.
+the real answer is that they no longer administer the record. A route's own
+rate-limit refusal carries no `errorCode` here or on `POST /api/account/grants`,
+which answers an unknown identifier with a bare `404` too, so the two codeless
+arms match their siblings rather than their neighbours. The one 429 that does
+carry a code is the shared single-record write bucket, described on the
+[API overview](/reference/api-overview/#rate-limits).
 
 Inviting yourself lands on the duplicate `409`, because a guardian grant's
 grantor is the profile and never the caller, so naming yourself names an account

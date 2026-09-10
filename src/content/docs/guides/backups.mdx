@@ -71,6 +71,38 @@ latencies. Credentials are never returned.
 }
 ```
 
+## Which account has no copy
+
+The run reports counts, never names. An account whose object has failed every
+night for a month reads as `99 uploaded, 1 failed` each time, which looks like
+weather.
+
+**Admin → Backups → Off-host copies** answers it per account: when this host
+last put that account's encrypted copy in the bucket, how big it was, and how
+that compares with the nightly schedule. **Fresh** is inside one run, **due**
+means one run produced nothing for that account, **stale** means two did not,
+**never** means a run walked the account and no object has ever landed for it,
+and **no record yet** means no run has recorded the account at all (`unknown`
+on the wire). Stale rows sort first. On a host without `BACKUP_S3_*` the card
+says off-host backup is not configured and stops there.
+
+The ledger starts empty on the release that adds it, so on a host that has
+been uploading nightly for months every account reads **no record yet** until
+the first run after the upgrade. That is the ledger having no history, not the
+bucket being empty, which is why it is a separate word from **never**.
+
+Each verdict carries six hours of slack on top of the schedule's own 24 hours,
+for the DST fall-back night when two 02:30 Europe/Berlin runs are 25 hours
+apart and for a cohort walked one account at a time. Without it a healthy host
+would paint its whole cohort **due** once a year.
+
+The verdicts come from a ledger the worker writes when the object lands
+(`offhost_backup_state`), not from a listing of the bucket, so the worker's
+grant stays PutObject, GetObject and AbortMultipartUpload and the card still
+tells the truth. The row is wiped with the account and is not part of the
+backup itself: it describes this host's relationship with this bucket, and a
+restore elsewhere must not assert a copy that host never wrote.
+
 ## Bucket lifecycle
 
 The worker never deletes a backup object — its grant is `PutObject`,

@@ -11,17 +11,17 @@ HealthLog has three distinct deletion paths, and they affect different sets of d
 
 | Path | Scope | Triggered by | Confirm string | What stays |
 |------|-------|--------------|----------------|------------|
-| **Delete all data** | Every row one account owns, across 99 user-scoped models | `/settings/advanced` → "Delete all data" | `DELETE` | The account and the credentials that sign into it |
+| **Delete all data** | Every row one account owns, across 101 user-scoped models | `/settings/advanced` → "Delete all data" | `DELETE` | The account and the credentials that sign into it |
 | **Delete account** | One user, including the account itself | `/settings/account` → "Delete account" | `DELETE_ACCOUNT` | Audit-log entries that reference other users still survive (the row's `userId` is purged but the audit row itself remains for the rest of the audit trail) |
-| **Wipe all data** (admin only) | Every account's health data, instance-wide: 98 tables (the per-account plan minus one exemption), derived from the wipe plan since v1.37.1 | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | Accounts and their sign-in credentials, instance configuration, and shared-access grants |
+| **Wipe all data** (admin only) | Every account's health data, instance-wide: 100 tables (the per-account plan minus one exemption), derived from the wipe plan since v1.37.1 | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | Accounts and their sign-in credentials, instance configuration, and shared-access grants |
 
 The two per-account paths are the ones a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure), and they are the ones held against `prisma/schema.prisma` by a test. The instance-wide wipe was meant for refurbishing a self-hosted box; since v1.37.1 it derives from the same plan and is held by the same test.
 
 ## What "Delete all data" deletes
 
-`DELETE /api/settings/data` with body `{ "confirm": "DELETE" }` removes every row the calling account owns, keeping only what the account needs to sign in again. An account with a second factor enrolled has to pass a fresh step-up first.
+`DELETE /api/settings/data` with body `{ "confirm": "DELETE" }` removes every row the calling account owns, keeping only what the account needs to sign in again. An account with a second factor enrolled has to pass a fresh step-up first. Both per-account paths refuse with `403 sharing.not_permitted` while the browser is switched into somebody else's record, so a guardian or a delegate cannot erase a record by mistake from inside it; switch back first.
 
-The list of models is not written in the route. It is declared once in `src/lib/data-wipe/wipe-plan.ts`, and `src/__tests__/data-wipe-completeness.test.ts` enumerates the Prisma schema and fails when a model belongs to neither the wipe list nor one of the two exemption lists. That test is why the number is 99 rather than the thirteen the route deleted while telling people it had deleted everything.
+The list of models is not written in the route. It is declared once in `src/lib/data-wipe/wipe-plan.ts`, and `src/__tests__/data-wipe-completeness.test.ts` enumerates the Prisma schema and fails when a model belongs to neither the wipe list nor one of the two exemption lists. That test is why the number is 101 rather than the thirteen the route deleted while telling people it had deleted everything.
 
 Covered, in the order the plan declares (children before parents, so the per-model counts in the audit row are truthful): measurements and every derived tier built from them, medications and their schedules and intake history, mood, the clinical record, activity, context and engagement, documents, the AI surfaces including Coach messages, sharing grants, integrations, notification transports, and the API surface with its operational trails.
 
