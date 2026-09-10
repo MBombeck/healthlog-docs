@@ -64,6 +64,27 @@ session cookies as well as API tokens — see
 [environment variables](/reference/environment-variables/).
 :::
 
+## Migration 0339 in v1.38.18
+
+Take a backup before deploying v1.38.18, and expect no image rollback without
+one. Migration `0339_retire_wizard_columns` drops `users.onboarding_step` and
+`users.onboarding_goals`, two columns the v1.38.16 and v1.38.17 images select
+on every session load. An older image against a migrated database therefore
+fails at login, not only on the retired wizard.
+
+Rolling the image back means restoring the database, or re-adding the two
+columns with their defaults. The second is loss-free, because nothing at
+v1.38.18 writes them:
+
+```sql
+ALTER TABLE users
+  ADD COLUMN onboarding_step integer NOT NULL DEFAULT 0,
+  ADD COLUMN onboarding_goals text[] NOT NULL DEFAULT '{}';
+```
+
+`onboarding_completed_at` stays; it gates the first-run redirect and the
+needs-based flow keeps stamping it.
+
 ## Rolling back
 
 Rolling back **migrations** is generally one-way (Prisma's `down` step is not

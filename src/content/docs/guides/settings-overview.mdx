@@ -27,11 +27,18 @@ Profile fields: username, gender, height, date of birth, display language,
 avatar. A field the server refuses, a height outside the accepted range or a
 date it will not take, is reported underneath the input that holds it, in the
 interface language, and the save waits instead of moving on with the value
-dropped. The first-run profile step behaves the same way and will not mark
-setup finished over a refused field. A separate block holds the identity
-details that end up on the doctor report (full name, insurer, insurance
-number). Needs nothing beyond a signed-in session. Cycle tracking is not
-switched on here; that lives under Modules.
+dropped. The baseline fields on the setup flow's confirm screen behave the
+same way and will not mark setup finished over a refused field. A separate
+block holds the identity details that end up on the doctor report (full name,
+insurer, insurance number). Needs nothing beyond a signed-in session. Cycle
+tracking is not switched on here; that lives under Modules.
+
+A **Setup** card, since v1.38.18, is the way back into the first run.
+**Set up again** asks the questions once more with the old answers prefilled;
+it resets the steps and the first result and writes no module state, so a
+module switched on by hand is never switched off by a re-run. **Show the
+checklist again** brings back the rows this browser hid. See
+[First steps](/getting-started/first-steps/#coming-back-to-it).
 
 ## Security
 
@@ -76,7 +83,9 @@ switched into a record they look after reads and writes that record's map and
 leaves their own alone. Where a module is off, the page says which of the three
 reasons it is: the record turned it off, the access you were given does not open
 it, or the operator switched it off for the instance. Only the first offers you
-the switch.
+the switch. Since v1.38.18 the page of a module that is off says the same
+instead of an empty state that reads as "nothing here yet", and offers the
+switch only when the record's own setting is what is off.
 
 <figure>
   <img src={settingsModules.src} alt="Settings page 'What you track': a list of module rows for cycle, mood, glucose, lab results, illness journal, sleep, workouts, recovery, achievements and Coach, each with a one-line description and a toggle switched on" />
