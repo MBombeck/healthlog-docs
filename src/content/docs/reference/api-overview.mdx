@@ -213,9 +213,8 @@ IP for anonymous ones (see [`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).
 Every `meta.errorCode` the server emits is enumerated, grouped by the surface
 that emits it, in the `ErrorEnvelope` description of the
 [OpenAPI document](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml):
-257 codes across 47 surfaces at v1.38.16, plus a small group that carries no
-prefix, held to the source by a guard that fails when a code is emitted and not
-listed or listed and no longer emitted. Four spellings coexist (`dot.case`, bare
+The list cannot drift from the server: a code the server can emit is in it, and
+a code no longer emitted leaves it. Four spellings coexist (`dot.case`, bare
 `snake_case`, a `camelCase` segment, a hyphen) and none is renamed, because a
 shipped client branches on the value. Two families are deliberately outside the
 list: `assistant.disabled.<surface>` is built from a template, and the

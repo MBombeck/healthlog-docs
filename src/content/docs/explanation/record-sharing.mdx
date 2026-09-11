@@ -109,8 +109,8 @@ different act and is refused however the request arrives.
 The mechanism under all of this is the same default-deny arm that governs reads.
 A route serves a shared record only by declaring which mode it accepts and which
 section of the record it touches, and a route that declares nothing refuses
-outright while a browser is acting on another account. Both declared sets are
-frozen by a structural test, so a new endpoint cannot quietly join either list.
+outright while a browser is acting on another account. Neither set can grow by accident: a new endpoint has to declare itself to
+serve a shared record at all.
 Any unsafe method on a route that declared itself readable is treated as a write
 and refused under a read grant, which means a route cannot widen itself by
 accident either.
