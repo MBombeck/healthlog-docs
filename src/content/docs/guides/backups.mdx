@@ -199,8 +199,8 @@ What that means in practice depends on where you restore.
   rather than discovering it.
 
 The per-model reasoning lives in `src/lib/export/backup-plan.ts`, where every
-excluded model carries a written verdict and a structural test refuses to let a
-new model land without one.
+excluded model carries a written reason, and a new one cannot be left out
+without getting one.
 
 ## Monthly restore drill (automatic)
 
