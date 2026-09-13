@@ -260,7 +260,7 @@ reaches the container.
 | `LOG_SAMPLE_RATE` | Sampling for high-volume events. |
 | `LOG_SLOW_THRESHOLD_MS` | Requests slower than this are flagged. |
 | `LOG_INCLUDE_STACK` | Include stack traces in error events. |
-| `LOKI_ENDPOINT` / `LOKI_USERNAME` / `LOKI_PASSWORD` | Optional Loki log shipping. |
+| `LOKI_ENDPOINT` / `LOKI_USERNAME` / `LOKI_PASSWORD` | Optional Loki log shipping. `LOKI_ENDPOINT` takes the base URL or the full push URL, and a private address works; link-local, cloud metadata and unspecified addresses are refused. A failed push writes one line to the container log at most every five minutes per reason, without the password. |
 
 ## FHIR (optional)
 
