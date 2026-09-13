@@ -1,6 +1,6 @@
 ---
 title: Tailscale
-description: Serve HealthLog over your tailnet with tailscale serve, trusted HTTPS without a reverse-proxy container, and when the public funnel variant makes sense.
+description: Serve HealthLog over your tailnet with tailscale serve or a Tailscale container in the compose stack, trusted HTTPS without a reverse proxy, and when the public funnel variant makes sense.
 sidebar:
   order: 6
 ---
@@ -45,6 +45,88 @@ Two modes exist, and the difference matters more here than for most apps:
    `https://<machine>.<tailnet>.ts.net`. `--bg` persists the configuration
    across restarts, so this is a run-once command, not something to add to a
    boot script.
+
+## Or run Tailscale as a container next to HealthLog
+
+`tailscale serve` on the host shares whatever answers on `localhost:3000`. If
+you stop HealthLog and start something else on that port, a hobby project for
+example, your tailnet now reaches that instead. Running Tailscale as its own
+container in the compose stack avoids this: the tailnet share starts and stops
+with HealthLog, and nothing else on the host is exposed.
+
+1. In the Tailscale admin console, under **Settings → Keys**, generate an auth
+   key. The container needs it only for its first sign-in; after that the
+   state volume below keeps the node's identity.
+
+2. Next to `docker-compose.yml`, create `tailscale/serve.json`:
+
+   ```json
+   {
+     "TCP": {
+       "443": { "HTTPS": true }
+     },
+     "Web": {
+       "${TS_CERT_DOMAIN}:443": {
+         "Handlers": {
+           "/": { "Proxy": "http://127.0.0.1:3000" }
+         }
+       }
+     },
+     "AllowFunnel": {
+       "${TS_CERT_DOMAIN}:443": false
+     }
+   }
+   ```
+
+   Keep `${TS_CERT_DOMAIN}` exactly as written; the container fills in its own
+   tailnet name.
+
+3. Create `docker-compose.override.yml` in the same directory:
+
+   ```yaml
+   services:
+     tailscale:
+       image: tailscale/tailscale:latest
+       hostname: healthlog
+       environment:
+         TS_AUTHKEY: "${TS_AUTHKEY}"
+         TS_STATE_DIR: /var/lib/tailscale
+         TS_SERVE_CONFIG: /config/serve.json
+       volumes:
+         - tailscale-state:/var/lib/tailscale
+         - ./tailscale:/config:ro
+       devices:
+         - /dev/net/tun:/dev/net/tun
+       cap_add:
+         - net_admin
+         - sys_module
+       restart: unless-stopped
+
+     app:
+       network_mode: service:tailscale
+       ports: !reset []
+       depends_on:
+         tailscale:
+           condition: service_started
+
+   volumes:
+     tailscale-state:
+   ```
+
+   `network_mode: service:tailscale` puts the app into the Tailscale
+   container's network, which is how `127.0.0.1:3000` in `serve.json` reaches
+   it. The app can no longer publish its own port in that mode, so
+   `ports: !reset []` removes the `3000:3000` mapping from the main file (this
+   needs Docker Compose 2.24 or newer). The app still reaches the database
+   under its usual name, because the Tailscale container sits on the same
+   compose network.
+
+4. Put the key into `.env` as `TS_AUTHKEY=tskey-auth-...` and start the stack
+   with `docker compose up -d`. The instance appears in your tailnet as
+   `https://healthlog.<tailnet>.ts.net`; use that URL in the next step.
+
+Keep the `tailscale-state` volume. Without it every restart signs in as a new
+machine, with a new name and a new certificate.
 
 ## Point HealthLog at the tailnet URL
 
