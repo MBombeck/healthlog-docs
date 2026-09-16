@@ -165,7 +165,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:16.14-alpine
+    image: postgres:16.15-alpine
     environment:
       POSTGRES_USER: healthlog
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
