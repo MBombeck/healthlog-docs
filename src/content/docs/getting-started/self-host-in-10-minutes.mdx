@@ -134,9 +134,11 @@ picture of passwords, passkeys, and second factors.
 
 ## The bundled compose file
 
-The compose file is the single source of truth and ships with the repository.
-The shape below is abbreviated; the comments in the real file explain every
-load-bearing line.
+The compose file ships with the repository, and that copy is the one to run.
+The shape below is abbreviated for reading: it leaves out log rotation, the
+worker service and most of the optional variables, and the comments in the real
+file explain every load-bearing line. Copy it from the repository rather than
+from this page.
 
 ```yaml
 services:
@@ -166,12 +168,20 @@ services:
 
   db:
     image: postgres:16.15-alpine
+    container_name: healthlog-db
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_USER: healthlog
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: healthlog
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthlog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
