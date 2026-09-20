@@ -1,6 +1,6 @@
 ---
 title: iOS app
-description: The native SwiftUI HealthLog iOS client — TestFlight beta, live Apple Health (HealthKit) two-way sync, local medication reminders, passkey sign-in, and how it pairs with a self-hosted instance.
+description: The native SwiftUI HealthLog iOS client on the App Store — live Apple Health (HealthKit) two-way sync, local medication reminders, passkey sign-in, and how it pairs with a self-hosted instance.
 sidebar:
   order: 1
 ---
@@ -10,7 +10,7 @@ import iosInsights from '../../../assets/ios/ios-insights.png';
 import iosMedicationDetail from '../../../assets/ios/ios-medication-detail.png';
 import iosMoodEntry from '../../../assets/ios/ios-mood-entry.png';
 
-HealthLog ships a native [SwiftUI](https://developer.apple.com/xcode/swiftui/) iOS client alongside the web PWA. It is in **public beta via [TestFlight](https://testflight.apple.com/join/bucuTBpa)** and talks to the same `/api` surfaces as the browser — same server, same data, same source of truth. The phone is a view plus a write-ahead log; your self-hosted instance remains the database.
+HealthLog ships a native [SwiftUI](https://developer.apple.com/xcode/swiftui/) iOS client alongside the web PWA. It is on the **[App Store](https://apps.apple.com/app/id6769501341)**, with [TestFlight](https://testflight.apple.com/join/bucuTBpa) carrying the newest builds for free, and it talks to the same `/api` surfaces as the browser — same server, same data, same source of truth. The phone is a view plus a write-ahead log; your self-hosted instance remains the database.
 
 The iOS source lives in its own repository: [github.com/MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
 
@@ -26,7 +26,7 @@ The iOS source lives in its own repository: [github.com/MBombeck/healthlog-iOS](
 - **iOS 18 or newer** for the app itself.
 - **iOS 26 or newer** on an Apple-Intelligence-eligible iPhone for the on-device AI coach.
 - A reachable HealthLog instance served over HTTPS. Passkeys and the secure-cookie path require a valid TLS certificate — see [TLS certificates](/self-hosting/tls-certificates/).
-- An Apple ID enrolled in the [TestFlight](https://testflight.apple.com/join/bucuTBpa) beta.
+- The app, either from the [App Store](https://apps.apple.com/app/id6769501341) or from the free [TestFlight](https://testflight.apple.com/join/bucuTBpa) beta, which runs ahead of the store.
 
 ## Install the beta
 
@@ -115,6 +115,7 @@ The iPhone can generate a doctor-report PDF from the device, mirroring the [heal
 
 ## Links
 
+- [App Store listing](https://apps.apple.com/app/id6769501341)
 - [TestFlight beta](https://testflight.apple.com/join/bucuTBpa)
 - [iOS source repository](https://github.com/MBombeck/healthlog-iOS)
 - [iOS issue tracker](https://github.com/MBombeck/healthlog-iOS/issues)
