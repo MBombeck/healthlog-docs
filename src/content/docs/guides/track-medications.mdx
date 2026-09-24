@@ -32,6 +32,17 @@ load on demand.
   <figcaption>The History tab of one medication: the adherence figure over the chosen window, and the dose ledger it is read from, one row per expected dose.</figcaption>
 </figure>
 
+The history switches between **Last 90 days** and **Full history**. Since
+v1.39.0 a recent dose shows in both straight away. Before, three kinds of dose
+could be missing from the 90-day view: a dose logged for a time before you added
+the medication (adding it in the afternoon and recording the morning dose), a
+dose taken shortly before its scheduled time, which stayed hidden until that
+time had passed, and a dose added while the tab was open, until a reload. For
+API clients, `GET /api/medications/{id}/dose-history` now reports the window it
+read: `from` is the requested start rather than the moment the medication was
+created, and `to` reaches the slot of a dose recorded ahead of it, at most one
+day past the requested end.
+
 ## Pick a cadence
 
 The schedule discriminator (`MedicationScheduleType`) has three top-level
