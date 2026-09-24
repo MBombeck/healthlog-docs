@@ -32,9 +32,13 @@ Open `/vaccinations` and add a dose. One row is one dose. Fields:
 - **Note**, the one free-text field, encrypted at rest. Reactions belong here.
 
 You can also attach scanned pass pages from the
-[document vault](/guides/document-vault/); when a document's date lies within
-seven days of a dose, the app suggests the link. Deleting a dose is soft and
-can be undone.
+[document vault](/guides/document-vault/). **Link a document** offers the whole
+vault, with documents dated within seven days of the dose on top and the rest
+by month, searchable. One document can be linked to every dose it covers, and
+since v1.39.0 you can do that from the document's own sheet in the vault too,
+which is quicker for a childhood record that lists a dozen doses. See
+[Linking a document to visits and vaccinations](/guides/document-vault/#linking-a-document-to-visits-and-vaccinations).
+Deleting a dose is soft and can be undone.
 
 ## The catalog and series counting
 
@@ -61,6 +65,14 @@ is at most one booster reminder per antigen; confirming again re-anchors it
 rather than duplicating it. Logging a later dose of any matching component
 clears the reminder.
 
+Since v1.39.0 the vaccination page shows a planned booster next to that
+vaccine's heading: **Next booster** with the date, **Booster due** once it is
+within 30 days, and **Booster overdue since** once the date has passed. The
+last two are highlighted. The app does not work out booster dates on its own;
+a vaccine without a confirmed booster reminder shows nothing there. Someone you
+shared your record with sees the booster state only when their access reaches
+your readings, where the reminders live.
+
 ## Where the record goes
 
 - **Doctor report.** The immunisation section is part of the standard
@@ -78,6 +90,15 @@ clears the reminder.
 `DELETE /api/vaccinations/{id}/links` for documents, and `GET
 /api/vaccinations/suggest?anchor=<date>`. The routes stay reachable with the
 module off so restore and import keep working.
+
+Since v1.39.0 the list from `GET /api/vaccinations` carries `renewals`, one
+entry per antigen with a confirmed booster: `dueAt`, `daysUntil` on the
+person's own calendar, and `state` (`current`, `dueSoon` within 30 days, or
+`overdue`). Render from `state` rather than working it out again. It is `null`
+for a grant that does not reach the readings the reminders live in. From the
+document end, `PATCH /api/documents/inbound/{id}` takes `vaccinationIds` as the
+full set of linked doses (up to 100), and the document detail returns them as
+`vaccinationLinks`.
 
 Under a shared-access grant the dose is a Health background write, but the
 booster it suggests is a Readings row, so the mint answers `403` with

@@ -12,6 +12,11 @@ with a Claude key and an Ollama endpoint can fall back from one to the other
 automatically. For what each provider sees, read
 [Privacy architecture](/explanation/privacy-architecture/).
 
+None of this is required. With no provider set up, AI switched off, or consent
+not given, readings, charts, scores, correlations, ECG recordings and the
+Insights page all load as usual; the parts a model would write are simply not
+there. See [When AI is not available](#when-ai-is-not-available).
+
 ## Provider matrix
 
 | Provider | Key acquisition | Default model | Endpoint | Privacy stance |
@@ -174,9 +179,9 @@ The [document vault](/guides/document-vault/) is local-first by default: an
 uploaded document is only read by an external AI provider when you tap a
 per-document AI action, and text-layer PDFs are indexed for search locally
 with no egress. AI settings carry a per-user **"Read documents automatically
-with AI"** switch — **off by default** — that reads, describes, and indexes
+with AI"** switch, **off by default**, that reads, describes, and indexes
 each upload through your configured provider with no per-document
-confirmation. Turning it on is standing consent for that egress and is
+confirmation. Turning it on is standing consent for reading documents and is
 recorded in the consent audit trail; a subscription connection applies its own
 consumer data settings, so privacy-sensitive deployments should keep the
 switch off, or pair it with a no-training BYOK key or a local model. See the
@@ -187,13 +192,37 @@ Since v1.30.32, switching it on also catches up on documents already in your
 vault instead of only applying to new uploads. The catch-up re-asserts the
 consent and the daily budget per document; it grants nothing extra.
 
+Since v1.39.0 that consent covers document reading, lab report scans and
+turning typed medication text into a schedule, and nothing else. Before, the
+switch recorded full AI consent, which also opened the Coach and AI analysis
+without saying so. If you turned it on in an earlier version, that earlier
+consent stays until you withdraw it. The other way round, your consent for the
+Coach or AI analysis no longer counts for documents: the first time a document
+or a lab scan would go to an AI service outside your server, you are asked
+once. A self-hosted local model on your own server needs no consent for
+documents. If you withdraw the document consent, reading stops at once, even
+while the switch is still on.
+
+The operator can stop all of this for the server with the **Reading documents**
+switch under Admin, Coach. With it off, or with the master switch off, asking
+for a summary, a lab scan or a schedule from medication text is refused with a
+message that AI is off on this server, and nothing is sent. Settings, AI says
+the same next to the automatic reading switch: "Reading documents with AI is
+switched off on this server."
+
 ## Withdrawing AI consent
 
 AI settings show the standing consent decision in plain words and carry the
-control that changes it. Withdrawing takes effect immediately: the consent gate
-fails closed without an active receipt, so every AI surface falls back to its
-no-consent state on the next call. Nothing you have recorded is deleted by a
-withdrawal — that is the export/erase path under **Data & Privacy**.
+control that changes it. Withdrawing takes effect immediately: without an active
+consent, every AI feature that needs it stops on the next call.
+
+Since v1.39.0, withdrawing also deletes the notes the app can write again once
+no consent for AI analysis is left: the per-metric status notes, the daily
+briefing, model-written period summaries, the lines written after a new reading,
+and workout notes. Your Coach conversations, what the Coach remembers, and the
+summaries of your documents are your records and stay; you can read and delete
+them yourself. Nothing you recorded is deleted by a withdrawal; that is the
+export and erase path under **Data & Privacy**.
 
 Two things changed in v1.30.32 that are worth knowing if you used an earlier
 release:
@@ -213,6 +242,52 @@ release:
 returns latency plus the model it routed to. The Settings UI surfaces a **Test
 connection** button per provider; a failed probe returns a localisable
 `errorCode`.
+
+With the operator's master switch off, the test does not call the model and
+answers with `assistant.disabled.enabled` instead.
+
+## When AI is not available
+
+Since v1.39.0 the server decides in one place whether each AI feature can run
+for you, and tells the app why when it cannot. The possible reasons, from the
+outside in:
+
+1. The operator switched it off for the server, with the master switch or the
+   feature's own switch under Admin, Coach.
+2. Someone gave you access to their record, and the access does not allow
+   AI work on it.
+3. The feature's module is off: the Coach module for the Coach, **AI
+   analysis** for the briefing and notes, Documents for document reading, Labs
+   for lab scans.
+4. You opted out: you hid the Coach, or switched **AI analysis** off under
+   Settings, Modules.
+5. No provider is set up that can do the job.
+6. Your consent for it is missing.
+
+Your data never depends on the answer. Readings, charts, scores and statistics
+load whatever the AI settings say. What changes is that nothing new is written
+by a model, and text a model wrote earlier is not shown while the feature is
+unavailable. Turn it back on and the stored text returns. Only a consent
+withdrawal deletes anything, as described above.
+
+**AI analysis** is the module that covers text a model writes for you: the daily
+briefing, status notes, workout notes and the line after a new reading. It used
+to be called Insights. Switching it off keeps the Insights page, your scores and
+your data; the morning briefing notification still arrives, with your health
+score or the day's reminders instead of the written first sentence.
+
+Hiding the Coach hides the Coach and nothing else. Until v1.39.0 it also stopped
+the nightly briefing and status notes. The upgrade switched AI analysis off for
+everyone who had the Coach hidden, so nothing changed for them; switch it back
+on under Settings, Modules if you want the notes.
+
+Whatever the reason the Coach is unavailable, what it kept stays yours: its
+conversations, remembered facts, plans and reminders can be read and deleted
+under Settings, Coach, or under Settings, AI when the Coach page is out of
+reach. Reminders are held until the Coach is available again.
+
+Someone you gave access to your record sees the briefing, notes and summaries
+you would see, but opening your record never starts AI work on it.
 
 ## Troubleshooting
 

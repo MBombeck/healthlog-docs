@@ -36,6 +36,28 @@ the previous UTC day. The import worker defaults to `Europe/Berlin` when no
 preference is set. Get this wrong and a midnight workout lands on the wrong day's
 total.
 
+### Chart ranges
+
+Every chart range up to a year cuts days at midnight in the timezone of your
+profile. Ranges longer than a year still group readings by weeks and months cut
+at UTC midnight, where a few hours at the edge of a month make no visible
+difference. Before
+v1.39.0 the 7-day chart counted readings on your calendar day while the longer
+ranges read totals cut at midnight UTC and labelled them in your timezone, so
+steps, active energy, flights climbed and walking and running distance could
+move to the neighbouring day when you switched from 7 to 30 days. A day's total
+is now the same on every range. The 7-day range also reads one value per day,
+so a watch that streams heart rate every minute shows the whole week instead of
+the first half. The medication, Coach and recovery charts used Berlin whatever
+your profile said; they follow your profile too. If the timezone stored in a
+profile is one the server cannot use, the server falls back to the instance's
+default timezone, and the app uses that same zone. Only named zones such as
+`Europe/Berlin` or `Asia/Kolkata` are accepted; a bare offset like `+05:30` is
+refused on save and treated as unusable if an older version stored one.
+
+For API clients, the `aggregate=daily`, `weekly` and `monthly` forms of
+`GET /api/measurements` start their buckets at the user's local midnight.
+
 ### Compliance windows
 
 A [dose window](/explanation/medication-compliance/) like `07:00–09:00` is a

@@ -72,6 +72,26 @@ backup growth roughly linear in stored document bytes. The off-host S3
 JSON backup carries the encrypted document bytes too, so its size grows
 with the vault as well; budget the off-host storage accordingly.
 
+## Linking a document to visits and vaccinations
+
+A document can belong to as many visits and vaccinations as it covers. Link it
+from either side; both are the same link.
+
+- **From the visit or the vaccination.** **Link a document** offers your whole
+  vault. Documents dated within seven days of the record are listed first under
+  **Around this date**, the rest by month, and the list is searchable. If the
+  list cannot be loaded, the picker says so and offers a retry instead of
+  showing an empty vault.
+- **From the document.** The document's detail sheet lists its visits under
+  **Belongs to visit** and its doses under **Vaccinations**. Anyone who may manage the vault can
+  add and remove links there, with the records dated near the document on top.
+  A childhood vaccination record can be linked to every dose it lists in one
+  place, instead of opening each dose.
+
+Before v1.39.0 the picker on a visit or a vaccination could say "No documents
+yet." with a full vault, and a document showed its visits read-only and its
+vaccinations not at all.
+
 ## What the vault is not for
 
 The vault stores medical *documents*, not disk images. DICOM CDs, ISO
@@ -88,6 +108,21 @@ The vault works fully without any AI. Filing and finding get an *optional*
 layer that only runs when you have configured an AI provider (bring-your-own-key
 or a local model) and consented to it. Nothing runs automatically, nothing is
 interpreted, and nothing is saved without your explicit action.
+
+Since v1.39.0 reading documents has a consent of its own. Before a document goes
+to an AI service outside your server, your own key included, you are asked once
+for consent to reading documents; a local model on your server needs none. That
+consent covers documents, lab report scans and medication text, and nothing
+else, and your consent for the Coach or AI analysis does not stand in for it.
+
+The operator can switch reading off for the whole server with **Reading
+documents** under Admin, Coach, or with the master switch. Then suggesting
+details, summaries, extracted text, indexing through a provider, chatting about
+a document and lab scans are all refused, and a background read that was queued
+earlier stops when it runs. Uploading, storing, opening and searching work the
+same with reading off or no model set up. Search still finds words in a PDF
+that has its own text layer; only the model-read version of a scanned page waits
+until reading is back on.
 
 ### Suggest details (review-first)
 
@@ -377,5 +412,7 @@ file can never reach anything it shouldn't.
 
 Available for indexed documents only, using your configured AI provider
 (local-first, keeping the document on your machine; an external provider
-requires explicit consent and shows the egress notice). Document conversations
+requires your consent to reading documents and shows the egress notice). The
+conversation needs both the Coach and reading documents to be available, so the
+operator's Coach switch and the **Reading documents** switch each turn it off. Document conversations
 are stored with the rest of your Coach history and encrypted at rest.

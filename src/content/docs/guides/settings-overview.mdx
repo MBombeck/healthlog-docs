@@ -72,12 +72,12 @@ reflects `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY_ID` or the legacy
 ## Modules
 
 One switch per optional tracking domain: cycle, mood, sleep, glucose,
-workouts, recovery, labs, illness, achievements, Coach, insights, medications,
-doctor report, environment, MCP, inbound documents, mental health, nutrients,
-vaccinations. Weight, blood pressure and pulse are core and cannot be turned
-off. Most modules are on by default; MCP and nutrients are opt-in. A switch
-is greyed out when the admin has disabled that module server-wide, and the
-Coach switch additionally needs the admin's assistant flags to be on. The card
+workouts, recovery, labs, illness, achievements, Coach, AI analysis,
+medications, doctor report, environment, MCP, documents, mental health,
+nutrients, vaccinations. Weight, blood pressure and pulse are core and cannot be
+turned off. Most modules are on by default; MCP and nutrients are opt-in. A
+switch is greyed out when the admin has disabled that module server-wide, and
+the Coach switch additionally needs the operator's Coach switch to be on. The card
 belongs to the record you are in rather than to your account, so a guardian
 switched into a record they look after reads and writes that record's map and
 leaves their own alone. Where a module is off, the page says which of the three
@@ -86,6 +86,30 @@ it, or the operator switched it off for the instance. Only the first offers you
 the switch. Since v1.38.18 the page of a module that is off says the same
 instead of an empty state that reads as "nothing here yet", and offers the
 switch only when the record's own setting is what is off.
+
+Since v1.39.0 a module you switch off is gone everywhere, not just from the
+menu: the Insights tabs, the trends row on the Insights overview, the add menu
+behind the plus button, the dashboard tiles, the overview layout settings and
+the score rings. The trends row moves on to the next chart, so it still shows
+three. Correlations stop pairing your readings with a module you switched off,
+and so do the patterns the Coach, the status notes and the weekly and monthly
+review look at. Turn the module back on and those patterns return; any you had
+dismissed stay dismissed. Because fewer pairs are checked when fewer things are
+tracked, a weak pattern between two things you still track can appear after you
+switch a module off, or disappear after you switch one back on.
+
+A bookmark or link to a page whose module is off opens a short notice on that
+page instead of an error or a redirect. When the switch is yours, the notice
+has an **Open Settings, Modules** button. When the page is outside what someone
+shared with you, or the operator turned the module off for everyone, the notice
+says so and leaves the button out. The Nutrients page uses the same notice; it
+is switched on here like every other module.
+
+**AI analysis**, called Insights before v1.39.0, is the switch for text a model
+writes for you: the daily briefing, status notes and workout notes. It never
+hides your data. With it off you keep the Insights tab, the Today summary on the
+dashboard, and the readiness, recovery and sleep score rings. See
+[When AI is not available](/guides/ai-providers/#when-ai-is-not-available).
 
 <figure>
   <img src={settingsModules.src} alt="Settings page 'What you track': a list of module rows for cycle, mood, glucose, lab results, illness journal, sleep, workouts, recovery, achievements and Coach, each with a one-line description and a toggle switched on" />
@@ -140,6 +164,12 @@ addresses redirect here. Dashboard layout is described in
 
 Personal thresholds per metric, with per-metric and reset-all resets, plus the
 glucose reference card that chooses which reference band the app applies.
+Since v1.39.0 a weight target you set here also decides which way the weight
+tile counts as progress. Below your target a gain shows as progress, above it
+a loss does, and inside it holding steady does, with a small move either way
+shown neutrally. The daily briefing, the weight status note and the Coach know
+the target and the direction too. Without a stored target the tile reads as
+before; the band worked out from your height does not count as a target.
 Needs nothing beyond a session. Background in
 [Blood pressure targets](/explanation/blood-pressure-targets/).
 
@@ -188,14 +218,22 @@ Provider, model and your own API key for AI Insights: Anthropic, OpenAI,
 an OpenAI-compatible endpoint, Codex, or a local model, plus the fallback
 chain, auto-read, response timeout and the consent card. The admin's server
 key, if one is configured, sits at the end of the chain and never overrides a
-key you set yourself; using it needs your consent. The admin's assistant
-master flag gates every AI surface. See [AI providers](/guides/ai-providers/).
+key you set yourself; using it needs your consent. The operator's master
+switch stops every AI feature, and **Test connection** says so instead of
+calling the model while it is off. See [AI providers](/guides/ai-providers/).
 
 ## Coach
 
 The Coach on/off switch, then (only while it is on) preferences, the nudge
 card, remembered facts with per-fact deletion, and Coach reminders. Needs the
-coach module and the admin's Coach flag. See
+coach module and the operator's Coach switch. Hiding the Coach hides the Coach
+and nothing else; since v1.39.0 it no longer also stops the daily briefing and
+status notes, which follow **AI analysis** under Modules. Hiding it deletes
+none of your conversations or remembered facts. What the Coach kept stays on
+this page while the Coach is hidden or switched off: remembered facts,
+conversations, plans and reminders, each readable and deletable, without the
+controls that need the Coach. Reminders wait while the Coach is unavailable and
+come back when it is on again. See
 [Coach plans](/guides/coach-plans/).
 
 ## API & Tokens

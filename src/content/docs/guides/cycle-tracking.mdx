@@ -37,6 +37,26 @@ period end, mark or confirm ovulation, and delete a cycle. Each day can carry
 one log, and a day log can be edited or removed later (removal leaves a
 tombstone so an offline phone learns it went away).
 
+You can fill in your history for any date, including months back, and in any
+order. Open a date in the calendar and the log sheet shows the day of the
+cycle that date belongs to, or no number when it belongs to none. **My period
+started this day** marks a start on that date, and **My period ended this day**
+is offered on the first days of any logged cycle, so a back-dated period can be
+closed on its own dates.
+
+Entering days out of order gives the same result as entering them in order. If
+you log the second day of a period before the first, the first day becomes the
+start of that same period rather than a separate one-day cycle, and days you
+logged before a start you add later move to the right cycle. Before v1.39.0 an
+out-of-order entry could leave a one-day cycle in front of the real start and
+throw off every cycle length after it. If your history has one, open the real
+first day and tap **My period started this day** once more; the two starts
+merge into one.
+
+A start tapped a few days too early by mistake can be taken back. Tapping a start
+less than ten days before an existing one folds the two together; deleting the
+earlier one again restores the later start with its logged days.
+
 ## Log a day
 
 A day log holds:
@@ -48,10 +68,14 @@ A day log holds:
 - **Ovulation test** result and **cervical mucus** observation.
 - **Cervix** position, firmness and opening.
 - **Symptoms** from the catalog or your own custom symptoms (custom labels are
-  encrypted), each with a severity from 1 to 4.
+  encrypted), one per line with an optional intensity from 1 to 4 beside it.
 - **Sexual activity**, **protection**, **pregnancy test**, **progesterone
   test** and **contraceptive**.
 - **Note**, always encrypted.
+
+Save needs something to store. With nothing picked, the sheet stays open and
+asks you to pick a flow or a symptom, or to use the period start button;
+before v1.39.0 it closed and stored an empty entry the calendar could not show.
 
 Bulk entry accepts up to 500 day logs in one request, which is how the iOS
 app syncs.
@@ -119,6 +143,12 @@ database host.
 `/api/cycle/symptoms/custom`, and `GET` and `PATCH /api/auth/me/cycle-prefs`,
 which is the one route that flips the switch and therefore does not enforce
 it.
+
+Since v1.39.0 each day in `GET /api/cycle/calendar` carries `cycleDay`, the day
+of the logged cycle that date belongs to (`null` before the first logged start,
+after today, or once an open cycle has run too long to count), and
+`periodEndable`, whether a one-tap period end on that date lands inside a logged
+cycle. Both are additive.
 
 `GET /api/cycle/insights` answers a grant scoped to the cycle with the phase
 pattern alone and adds the outcome columns (weight, resting heart rate, HRV,

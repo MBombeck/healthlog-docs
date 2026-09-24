@@ -27,11 +27,25 @@ length / asymmetry, respiratory rate, the body-composition family, mobility,
 daylight, and more — and a metric/imperial display toggle renders values in your
 preferred units while storage and exports stay canonical SI.
 
+Anything a device does not send can be typed in by hand. The manual form covers
+blood pressure, weight, pulse, sleep, steps, glucose, oxygen saturation, body
+temperature, waist, waist-to-height ratio, grip strength and pain, and the full
+body-composition set a scale reports: body fat, body water, bone mass, fat mass,
+fat-free mass, lean body mass, muscle mass and visceral fat. The masses follow
+your kilogram or pound setting; visceral fat is entered as the scale's own
+rating, not a percentage. The last five arrived in the form in v1.39.0; the
+server had accepted them from connected scales long before.
+
 ## Custom thresholds
 
 Override the computed default ranges per metric with the targets your clinician
 set. Audit-logged. The doctor-report PDF prints the effective range in force,
 overrides included.
+
+A weight target also sets which way counts as progress: below it a gain shows as
+progress, above it a loss does, and inside it holding steady does. The weight
+tile, the weight status note, the daily briefing and the Coach all judge your
+weight against it.
 
 ## Customizable dashboard
 
@@ -198,6 +212,13 @@ BYOK or admin-shared. Local endpoints keep all data on your network. An
 off-by-default [MCP connector](/guides/mcp-server/) can open your own record to
 an external assistant over OAuth — read-only unless you opt into narrow,
 confirmed writes.
+
+AI is optional all the way through. With no provider, AI switched off by the
+operator, or **AI analysis** switched off by you, every reading, chart, score
+and correlation still loads, and nothing is sent to a model. The operator's
+switches stop the work they cover, including document reading and lab scans,
+not just the text. See
+[When AI is not available](/guides/ai-providers/#when-ai-is-not-available).
 
 ## Derived wellness metrics
 

@@ -51,6 +51,13 @@ contractual relationship are yours too. Pointing the app at a local endpoint
 to reach for when you are processing somebody else's health data.
 [Configure AI providers](/guides/ai-providers/) covers the choice.
 
+If you would rather no health data reach a model at all, the switches under
+Admin, Coach do that for the whole instance. Since v1.39.0 they stop the work,
+not only the text: with the master switch off nothing is sent to a model, and
+**Reading documents** alone stops the vault, lab report scans and medication
+text, which carry the most data out. Everything else in the app keeps working.
+See [Admin overview](/guides/admin-overview/#coach).
+
 Notification channels are recipients of the notification text. Apple sees APNs
 payloads, Telegram sees Telegram messages, and your ntfy server sees whatever
 you send it. HealthLog can collapse cycle and medication reminders to a generic
@@ -84,6 +91,16 @@ one of the [records with no login of their own](/guides/managed-profiles/), the
 consent is the guardian's, and the age at which a child can consent for
 themselves is set nationally between 13 and 16
 ([Art. 8](https://gdpr-info.eu/art-8-gdpr/)).
+
+Inside the app, AI processing has consents of its own, which each person gives
+and withdraws in their AI settings. Reading documents asks separately from the
+Coach and AI analysis, and a document or lab scan does not leave the server for
+an outside AI service without it. Withdrawing AI consent takes effect at once
+and, since v1.39.0, also deletes the notes that were written under it and can
+be written again: status notes, the daily briefing, model-written period
+summaries, reaction lines and workout notes. Coach conversations and document
+summaries are the person's records and stay until they delete them. See
+[Withdrawing AI consent](/guides/ai-providers/#withdrawing-ai-consent).
 
 ## Access and portability
 
@@ -185,6 +202,13 @@ their own:
 | Notification delivery attempts | 90 days | fixed |
 | Host metrics | 7 days | `HOST_METRIC_RETENTION_DAYS` |
 | Off-host backup objects | as configured | `BACKUP_RETENTION_DAYS` |
+
+The per-metric status notes are not in that list: since v1.39.0 they live
+encrypted in their own table, one row per metric and language, overwritten each
+night rather than accumulated, and left out of backups because they can be
+written again. Up to v1.38 they were kept as plain text in the audit log, one
+row per metric per day, for the audit window; the v1.39.0 upgrade deleted those
+rows.
 
 Shorten the audit window if you would rather hold fewer login IP addresses.
 Lengthening it means holding more, so pick the number you can justify rather

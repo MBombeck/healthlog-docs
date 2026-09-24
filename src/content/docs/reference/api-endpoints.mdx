@@ -98,6 +98,47 @@ SSE coach stream, and the self-context surface.
 | `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences |
 | `GET` / `PATCH` | `/api/auth/me/disable-coach` | Coach kill switch |
 
+### AI availability (since v1.39.0)
+
+Routes that serve data never refuse for an AI reason. `GET /api/auth/me` carries
+an `ai` block next to `modules`, resolved for the record the session is in:
+`ai.capabilities` maps each AI feature (`coach`, `briefing`, `periodNarrative`,
+`statusText`, `workoutInsights`, `reactionLines`, `aboutMeQuestions`,
+`documentAi`, `labsOcr`, `medicationExtract`) to `{ available, reason,
+onDeviceAllowed }`, and `ai.provider` says whether a provider is configured and
+who manages it. `reason` is one of `check_failed`, `operator_disabled`,
+`not_permitted_for_record`, `module_disabled`, `user_disabled`, `no_provider` or
+`consent_required`, and only the outermost one is reported. Read it; do not
+work it out again on the client.
+
+Reads that mix data with model text answer `200`, set the model text to `null`
+and add an `ai` object with the reason: `GET /api/insights/comprehensive`,
+`/derived`, `/narrative`, the per-metric status routes, `/api/workouts/{id}`,
+`/api/daily/digest` and `/api/dashboard/snapshot` among them. `hasProvider` on
+the status routes means only that a provider is set up. Every card from
+`GET /api/insights/cards` says `provider: "rules"`.
+
+Actions that call a model refuse with one shape: `meta.errorCode` plus
+`meta.capability`, `meta.reason` and, where it applies, `meta.module`. Existing
+codes keep their meaning: `assistant.disabled.<switch>` for an operator switch
+(`coach`, `briefing`, `insightStatus`, `documentAi`, or `enabled` for the master
+on `POST /api/ai/test`), `module.disabled`, and `consent.ai.required`, all
+`403`. New are `ai.record.notPermitted` (`403`), `ai.provider.none` (`422`;
+`POST /api/medications/extract` keeps its `503`, and the document and lab scan
+routes keep their own provider codes) and
+`ai.unavailable` (`503`, the switches could not be read).
+`GET` and `POST /api/insights/generate` now refuse by the briefing's switch
+(`assistant.disabled.briefing`), and a missing provider is `422`
+`ai.provider.none`.
+
+`GET /api/consent/ai/latest` includes the `ai_extraction` kind (document
+reading), and `DELETE` without a kind revokes it too. A revoke that leaves no
+consent for AI analysis also deletes the regenerable notes.
+
+`GET /api/feature-flags` still answers, with a `Deprecation` header and a `Link`
+to `/api/auth/me`, and no longer has `correlations`. It will be removed in the
+first release after the iOS build that reads `ai` ships.
+
 ## Cycle (menstrual tracking)
 
 A dedicated group (day logs, periods, calendar, predictions, insights, profile,

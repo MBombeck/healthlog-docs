@@ -87,23 +87,56 @@ action here; users mint their own tokens under Settings, API & Tokens.
 
 ## Coach
 
-Six cards for everything AI-related at the instance level. The assistant
-flags (a master switch plus Coach, daily briefing, per-metric insight status,
-and correlation narration; the master forces the rest off). The server-side
-provider key that sits at the end of every user's chain and needs each user's
-consent before it is used; its base URL is HTTPS-only with an allowlist you
-can extend through `ADMIN_AI_BASE_URL_ALLOWLIST`. The central Codex
-connection (device-code flow, off until connected). Provider health. And the
-two feedback-quality tables for Coach and Insights, filled by a daily
-aggregation job. User-side setup is in [AI providers](/guides/ai-providers/).
+Six cards for everything AI-related at the instance level. The **Assistant**
+card holds the switches, the server-side provider key sits at the end of every
+user's chain and needs each user's consent before it is used (its base URL is
+HTTPS-only with an allowlist you can extend through
+`ADMIN_AI_BASE_URL_ALLOWLIST`), then the central Codex connection (device-code
+flow, off until connected), provider health, and the two feedback-quality
+tables for Coach and Insights, filled by a daily aggregation job. User-side
+setup is in [AI providers](/guides/ai-providers/).
 
+The Assistant card has a master switch and four switches under it:
+
+| Switch | What it covers |
+| --- | --- |
+| **Assistant enabled** | Every AI feature. Off means nothing is sent to a model, and the four below are off with it. |
+| **Coach** | The Coach chat, upkeep of the Coach's memory, and AI-written nudges. |
+| **Daily Briefing** | The daily briefing, its opening lines elsewhere in the app, and period summaries written by a model. |
+| **Status notes** | The short notes a model writes per reading and metric, workout notes and reaction lines. The largest share of token use. |
+| **Reading documents** | AI reading of stored documents, lab report scans, and turning a typed medication description into a schedule. The largest share of data leaving the server. |
+
+Since v1.39.0 a switch stops the work it covers, not just the text. With a
+switch off, nothing it covers is sent to a model, including background work
+that was queued before you flipped it, and text a model wrote earlier is not
+shown. Nothing is deleted: turn the switch back on and the stored notes come
+back. Readings, charts, scores and correlations load the same whatever these
+switches say. If the server cannot read the switches for a moment, every AI
+feature stays off for that request rather than every one turning on.
+
+Two switches changed in v1.39.0. **Reading documents** is new and on by
+default; before it, only the master switch covered the vault, lab scans and
+medication text. The **Correlations** switch is gone, because correlations are
+statistics that no model writes, so they now always load. **Status notes** was
+called **Status cards**, and the card itself was called **Assistant Surfaces**.
+
+With the master switch off, **Test connection** in a user's AI settings says
+AI is off on this server instead of calling the model.
+
+## Module availability
 ## Module availability
 
 One switch per optional module, applied server-wide above each user's own
 preference. Only an explicit off disables a module; the core domains (weight,
-blood pressure, pulse) cannot be switched off and the write path refuses the
-attempt. A user whose module is disabled here sees the switch greyed out
-under [Settings, Modules](/guides/settings-overview/#modules).
+blood pressure, pulse) cannot be switched off and the write path
+refuses the attempt. A user whose module is disabled here sees the switch
+greyed out under [Settings, Modules](/guides/settings-overview/#modules), and a
+page of that module tells them it is not available on this server.
+
+The Coach has one operator switch, the one on the Assistant card. Its row here
+shows that switch's state, cannot be flipped, and links to the Assistant card.
+If you had turned the Coach module off here before v1.39.0, the upgrade carries
+that over to the Coach switch.
 
 ## Reminders
 
