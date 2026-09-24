@@ -11,8 +11,9 @@ page walks through adding results, what the range bar shows, how a scanned
 report becomes rows, and how the biomarker catalog works.
 
 The module is on by default and can be switched off under Settings, Modules.
-The switch hides the surface; the doctor report and the preventive-care
-reminder read lab rows either way. Nothing here interprets a value. A number
+The switch hides the surface, including the "Since your last panel" card on
+Insights and lab pairs in correlations; the doctor report and the
+preventive-care reminder read lab rows either way. Nothing here interprets a value. A number
 outside its window is information for you and your clinician, and the app
 shows it without alarm colours or verdicts.
 
@@ -30,7 +31,11 @@ also offered). A result has:
 - Optionally a **panel** label, the **reference range printed on the report**,
   and a **note**. The note is encrypted at rest.
 
-"Save and add another" keeps the form open for the next line of the report.
+"Save and add another" keeps the form open for the next line of the report. It
+keeps the biomarker, the sample date and the visit, clears only the value, its
+note and the printed range, and puts the cursor in the value field, so a run of
+readings for one marker is a run of values. Before v1.39.0 the second save could
+answer "Pick a biomarker first." while the picker still showed one.
 Every result is linked to a biomarker in your catalog: if the analyte name
 does not exist yet (matched case-insensitively), a catalog entry is created
 from what you typed. Two spellings of the same name resolve to one entry.
@@ -59,6 +64,15 @@ If your provider is text-only, enable **local OCR** in the Labs settings. The
 image is then read in your browser (German and English models), and only the
 recognised text goes to the provider. It is less accurate than a vision
 model, which is why the review step exists; it cannot read PDFs.
+
+A lab report is a document, so scanning follows the rules for
+[reading documents](/guides/document-vault/#ai-assist-and-content-search).
+Since v1.39.0 the first scan that would go to an AI service outside your
+server, your own key included, asks for your consent to reading documents; a
+local model on your server needs none. The scan also needs the Labs module on.
+When the operator has switched off **Reading documents** or the master switch
+under Admin, Coach, a scan is refused and nothing is sent. Scans share
+an hourly limit per person, set with `LABS_OCR_LIMIT_PER_HOUR` (default 6).
 
 Reports that arrive in the [document vault](/guides/document-vault/) take the
 other direction: a stored document that looks like a lab report is staged as

@@ -52,6 +52,36 @@ This is the BYOK ("bring your own key") principle: the privacy/convenience
 trade-off is yours to make per user, and the local option removes the trade-off
 entirely. See [Configure AI providers](/guides/ai-providers/).
 
+Four more layers can stop a model call before anything is sent, and each one can
+only take away:
+
+- **The operator's switches.** Under Admin, Coach, a master switch and four
+  switches (Coach, daily briefing, status notes, reading documents) stop the AI
+  work they cover. Since v1.39.0 that means nothing covered is sent to a model,
+  including background work queued before the switch was flipped, not just that
+  the text is hidden. If the server cannot read the switches, AI stays off for
+  that request.
+- **Your modules and opt-outs.** Hiding the Coach, or switching **AI analysis**
+  off, stops the matching work for you, the nightly jobs included.
+- **Consent.** Sending your data to a provider outside your server through the
+  operator's key needs your AI consent. Documents and lab report scans need a
+  consent of their own before they go to any AI service outside your server,
+  your own key included; a local model on your server needs none. Consent for
+  documents opens nothing else, and consent for the Coach or AI analysis does
+  not open documents.
+- **Shared records.** Someone you gave access to sees the AI text you would
+  see, but opening your record never starts AI work on it.
+
+Your data does not depend on any of this. Readings, charts, scores and
+statistics are served the same with AI on, off or never set up.
+
+The text a model writes about you is stored encrypted like the rest of your
+health data. Since v1.39.0 that includes the per-metric status notes, which were
+kept as plain text in the audit log before. Withdrawing your AI consent deletes
+the notes the app can write again (status notes, the daily briefing,
+model-written period summaries, reaction lines and workout notes); your Coach
+conversations and document summaries stay until you delete them.
+
 ### Device integrations (only what you connect)
 
 When you link Withings, WHOOP, or Google Health, HealthLog calls those vendors'
@@ -141,7 +171,7 @@ holding manage grants on it. The reasoning is in
 | Flow | Leaves the instance? | Control |
 | --- | --- | --- |
 | Viewing your own data | No | Stays in your Postgres |
-| AI Insights | Only if you set a provider; never with a local one | BYOK, per user |
+| AI Insights | Only if a provider is set up and every switch allows it; never with a local one | Operator switches, your modules, consent |
 | Device sync | Inbound pull you initiated | OAuth, scoped to your account |
 | Notifications | Only to channels you enable | Per-channel opt-in |
 | Telemetry / analytics | No | None exists |
