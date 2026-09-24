@@ -1,12 +1,14 @@
 ---
 title: Connect the iOS app
-description: Join the TestFlight public beta and point the native SwiftUI client at your self-hosted HealthLog instance for live HealthKit sync.
+description: Install the HealthLog iPhone app from the App Store and point it at your self-hosted HealthLog instance for live Apple Health (HealthKit) sync.
 sidebar:
   order: 4
 ---
 
-The native SwiftUI client is in public beta via
-[TestFlight](https://testflight.apple.com/join/bucuTBpa). It is built on the
+The native SwiftUI client is on the
+[App Store](https://apps.apple.com/app/id6769501341), and a free beta with the
+newest builds runs on [TestFlight](https://testflight.apple.com/join/bucuTBpa).
+It is built on the
 same API as the web client and speaks against the OpenAPI contract locked in
 [`docs/api/openapi.yaml`](/reference/api-overview/). The code lives in a separate
 repository, [MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
@@ -21,7 +23,8 @@ repository, [MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
 
 ## Connect
 
-1. Install the beta from [TestFlight](https://testflight.apple.com/join/bucuTBpa).
+1. Install the app from the [App Store](https://apps.apple.com/app/id6769501341)
+   (or the beta from [TestFlight](https://testflight.apple.com/join/bucuTBpa)).
 2. On first launch, enter your instance's public URL
    (`https://your-instance.example.com`). The app needs a reachable HTTPS origin
    — set the [public hostname](/getting-started/first-steps/#point-the-instance-at-a-public-hostname)
