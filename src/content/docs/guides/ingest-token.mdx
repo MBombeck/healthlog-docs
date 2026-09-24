@@ -173,6 +173,65 @@ takes up to 500 entries and reports a per-entry status (`inserted`, `updated`,
 to retry. A batch of more than 500 entries is refused whole with `422`
 (`measurement.batch.too_large`), and nothing from it is written.
 
+## Sleep stages
+
+A night with its stages (awake, core or light, deep, REM) goes through
+`/api/measurements/batch`, one entry per stage interval. The batch endpoint
+speaks the same format the iPhone app sends: every entry names the sleep
+category `HKCategoryTypeIdentifierSleepAnalysis`, carries the interval's length
+in minutes as its value, and says which stage it was with a number in
+`sleepStage`:
+
+| `sleepStage` | Stage                            |
+| ------------ | -------------------------------- |
+| `0`          | In bed                           |
+| `1`          | Asleep, stage not known          |
+| `2`          | Awake                            |
+| `3`          | Core (light) sleep               |
+| `4`          | Deep sleep                       |
+| `5`          | REM sleep                        |
+
+```bash
+curl -X POST https://healthlog.example.com/api/measurements/batch \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "entries": [
+        { "hkIdentifier": "HKCategoryTypeIdentifierSleepAnalysis", "sleepStage": 3,
+          "value": 60, "unit": "min",
+          "startDate": "2026-03-14T23:10:00Z", "endDate": "2026-03-15T00:10:00Z",
+          "externalId": "hc-sleep-3f2a-2026-03-14T23:10:00Z" },
+        { "hkIdentifier": "HKCategoryTypeIdentifierSleepAnalysis", "sleepStage": 4,
+          "value": 45, "unit": "min",
+          "startDate": "2026-03-15T00:10:00Z", "endDate": "2026-03-15T00:55:00Z",
+          "externalId": "hc-sleep-3f2a-2026-03-15T00:10:00Z" }
+      ] }'
+```
+
+`externalId` has to stay the same when you send the same interval again, so
+build it from the source record's id and the interval's start rather than from
+anything that changes between runs. A repeated interval then comes back as
+`duplicate` instead of a second row. The Sleep page puts the stages together
+into nights, and when you have more than one sleep source it shows one of them
+per night, following the order under [Settings, Source priority](/guides/source-priority/).
+
+Android's Health Connect numbers its stages differently. If you forward sleep
+sessions from Health Connect (with Tasker or a similar automation), translate
+them like this:
+
+| Health Connect stage          | `sleepStage` |
+| ----------------------------- | ------------ |
+| `STAGE_TYPE_AWAKE` (1)        | `2`          |
+| `STAGE_TYPE_AWAKE_IN_BED` (7) | `2`          |
+| `STAGE_TYPE_SLEEPING` (2)     | `1`          |
+| `STAGE_TYPE_SLEEPING_LIGHT` (4) | `3`        |
+| `STAGE_TYPE_SLEEPING_DEEP` (5)  | `4`        |
+| `STAGE_TYPE_SLEEPING_REM` (6)   | `5`        |
+| `STAGE_TYPE_UNKNOWN` (0)      | `1`          |
+
+Leave out `STAGE_TYPE_AWAKE_OUT_OF_BED` (3): time out of bed is not part of the
+night. A session without any stages can go in as a single entry with
+`sleepStage` `1` covering the whole session.
+
 ## Retries and duplicates
 
 Both endpoints honour an `Idempotency-Key` header. Send a value your automation
