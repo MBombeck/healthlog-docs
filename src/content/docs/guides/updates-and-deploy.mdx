@@ -88,10 +88,10 @@ ALTER TABLE users
 `onboarding_completed_at` stays; it gates the first-run redirect and the
 needs-based flow keeps stamping it.
 
-## Migrations 0343 and 0344 in v1.39.0
+## Migrations 0343, 0344 and 0345 in v1.39.0
 
-Take a backup before deploying v1.39.0. Both migrations remove data, and one of
-them changes settings for some accounts.
+Take a backup before deploying v1.39.0. Two of the migrations remove data, and
+one of them changes settings for some accounts.
 
 `0343_ai_capability_switches` reshapes the assistant switches on the admin
 Coach page:
@@ -112,6 +112,14 @@ log into their own table, encrypted at rest, one row per metric and language.
 It deletes the old rows from the audit log and copies nothing, because a
 migration cannot encrypt. Expect one night in which every note is written again,
 which costs about one normal night of model use on top.
+
+`0345_cycle_absorbed_start` only adds a column. It remembers which period start
+was folded into an earlier one, so deleting a start tapped by mistake brings
+the later one back.
+
+Restoring an instance backup taken before v1.39.0 applies the same Coach change
+as `0343`: a Coach switched off under module availability comes back as the
+**Coach** switch turned off.
 
 An older image against the migrated database still reads the dropped
 Correlations column. Rolling back means restoring the backup, or re-adding the
