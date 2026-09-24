@@ -88,6 +88,44 @@ ALTER TABLE users
 `onboarding_completed_at` stays; it gates the first-run redirect and the
 needs-based flow keeps stamping it.
 
+## Migrations 0343 and 0344 in v1.39.0
+
+Take a backup before deploying v1.39.0. Both migrations remove data, and one of
+them changes settings for some accounts.
+
+`0343_ai_capability_switches` reshapes the assistant switches on the admin
+Coach page:
+
+- It adds the **Reading documents** switch, on by default.
+- Where the Coach module was switched off under module availability, it turns
+  the **Coach** switch off instead, and removes the Coach entry from module
+  availability.
+- For every account that had hidden the Coach, it switches **AI analysis** off
+  (the `insights` module). Hiding the Coach used to stop the nightly briefing and
+  status notes as well; from this release it hides the Coach and nothing else,
+  so these accounts keep the privacy they chose. They can switch AI analysis
+  back on under Settings, Modules.
+- It drops the column behind the retired **Correlations** switch.
+
+`0344_insight_status_cache` moves the per-metric status notes out of the audit
+log into their own table, encrypted at rest, one row per metric and language.
+It deletes the old rows from the audit log and copies nothing, because a
+migration cannot encrypt. Expect one night in which every note is written again,
+which costs about one normal night of model use on top.
+
+An older image against the migrated database still reads the dropped
+Correlations column. Rolling back means restoring the backup, or re-adding the
+column with its old default:
+
+```sql
+ALTER TABLE app_settings
+  ADD COLUMN assistant_correlations_enabled boolean NOT NULL DEFAULT true;
+```
+
+Re-adding the column does not bring back the deleted status notes or undo the
+AI analysis change; the older image writes the notes again on its next nightly
+run.
+
 ## Rolling back
 
 Rolling back **migrations** is generally one-way (Prisma's `down` step is not
