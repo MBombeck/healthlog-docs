@@ -37,6 +37,15 @@ repository, [MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
 
 ## Push notifications (APNs)
 
+:::note[The App Store app schedules its reminders on the iPhone]
+If you use HealthLog from the App Store, you don't need anything in this section.
+The app plans medication reminders as local notifications on the phone and tells
+your server so (`clientManaged`, see below), so they arrive even without APNs.
+Sending pushes to the App Store build would need the publisher's own APNs key,
+which a self-hosted server does not have. The variables below are for people who
+build and sign the iOS app themselves.
+:::
+
 For medication reminders to arrive on the phone, the instance needs APNs
 configured. This is an all-or-none set of environment variables:
 
