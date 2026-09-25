@@ -53,8 +53,9 @@ is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
 The two `POST` endpoints are the only routes a `measurements:write` token can
 reach. Such a token writes on its owner's own record only (a request carrying
 the account selector is refused with `403` before any sharing grant is read),
-its rows are attributed `MANUAL`, an entry naming `APPLE_HEALTH` is refused
-with `422`, and a batch from it does not move the phone's sync checkpoint. See
+its rows are attributed `EXTERNAL` (since v1.39.1; `MANUAL` before), a body or
+entry that names any `source` is refused with `422`, and a batch from it does
+not move the phone's sync checkpoint. See
 [Push readings from your own hardware](/guides/ingest-token/).
 
 ## Medications

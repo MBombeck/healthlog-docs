@@ -59,24 +59,46 @@ It also cannot be pointed at somebody else's record. If an account has
 even read, so no future change to what sharing permits can widen what one of
 these tokens reaches. Use the web app for that.
 
-## Readings arrive as manually entered
+## Readings are marked as coming from an external device
 
-Rows written with this token carry `source: MANUAL`, the same label a reading
-you type in by hand gets. Two consequences worth knowing:
+Since v1.39.1, rows written with this token carry `source: EXTERNAL`. The
+measurements list shows them with an **External device** badge, and the source
+filter there can pick them out, so months later you can still tell which
+readings came off the scale and which you typed in yourself. Three things
+follow from that:
 
 - You can correct them in the app. Readings owned by a connected provider are
-  read-only; these are not.
-- They do not claim to be from Apple Health. An entry that explicitly names
-  `APPLE_HEALTH` is refused with `422` (`measurement.create.source_not_permitted`
-  on the single endpoint, `measurement.batch.source_not_permitted` on the batch
-  endpoint) rather than quietly relabelled. That source is half the
+  read-only because the number is the provider's; these come from your own
+  hardware and stay editable.
+- **The payload must not name a source.** The server decides it from the
+  token. A body that carries `source` at all, whether `MANUAL`,
+  `APPLE_HEALTH` or anything else, is refused with `422`
+  (`measurement.create.source_not_permitted` on the single endpoint,
+  `measurement.batch.source_not_permitted` on the batch endpoint) rather than
+  quietly relabelled. If your automation sends a `source` field, drop it. The
+  example below never sent one, so a setup copied from it needs no change.
+- They never claim to be from Apple Health. That source is half the
   deduplication key the iOS app writes into, and a bridge borrowing it would
   corrupt the phone's sync rather than merely mislabel a row.
 
-For the same reason, a push through this token does not move the phone's sync
-checkpoint. That checkpoint records that your phone delivered what it was
-holding, and a scale advancing it could make the phone skip a window of its own
-samples.
+Readings pushed before v1.39.1 keep the label `MANUAL`. Nothing recorded which
+of them arrived through a token, so they cannot be sorted out afterwards. If
+you push through the batch endpoint, a re-push of entries you had already sent
+before the upgrade can land a second copy, because a reading's identity
+includes its source. Delete the older one if you see pairs.
+
+`EXTERNAL` is on none of the [source priority](/guides/source-priority/)
+ladders. On a day where you both typed a reading in and had the same kind
+pushed in, and the metric's ladder ranks manual entries (the default ladders
+for weight, blood pressure, steps and blood oxygen do), the typed one counts
+wherever the app needs one source per day: the daily totals behind the
+charts, the health score, the doctor report, correlations and personal
+records. The pushed reading is still stored and still listed. A day with only
+pushed readings is unaffected.
+
+A push through this token also does not move the phone's sync checkpoint. That
+checkpoint records that your phone delivered what it was holding, and a scale
+advancing it could make the phone skip a window of its own samples.
 
 ## Home Assistant example
 
@@ -259,7 +281,7 @@ pass validation.
 | `401`    | The token is wrong, revoked, or expired. Mint a new one.                                                                                                       |
 | `403`    | The endpoint is outside the token's scope (check you are calling one of the two above and not a read), or the request named another account's record.       |
 | `409`    | A reading with this type, timestamp and source already exists (single endpoint only).                                                                          |
-| `422`    | The payload is wrong: an unknown `type`, a non-numeric or implausible `value`, an `unavailable` sensor state, an entry naming `APPLE_HEALTH`, or a batch over 500. |
+| `422`    | The payload is wrong: an unknown `type`, a non-numeric or implausible `value`, an `unavailable` sensor state, a body or entry naming any `source`, or a batch over 500. |
 | `429`    | Too many requests. The batch route allows 60 calls per minute per account; the single route shares a 300-a-minute bucket with the other one-row writes and says so with `meta.errorCode: record_write.rate_limited`. The response carries `Retry-After` in whole seconds plus `X-RateLimit-Limit`, `-Remaining` and `-Reset`; wait out `Retry-After` rather than retrying on a timer of your own. |
 
 The response envelope is `{ "data": ..., "error": null }` on success and

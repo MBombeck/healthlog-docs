@@ -22,7 +22,9 @@ The single table every vital flows into, regardless of source.
   diastolic, pulse, glucose, body composition family, SpO₂, sleep stage, steps,
   HRV, and more).
 - **`source`** tags provenance (`MANUAL`, `WITHINGS`, `WHOOP`, `APPLE_HEALTH`,
-  `IMPORT`, …) and drives [source priority](/guides/source-priority/).
+  `IMPORT`, `EXTERNAL` for readings pushed with a
+  [measurement token](/guides/ingest-token/), …) and drives
+  [source priority](/guides/source-priority/).
 - **`externalId`** carries the upstream identity. A `stats:<HKType>:<date>`
   prefix marks a cumulative daily aggregate that re-imports overwrite; other
   prefixes are first-write-wins. Tombstones support offline sync.
