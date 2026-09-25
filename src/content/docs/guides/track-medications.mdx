@@ -20,6 +20,19 @@ Open `/medications` and start the wizard. You set the name, an optional dosage
 and unit, a route of administration (oral / injection / other — injection adds a
 site picker), an optional supply count for the runway estimate, and a schedule.
 
+### Units per dose
+
+Units per dose says how many units one dose uses, for example one tablet or
+half a tablet. The wizard offers buttons for ¼, ⅓, ½, ⅔, ¾ and 1 to 4, and
+since v1.39.1 an **Other** field for anything else: type 1.5, 1,5, 1 1/2 or
+1½, and the field shows what will be saved. Any value above 0 and up to 100
+with up to four decimal places works, so a measured dose such as 0.8 mL is
+fine too. The same applies to the units at a single dose time and to the
+packaging settings on the supply tab. Stock and the runway count with the
+exact value, and cards show a common fraction as a glyph (1½). The iPhone app
+shows a value it has no button for, such as 1½, as 1 in its edit screen, but
+saving there does not change the stored value unless you pick a different one.
+
 The detail page that follows is a tabbed layout: **Übersicht** (overview),
 **Wirkung** (effect on a metric), **Zeitplan** (schedule, which also carries
 the reminder card), **Bestand** (supply), **Verlauf** (history), **API** (the
