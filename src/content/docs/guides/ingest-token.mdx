@@ -197,9 +197,49 @@ to retry. A batch of more than 500 entries is refused whole with `422`
 
 ## Sleep stages
 
-A night with its stages (awake, core or light, deep, REM) goes through
-`/api/measurements/batch`, one entry per stage interval. The batch endpoint
-speaks the same format the iPhone app sends: every entry names the sleep
+Since v1.39.1 a bridge can send each stage of a night by name, to the same
+`/api/measurements` address as every other reading. Send one request per
+stage, with the stage and its start and end:
+
+```bash
+curl -X POST https://healthlog.example.com/api/measurements \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "type": "SLEEP_DURATION", "sleepStage": "DEEP",
+        "startDate": "2026-03-15T00:10:00Z", "endDate": "2026-03-15T00:55:00Z" }'
+```
+
+| `sleepStage` | Stage                   |
+| ------------ | ----------------------- |
+| `IN_BED`     | In bed                  |
+| `ASLEEP`     | Asleep, stage not known |
+| `AWAKE`      | Awake                   |
+| `CORE`       | Core (light) sleep      |
+| `DEEP`       | Deep sleep              |
+| `REM`        | REM sleep               |
+
+If your automation knows when a stage ended and how long it lasted rather than
+when it started, send `measuredAt` (the end) and `value` (the length in
+minutes) instead of `startDate` and `endDate`. The stored entry is the same:
+a `SLEEP_DURATION` reading in minutes, dated at the end of the stage, exactly
+as the iPhone app's stages are stored. Sent with this token it carries the
+source `EXTERNAL`, like every other reading from it.
+
+You do not need an id. HealthLog recognises a stage by its name, start and
+end, so sending the same stage again answers `200` with `"status": "duplicate"`
+and keeps one entry, and sending it again with a corrected start answers
+`"status": "updated"` and replaces it. A new stage answers `201` with
+`"status": "inserted"`. If your source has its own record ids, you can add one
+as `externalId`; keep it the same for the same stage.
+
+A stage that lasts more than 24 hours, ends before it starts, or ends in the
+future is refused with `422` and a list of what was wrong. So is a `value`
+sent together with `startDate` and `endDate` that does not match them.
+
+### Several stages in one request
+
+To send a whole night in one call, use `/api/measurements/batch`, one entry
+per stage interval. The batch endpoint speaks the same format the iPhone app sends: every entry names the sleep
 category `HKCategoryTypeIdentifierSleepAnalysis`, carries the interval's length
 in minutes as its value, and says which stage it was with a number in
 `sleepStage`:
@@ -240,19 +280,19 @@ Android's Health Connect numbers its stages differently. If you forward sleep
 sessions from Health Connect (with Tasker or a similar automation), translate
 them like this:
 
-| Health Connect stage          | `sleepStage` |
-| ----------------------------- | ------------ |
-| `STAGE_TYPE_AWAKE` (1)        | `2`          |
-| `STAGE_TYPE_AWAKE_IN_BED` (7) | `2`          |
-| `STAGE_TYPE_SLEEPING` (2)     | `1`          |
-| `STAGE_TYPE_SLEEPING_LIGHT` (4) | `3`        |
-| `STAGE_TYPE_SLEEPING_DEEP` (5)  | `4`        |
-| `STAGE_TYPE_SLEEPING_REM` (6)   | `5`        |
-| `STAGE_TYPE_UNKNOWN` (0)      | `1`          |
+| Health Connect stage            | By name  | Batch number |
+| ------------------------------- | -------- | ------------ |
+| `STAGE_TYPE_AWAKE` (1)          | `AWAKE`  | `2`          |
+| `STAGE_TYPE_AWAKE_IN_BED` (7)   | `AWAKE`  | `2`          |
+| `STAGE_TYPE_SLEEPING` (2)       | `ASLEEP` | `1`          |
+| `STAGE_TYPE_SLEEPING_LIGHT` (4) | `CORE`   | `3`          |
+| `STAGE_TYPE_SLEEPING_DEEP` (5)  | `DEEP`   | `4`          |
+| `STAGE_TYPE_SLEEPING_REM` (6)   | `REM`    | `5`          |
+| `STAGE_TYPE_UNKNOWN` (0)        | `ASLEEP` | `1`          |
 
 Leave out `STAGE_TYPE_AWAKE_OUT_OF_BED` (3): time out of bed is not part of the
-night. A session without any stages can go in as a single entry with
-`sleepStage` `1` covering the whole session.
+night. A session without any stages can go in as a single `ASLEEP` stage (or a
+batch entry with `sleepStage` `1`) covering the whole session.
 
 ## Retries and duplicates
 
@@ -270,9 +310,13 @@ headers:
 Independently of that, a reading on `/api/measurements` with the same type,
 timestamp and source as an existing row is refused with `409`
 (`measurement.duplicate_timestamp`), so a duplicate push is a visible error
-rather than a duplicated data point. The batch endpoint reports such an entry
-as `duplicate` instead of failing the call; `skipped` means the entry did not
-pass validation.
+rather than a duplicated data point. A sleep stage sent by name is the
+exception: a repeat answers `200` with `"status": "duplicate"`. The batch
+endpoint reports such an entry as `duplicate` instead of failing the call;
+`skipped` means the entry did not pass validation. Since v1.39.1 an entry
+skipped as `value_out_of_range` also carries `convertedValue` (the value after
+conversion into the stored unit) and `range` (`min`, `max` and `unit`), so a
+body-fat percentage sent as a fraction is easy to spot.
 
 ## When it stops working
 
@@ -281,7 +325,7 @@ pass validation.
 | `401`    | The token is wrong, revoked, or expired. Mint a new one.                                                                                                       |
 | `403`    | The endpoint is outside the token's scope (check you are calling one of the two above and not a read), or the request named another account's record.       |
 | `409`    | A reading with this type, timestamp and source already exists (single endpoint only).                                                                          |
-| `422`    | The payload is wrong: an unknown `type`, a non-numeric or implausible `value`, an `unavailable` sensor state, a body or entry naming any `source`, or a batch over 500. |
+| `422`    | The payload is wrong: an unknown `type` or `sleepStage`, a non-numeric or implausible `value`, an `unavailable` sensor state, a body or entry naming any `source`, or a batch over 500. On the batch endpoint `meta.errorCode` says which: `measurement.batch.invalid`, `measurement.batch.source_not_permitted` or `measurement.batch.too_large`. None of these is worth retrying unchanged. |
 | `429`    | Too many requests. The batch route allows 60 calls per minute per account; the single route shares a 300-a-minute bucket with the other one-row writes and says so with `meta.errorCode: record_write.rate_limited`. The response carries `Retry-After` in whole seconds plus `X-RateLimit-Limit`, `-Remaining` and `-Reset`; wait out `Retry-After` rather than retrying on a timer of your own. |
 
 The response envelope is `{ "data": ..., "error": null }` on success and

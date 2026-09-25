@@ -32,7 +32,7 @@ The core ingest and read surface. Batch endpoints power the native client.
 | Method | Endpoint | Notes |
 | --- | --- | --- |
 | `GET` | `/api/measurements` | List (paginated, filterable by type / source / date) |
-| `POST` | `/api/measurements` | Create one measurement, or up to five in an array. Also accepts a `measurements:write` token |
+| `POST` | `/api/measurements` | Create one measurement, or up to five in an array, or since v1.39.1 one sleep stage by name (`sleepStage`: `IN_BED`, `ASLEEP`, `AWAKE`, `CORE`, `DEEP`, `REM`). Also accepts a `measurements:write` token |
 | `POST` | `/api/measurements/batch` | Bulk ingest, up to 500 entries; see the overwrite note below. Also accepts a `measurements:write` token |
 | `DELETE` | `/api/measurements/by-external-ids` | Soft-delete rows by external id (HealthKit deletion reconciliation) |
 | `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
@@ -49,6 +49,19 @@ other externalId prefix keeps first-write-wins immutability, because each sample
 is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
 `"inserted"` for a fresh row.
 :::
+
+Since v1.39.1 a batch refused as a whole names its reason in `meta.errorCode`:
+`measurement.batch.invalid` (the body failed validation),
+`measurement.batch.too_large` (more than 500 entries) or
+`measurement.batch.source_not_permitted`. All three are permanent for the batch
+as sent. An entry skipped as `value_out_of_range` carries `convertedValue` and
+`range` (`min`, `max`, `unit`). In the nutrient upload (`POST /api/nutrients/batch`) and the cycle bulk upload
+(`POST /api/cycle/day-logs/bulk`), an entry skipped as `upsert_failed` was not
+written because of a server-side failure and should be sent again; such a
+response is not stored for `Idempotency-Key` replay, so a retry under the same
+key writes again. See
+[Push readings from your own hardware](/guides/ingest-token/#sleep-stages) for
+sleep stages by name.
 
 The two `POST` endpoints are the only routes a `measurements:write` token can
 reach. Such a token writes on its owner's own record only (a request carrying
@@ -158,7 +171,7 @@ avatar, source priority, and the Codex device-OAuth flow.
 | `POST` | `/api/auth/login` · `/api/auth/passkey/login-verify` | Password / passkey login |
 | `POST` | `/api/auth/refresh` | Per-device refresh-token rotation |
 | `POST` | `/api/auth/codex/device-start` · `/device-poll` · `/disconnect` | ChatGPT device-OAuth |
-| `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs |
+| `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs. Since v1.39.1 `timezone` on `/api/user/profile` is the zone the server uses, as on `/api/auth/me`: the instance default when the stored value is not a usable zone name |
 
 ### Onboarding (the needs-based flow)
 
