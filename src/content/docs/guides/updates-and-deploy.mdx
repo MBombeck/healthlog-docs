@@ -140,10 +140,12 @@ run.
 `data_backups.data` optional, because from v1.39.2 a stored backup is kept as
 pieces in the new table (see
 [Backups kept in the database](/guides/backups/#backups-kept-in-the-database)).
-Existing copies are not touched. The change cannot be undone by going back to
-the v1.39.1 image: that version cannot read a copy stored in pieces, so every
-weekly or uploaded copy written by v1.39.2 would be out of its reach. Take a
-database dump before deploying, and roll forward rather than back.
+Existing copies are not touched. Going back to the v1.39.1 image is not
+supported: that version reads only the single value, so it finds a copy stored
+in pieces empty, and if it writes a weekly copy into such a row, the row holds
+both forms. v1.39.2 then refuses to read that row ("This backup holds both a
+single stored value and pieces"), and the next weekly backup replaces it. Take
+a database dump before deploying; if you must go back, restore that dump.
 
 ## Rolling back
 

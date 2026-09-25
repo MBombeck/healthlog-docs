@@ -172,18 +172,24 @@ copy stops the restore and leaves the account as it was.
 
 A new copy is written in one transaction. Until it is complete, the previous
 copy stays in place and readable, so a run that fails halfway loses nothing.
-Two backups of the same account at the same time do not mix: the second fails
-and the previous copy stays intact. While a restore of an account is running,
-a weekly or manual backup skips that account instead of replacing the copy
-being restored; the next run makes it. A copy that is replaced while it is
-being read (a preview, download or restore) stops that read with an error
-saying it was replaced by a newer backup; start again from the new row.
+Two backups of the same account at the same time run one after the other:
+the second waits for the first, then replaces its copy, and neither leaves a
+partial copy behind. While a restore of an account's copy is queued or
+running, the weekly and manual backup leave that account alone, count it as
+skipped (`users_skipped_restoring`) and back up everyone else; the next run
+makes the copy.
+
+If a copy is replaced anyway while it is being read (a preview or download in
+progress when the weekly run finishes), the reader answers `409` with
+`backup_changed` and "The backup was replaced by a newer one while it was being
+read". A restore rolls back with nothing changed, and a download that was
+already sending stops partway. Start again to use the new copy.
 
 Copies written before v1.39.2 keep their old single-value form and still
-restore, preview and download. Nothing converts them: the next weekly run
-replaces the weekly copy in the new form, and an uploaded copy keeps its old
-form until you delete it. Reading an old copy still takes the memory it took
-when it was written.
+restore, preview and download. The next weekly run replaces the weekly copy in
+the new form, and a [key rotation](/guides/encryption-key-rotation/) converts
+every remaining one, uploaded copies included. Until then an old copy is read
+as one value, which takes the memory it took when it was written.
 
 ### Limits
 
@@ -218,11 +224,19 @@ because the old copy stays until the new one is complete.
   more than ten days old; the second quotes the run's own reason. Press
   **Backup now** and check that fresh rows appear.
 - **One account's row keeps an old date while the others move on.** That
-  account's backup failed and the run carried on. The app log names it: the
+  account's backup failed, or it was skipped because a restore of its copy was
+  running, and the run carried on. The app log names it: the
   `job.data_backup` line carries a warning per failed account with the reason.
   If the reason names `BACKUP_MAX_STORED_MB`, raise the limit as described
   above. `data_backup_records_oversized` in the same line counts the accounts
   that hit it.
+- **A preview, download or restore answers `409` `backup_changed`.** The copy
+  was replaced by a newer one while it was being read. Nothing was changed;
+  start again.
+- **A copy is refused with "This backup holds both a single stored value and
+  pieces".** An older version wrote to the row after v1.39.2 had, which only
+  happens after a downgrade. The row is not read; the next weekly backup
+  replaces it.
 - **The run fails with "job timed out", or the app restarts during the run.**
   Check the container's restart count and memory limit (see
   [Large accounts and memory](#large-accounts-and-memory)). On v1.39.1 or
