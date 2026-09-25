@@ -526,7 +526,9 @@ shared AI config. Bearer tokens cannot reach any of these.
 | `GET` | `/api/admin/notifications/diagnostic` | Masked tokens + last 20 attempts |
 | `POST` | `/api/admin/notifications/reminder-check` | Run the medication-reminder sweep. Instance-wide with no body; send `userId` to sweep one account |
 | `POST` | `/api/admin/backup/test` | S3 round-trip probe |
-| `POST` | `/api/admin/backups/{id}/restore` | Restore one stored snapshot over its owner's record. Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key` |
+| `POST` | `/api/admin/backups/upload` | Store a backup file as a new row without restoring it. The raw body is JSON or gzip-compressed JSON up to 512 MB; a `multipart/form-data` body with one `file` field is limited to 10 MB. `413` with `meta.errorCode: backup.upload.too_large` when the encrypted copy is too large for this server to store |
+| `POST` | `/api/admin/backups/{id}/restore` | Since v1.39.1, queue the restore of one stored snapshot over its owner's record and answer `202` with `jobId` and `statusUrl` (before, `200` with the result). Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key`. A copy that cannot be decrypted is still refused straight away with `422`; `409` with `meta.errorCode: backup.restore.active` while another restore of the same account is queued or running |
+| `GET` | `/api/admin/backups/restores` · `/{jobId}` | Restore jobs: the queued and running ones and those from the last day, or one job. Each has its status (`queued`, `running`, `succeeded`, `failed`), its current step (`validating`, `clearing`, `measurements`, `sections`, `rebuilding`) and counts, and either the result the old synchronous answer carried or a failure with a stable `code` and a message |
 | `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot |
 
 ## Meta & health

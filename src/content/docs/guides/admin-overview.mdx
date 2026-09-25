@@ -33,7 +33,10 @@ databases. Each row carries its state on the indicator beside it rather than in
 the colour of the text, so the wording stays readable in every state, including
 the worker-absent one a split deployment shows on the page served from the web
 process. A separate card lists failing background jobs, but only when a
-queue has actually given up. The geo row reflects `GEOLITE2_DIR`,
+queue has actually given up. Since v1.39.1 a job that ran out of time says what
+its limit was and that either the run was too slow for it or the app restarted
+while it ran, instead of a bare "job timed out"; a restart shows in the
+container's restart count and log. The geo row reflects `GEOLITE2_DIR`,
 `MAXMIND_LICENSE_KEY` and `IP_GEO_LOOKUP_DISABLED`; see
 [Offline geolocation](/self-hosting/geolite2/).
 
@@ -185,6 +188,14 @@ preset (15 minutes, 1 hour, 6 hours, all), refresh, and a detail dialog per
 event. Optional shipping to Loki is configured with `LOKI_USERNAME` and
 `LOKI_PASSWORD`.
 
+Since v1.39.1 long background jobs leave a trace in the app log (the
+container's output, Loki if configured, and this page when the jobs run in the
+same container as the web app). A job that runs for more than a minute writes `job.finished` naming its
+queue when it ends, and `job.progress` every two minutes while it runs, with
+how far it has got and how much memory the app is using. A job that passes its
+time limit writes a `job.expired` warning. After a restart, the worker writes
+`worker.boot.jobs_cut_off`, naming every job the restart cut off.
+
 ## Backups
 
 Two cards. The backup table with run now, upload, download, a summary, and
@@ -192,8 +203,11 @@ restore. A
 backup is a database row, not a file on disk, and the payload never reaches
 the browser except through the download action. Restore asks you to type
 `RESTORE` and replaces rather than merges: every row the account gained after
-the snapshot was taken is removed with the rest of its class. Beside the typed
-confirmation sits a **Restore instance settings** checkbox, off by default. Off,
+the snapshot was taken is removed with the rest of its class. Since v1.39.1
+the restore runs in the background and the page shows its progress, also after
+a reload; one restore per account runs at a time. The upload takes a `.json`
+or `.json.gz` file of up to 512 MB and compresses a plain file in the browser
+first. Beside the typed confirmation sits a **Restore instance settings** checkbox, off by default. Off,
 the restore touches the snapshot owner's data only and leaves registration, the
 second-factor requirement, the default language and timezone, module
 availability, the notification and AI configuration and the document caps
