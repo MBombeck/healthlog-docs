@@ -23,18 +23,22 @@ The iOS source lives in its own repository: [github.com/MBombeck/healthlog-iOS](
 
 ## Requirements
 
-- **iOS 18 or newer** for the app itself.
+- **iOS 18 or newer** for the app itself, **watchOS 11 or newer** for the Apple Watch app.
 - **iOS 26 or newer** on an Apple-Intelligence-eligible iPhone for the on-device AI coach.
 - A reachable HealthLog instance served over HTTPS. Passkeys and the secure-cookie path require a valid TLS certificate — see [TLS certificates](/self-hosting/tls-certificates/).
 - The app, either from the [App Store](https://apps.apple.com/app/id6769501341) or from the free [TestFlight](https://testflight.apple.com/join/bucuTBpa) beta, which runs ahead of the store.
 
-## Install the beta
+## Install the app
+
+Install **HealthLog - Companion App** from the [App Store](https://apps.apple.com/app/id6769501341). It is a one-time purchase with no subscription.
+
+If you want the newest builds before they reach the store, join the free beta instead:
 
 1. Install Apple's **TestFlight** app from the App Store.
 2. Open the [TestFlight invite link](https://testflight.apple.com/join/bucuTBpa) on the iPhone and accept the beta.
 3. Install HealthLog from TestFlight and launch it.
 
-Builds ship frequently. The [iOS repository CHANGELOG](https://github.com/MBombeck/healthlog-iOS/blob/main/CHANGELOG.md) and tag list track what landed in each build. The UI is German-primary with English secondary, matching the web client.
+The [iOS repository CHANGELOG](https://github.com/MBombeck/healthlog-iOS/blob/main/CHANGELOG.md) and its releases track what landed in each build. The app is available in English and German.
 
 ## Pair with your self-hosted instance
 
