@@ -208,6 +208,12 @@ See [Backups](/guides/backups/).
 | `BACKUP_ENCRYPTION_KEY` | Separate AES key — **must not** equal `ENCRYPTION_KEY`. |
 | `BACKUP_RETENTION_DAYS` | Not read by the app. The number for your bucket's lifecycle rule, kept here so the two agree. |
 
+## Stored backups in the database
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `BACKUP_MAX_STORED_MB` | `2048` | Largest weekly or uploaded backup of one account the app keeps, in MB of encrypted copy. A storage limit, not a memory one: a copy is written and read in pieces of about a megabyte. A backup past it fails with a message naming this variable, and the previous copy stays. On the compose whitelist from v1.39.2. See [Backups kept in the database](/guides/backups/#backups-kept-in-the-database). |
+
 ## Audit-trail retention
 
 | Variable | Default | Purpose |
