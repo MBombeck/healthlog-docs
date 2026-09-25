@@ -47,13 +47,15 @@ Two methods, with a hard structural boundary between them:
   exactly once at creation. Tokens are scoped. The scopes in use are
   `fhir:read` for the [FHIR API](/reference/fhir-api/), `health:read` and
   `health:write` for the [MCP connector](/guides/mcp-server/),
-  `medication:ingest` for one medication's own intake endpoint, and
+  `medication:ingest` for one medication's own intake endpoint,
   `measurements:write` for
-  [pushing readings from your own hardware](/guides/ingest-token/). Only the
+  [pushing readings from your own hardware](/guides/ingest-token/), and
+  `documents:write` (since v1.39.2) for
+  [importing documents](/guides/import-documents/). Only the
   login, passkey and refresh paths mint a wildcard (`["*"]`) token; every
   user-facing mint endpoint hardcodes one narrow scope. The measurement-token
-  mint additionally accepts the session cookie only, so no API token, wildcard
-  included, can mint one.
+  and document-token mints additionally accept the session cookie only, so no
+  API token, wildcard included, can mint one.
 
 :::caution[Bearer scope is fail-closed since v1.30.17]
 A route accepts a narrow-scope token only if it **names** the scope it accepts.
