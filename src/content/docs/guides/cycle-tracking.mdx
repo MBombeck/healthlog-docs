@@ -77,6 +77,15 @@ Save needs something to store. With nothing picked, the sheet stays open and
 asks you to pick a flow or a symptom, or to use the period start button;
 before v1.39.0 it closed and stored an empty entry the calendar could not show.
 
+Since v1.39.1 the calendar shows every kind of entry. A day with intercourse
+logged carries a small diamond. Anything else logged that day that has no mark
+of its own (a pregnancy, progesterone or ovulation test, contraception,
+spotting, a temperature, a mucus or cervix reading, a note) shows as a small
+ring, so a day with only one of those no longer looks empty. The legend names
+both marks, and screen readers name each entry on the day. Somebody who sees
+your cycle through [shared access](/guides/shared-access/) sees these marks
+only if they could already open the day itself.
+
 Bulk entry accepts up to 500 day logs in one request, which is how the iOS
 app syncs.
 
@@ -148,7 +157,16 @@ Since v1.39.0 each day in `GET /api/cycle/calendar` carries `cycleDay`, the day
 of the logged cycle that date belongs to (`null` before the first logged start,
 after today, or once an open cycle has run too long to count), and
 `periodEndable`, whether a one-tap period end on that date lands inside a logged
-cycle. Both are additive.
+cycle. Both are additive. Since v1.39.1 each day also carries what was logged
+on it: `spotting`, `sexualActivity`, `pregnancyTest`, `progesteroneTest`,
+`contraceptive` and `hasNote` (whether a note exists; the note text never goes
+to the calendar), and the three cervix fields the contract already listed are
+now actually sent. Intercourse and the two tests are read from the encrypted
+copy the same way the day-log read reads them, under the same sharing grant.
+
+In `POST /api/cycle/day-logs/bulk`, an entry skipped as `upsert_failed` was not
+written and should be sent again. Such a response is not stored for
+`Idempotency-Key` replay, so a retry under the same key writes again.
 
 `GET /api/cycle/insights` answers a grant scoped to the cycle with the phase
 pattern alone and adds the outcome columns (weight, resting heart rate, HRV,
