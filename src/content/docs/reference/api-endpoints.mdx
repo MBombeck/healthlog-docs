@@ -75,10 +75,10 @@ not move the phone's sync checkpoint. See
 
 | Method | Endpoint | Notes |
 | --- | --- | --- |
-| `GET` / `POST` | `/api/medications` | List / create |
+| `GET` / `POST` | `/api/medications` | List / create. Since v1.39.1 a medication carries `trackIntake`; see [Keep a medication as a record](/guides/track-medications/#keep-a-medication-as-a-record) |
 | `GET` / `PUT` / `DELETE` | `/api/medications/{id}` | Read / update / delete |
 | `POST` | `/api/medications/{id}/intake` | Log a take / skip |
-| `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate |
+| `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate. `applicable: false` with `notApplicableReason: "INTAKE_NOT_TRACKED"` for a medication kept as a record |
 | `GET` | `/api/medications/{id}/cadence` | Read the cadence; schedule edits go through `PUT /api/medications/{id}` |
 | `POST` | `/api/medications/extract` | Parse a label into a draft |
 | `POST` | `/api/medications/intake/bulk` | Native bulk intake |

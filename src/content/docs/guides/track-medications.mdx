@@ -1,6 +1,6 @@
 ---
 title: Track medications
-description: Create a medication, pick a cadence (daily, weekly, rolling, interval, cyclic, PRN), set a dose window, and attribute off-schedule intakes to their slot.
+description: Create a medication, pick a cadence (daily, weekly, rolling, interval, cyclic, PRN), set a dose window, attribute off-schedule intakes to their slot, or keep a medication as a record without tracking intake.
 sidebar:
   order: 6
 ---
@@ -43,6 +43,16 @@ read: `from` is the requested start rather than the moment the medication was
 created, and `to` reaches the slot of a dose recorded ahead of it, at most one
 day past the requested end.
 
+Since v1.39.1 a dose you record for earlier on the day you added the
+medication counts for its own slot. Add a medication at 4 pm, log the 2 pm dose,
+and the history shows the 2 pm slot taken on time rather than an off-schedule
+dose with the evening slot still due. Slots from before you added the
+medication appear only when you logged something for them, so they are never
+counted as missed and never break a miss-free streak. The adherence rate, the
+calendar, the doctor report and the Coach follow the same rule. The adherence
+calendar also no longer counts a skipped or missed entry that belongs to no
+scheduled time as a dose taken.
+
 ## Pick a cadence
 
 The schedule discriminator (`MedicationScheduleType`) has three top-level
@@ -69,6 +79,55 @@ The drug class works by mimicking the incretin hormone GLP-1 — glucose-depende
 insulin secretion, suppressed glucagon, slowed gastric emptying
 ([overview on Wikipedia](https://en.wikipedia.org/wiki/GLP-1_receptor_agonist)).
 HealthLog only tracks the dose schedule and intake; it gives no dosing advice.
+:::
+
+## Keep a medication as a record
+
+Not every medication needs a daily check-in. If you want HealthLog to hold what
+you take, since when, at which dose and on which schedule, without logging each
+dose, switch off **Track intake**. The switch sits at the top of the
+**Zeitplan** tab and on the summary page of the medication wizard. It exists
+since v1.39.1 and is on for every medication until you change it.
+
+With tracking off:
+
+- The dose, the start and end dates and the schedule stay stored, and you can
+  still read and edit them. The list and the detail page mark the medication
+  **Record only**.
+- Nothing is due. There is no reminder on any channel (push, Telegram, ntfy,
+  Web Push) and no low-stock notice, no dose on the dashboard's doses card or in
+  the today list, no Taken and Skip buttons, and the medication is not offered
+  in the quick dose capture.
+- It is left out of adherence everywhere: the medication card, the heatmap, the
+  dashboard, the doctor report, the Coach and the insights that read adherence.
+- Doses you logged before stay in its history.
+
+Switch it back on and the medication is tracked again from that moment. A dose
+whose time had already passed when you switched it on is not added to today,
+and the days it was off never count as missed.
+
+This differs from **as-needed (PRN)**: an as-needed medication has no schedule
+at all and you log each dose when you take it. A record-only medication keeps
+its schedule as information and you log nothing.
+
+For API clients, a medication carries `trackIntake`, and `POST` and
+`PUT /api/medications` accept it. A medication with `trackIntake: false` is
+served with an empty `schedules` array and `nextDueAt: null`, and its stored
+schedule is in `recordedSchedules`, a field present only in that case. An
+update to such a medication that does not name `trackIntake` keeps the stored
+schedule and applies everything else. `GET /api/medications/{id}/compliance`
+answers `applicable: false` with `notApplicableReason: "INTAKE_NOT_TRACKED"`,
+and the MCP `get_medication_schedule` tool reports `intakeTracked` for each
+medication.
+
+:::note[iPhone app]
+The iPhone app released before v1.39.1 stops reminding for a record-only
+medication without an update and leaves it out of the today list, the badge
+and the widget. Until the app knows the switch, its card for that medication
+still shows Taken and Skip and adherence bars at 0 %, and its edit screen shows
+a default schedule instead of the stored one. A schedule change made there is
+not applied; renaming or changing the dose works. Change the schedule of such a
+medication in the web app.
 :::
 
 ## Set a dose window
@@ -118,8 +177,12 @@ at every level.
 
 When an intake lands off schedule, the **Verlauf** (history) row shows when the
 dose had been due and offers to **attribute** the intake to that slot. The
-attributed dose is visibly badged, always counted as **taken late** (never
-washed to on-time), and reversible at any time.
+attributed dose is visibly badged and reversible at any time. Since v1.39.1 it
+counts exactly as if it had been logged for that slot: on time when it was
+taken inside the slot's on-time window, including the grace before the window
+that automatic matching allows, and late otherwise. Before, a dose taken
+shortly before the window read as on time on its own and as late once
+attributed.
 
 This is the manual counterpart to the automatic window matching: use it when you
 logged a dose generically and want it bound to a specific expected slot after the
@@ -132,6 +195,9 @@ tab, under the times editor. The dispatcher fans
 each reminder out to whichever channels the user enabled, with late/missed
 escalation. See [Reminder channels](/guides/reminder-channels/) for the channel
 cascade and the per-channel setup.
+
+A medication with **Track intake** switched off never reminds. See
+[Keep a medication as a record](#keep-a-medication-as-a-record).
 
 ## Supply and side effects
 
