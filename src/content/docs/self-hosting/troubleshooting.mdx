@@ -209,6 +209,26 @@ ended or was narrowed while they were using it. It is still not a fault, but it
 is the shape of somebody having a confusing minute. The record owner sees the
 reason in their own activity view, which is where the reason deliberately goes.
 
+## Background jobs fail with "job timed out"
+
+**Symptom.** The admin status page lists failing jobs, such as the nightly
+clean-up or the backup, with "job timed out", usually on an account with a
+large imported history.
+
+**Cause.** A job either ran longer than its time limit or the app restarted
+while it ran, often because the container ran out of memory. Before v1.39.1 the
+nightly clean-up of heart-rate, HRV, blood-oxygen, step and energy samples
+loaded a type's whole history at once, and the backup built its whole copy in
+memory, so an account with more than a million readings could restart the app
+in a 1 GB container.
+
+**Fix.** Update to v1.39.1 or later. The clean-up now works through the
+history one day at a time, stops cleanly when it runs short of time and
+continues where it left off, and the backup is saved piece by piece. The admin
+page now says what the job's limit was, and the log names long, expired and
+cut-off jobs by queue; see [App logs](/guides/admin-overview/#app-logs). If
+jobs still time out, check the container's restart count and its memory limit.
+
 ## Where to look when something else breaks
 
 - `docker compose logs -f app` — the app logs structured wide events; errors

@@ -1,15 +1,16 @@
 ---
 title: Checkups, visits and practitioners
-description: Set up recurring preventive-care reminders, keep a list of your practitioners, record past and upcoming visits with their reminders, and link documents, labs and conditions to a visit.
+description: Set up recurring preventive-care reminders, keep a list of your practitioners, record past and upcoming visits with their reminders, keep a history of procedures and surgeries, and link documents, labs and conditions to a visit.
 sidebar:
   order: 36
 ---
 
 You want the app to remind you of a recurring check (a blood panel, a skin
 check, a blood-pressure reading), to keep your doctors in one place, and to
-record visits, past and upcoming. All of this lives under `/checkups`, which
-has two tabs: **Checkups** (preventive care) and **Visits**. None of it is a
-module. Preventive-care reminders can target core vitals and free-text exams
+record visits, past and upcoming, including procedures and surgeries. All of
+this lives under `/checkups`, which has three tabs: **Checkups** (preventive
+care), **Visits** and **Procedures**. None of it is a module. Preventive-care
+reminders can target core vitals and free-text exams
 that belong to no module, so they are available to every account and cannot
 be switched off, by users or by the admin. The only module influence is on
 the link pickers: linking a lab result, a document or an illness episode to
@@ -62,8 +63,9 @@ configuration.
 
 A visit records a date and time, a status (planned, done, cancelled,
 no-show), a kind (routine, acute, specialist, preventive, emergency,
-hospital, therapy, other), a practitioner, an encrypted reason and an
-encrypted outcome. Future dates are allowed up to ten years ahead; that is
+hospital, therapy, procedure or surgery, other), a practitioner, an
+encrypted reason and an encrypted outcome. A visit can also carry a body site
+in your own words (encrypted) and a side: left, right or both. Future dates are allowed up to ten years ahead; that is
 what makes a visit an appointment. Cancelled and no-show visits keep their
 row so the history stays honest. The list shows upcoming visits soonest-first
 and past visits newest-first.
@@ -72,6 +74,26 @@ A visit can link up to 100 documents, lab results and illness episodes each,
 and a vaccination dose can point at the visit it was given at. When a
 document's date is within seven days of a visit, the app suggests the link.
 Filing a visit from a due checkup marks that checkup satisfied.
+
+### Procedures and surgeries
+
+Since v1.39.1 you record a procedure as a visit of the kind **Procedure or
+surgery**. The form then offers a body site ("knee", "gallbladder") and a side.
+Only the date is required, as for any visit. A visit you entered earlier, for
+example as a hospital stay, can be switched to this kind by editing it; its
+date, reason, outcome, practice and links stay as they are.
+
+The **Procedures** tab lists every procedure that took place, newest first.
+Planned, cancelled and no-show procedures are not in it; a booked operation
+appears under upcoming visits. Above the list, each body site you have used is
+offered as a filter with its count, and a search field matches every word you
+type against the body site, the side and the reason. "left knee" finds a
+procedure with the site "Knee" and the side left, and a procedure recorded
+with only a reason ("knee arthroscopy") is found by "knee" as well.
+
+The body site is encrypted at rest, so the search runs on the server: it
+decrypts your own procedures and matches there. Nothing about the site is
+stored in plain text for the search.
 
 ### Appointment reminders
 
@@ -95,9 +117,17 @@ can dismiss it.
 ## Where it goes
 
 Visits are a selectable leaf of the doctor report, not in the standard
-template. The FHIR export carries no visits section yet. Through MCP,
-upcoming appointments are a field on the preventive-care tool and past
-visits have their own tool.
+template. **Surgical history** is a leaf of its own and part of the standard
+template: every procedure that took place, oldest first, with its date, what
+was done (the visit's reason), the body site with its side and the outcome.
+Like the vaccination record it covers the whole record, not only the report
+period. A report selection saved before v1.39.1 keeps what you chose and does
+not include it until you tick it. It also appears on the clinician share page
+when the link includes it. The FHIR export carries no visits or procedures
+section yet. Through MCP, upcoming appointments are a field on the
+preventive-care tool and past visits have their own tool, which can be
+narrowed to procedures; without a time window it then reads the whole record.
+Backups carry the body site and the side and restore them.
 
 ## API
 
@@ -105,7 +135,10 @@ Practitioners: `GET` (with `q` search) and `POST /api/practitioners`; `GET`,
 `PATCH`, `DELETE /api/practitioners/{id}`; `POST .../restore`. Visits: `GET`
 and `POST /api/encounters`; `GET`, `PATCH`, `DELETE /api/encounters/{id}`;
 `POST .../restore`; `POST` and `DELETE .../links`; `GET
-/api/encounters/suggest`. Reminders: `GET` and `POST
+/api/encounters/suggest`; `GET /api/encounters/procedures` (with `q` and
+`laterality`), which answers `{ procedures, bodySites, total }`. A visit
+carries `bodySite` and `laterality` (`LEFT`, `RIGHT`, `BOTH` or null) on every
+kind; the procedure kind is `PROCEDURE`. Reminders: `GET` and `POST
 /api/measurement-reminders`; `GET`, `PATCH`, `DELETE
 /api/measurement-reminders/{id}`; `POST .../complete`, `.../satisfy`,
 `.../skip`, `.../snooze`; `GET .../history`.

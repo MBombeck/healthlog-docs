@@ -136,8 +136,11 @@ pnpm dlx tsx scripts/restore-backup.ts \
 
 The script downloads the object, decrypts it, and writes the JSON dump to disk
 with owner-only permissions (`0600`), since the file is decrypted health data
-in plaintext (v1.37.33). Importing the dump back into an instance is left to
-the operator (`prisma db seed` or a custom script).
+in plaintext (v1.37.33). An output name ending in `.gz` writes the dump
+compressed, which is the form to use for a large account: the JSON of 1.25
+million readings is about 660 MB, the compressed file about a tenth of that.
+To bring the dump back into an instance, upload it on the admin backups page
+and restore it from there, as described next.
 
 :::caution[Run the restore from a source checkout]
 The script imports the full application dependency graph, which the minimal
@@ -151,6 +154,49 @@ from a checkout of the repository with the backup variables exported, through
 The bucket object is the disaster path. The routine one is the backup table
 under `/admin/backups`, which holds each account's stored snapshots as database
 rows. Pick a row, choose **Restore**, and type `RESTORE`.
+
+To restore a file you hold (a dump from the restore script, or an export),
+upload it on the same page first; it becomes a row of its own. The upload
+takes a `.json` or a `.json.gz` file. Since v1.39.1 the page compresses a
+plain JSON file in the browser before sending it and the server reads the file
+as a stream, so a file of several hundred megabytes goes up. The limit is 512
+MB as sent. A file whose encrypted copy is too large for this server to store
+is refused with `413` (`backup.upload.too_large`), and nothing of it is kept.
+
+Since v1.39.1 the restore runs in the background. Above the table the page
+shows which step it is on (checking the file, clearing the account's current
+data, writing the readings, writing the other records, rebuilding the charts)
+and how many readings it has written, then whether it finished. You can leave
+the page or reload it; the progress is still there when you come back. A large
+account takes a while: two to three minutes for 1.25 million readings. Because
+the request only starts the restore, a reverse proxy that closes requests after
+60 seconds no longer shows an error for a restore that is still running.
+
+While it runs, the account keeps showing its current data. The restore is
+written in one go, so nothing changes for the account until the data is
+written, and a restore that fails before that leaves the account exactly as it
+was. Only one restore per account runs at a time; starting a second one while
+the first is queued or running is refused, and the page says a restore is
+already in progress.
+
+If a restore fails, the page says why and what to do: the file is incomplete,
+the backup was replaced by a newer copy while the restore waited, the file is
+too large to restore within the background job's time limit, the worker is not
+running, and so on. The backup stays in the table, so you can start the restore
+again from its row without uploading the file again. A restore interrupted by a
+server restart before its data was written starts again by itself once the
+server is back; if it stops a second time, it is marked as failed, and the
+server most likely ran out of memory. A restore that stops after the data was
+written, while the charts are being rebuilt, is never run again, so nothing
+written to the account since is lost. The page says the data was restored and
+that the charts may take until the next nightly run to catch up.
+
+Medications keep their creation date through a restore. A portable export
+written from v1.39.1 on carries it. An older portable export does not, so the
+restore dates each medication by the earliest thing the file records for it
+(its first dose, the start of its first schedule, its course start and the
+like), never later than the restore itself. Before, the restore date was used,
+and missed doses in the restored history dropped out of the adherence rate.
 
 Two things to know before you do.
 
@@ -169,12 +215,27 @@ when you are rebuilding a host.
 
 A stored copy the instance cannot open is refused rather than reported as a
 crash. Restore, download and preview each answer `422` with
-`meta.errorCode: backup.payload.undecryptable`, and nothing is changed. There
-are two ways to earn it: the key that wrote the copy is no longer in
-`ENCRYPTION_KEYS`, which is a rotation that dropped the legacy entry too early,
-or the stored bytes are not the ones that were written. A copy that decrypts and
-then fails schema validation is a different thing and is reported as the server
-fault it is.
+`meta.errorCode: backup.payload.undecryptable` straight away, and nothing is
+changed. There are two ways to earn it: the key that wrote the copy is no
+longer in `ENCRYPTION_KEYS`, which is a rotation that dropped the legacy entry
+too early, or the stored bytes are not the ones that were written. A copy that
+decrypts and then fails its checks (the file is not a valid backup, its
+manifest names a section it does not carry, it belongs to another account) is
+reported on the page as a failed restore with the reason, and nothing is
+changed either.
+
+## Large accounts
+
+An account with years of imported Apple Health data can hold more than a
+million readings. Since v1.39.1 every backup path handles that inside the
+standard 1 GB container. The full export is sent while it is being written,
+with or without a passphrase. The weekly and manual backups are stored piece by
+piece, and if a run fails partway the previous backup stays in place. Stored
+backups are read in small parts, so a large one can be previewed, downloaded
+and restored. On an account with 1.25 million readings the export takes about
+25 seconds and the restore about two and a half minutes. The off-host run
+continues with the accounts it had not reached when it is retried, instead of
+starting again from the first.
 
 ## What a backup does not carry
 

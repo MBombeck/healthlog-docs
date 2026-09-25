@@ -94,6 +94,10 @@ streams Server-Sent Events, which only require buffering off.
 The 300-second read timeout matters for long-running insight generations —
 anything shorter cuts streamed responses mid-flight.
 
+A backup restore does not need it. Since v1.39.1 the restore request only
+starts a background job and answers within a second or two, and the admin page
+follows the progress with short requests.
+
 ## Coolify
 
 1. **Domains:** set `https://your-instance.example.com`. Coolify provisions the

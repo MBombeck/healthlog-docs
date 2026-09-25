@@ -41,6 +41,12 @@ A source that is not listed in a metric's ladder is never silently dropped: when
 none of the colliding sources appear in the ladder, every row is kept. The full
 per-metric defaults live in `src/lib/validations/source-priority.ts`.
 
+Readings pushed with a [measurement token](/guides/ingest-token/) carry the
+source `EXTERNAL`, which no default ladder lists. On a day that has only pushed
+readings they are all kept. On a day where a ranked source such as `MANUAL`
+also has a reading, the ranked one counts and the pushed one stays stored
+beside it.
+
 ## Adjust the ladder
 
 Open **Settings → Source priority** (`/settings/sources`). For each metric (or

@@ -92,6 +92,14 @@ Before v1.39.0 the picker on a visit or a vaccination could say "No documents
 yet." with a full vault, and a document showed its visits read-only and its
 vaccinations not at all.
 
+Each link shows as a chip. Since v1.39.1 a chip carries its record's date, so
+three COVID-19 doses on one document read as three different doses rather than
+three identical chips. Clicking a chip opens that dose, visit, condition or
+document. Only the small **×** beside it removes the link, and right after you
+remove one, a line under the chips offers to undo it. This works the same from
+both sides, and on visits too. Before, a chip was one button, so opening the
+linked record removed the link.
+
 ## What the vault is not for
 
 The vault stores medical *documents*, not disk images. DICOM CDs, ISO

@@ -32,7 +32,7 @@ The core ingest and read surface. Batch endpoints power the native client.
 | Method | Endpoint | Notes |
 | --- | --- | --- |
 | `GET` | `/api/measurements` | List (paginated, filterable by type / source / date) |
-| `POST` | `/api/measurements` | Create one measurement, or up to five in an array. Also accepts a `measurements:write` token |
+| `POST` | `/api/measurements` | Create one measurement, or up to five in an array, or since v1.39.1 one sleep stage by name (`sleepStage`: `IN_BED`, `ASLEEP`, `AWAKE`, `CORE`, `DEEP`, `REM`). Also accepts a `measurements:write` token |
 | `POST` | `/api/measurements/batch` | Bulk ingest, up to 500 entries; see the overwrite note below. Also accepts a `measurements:write` token |
 | `DELETE` | `/api/measurements/by-external-ids` | Soft-delete rows by external id (HealthKit deletion reconciliation) |
 | `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
@@ -50,21 +50,35 @@ is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
 `"inserted"` for a fresh row.
 :::
 
+Since v1.39.1 a batch refused as a whole names its reason in `meta.errorCode`:
+`measurement.batch.invalid` (the body failed validation),
+`measurement.batch.too_large` (more than 500 entries) or
+`measurement.batch.source_not_permitted`. All three are permanent for the batch
+as sent. An entry skipped as `value_out_of_range` carries `convertedValue` and
+`range` (`min`, `max`, `unit`). In the nutrient upload (`POST /api/nutrients/batch`) and the cycle bulk upload
+(`POST /api/cycle/day-logs/bulk`), an entry skipped as `upsert_failed` was not
+written because of a server-side failure and should be sent again; such a
+response is not stored for `Idempotency-Key` replay, so a retry under the same
+key writes again. See
+[Push readings from your own hardware](/guides/ingest-token/#sleep-stages) for
+sleep stages by name.
+
 The two `POST` endpoints are the only routes a `measurements:write` token can
 reach. Such a token writes on its owner's own record only (a request carrying
 the account selector is refused with `403` before any sharing grant is read),
-its rows are attributed `MANUAL`, an entry naming `APPLE_HEALTH` is refused
-with `422`, and a batch from it does not move the phone's sync checkpoint. See
+its rows are attributed `EXTERNAL` (since v1.39.1; `MANUAL` before), a body or
+entry that names any `source` is refused with `422`, and a batch from it does
+not move the phone's sync checkpoint. See
 [Push readings from your own hardware](/guides/ingest-token/).
 
 ## Medications
 
 | Method | Endpoint | Notes |
 | --- | --- | --- |
-| `GET` / `POST` | `/api/medications` | List / create |
+| `GET` / `POST` | `/api/medications` | List / create. Since v1.39.1 a medication carries `trackIntake`; see [Keep a medication as a record](/guides/track-medications/#keep-a-medication-as-a-record) |
 | `GET` / `PUT` / `DELETE` | `/api/medications/{id}` | Read / update / delete |
 | `POST` | `/api/medications/{id}/intake` | Log a take / skip |
-| `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate |
+| `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate. `applicable: false` with `notApplicableReason: "INTAKE_NOT_TRACKED"` for a medication kept as a record |
 | `GET` | `/api/medications/{id}/cadence` | Read the cadence; schedule edits go through `PUT /api/medications/{id}` |
 | `POST` | `/api/medications/extract` | Parse a label into a draft |
 | `POST` | `/api/medications/intake/bulk` | Native bulk intake |
@@ -157,7 +171,7 @@ avatar, source priority, and the Codex device-OAuth flow.
 | `POST` | `/api/auth/login` · `/api/auth/passkey/login-verify` | Password / passkey login |
 | `POST` | `/api/auth/refresh` | Per-device refresh-token rotation |
 | `POST` | `/api/auth/codex/device-start` · `/device-poll` · `/disconnect` | ChatGPT device-OAuth |
-| `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs |
+| `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs. Since v1.39.1 `timezone` on `/api/user/profile` is the zone the server uses, as on `/api/auth/me`: the instance default when the stored value is not a usable zone name |
 
 ### Onboarding (the needs-based flow)
 
@@ -512,7 +526,9 @@ shared AI config. Bearer tokens cannot reach any of these.
 | `GET` | `/api/admin/notifications/diagnostic` | Masked tokens + last 20 attempts |
 | `POST` | `/api/admin/notifications/reminder-check` | Run the medication-reminder sweep. Instance-wide with no body; send `userId` to sweep one account |
 | `POST` | `/api/admin/backup/test` | S3 round-trip probe |
-| `POST` | `/api/admin/backups/{id}/restore` | Restore one stored snapshot over its owner's record. Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key` |
+| `POST` | `/api/admin/backups/upload` | Store a backup file as a new row without restoring it. The raw body is JSON or gzip-compressed JSON up to 512 MB; a `multipart/form-data` body with one `file` field is limited to 10 MB. `413` with `meta.errorCode: backup.upload.too_large` when the encrypted copy is too large for this server to store |
+| `POST` | `/api/admin/backups/{id}/restore` | Since v1.39.1, queue the restore of one stored snapshot over its owner's record and answer `202` with `jobId` and `statusUrl` (before, `200` with the result). Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key`. A copy that cannot be decrypted is still refused straight away with `422`; `409` with `meta.errorCode: backup.restore.active` while another restore of the same account is queued or running |
+| `GET` | `/api/admin/backups/restores` · `/{jobId}` | Restore jobs: the queued and running ones and those from the last day, or one job. Each has its status (`queued`, `running`, `succeeded`, `failed`), its current step (`validating`, `clearing`, `measurements`, `sections`, `rebuilding`) and counts, and either the result the old synchronous answer carried or a failure with a stable `code` and a message |
 | `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot |
 
 ## Meta & health
