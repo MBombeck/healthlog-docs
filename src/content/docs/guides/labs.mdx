@@ -63,7 +63,10 @@ saved row keeps a link back to it.
 If your provider is text-only, enable **local OCR** in the Labs settings. The
 image is then read in your browser (German and English models), and only the
 recognised text goes to the provider. It is less accurate than a vision
-model, which is why the review step exists; it cannot read PDFs.
+model, which is why the review step exists; it cannot read PDFs. The OCR engine
+and its language data are served by your own HealthLog server (v1.39.3 and
+later); earlier versions tried to load them from a public CDN, which the
+security policy blocked, so local OCR could not start.
 
 A lab report is a document, so scanning follows the rules for
 [reading documents](/guides/document-vault/#ai-assist-and-content-search).

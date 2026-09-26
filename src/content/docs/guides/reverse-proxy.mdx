@@ -35,13 +35,22 @@ per request to defeat IP-based rate limits.
 
 | Topology | Value |
 | --- | --- |
-| App internet-facing, no proxy | `0` (XFF ignored) |
+| App internet-facing, no proxy | `0` (no forwarding header is trusted) |
 | Single proxy (Caddy / Traefik / Nginx / Coolify) | `1` (default) |
 | Cloudflare → your proxy → app | `2` |
 | Cloudflare → Coolify-Tunnel → Coolify → app | `3` |
 
 A wrong count logs a one-shot stderr warning and collapses every anonymous
-caller into one shared rate-limit bucket.
+caller into one shared rate-limit bucket. An empty value, which is what the
+shipped compose file passes when you leave the variable unset, means the
+default of `1` (since v1.39.3).
+
+`X-Real-IP` gets the same trust as `X-Forwarded-For` since v1.39.3. It is read
+only when `TRUST_PROXY_HOPS` is `1` or more and the request carries no
+`X-Forwarded-For`, which covers a proxy that sets only `X-Real-IP`. With `0`
+neither header is believed, because without a proxy in front both come from
+the caller. If your proxy sets only `X-Real-IP` and you had set `0` for it, set
+`1` instead.
 
 ## Caddy
 
@@ -147,10 +156,19 @@ server {
 }
 ```
 
-`client_max_body_size 1600M` is load-bearing if you support Apple Health uploads
-— Nginx rejects the body before the app sees it otherwise. `proxy_buffering off`
-keeps streamed events flowing; the `Upgrade` headers are harmless boilerplate
-you can keep or drop.
+`client_max_body_size 1600M` is load-bearing if you support Apple Health
+uploads, because Nginx rejects the body before the app sees it otherwise.
+`proxy_buffering off` keeps streamed events flowing; the `Upgrade` headers are
+harmless boilerplate you can keep or drop.
+
+Since v1.39.3 the app sets its own limit behind the proxy: request bodies over
+1 MB are accepted only by the upload routes, and each of those checks who is
+sending before it reads the body. The upload routes are the Apple Health
+archive (user and admin), the backup upload, the document inbound upload, the
+JSON, CSV and dose-history imports, the lab-report scan, the profile picture,
+and the batch routes the app uses for measurements, workouts, ECG recordings,
+mood entries, medication intakes and cycle day logs. A client that posts a
+larger body anywhere else is refused, whatever the proxy allows.
 
 ## Verify the chain
 
