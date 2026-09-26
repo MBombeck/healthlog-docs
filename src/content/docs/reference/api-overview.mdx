@@ -235,6 +235,9 @@ sentence beside it may be reworded or localised at any time.
 | `auth.token.invalid` | `401` | Unknown, revoked, or the owning account is gone. Discard the credential; retrying will not help |
 | `auth.mfa.code_invalid` | `401` | A second factor presented on a step-up flow did not verify. Re-prompt for a code and keep the session |
 | `auth.stepup.required` | `401` | The route needs a fresh factor. Re-prove and retry |
+| `auth.reproof.required` | `401` | Since v1.39.3: the route needs a recent sign-in or confirmation. `meta.methods` lists what the account can use; confirm at `POST /api/auth/reproof` and retry |
+| `auth.reproof.too_weak` | `422` | The method offered at `POST /api/auth/reproof` does not count for this account (a password on an account with a second factor) |
+| `auth.reproof.failed` | `401` | The confirmation did not verify. Re-prompt; attempts share the step-up budget |
 | `auth.scope.insufficient` | `403` | The credential is valid but its scope does not reach this route, which includes any Bearer token against an admin surface |
 | `auth.admin.required` | `403` | A cookie session that is not an admin's |
 
