@@ -18,9 +18,11 @@ Modules ("Documents"), and an operator can withhold it instance-wide through
 the module availability settings. AI reading of stored documents remains a
 separate opt-in.
 
-Documents can also come in from another document system: since v1.39.2 a
-Paperless-ngx workflow or the import script copies them from Paperless-ngx or
-Papra. See [Import documents from Paperless-ngx or Papra](/guides/import-documents/).
+Documents can also come in from another document system. Since v1.39.3 the
+**Import from Paperless-ngx** or **Import from Papra** button beside **Upload**
+searches your archive by name and copies the documents you tick; since v1.39.2
+a Paperless-ngx workflow or the import script can send them too. See
+[Import documents from Paperless-ngx or Papra](/guides/import-documents/).
 An imported document's detail sheet names where it came from, for example
 **Imported from Paperless-ngx · ID 412**.
 
@@ -96,7 +98,10 @@ from either side; both are the same link.
 
 - **From the visit or the vaccination.** **Link a document** offers your whole
   vault. Documents dated within seven days of the record are listed first under
-  **Around this date**, the rest by month, and the list is searchable. If the
+  **Around this date**, the rest by month, and the list is searchable. With a
+  connected Paperless-ngx or Papra, an **Import from …** button beside **Add**
+  fetches a document from there and adds it to the selection; see
+  [Pick documents inside HealthLog](/guides/import-documents/#pick-documents-inside-healthlog). If the
   list cannot be loaded, the picker says so and offers a retry instead of
   showing an empty vault.
 - **From the document.** The document's detail sheet lists its visits under
@@ -212,10 +217,11 @@ Honest limits:
 ### Key rotation
 
 The encrypted index text and its blind tokens both follow your active
-encryption key. `scripts/rotate-encryption-key.ts` re-encrypts the text and
-re-derives the tokens from it in the same pass, so content search keeps matching
-after a rotation. Keep the old key in `ENCRYPTION_KEYS` until the script reports
-zero remaining rows on it.
+encryption key. A key rotation (**Admin → Encryption → Rotate now**, or
+`scripts/rotate-encryption-key.ts` from a source checkout) re-encrypts the text
+and re-derives the tokens from it in the same pass, so content search keeps
+matching. Keep the old key in `ENCRYPTION_KEYS` until the rotation reports zero
+remaining rows on it.
 
 ## Sharing documents with a clinician
 

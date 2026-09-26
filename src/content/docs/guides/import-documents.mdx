@@ -1,24 +1,30 @@
 ---
 title: Import documents from Paperless-ngx or Papra
-description: Copy an existing archive from Paperless-ngx or Papra into the document vault with the import script, keep it in step on a schedule, or let a Paperless workflow send each new document. Covers the document token, re-runs and deletions, AI reading, limits and every error the script prints.
+description: Pick documents from Paperless-ngx or Papra inside HealthLog, copy an existing archive with the import script, keep it in step on a schedule, or let a Paperless workflow send each new document. Covers the picker, the document token, re-runs and deletions, AI reading, limits and every error the script prints.
 sidebar:
   order: 22
 ---
 
-Since v1.39.2 the [document vault](/guides/document-vault/) can take documents
-from another document system without you uploading them one by one. There are
-two ways in, and both use the same credential, a **document token**:
+The [document vault](/guides/document-vault/) can take documents from another
+document system without you uploading them one by one. There are three ways
+in:
 
-- **A Paperless-ngx workflow** sends each newly tagged document to HealthLog
-  by itself. Use it for documents that arrive from now on.
-- **The import script** copies documents from Paperless-ngx or Papra in one
-  go. Use it for the archive you already have, and, run on a schedule, to keep
-  Papra in step.
+- **The document picker** (since v1.39.3) searches your Paperless-ngx or Papra
+  from inside HealthLog. You look a document up by name, narrow by tag or
+  date, tick what you want, and HealthLog copies it. Use it for the letter you
+  need now, from the visit or vaccination it belongs to.
+- **A Paperless-ngx workflow** (since v1.39.2) sends each newly tagged
+  document to HealthLog by itself. Use it for documents that arrive from now
+  on.
+- **The import script** (since v1.39.2) copies documents from Paperless-ngx or
+  Papra in one go. Use it for the archive you already have, and, run on a
+  schedule, to keep Papra in step.
 
-The other system always pushes into HealthLog. HealthLog holds no password or
-token for Paperless-ngx or Papra and never connects to them. There is no
-connector inside HealthLog and no watched mail box or folder: the workflow and
-the script are the whole mechanism.
+The workflow and the script push into HealthLog with a **document token**;
+HealthLog holds nothing for them. The picker is the one way HealthLog itself
+connects to your archive: you store an API token for it in Settings, and
+HealthLog uses it only while you search, test or import. Nothing syncs in the
+background, and there is no watched mail box or folder.
 
 HealthLog keeps its own encrypted copy of each document. The preview, text
 search, the lab import, the doctor report and sharing all need the file
@@ -28,13 +34,109 @@ edits or deletions in the source.
 
 ## Before you start
 
-- HealthLog v1.39.2 or later. Older versions have no document tokens.
+- HealthLog v1.39.2 or later for the workflow and the script, v1.39.3 or later
+  for the picker.
+- For the picker: the server's administrator has listed your archive's
+  address in `DOCUMENT_SOURCE_ORIGINS` (see
+  [environment variables](/reference/environment-variables/#documents-optional)).
+  Without it the Document archives card does not appear.
 - The **Documents** module turned on under **Settings → Modules**. Uploads are
   refused while it is off.
 - For the workflow: Paperless-ngx 3.0 or later, the first release with the
   `{{doc_id}}` placeholder.
 - For the script: Node 22 on any machine that can reach both systems (or
   Docker, see below), and Paperless-ngx 2.16 or later or a current Papra.
+
+## Pick documents inside HealthLog
+
+Since v1.39.3. Needs Paperless-ngx 2.16 or later, or a current Papra.
+
+### Connect your archive
+
+Open **Settings → Integrations** and find the **Document archives** card.
+Choose **Paperless-ngx** or **Papra**, then fill in:
+
+- **Address**: where your archive runs, for example
+  `https://paperless.example.com`, or with a path if it is served under one
+  (`https://example.com/paperless`). Below the field the card lists the
+  addresses this server allows; an address that is not on that list is
+  refused.
+- **Organization id** (Papra only): the part after `/organizations/` in the
+  Papra address bar. It looks like `org_` followed by 24 letters and digits.
+- **API token**: in Paperless-ngx under **My Profile → API token**; in Papra an
+  API key with `documents:read` and `tags:read`. Saving checks both
+  permissions.
+
+Select **Save and test**. HealthLog asks your archive once before it saves
+anything, so a wrong token or address is reported here and not on your first
+search. The token is stored encrypted and never shown again; the field then
+says **Saved for this address. Leave empty to keep it.** You can change the
+path or the Papra organization without typing the token again. Moving to
+another server asks for it again, because HealthLog only ever sends a token to
+the address it was saved for. **Test** checks the saved connection, and
+**Disconnect** makes HealthLog forget address and token (documents you already
+imported stay).
+
+### Find and import
+
+An **Import from Paperless-ngx** (or **Import from Papra**, or **Import from
+archive** when both are connected) button appears wherever you add or link
+documents:
+
+- on the **Documents** page, beside **Upload**;
+- in a visit and a vaccination, beside **Add** in the documents block;
+- on a condition, in its documents card.
+
+The sheet opens with the **Document name** field ready. Type part of the
+document's name (its title in Paperless-ngx; in Papra the search is Papra's
+own); **Tag**, **From** and **To** narrow the list. Each row shows the
+document's date, size (Papra), tags, and whether HealthLog already has it:
+
+- **In HealthLog**: imported earlier. From the Documents page it cannot be
+  picked again; from a visit, vaccination or condition it can, and picking it
+  links the copy you already have.
+- **Deleted in HealthLog**: you deleted it here, so it is not offered again.
+
+Tick up to 25 documents and select **Import** (the button shows how many).
+They are copied one at a time; each row says whether it was imported, was
+already there, or why it was not. If something will fail for every document
+(the hourly upload limit, full storage, a refused token) the run stops and says
+so.
+
+![The import sheet over the Documents page: a name search, tag and date filters, and a list with one row marked In HealthLog, one Deleted in HealthLog and two ticked, above an Import 2 button](../../../assets/screenshots/document-picker.png)
+
+Opened from a condition, the imported documents are linked to it at once. In a
+visit or vaccination form they join the form's selection and are linked when
+you save the form. From a vaccination they are filed as **Vaccination**
+documents; everywhere else as **Other**, which you can change on the document.
+
+On a Paperless-ngx that keeps its data in SQLite, the name search ignores case
+only for plain ASCII letters (`röntgen` does not find `Röntgen`). That is
+Paperless-ngx's own search.
+
+### What the picker does and does not do
+
+- It contacts your archive only while you search, filter, test or import.
+  Nothing polls, and nothing is copied that you did not tick. A search waits
+  up to 10 seconds for the archive, a file up to 60.
+- Imports use the same rules as the script and the workflow: a document
+  already in HealthLog is not stored twice, a document you deleted stays
+  deleted, and the upload limit (60 an hour, shared with your own uploads) and
+  your storage quota apply. Searches, tag lists, tests and imports together
+  are limited to 60 requests a minute.
+- A picked document follows your **Read documents automatically with AI**
+  setting, like a document you upload yourself. (The script holds AI reading
+  back by default because it may copy thousands of files at once.)
+- Only you can use your connection, and only in the browser. People you share
+  your record with, at any level, do not see the picker, and it is not
+  available in the iOS app.
+- The connection is not part of backups. After a restore on another server,
+  connect again. **Delete all data** and deleting the account remove it.
+- If Documents is switched off, or the administrator unsets
+  `DOCUMENT_SOURCE_ORIGINS`, the card stays in Settings with only
+  **Disconnect**, so you can still remove the saved token. If only your
+  archive's address is taken off the list, the card says so, **Test** is
+  unavailable, and you can save another allowed address.
 
 ## Create a document token
 
@@ -79,7 +181,7 @@ document is sent when it arrives already tagged and when you tag it later.
 | Webhook url                       | `https://health.example.com/api/documents/inbound`               |
 | Use parameters for webhook body   | on                                                               |
 | Send webhook payload as JSON      | off                                                              |
-| Webhook params                    | the four parameters below                                        |
+| Webhook params                    | the parameters below                                             |
 | Webhook headers                   | `Authorization` = `Bearer hlk_…` (your document token)           |
 | Include document                  | on                                                               |
 
@@ -89,6 +191,13 @@ document is sent when it arrives already tagged and when you tag it later.
 | `documentDate` | `{{created_year}}-{{created_month}}-{{created_day}}` |
 | `sourceSystem` | `PAPERLESS`                                          |
 | `sourceId`     | `{{doc_id}}`                                         |
+| `sourceInstance` | `https://paperless.example.com` (the address of your Paperless-ngx) |
+
+Since v1.39.3 `sourceInstance` tells HealthLog which Paperless-ngx the id
+belongs to, so document 12 on one instance and document 12 on another stay
+apart. Only its origin counts (a path is dropped), and it is accepted only
+together with `sourceId`. Leave it out and the id matches any Paperless-ngx,
+which is how everything imported with v1.39.2 is treated.
 
 Paperless then posts the original file together with these fields as a form,
 which is what HealthLog expects. Use the address HealthLog is actually served
@@ -282,7 +391,13 @@ picks up where it stopped.
   also after the 30-day undo window when HealthLog removes it for good. The
   same holds for a hand-uploaded document the import had matched by content.
   If you undo the delete within the 30 days, the document counts as present
-  again.
+  again. During those 30 days a deleted document is also recognised by its
+  content, so the same file from another archive or under a new id is not
+  stored again. After the purge HealthLog remembers the ids, not the content.
+- **Which instance.** From v1.39.3 the script also sends the address of the
+  Paperless-ngx or Papra it reads from, and the picker records it. Documents
+  imported before that carry no address and still count as already there, or
+  as deleted, whichever instance you import from.
 
 Two things reset that memory, because both start the record over. **Delete
 all data** under Data & Privacy forgets which imported documents you had
@@ -411,6 +526,24 @@ but does not look up or download anything older.
 | `skipped … HealthLog answered 409: This file is already stored under too many source ids.` | The same file already carries 20 extra source ids in HealthLog. Nothing was stored. Usually the source holds the same file many times; clean it up there. |
 | `skipped … HealthLog answered 500`                                                      | A server error that persisted through three retries. Run again later; the document is picked up then.                                                                                  |
 | `HEALTHLOG_TOKEN is not set.` and similar                                               | Exit code `2`: export the variable, or pass the missing option.                                                                                                                         |
+
+Once HealthLog has refused one file as too large, the script skips every
+further document whose size the source already reports as larger, without
+downloading it. Sizes under 0.1 MB are printed in KB.
+
+### Messages in the picker
+
+| What the picker says | What to do |
+| --- | --- |
+| This address is not on the server's list of allowed archives. | The administrator has to add its origin to `DOCUMENT_SOURCE_ORIGINS`. The card shows the allowed addresses under the Address field. |
+| The archive redirected the request. | HealthLog never follows a redirect. Enter the address the archive redirects to, usually `https://` instead of `http://`, or with or without a trailing path. |
+| The archive's answer could not be read. | The address most likely points at a login page or a proxy instead of the archive itself. |
+| The archive is too old. | Paperless-ngx 2.16 or later is needed (API version 9). |
+| The Papra key cannot read tags. | Give the key the `tags:read` permission and save again. |
+| The archive refused the token. | Check the token and its permissions (`documents:read` and `tags:read` for Papra). |
+| Too many requests. Wait a minute and try again. | Searches, tag lists, tests and imports share a limit of 60 a minute. |
+
+### The Paperless workflow
 
 For the Paperless workflow there is no summary: a failed webhook appears in
 the Paperless-ngx log. The usual causes are a mistyped header (it must read
