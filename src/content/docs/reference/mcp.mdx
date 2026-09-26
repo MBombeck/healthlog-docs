@@ -98,7 +98,7 @@ analytics is computed at the wire.
 | `get_workouts` | Most recent sessions (sport, duration, energy, distance, avg/max HR) plus a per-sport rollup over the window. |
 | `get_medication_compliance` | Cadence-aware adherence: dose-weighted compliance rate, expected vs taken/missed, current-cycle status, any GLP-1 titration context. |
 | `get_labs` | Latest reading per biomarker over the last 12 months (optionally one analyte). With `history:true` + an analyte, that analyte's paginated reading trajectory. |
-| `get_illness_recovery` | Rest mode, active and recently-resolved illnesses, recovery / strain composites, and the illness retrospective (recovery-gap, nadir, red flags). |
+| `get_illness_recovery` | Rest mode, active and recently-resolved illnesses (with the body site and side when the user named one), recovery / strain composites, and the illness retrospective (recovery-gap, nadir, red flags). |
 | `get_cycle` | Menstrual-cycle context: phase + day-of-cycle, next predicted event, headline phase-correlation. Gated on cycle tracking; descriptive only. |
 | `get_correlations` | FDR-controlled day-to-next-day driver pairs between behaviours and outcomes, each with direction, lag, sample size, and a descriptive (never causal) note. |
 | `get_correlation` | The vetted, lag-aware association between **two named metrics**: direction, lag, sample size, Pearson r, and a descriptive note. |
