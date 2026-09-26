@@ -282,6 +282,15 @@ reaches the container.
 | `CODEX_MODEL` / `CODEX_MODEL_FALLBACK_CHAIN` | Codex (ChatGPT sign-in) model slugs. The first pins one slug ahead of the built-in chain; the second replaces the chain outright, comma-separated. Reach for them when the provider rotates a slug and requests start failing with 503. |
 | `COACH_EXPERIMENT_VERDICT` | `1` surfaces reviewed n-of-1 experiment outcomes in the Coach snapshot. Off by default; the review worker records outcomes either way. |
 
+## Documents (optional)
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DOCUMENT_UPLOAD_LIMIT_PER_HOUR` | `120` | Hourly upload ceiling for each document token, the credential a Paperless-ngx workflow or the import script uploads with. Counted per token, and every upload that sends a file counts, duplicates included; uploads from the web app and the phone keep their own limit of 60 an hour per person. Clamped to 1–1000; a value that is not a number falls back to the default. Raise it to let a large import finish sooner; the per-account storage quota still applies. On the compose whitelist since v1.39.2. See [Import documents](/guides/import-documents/#limits-and-storage). |
+
+The per-file cap and the per-account quota for documents are admin settings,
+not environment variables; see [the document vault](/guides/document-vault/#limits-and-how-to-tune-them).
+
 ## Environment module (optional)
 
 | Variable | Purpose |

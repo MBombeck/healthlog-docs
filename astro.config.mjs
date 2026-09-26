@@ -85,6 +85,7 @@ export default defineConfig({
 						{ slug: 'guides/import-apple-health' },
 						{ slug: 'guides/import-csv' },
 						{ slug: 'guides/ingest-token' },
+						{ slug: 'guides/import-documents' },
 						{ slug: 'guides/source-priority' },
 						{ slug: 'guides/track-medications' },
 						{ slug: 'guides/labs' },

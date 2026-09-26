@@ -212,6 +212,7 @@ before upgrading.
 | --- | --- | --- |
 | `GET` | `/api/tokens` | The account's tokens with their scopes and expiry |
 | `POST` | `/api/tokens/measurements` | Mint a `measurements:write` token. Cookie only; the raw `hlk_` value is in this one response and nowhere else. Expires after 365 days unless a shorter `expiresInDays` is given; ten mints a minute |
+| `POST` | `/api/tokens/documents` | Mint a `documents:write` token (since v1.39.2). Same rules as the measurement mint: cookie only, raw value in this one response, 365 days unless a shorter `expiresInDays`, ten mints a minute, at most ten live document tokens (`409` beyond that) |
 | `DELETE` | `/api/tokens/{id}` | Revoke one token |
 
 MCP connector tokens have their own list and mint under `/api/mcp/tokens`
@@ -493,6 +494,23 @@ from the contract finds them. See the integration guides
 ([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Google Health](/guides/connect-google-health/)) and
 [Webhooks](/reference/webhooks/).
+
+## Documents
+
+The vault's list, detail, file, preview and AI routes live under
+`/api/documents/inbound` and take a browser session or a wildcard token. Two
+routes also accept a `documents:write` token (since v1.39.2), and they are the
+only ones it reaches:
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `POST` | `/api/documents/inbound` | Store a document: multipart with `file` and optional `title`, `kind`, `documentDate` (`YYYY-MM-DD`), `aiRead=defer`, and a source key `sourceSystem` (`PAPERLESS`, `PAPRA`, `OTHER`) plus `sourceId` (up to 128 printable characters), as form fields or in the query string. A known key answers `200` without storing anything, also for a document the owner deleted (`deleted: true`). A token caller gets a receipt, `{ id, duplicate }`, instead of the stored document. Token uploads draw on their own hourly allowance, `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`, and every upload whose file is read counts, duplicates included; a known query-string key is answered before that and counts on the lookup allowance instead. The same file under more than 20 extra source ids is refused with `409` (`documents.inbound.sourceAliasLimit`) |
+| `GET` | `/api/documents/inbound/source` | `?sourceSystem=…&sourceId=…`: whether that source key is already held, `{ known, id, deleted }`. 5,000 lookups an hour per token, shared with the upload's query-string check; `429` beyond |
+
+`403` with `meta.errorCode: module.disabled` means the Documents module is off;
+`413` with `meta.reason: quotaExceeded` means the storage quota is reached, and
+without that reason that the file is over the per-file cap. See
+[Import documents](/guides/import-documents/#writing-your-own-importer).
 
 ## Export, FHIR & clinician links
 

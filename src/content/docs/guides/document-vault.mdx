@@ -7,7 +7,7 @@ sidebar:
 
 import documentsEmpty from '../../../assets/screenshots/documents-empty.png';
 
-The Dokumente module is a flat, encrypted, searchable store for the paper
+The Documents module is a flat, encrypted, searchable store for the paper
 trail a household accumulates: doctor letters, discharge summaries, lab
 reports, imaging findings, prescriptions, referrals, insurance letters,
 vaccination records. One timeline, filtered by type, condition, year, and
@@ -17,6 +17,12 @@ It is **available by default**. Each user can turn it off under Settings →
 Modules ("Documents"), and an operator can withhold it instance-wide through
 the module availability settings. AI reading of stored documents remains a
 separate opt-in.
+
+Documents can also come in from another document system: since v1.39.2 a
+Paperless-ngx workflow or the import script copies them from Paperless-ngx or
+Papra. See [Import documents from Paperless-ngx or Papra](/guides/import-documents/).
+An imported document's detail sheet names where it came from, for example
+**Imported from Paperless-ngx · ID 412**.
 
 <figure>
   <img src={documentsEmpty.src} alt="Documents page with a title reading 'Every letter, report, and scan in one searchable place, encrypted at rest', a search field, an all-types filter, an upload button, and a dashed panel saying the document vault is empty with an 'Upload a first document' button" />
@@ -60,11 +66,22 @@ Two knobs, both on the admin settings page:
 An upload over the cap or quota fails instantly with a message naming the
 configured limit — files already in flight in the same batch continue.
 
+Uploads through a document token (a Paperless workflow or the import script)
+have an hourly allowance of their own, 120 per token by default
+(`DOCUMENT_UPLOAD_LIMIT_PER_HOUR`), so an import running overnight never uses
+up the allowance your own uploads from the web app or the phone draw on. The
+per-file cap and the quota apply to them as to any upload.
+
 ## Deleting, undo, and backups
 
 Delete is a soft delete with an Undo toast. A deleted document stays
 restorable — via undo or the API — for **30 days**; a nightly job then
 removes it permanently and returns the space.
+
+Deleting an imported document is permanent for the importer too: a later run
+of the import script or a re-sent Paperless webhook does not bring it back,
+also after the 30 days. See
+[running it again](/guides/import-documents/#running-it-again-duplicates-and-deletions).
 
 Documents live in PostgreSQL alongside everything else, so a normal
 `pg_dump` backup includes them and restore needs no extra steps. Plan for
@@ -306,6 +323,23 @@ fails because of it. The job picks the best available reader:
 Either way, only encrypted text and one-way search tokens are stored — the
 readable body is never kept in the clear.
 
+### Imported documents: reading held back
+
+A document brought in by the [import script](/guides/import-documents/) is by
+default stored with automatic AI reading held back, so importing an archive
+does not send every file to your provider at once. It still gets its preview,
+and a PDF with a text layer is still searchable through the local reader. The
+provider read, the stored summary and the lab staging wait until you ask for
+them.
+
+The hold stays with the document. Turning on "Read documents automatically
+with AI" later does not reach it, and neither the catch-up pass below nor
+**Index all for search** picks it up. Open the document and choose **Read with
+AI** or **Generate summary**; either ends the hold for that document. To have
+an import read as it arrives, run the script with `--ai-read`. Documents from
+a Paperless workflow are read like any other upload unless the workflow sends
+`aiRead=defer`.
+
 ### The stored summary (opt-in)
 
 Separately from the one-time **Summarise** button above, a document can get a
@@ -321,7 +355,8 @@ the switch read as broken. The catch-up pass runs in batches, walks only
 documents with no summary yet, and grants nothing on its own: the opt-in is
 re-read, the egress consent is re-asserted per document, and the daily token
 budget is reserved exactly as on the upload path. Retroactive work is not a
-reason to skip a consent receipt.
+reason to skip a consent receipt. Imported documents whose reading was held
+back are left out of it (see above).
 
 The summary is **stored encrypted at rest** (AES-256-GCM, the same posture as
 every other health note). It describes *what* the document is; it is not a
