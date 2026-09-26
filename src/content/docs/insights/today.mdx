@@ -28,7 +28,8 @@ number comes from.
   prepared overnight — what changed, or what's worth your attention today.
 - **A "worth a look" rail.** A short list of priority items, each a single tap
   to the right place: a dose window that's open, an integration to reconnect, a
-  check-up coming due, a fresh ECG, a milestone reached.
+  check-up that is due or overdue, a visit booked for today or the next two
+  days, a fresh ECG, a milestone reached.
 - **A coach check-in.** When a coach plan is due for a look-back, it surfaces
   here as a calm card (see below).
 
@@ -60,6 +61,26 @@ only needs your awareness — a milestone, a new ECG, an elevated-at-rest note �
 can be **dismissed** once you've seen it; the section tightens when the last one
 is gone. Items that need an action (an open dose window, an integration to
 reconnect) stay until you act on them.
+
+The rail shows at most three items. Two kinds keep their place even when more
+compete for it; they still appear in their usual order, below an open dose:
+
+- **Check-up due** covers every reminder from `/checkups` that is due today or
+  overdue. It names up to three of them and counts the rest ("+2"). An open
+  check-up stays on it after its reminder until it is done, skipped or
+  snoozed (see
+  [When a reminder is due](/guides/checkups-and-practitioners/#when-a-reminder-is-due)).
+- **Appointment coming up** for today names every visit booked for the day in
+  one item, and stays until the day ends, also after a visit has started.
+
+The next day with a booked visit within the coming 48 hours gets its own item
+when there is room, worded "tomorrow" or "the day after tomorrow" by the
+calendar of your profile timezone.
+
+Which kinds may appear is chosen under **Settings → Appearance → Dashboard**,
+**Today highlights**. A choice saved before appointments were one of the kinds
+hid them without anyone switching them off. The upgrade to v1.39.2 switches
+**Appointments** on once for every such choice; switching it off again sticks.
 
 Since v1.30.31 a dose appears on the rail **from the moment it is takeable**, not
 only once it is late — until then Today could report nothing needing attention

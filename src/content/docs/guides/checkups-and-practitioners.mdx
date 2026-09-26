@@ -19,7 +19,7 @@ a visit follows the module that owns it.
 ## Preventive-care reminders
 
 Add a reminder with a label, what it targets, an interval, a first due date,
-and the hour to notify (09:00 by default). Targets come in three kinds:
+and the hour to notify (09:00 by default). Targets come in four kinds:
 
 - **A vital**: weight, systolic blood pressure, pulse, blood glucose, blood
   oxygen, body temperature.
@@ -29,7 +29,8 @@ and the hour to notify (09:00 by default). Targets come in three kinds:
 - **A mental-wellbeing screening**: PHQ-9, GAD-7, WHO-5, SCI. These default
   to every 28 days.
 - **Free text** with no target: a blood panel, a dermatology check. These are
-  satisfied only by marking them done.
+  satisfied by marking them done, or by a lab result taken since they were
+  last done or skipped (or since their first due date).
 
 Intervals are presets of 7, 14, 28, 30, 90, 180 or 365 days, a custom "every N
 days", or an RFC 5545 rule such as `FREQ=YEARLY`. An optional location field
@@ -37,17 +38,52 @@ records where the check happens.
 
 Each reminder is a card sorted by its next due date, which the server
 computes; the card stays neutral whatever the state, and due-ness reads as
-"today", "tomorrow", "in N days" or "overdue since N days" in calendar days
-of your profile timezone. The action depends on the target: a free-text exam
-is simply marked done; a measurement-linked reminder opens the measurement
-form, so completing a blood-pressure reminder records an actual reading. You
-can also snooze or skip (a skip does not count as done), and each reminder
-keeps a history. A dashboard card shows the next few due.
+"Due today", "Due tomorrow", "In N days", "Overdue since yesterday" or
+"Overdue by N days" in calendar days of your profile timezone. The action
+depends on the target: a free-text exam is simply marked done; a
+measurement-linked reminder opens the measurement form, so completing a
+blood-pressure reminder records an actual reading. You can also snooze to a
+day you pick or skip (a skip does not count as done), and each reminder keeps
+a history. A dashboard card shows the next few due, overdue ones first.
 
 Reminders notify through the ordinary channels (APNs, Telegram, ntfy, Web
 Push, webhook) as the measurement-reminder type, which is on by default; see
 [Reminder channels](/guides/reminder-channels/). Booster reminders from the
 [vaccination record](/guides/vaccinations/) are reminders of this kind too.
+
+### When a reminder is due
+
+A reminder notifies at its notify hour on the day it falls due. What happens
+after that depends on how often it repeats:
+
+- **Less often than once a week, or once only** (a yearly blood panel, a PHQ-9
+  every 14 days, a booster): it stays due after the notification, and from the
+  next day reads as overdue, on the checkups page, the dashboard card and the
+  [start page](/insights/today/#the-worth-a-look-rail). It stays there until
+  you mark it done, a matching reading or lab result completes it, you skip
+  it, or you snooze it to another day. While it stays open it is reminded
+  again at most once a week.
+- **Once a week or more often** (a weekly weigh-in, a daily blood-pressure
+  course): it moves on to its next date after the notification, because that
+  date brings the next reminder anyway.
+
+Marking a reminder done or skipping it sets the next date from that moment:
+an interval starts again there, a rule takes its next occurrence. A snooze, or the **Later** button on a
+Telegram reminder, moves the due date; the reminder comes again at the first
+notify hour after the new date.
+
+Editing a reminder's label, target or location keeps its due date. Changing
+its interval, its rule or its first due date, or switching a disabled reminder
+back on, works out the due date again. Changing only the notify hour keeps the
+due day and moves the time on it.
+
+Before v1.39.2 every reminder moved on to its next date as soon as it had
+notified, so an open yearly check-up read as due next year on the day it was
+reminded, and a one-time check-up disappeared. The upgrade to v1.39.2 puts
+such reminders back to the day they notified, when that was within the
+previous 90 days and they have not been done, skipped, snoozed or edited
+since. Older cases keep the date they have; snoozing one to a nearer
+day brings it back.
 
 ## Practitioners
 
@@ -151,8 +187,11 @@ no cadence it can never fire twice. Rescheduling re-anchors the same
 reminder; cancelling or marking no-show disables it without deleting it. The
 notification carries no done or later buttons, because the appointment is
 managed through the visit itself. These reminders are kept out of the
-checkup list, the daily digest and the preventive-care insight so the list
-does not fill with appointments.
+checkup list and the preventive-care insight so the list does not fill with
+appointments. The start page reads the visits themselves instead: a visit
+booked for today stays there for the whole day, also after it has started, and
+one in the next two days shows ahead of time (see
+[The Today view](/insights/today/#the-worth-a-look-rail)).
 
 ### Report for a visit
 
