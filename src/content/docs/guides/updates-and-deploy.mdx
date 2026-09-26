@@ -134,6 +134,37 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Migrations 0352 to 0355 in v1.39.2
+
+`0353_document_import_source` and `0354_condition_body_site` only add columns
+and tables: the source key and the held-back AI reading of imported documents,
+the memory of imported documents you deleted (see
+[Import documents](/guides/import-documents/#running-it-again-duplicates-and-deletions)),
+and the body site and side of a condition.
+
+`0355_checkup_stays_due` adds the column that keeps the repeat of an open
+reminder to once a week, and changes existing data in two places. It puts
+reminders repeating less often than weekly, or on their last date, that had moved on to
+their next date after notifying in the previous 90 days back to the day they
+notified, unless they were done, skipped, snoozed past that day or edited
+since, or were a course whose end date had passed before it (see
+[When a reminder is due](/guides/checkups-and-practitioners/#when-a-reminder-is-due)).
+And it adds **Appointments** to every saved choice of start-page items that
+lacks it, so visits show on the start page again for layouts saved before they
+existed (see [The Today view](/insights/today/#the-worth-a-look-rail)).
+Nothing is deleted.
+
+`0352_data_backup_chunks` adds the `data_backup_chunks` table and makes
+`data_backups.data` optional, because from v1.39.2 a stored backup is kept as
+pieces in the new table (see
+[Backups kept in the database](/guides/backups/#backups-kept-in-the-database)).
+Existing copies are not touched. Going back to the v1.39.1 image is not
+supported: that version reads only the single value, so it finds a copy stored
+in pieces empty, and if it writes a weekly copy into such a row, the row holds
+both forms. v1.39.2 then refuses to read that row ("This backup holds both a
+single stored value and pieces"), and the next weekly backup replaces it. Take
+a database dump before deploying; if you must go back, restore that dump.
+
 ## Rolling back
 
 Rolling back **migrations** is generally one-way (Prisma's `down` step is not

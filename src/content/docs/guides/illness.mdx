@@ -1,6 +1,6 @@
 ---
 title: Log an illness
-description: Open an illness episode, log how each day went, mark yourself recovered, and read the retrospective that compares your vitals before, during and after.
+description: Open an illness episode, say where on the body it sits, log how each day went, mark yourself recovered, and read the retrospective that compares your vitals before, during and after.
 sidebar:
   order: 33
 ---
@@ -22,6 +22,9 @@ On `/illness`, start an episode with:
 - **Label**, your own words ("cold", "hay fever").
 - **Type**: infection, allergy, injury, mental health, autoimmune, chronic,
   or other.
+- **Body site** and **Side**, optional on every type: where on the body, in
+  your own words ("knee", "lower back"), and left, right, both sides or not
+  stated. The site is encrypted at rest.
 - **Lifecycle**: acute (default), chronic ongoing, recurring, or flare. A
   flare can be threaded under a parent condition.
 - **Onset**; defaults to now.
@@ -30,6 +33,23 @@ On `/illness`, start an episode with:
 A chronic ongoing episode has no end date by design. Any other episode is
 closed with **Mark recovered**, or by setting the resolved date when editing.
 Deletion is soft with undo.
+
+## Body site
+
+While you type a body site, the field suggests the sites already in your
+record, from visits and from other conditions, most used first, so the left
+knee is written the same way every time. The suggestions narrow as you type
+and never restrict: anything up to 200 characters is accepted.
+
+An episode with a body site shows it in its header, with the side when one is
+set ("Knee · Left"). Tapping it opens the
+[Body sites](/guides/checkups-and-practitioners/#body-sites) tab under
+`/checkups` on that site and side, with the visits and other conditions filed
+there.
+
+To remove a site, clear the field and set the side to **Not stated** when
+editing. Editing a condition in the iPhone app keeps a site added on the web,
+because the app does not send the field.
 
 ## Log a day
 
@@ -81,8 +101,20 @@ The same read is available to the Coach and through the MCP
 
 Settings, Appearance, Illness holds the card-or-list view and the manual
 order; both are stored in the browser. Episodes are a leaf of the standard
-doctor-report template and are exported to FHIR as a Condition with a
-bounding Encounter. Episodes can be linked to a visit and to documents.
+doctor-report template: the PDF lists those that overlap the report period in
+the **Conditions & illnesses** table. When at least one of them has a body
+site, the table gains a **Body site** column after the condition; a report
+without any keeps its old layout. The clinician share page shows the site in
+the same section. Episodes are exported to FHIR as a Condition with a bounding
+Encounter; the Condition does not carry the body site. Episodes can be linked
+to a visit and to documents.
+
+The Coach sees each active condition and the six most recently recovered ones
+with label, type and dates, plus the body site and side when you set them;
+the note never reaches it. The MCP `get_illness_recovery` tool and the
+doctor-visit summary (`healthlog://report/doctor-visit` and the
+`doctor_visit_summary` prompt) carry the site and side the same way, marked
+as your own text. Backups carry both fields and restore them.
 
 ## API
 
@@ -91,3 +123,10 @@ bounding Encounter. Episodes can be linked to a visit and to documents.
 and `POST .../day-logs`; `GET .../correlation` for the per-episode
 retrospective; and `GET /api/illness/insights?windowDays=` (30 to 1095 days,
 with `includeRecoveryGap=true` to compute gaps for up to 24 episodes).
+
+Since v1.39.2 an episode carries `bodySite` (text, or `null`) and `laterality`
+(`LEFT`, `RIGHT`, `BOTH`, or `null` when not stated). Both are optional on
+`POST` and `PATCH`; `bodySite` is trimmed and at most 200 characters. On
+`PATCH` a field left out keeps its stored value, and `null` or a blank site
+clears it, so a client that does not know the fields never erases them. A side
+sent without a site is stored but shown nowhere in the app.

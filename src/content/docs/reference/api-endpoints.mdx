@@ -212,6 +212,7 @@ before upgrading.
 | --- | --- | --- |
 | `GET` | `/api/tokens` | The account's tokens with their scopes and expiry |
 | `POST` | `/api/tokens/measurements` | Mint a `measurements:write` token. Cookie only; the raw `hlk_` value is in this one response and nowhere else. Expires after 365 days unless a shorter `expiresInDays` is given; ten mints a minute |
+| `POST` | `/api/tokens/documents` | Mint a `documents:write` token (since v1.39.2). Same rules as the measurement mint: cookie only, raw value in this one response, 365 days unless a shorter `expiresInDays`, ten mints a minute, at most ten live document tokens (`409` beyond that) |
 | `DELETE` | `/api/tokens/{id}` | Revoke one token |
 
 MCP connector tokens have their own list and mint under `/api/mcp/tokens`
@@ -494,6 +495,26 @@ from the contract finds them. See the integration guides
 [Google Health](/guides/connect-google-health/)) and
 [Webhooks](/reference/webhooks/).
 
+## Documents
+
+The vault's list, detail, file, preview and AI routes live under
+`/api/documents/inbound` and take a browser session or a wildcard token. Two
+routes also accept a `documents:write` token (since v1.39.2), and they are the
+only ones it reaches:
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `POST` | `/api/documents/inbound` | Store a document: multipart with `file` and optional `title`, `kind`, `documentDate` (`YYYY-MM-DD`), `aiRead=defer`, and a source key `sourceSystem` (`PAPERLESS`, `PAPRA`, `OTHER`) plus `sourceId` (up to 128 printable characters), as form fields or in the query string. A known key answers `200` without storing anything, also for a document the owner deleted (`deleted: true`). A token caller gets a receipt, `{ id, duplicate }`, instead of the stored document. Token uploads draw on their own hourly allowance, `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`, and every upload whose file is read counts, duplicates included; a known query-string key is answered before that and counts on the lookup allowance instead. The same file under more than 20 extra source ids is refused with `409` (`documents.inbound.sourceAliasLimit`) |
+| `GET` | `/api/documents/inbound/source` | `?sourceSystem=…&sourceId=…`: whether that source key is already held, `{ known, id, deleted }`. 5,000 lookups an hour per token, shared with the upload's query-string check; `429` beyond |
+
+`403` with `meta.errorCode: module.disabled` means the Documents module is off.
+`413` carries `meta.reason`: `quotaExceeded` when the storage quota is reached,
+`fileTooLarge` when the file is over the per-file cap. `429` is either the
+hourly allowance (`documents.inbound.rateLimited`) or two uploads of the
+account already in progress (`documents.inbound.uploadBusy`, `Retry-After: 1`).
+See
+[Import documents](/guides/import-documents/#writing-your-own-importer).
+
 ## Export, FHIR & clinician links
 
 | Method | Endpoint | Notes |
@@ -526,7 +547,7 @@ shared AI config. Bearer tokens cannot reach any of these.
 | `GET` | `/api/admin/notifications/diagnostic` | Masked tokens + last 20 attempts |
 | `POST` | `/api/admin/notifications/reminder-check` | Run the medication-reminder sweep. Instance-wide with no body; send `userId` to sweep one account |
 | `POST` | `/api/admin/backup/test` | S3 round-trip probe |
-| `POST` | `/api/admin/backups/upload` | Store a backup file as a new row without restoring it. The raw body is JSON or gzip-compressed JSON up to 512 MB; a `multipart/form-data` body with one `file` field is limited to 10 MB. `413` with `meta.errorCode: backup.upload.too_large` when the encrypted copy is too large for this server to store |
+| `POST` | `/api/admin/backups/upload` | Store a backup file as a new row without restoring it. The raw body is JSON or gzip-compressed JSON up to 512 MB; a `multipart/form-data` body with one `file` field is limited to 10 MB. `413` with `meta.errorCode: backup.upload.too_large` when the encrypted copy is larger than `BACKUP_MAX_STORED_MB` (default 2048 MB) |
 | `POST` | `/api/admin/backups/{id}/restore` | Since v1.39.1, queue the restore of one stored snapshot over its owner's record and answer `202` with `jobId` and `statusUrl` (before, `200` with the result). Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key`. A copy that cannot be decrypted is still refused straight away with `422`; `409` with `meta.errorCode: backup.restore.active` while another restore of the same account is queued or running |
 | `GET` | `/api/admin/backups/restores` · `/{jobId}` | Restore jobs: the queued and running ones and those from the last day, or one job. Each has its status (`queued`, `running`, `succeeded`, `failed`), its current step (`validating`, `clearing`, `measurements`, `sections`, `rebuilding`) and counts, and either the result the old synchronous answer carried or a failure with a stable `code` and a message |
 | `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot |

@@ -149,6 +149,98 @@ from a checkout of the repository with the backup variables exported, through
 `pnpm dlx tsx` as above, not inside the container.
 :::
 
+## Backups kept in the database
+
+Separate from the off-host copy, the app keeps an encrypted backup of every
+account in its own database, under `ENCRYPTION_KEY` / `ENCRYPTION_KEYS`. The
+weekly run (Sunday 03:00 Europe/Berlin, and **Backup now** on the admin
+backups page) replaces each account's weekly copy, and every file an admin
+uploads is kept as a copy of its own. These are the copies the console
+restores, previews and downloads. They live in the same database as the data
+they protect, so they cover a bad import or a mistaken delete, not a lost
+disk: that is what the off-host copy is for.
+
+### How a copy is stored
+
+From v1.39.2 a copy is written as ordered pieces of about a megabyte, each
+encrypted on its own. Writing and reading both go a piece at a time, so the
+size of a copy no longer depends on how much memory the app has. Each piece
+carries, inside its encryption, which copy it belongs to, its position and
+whether it is the last. Before a restore deletes anything, every piece is
+checked; a piece that is missing, altered, out of order or taken from another
+copy stops the restore and leaves the account as it was.
+
+A new copy is written in one transaction. Until it is complete, the previous
+copy stays in place and readable, so a run that fails halfway loses nothing.
+Two backups of the same account at the same time run one after the other:
+the second waits for the first, then replaces its copy, and neither leaves a
+partial copy behind. While a restore of an account's copy is queued or
+running, the weekly and manual backup leave that account alone, count it as
+skipped (`users_skipped_restoring`) and back up everyone else; the next run
+makes the copy.
+
+If a copy is replaced anyway while it is being read (a preview or download in
+progress when the weekly run finishes), the reader answers `409` with
+`backup_changed` and "The backup was replaced by a newer one while it was being
+read". A restore rolls back with nothing changed, and a download that was
+already sending stops partway. Start again to use the new copy.
+
+Copies written before v1.39.2 keep their old single-value form and still
+restore, preview and download. The next weekly run replaces the weekly copy in
+the new form, and a [key rotation](/guides/encryption-key-rotation/) converts
+every remaining one, uploaded copies included. Until then an old copy is read
+as one value, which takes the memory it took when it was written.
+
+### Limits
+
+| Limit | Value | What happens past it |
+| --- | --- | --- |
+| Stored copy of one account | `BACKUP_MAX_STORED_MB`, default `2048` MB of encrypted copy | That account's backup stops, its previous copy stays, the run continues with the other accounts. An upload is refused with `413` (`backup.upload.too_large`) and nothing of it is kept. |
+| Writing one account's copy | 90 minutes | That account's backup fails and its previous copy stays. |
+| The weekly run for all accounts | 2 hours | The run is marked failed ("job timed out"). Copies already written stay. |
+| An upload | 512 MB as sent; the page compresses a plain `.json` in the browser first | Refused with `413`. |
+| A restore | Two minutes plus a second per 5,000 readings, which with ten minutes to spare has to fit into 90 minutes (three quarters of the job's two hours): roughly 20 million readings | Refused before anything is deleted, with "too large to restore within the background job's time limit". |
+
+For scale: an account with 2.6 million readings stores a copy of about
+100 MB, so the default storage limit leaves a wide margin. The limit is there
+so a runaway copy fails with a clear message instead of filling the database
+volume.
+
+To store larger copies, set `BACKUP_MAX_STORED_MB` in `.env` and recreate the
+app container with `docker compose up -d`. The variable is on the compose
+`environment:` whitelist from v1.39.2 on; if you keep your own compose file,
+add `BACKUP_MAX_STORED_MB: "${BACKUP_MAX_STORED_MB:-}"` to it. Make sure the
+database volume has room for a second copy of that size while one is written,
+because the old copy stays until the new one is complete.
+
+### When a backup fails
+
+- **The backups page says "The weekly backup has stopped" or "The last
+  scheduled backup run failed".** The first means the newest weekly copy is
+  more than ten days old; the second quotes the run's own reason. Press
+  **Backup now** and check that fresh rows appear.
+- **One account's row keeps an old date while the others move on.** That
+  account's backup failed, or it was skipped because a restore of its copy was
+  running, and the run carried on. The app log names it: the
+  `job.data_backup` line carries a warning per failed account with the reason.
+  If the reason names `BACKUP_MAX_STORED_MB`, raise the limit as described
+  above. `data_backup_records_oversized` in the same line counts the accounts
+  that hit it.
+- **A preview, download or restore answers `409` `backup_changed`.** The copy
+  was replaced by a newer one while it was being read. Nothing was changed;
+  start again.
+- **A copy is refused with "This backup holds both a single stored value and
+  pieces".** An older version wrote to the row after v1.39.2 had, which only
+  happens after a downgrade. The row is not read; the next weekly backup
+  replaces it.
+- **The run fails with "job timed out", or the app restarts during the run.**
+  Check the container's restart count and memory limit (see
+  [Large accounts and memory](#large-accounts-and-memory)). On v1.39.1 or
+  earlier, an account above about 1.75 million readings could not be backed up
+  at all; update to v1.39.2.
+
+In every case the account's previous copy is still there and can be restored.
+
 ## Restore from the console
 
 The bucket object is the disaster path. The routine one is the backup table
@@ -160,7 +252,7 @@ upload it on the same page first; it becomes a row of its own. The upload
 takes a `.json` or a `.json.gz` file. Since v1.39.1 the page compresses a
 plain JSON file in the browser before sending it and the server reads the file
 as a stream, so a file of several hundred megabytes goes up. The limit is 512
-MB as sent. A file whose encrypted copy is too large for this server to store
+MB as sent. A file whose encrypted copy is larger than `BACKUP_MAX_STORED_MB`
 is refused with `413` (`backup.upload.too_large`), and nothing of it is kept.
 
 Since v1.39.1 the restore runs in the background. Above the table the page
@@ -218,24 +310,51 @@ crash. Restore, download and preview each answer `422` with
 `meta.errorCode: backup.payload.undecryptable` straight away, and nothing is
 changed. There are two ways to earn it: the key that wrote the copy is no
 longer in `ENCRYPTION_KEYS`, which is a rotation that dropped the legacy entry
-too early, or the stored bytes are not the ones that were written. A copy that
+too early, or the stored bytes are not the ones that were written. For a copy stored in
+pieces, every piece is checked this way before the restore starts, so a piece
+that is missing, altered or out of order earns the same answer. A copy that
 decrypts and then fails its checks (the file is not a valid backup, its
 manifest names a section it does not carry, it belongs to another account) is
 reported on the page as a failed restore with the reason, and nothing is
 changed either.
 
-## Large accounts
+## Large accounts and memory
 
-An account with years of imported Apple Health data can hold more than a
-million readings. Since v1.39.1 every backup path handles that inside the
-standard 1 GB container. The full export is sent while it is being written,
-with or without a passphrase. The weekly and manual backups are stored piece by
-piece, and if a run fails partway the previous backup stays in place. Stored
-backups are read in small parts, so a large one can be previewed, downloaded
-and restored. On an account with 1.25 million readings the export takes about
-25 seconds and the restore about two and a half minutes. The off-host run
-continues with the accounts it had not reached when it is retried, instead of
-starting again from the first.
+An account with years of imported Apple Health data can hold millions of
+readings. Every backup path works a piece at a time, so the standard 1 GB app
+container is enough. Measured on an account with 2.6 million readings, with the
+web server and the worker in one 1 GB container:
+
+| Step | Time |
+| --- | --- |
+| Weekly or manual backup | 87 seconds, stored copy about 100 MB |
+| Preview before a restore | 20 seconds |
+| Download (1.4 GB of JSON) | 25 seconds |
+| Restore | about 4.5 minutes, every reading back exactly |
+
+The container peaked at about 570 MB and did not restart. The full export is
+sent while it is being written, with or without a passphrase, and the off-host
+run continues with the accounts it had not reached when it is retried.
+
+**1 GB is the minimum for the container that runs the worker**, which is the
+`app` container unless you [split web and worker](/self-hosting/scaling/). A
+512 MB container cannot run a backup at all: the app alone leaves too little
+room in its heap, and a backup of any account, however small, runs out of
+memory. Raising the memory above 1 GB does not change what a backup can store;
+the storage limit above does.
+
+Up to v1.39.1 a stored copy was one value that had to pass through the app
+whole, which capped it at a fifth of the app's heap: 105 MB in a 1 GB
+container, reached at about 1.75 million readings. If you raised
+`APP_MEMORY_LIMIT` only to get such an account backed up, v1.39.2 no longer
+needs it.
+
+After a large Apple Health import, the account's reading count drops over
+the following nights, because a nightly clean-up folds old high-frequency
+samples into hourly or daily values. A backup keeps the replaced samples,
+marked as deleted, until they are removed 75 days later, so backups of such an
+account get smaller only then. See
+[why the reading count drops](/guides/import-apple-health/#why-the-reading-count-drops-after-an-import).
 
 ## What a backup does not carry
 
@@ -284,5 +403,7 @@ artefact, not the import path. Outcomes:
 - **Not configured** — deployments without the `BACKUP_S3_*` vars skip
   silently.
 
-The drill needs no IAM grant beyond the uploader's existing `GetObject` +
-`ListBucket`.
+The drill lists the bucket to find the newest object, so it needs
+`ListBucket` on top of the uploader's `PutObject`, `GetObject` and
+`AbortMultipartUpload`. Cloudflare R2's **Object Read & Write** token covers
+all four.

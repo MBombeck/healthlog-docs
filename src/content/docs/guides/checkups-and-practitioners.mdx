@@ -1,6 +1,6 @@
 ---
 title: Checkups, visits and practitioners
-description: Set up recurring preventive-care reminders, keep a list of your practitioners, record past and upcoming visits with their reminders, keep a history of procedures and surgeries, and link documents, labs and conditions to a visit.
+description: Set up recurring preventive-care reminders, keep a list of your practitioners, record past and upcoming visits with their reminders, keep a history of procedures and surgeries, see everything filed at one body site, and link documents, labs and conditions to a visit.
 sidebar:
   order: 36
 ---
@@ -8,10 +8,10 @@ sidebar:
 You want the app to remind you of a recurring check (a blood panel, a skin
 check, a blood-pressure reading), to keep your doctors in one place, and to
 record visits, past and upcoming, including procedures and surgeries. All of
-this lives under `/checkups`, which has three tabs: **Checkups** (preventive
-care), **Visits** and **Procedures**. None of it is a module. Preventive-care
-reminders can target core vitals and free-text exams
-that belong to no module, so they are available to every account and cannot
+this lives under `/checkups`, which has four tabs: **Checkups** (preventive
+care), **Visits**, **Procedures** and **Body sites**. None of it is a module.
+Preventive-care reminders can target core vitals and free-text exams that
+belong to no module, so they are available to every account and cannot
 be switched off, by users or by the admin. The only module influence is on
 the link pickers: linking a lab result, a document or an illness episode to
 a visit follows the module that owns it.
@@ -19,7 +19,7 @@ a visit follows the module that owns it.
 ## Preventive-care reminders
 
 Add a reminder with a label, what it targets, an interval, a first due date,
-and the hour to notify (09:00 by default). Targets come in three kinds:
+and the hour to notify (09:00 by default). Targets come in four kinds:
 
 - **A vital**: weight, systolic blood pressure, pulse, blood glucose, blood
   oxygen, body temperature.
@@ -29,7 +29,8 @@ and the hour to notify (09:00 by default). Targets come in three kinds:
 - **A mental-wellbeing screening**: PHQ-9, GAD-7, WHO-5, SCI. These default
   to every 28 days.
 - **Free text** with no target: a blood panel, a dermatology check. These are
-  satisfied only by marking them done.
+  satisfied by marking them done, or by a lab result taken since they were
+  last done or skipped (or since their first due date).
 
 Intervals are presets of 7, 14, 28, 30, 90, 180 or 365 days, a custom "every N
 days", or an RFC 5545 rule such as `FREQ=YEARLY`. An optional location field
@@ -37,17 +38,60 @@ records where the check happens.
 
 Each reminder is a card sorted by its next due date, which the server
 computes; the card stays neutral whatever the state, and due-ness reads as
-"today", "tomorrow", "in N days" or "overdue since N days" in calendar days
-of your profile timezone. The action depends on the target: a free-text exam
-is simply marked done; a measurement-linked reminder opens the measurement
-form, so completing a blood-pressure reminder records an actual reading. You
-can also snooze or skip (a skip does not count as done), and each reminder
-keeps a history. A dashboard card shows the next few due.
+"Due today", "Due tomorrow", "In N days", "Overdue since yesterday" or
+"Overdue by N days" in calendar days of your profile timezone. The action
+depends on the target: a free-text exam is simply marked done; a
+measurement-linked reminder opens the measurement form, so completing a
+blood-pressure reminder records an actual reading. You can also snooze to a
+day you pick or skip (a skip does not count as done), and each reminder keeps
+a history. A dashboard card shows the next few due, overdue ones first.
 
 Reminders notify through the ordinary channels (APNs, Telegram, ntfy, Web
 Push, webhook) as the measurement-reminder type, which is on by default; see
 [Reminder channels](/guides/reminder-channels/). Booster reminders from the
 [vaccination record](/guides/vaccinations/) are reminders of this kind too.
+
+### When a reminder is due
+
+A reminder notifies at its notify hour on the day it falls due. What happens
+after that depends on how often it repeats:
+
+- **Less often than once a week** (a yearly blood panel, a PHQ-9 every 14
+  days, a booster), and a rule-based reminder on its last date: it stays due
+  after the notification, and from the next day reads as overdue, on the
+  checkups page, the dashboard card and the
+  [start page](/insights/today/#the-worth-a-look-rail). It stays there until
+  you log the reading, fill in the questionnaire or mark it done (a lab result
+  also completes a free-text reminder), skip it, or snooze it to another day.
+  While it stays open it is reminded again at most once a week. For a rule,
+  "less often than once a week" means its next two dates are more than seven
+  calendar days apart.
+- **Once a week or more often** (a weekly weigh-in, a daily blood-pressure
+  course): it moves on to its next date after the notification, because that
+  date brings the next reminder anyway.
+
+Marking a reminder done or skipping it sets the next date from that moment:
+an interval starts again there, a rule takes its next occurrence. A snooze, or the **Later** button on a
+Telegram reminder, moves the due date; the reminder comes again at the first
+notify hour after the new date.
+
+Editing a reminder's label, target or location keeps its due date. Changing
+its interval, its rule or its first due date (compared by calendar day, so
+saving the same date again changes nothing) works out the due date again.
+Changing only the notify hour keeps the due day and moves the time on it; a
+reminder already sent that day is not sent a second time at the later hour.
+Switching a reminder off and on again keeps an open due date for a reminder
+that stays due; a weekly or more frequent one is scheduled from that moment.
+
+Before v1.39.2 every reminder moved on to its next date as soon as it had
+notified, so an open yearly check-up read as due next year on the day it was
+reminded, and a rule-based check-up on its last date disappeared. The
+upgrade to v1.39.2 puts such reminders back to the day they notified, when
+that was within the previous 90 days and they have not been done, skipped,
+snoozed past that day or edited since. A snooze that had already run out
+before the notification does not count, and a course whose end date had
+passed before it stays closed. Older cases keep the date they have; snoozing
+one to a nearer day brings it back.
 
 ## Practitioners
 
@@ -79,9 +123,13 @@ Filing a visit from a due checkup marks that checkup satisfied.
 
 Since v1.39.1 you record a procedure as a visit of the kind **Procedure or
 surgery**. The form then offers a body site ("knee", "gallbladder") and a side.
-Only the date is required, as for any visit. A visit you entered earlier, for
-example as a hospital stay, can be switched to this kind by editing it; its
-date, reason, outcome, practice and links stay as they are.
+A visit of another kind shows the two fields only once it has a site or a
+side, so switching the kind never hides what you typed. While you type, the
+site field suggests the sites already in your record, from visits and from
+conditions; you can still type anything. Only the date is required, as for
+any visit. A visit you entered earlier, for example as a hospital stay, can be
+switched to this kind by editing it; its date, reason, outcome, practice and
+links stay as they are.
 
 The **Procedures** tab lists every procedure that took place, newest first.
 Planned, cancelled and no-show procedures are not in it; a booked operation
@@ -95,6 +143,49 @@ The body site is encrypted at rest, so the search runs on the server: it
 decrypts your own procedures and matches there. Nothing about the site is
 stored in plain text for the search.
 
+### Body sites
+
+A body site can sit on a visit and, since v1.39.2, on a condition in the
+[illness journal](/guides/illness/#body-site). The **Body sites** tab brings
+both together: what was done on your left knee, and what is wrong with it.
+
+The tab lists every body site in your record as a chip with the number of
+visits and conditions that carry it, most used first. Spellings that differ
+only in case, accents or spacing count as one site ("Knee", "knee",
+"Knée"); the chip shows the spelling of the latest-dated visit with that site,
+or of the latest condition when no visit has it. Different words stay
+different sites: "knee" and "left knee" are two chips.
+
+Tap a chip to see what is filed there, and tap it again to clear the choice.
+The match is on the whole site, so "knee" does not pick up "kneecap". When at
+least one record at the site states a side, a second row offers **All sides**
+and a chip for each side that occurs:
+
+- **Left** and **Right** also show what is recorded on **Both sides**,
+  because a condition in both knees is in the left knee too.
+- **Both sides** shows only records on both sides.
+- A record whose side is **Not stated** shows only under **All sides**. It
+  could be either side, and listing it under one would claim what nobody
+  wrote.
+
+The selection has two lists:
+
+- **Procedures and visits**: every visit with that site, of any kind and any
+  status, newest first. Each shows what was done (the reason, else the
+  practitioner, else the kind), the date, the kind, the site with its side,
+  and its linked documents, lab results and conditions.
+- **Conditions**: every condition with that site, newest onset first. Each
+  shows its label (which opens the condition), "Since" the onset or the onset
+  to the recovery date, its type, the site with its side, and its linked
+  documents and visits. The condition's note is not shown here.
+
+A linked document opens in the vault and a linked condition opens its page;
+lab results and visits are listed with their date but without a link, a visit
+by its kind. Conditions, and the sites that only conditions carry, appear only
+while the illness module is on for the record. A condition's page links here
+with its site and side already picked. With no site anywhere in the record,
+the tab says "No body site recorded yet".
+
 ### Appointment reminders
 
 A planned visit automatically gets one reminder that fires on the day of the
@@ -104,8 +195,11 @@ no cadence it can never fire twice. Rescheduling re-anchors the same
 reminder; cancelling or marking no-show disables it without deleting it. The
 notification carries no done or later buttons, because the appointment is
 managed through the visit itself. These reminders are kept out of the
-checkup list, the daily digest and the preventive-care insight so the list
-does not fill with appointments.
+checkup list and the preventive-care insight so the list does not fill with
+appointments. The start page reads the visits themselves instead: a visit
+booked for today stays there for the whole day, also after it has started, and
+one in the next two days shows ahead of time (see
+[The Today view](/insights/today/#the-worth-a-look-rail)).
 
 ### Report for a visit
 
@@ -129,6 +223,15 @@ preventive-care tool and past visits have their own tool, which can be
 narrowed to procedures; without a time window it then reads the whole record.
 Backups carry the body site and the side and restore them.
 
+The **Body sites** tab reads in the Health background section. Someone you
+share your record with needs access that includes it for the tab to load;
+without it the site field on a condition offers no suggestions, and a
+condition's site is shown as plain text instead of a link. Conditions appear
+in the tab only when their access also includes Illness. A link into a section
+they cannot read keeps its line but loses its name and date: it reads "A
+document not shared with you", "A lab result not shared with you" or "A
+condition not shared with you".
+
 ## API
 
 Practitioners: `GET` (with `q` search) and `POST /api/practitioners`; `GET`,
@@ -138,7 +241,24 @@ and `POST /api/encounters`; `GET`, `PATCH`, `DELETE /api/encounters/{id}`;
 /api/encounters/suggest`; `GET /api/encounters/procedures` (with `q` and
 `laterality`), which answers `{ procedures, bodySites, total }`. A visit
 carries `bodySite` and `laterality` (`LEFT`, `RIGHT`, `BOTH` or null) on every
-kind; the procedure kind is `PROCEDURE`. Reminders: `GET` and `POST
+kind; the procedure kind is `PROCEDURE`.
+
+Body sites: `GET /api/body-sites` answers `{ sites }`, one entry per site with
+`bodySite`, `procedures` (the count of visits with the site, of any kind),
+`conditions` and `sides` (`{ laterality, count }`, `null` for not stated),
+most records first. With `site` it adds `selection`: `bodySite`, `laterality`,
+`visits` (each a visit with its `links`) and `conditions` (each with `links`
+to `documents` and `visits`). `site` names a whole site, compared without case,
+accents or extra spaces, and is 1 to 200 characters; `laterality` (`LEFT`,
+`RIGHT` or `BOTH`) narrows it and needs `site`. An empty or overlong site, an
+unknown side, or a side without a site answers `422` with
+`meta.errorCode: body-site.invalid`. `conditions` is `null`, not `[]`,
+when the caller may not read Illness or the record has the illness module
+off. A link the caller may not read comes back with `redacted: true` and no
+`label` or `date`. The read covers the newest 500 visits and 500 conditions
+that carry a site. The full shapes are in the
+[OpenAPI document](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml).
+Reminders: `GET` and `POST
 /api/measurement-reminders`; `GET`, `PATCH`, `DELETE
 /api/measurement-reminders/{id}`; `POST .../complete`, `.../satisfy`,
 `.../skip`, `.../snooze`; `GET .../history`.
