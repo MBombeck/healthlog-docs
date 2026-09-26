@@ -331,8 +331,8 @@ the `aiRead` parameter.
   does not count as an upload. These questions are limited to 5,000 an hour
   per token, which covers a re-run over a few thousand documents; the check
   HealthLog makes on the key sent with an upload draws on the same allowance.
-  When it is spent, the script waits until it frees up, as it does for the
-  upload limit.
+  When it is spent, the script stops asking and uploads the document, which
+  then counts as one upload.
 - **Waiting.** When an upload is answered with `429`, the script waits for as
   long as the `Retry-After` header says (at most an hour per wait) and carries
   on, as often as it takes. A server error or a dropped connection is retried
@@ -425,8 +425,8 @@ Anything that can send a multipart form can use a document token. The upload
 is `POST /api/documents/inbound` with the file in a field named `file` and
 optional `title`, `kind`, `documentDate` (`YYYY-MM-DD`) and `aiRead=defer`.
 The source key, `sourceSystem` plus `sourceId`, can travel as form fields or in
-the query string, or both, as the script sends it; if both are sent they must
-agree. In the query string HealthLog answers a known key before the file is
+the query string, or both; if both are sent they must agree. The script sends
+it as form fields. In the query string HealthLog answers a known key before the file is
 read and without using an upload slot; that check draws on the lookup
 allowance.
 
