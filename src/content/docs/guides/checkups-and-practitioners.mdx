@@ -56,13 +56,16 @@ Push, webhook) as the measurement-reminder type, which is on by default; see
 A reminder notifies at its notify hour on the day it falls due. What happens
 after that depends on how often it repeats:
 
-- **Less often than once a week, or once only** (a yearly blood panel, a PHQ-9
-  every 14 days, a booster): it stays due after the notification, and from the
-  next day reads as overdue, on the checkups page, the dashboard card and the
+- **Less often than once a week** (a yearly blood panel, a PHQ-9 every 14
+  days, a booster), and a rule-based reminder on its last date: it stays due
+  after the notification, and from the next day reads as overdue, on the
+  checkups page, the dashboard card and the
   [start page](/insights/today/#the-worth-a-look-rail). It stays there until
-  you mark it done, a matching reading or lab result completes it, you skip
-  it, or you snooze it to another day. While it stays open it is reminded
-  again at most once a week.
+  you log the reading, fill in the questionnaire or mark it done (a lab result
+  also completes a free-text reminder), skip it, or snooze it to another day.
+  While it stays open it is reminded again at most once a week. For a rule,
+  "less often than once a week" means its next two dates are more than seven
+  calendar days apart.
 - **Once a week or more often** (a weekly weigh-in, a daily blood-pressure
   course): it moves on to its next date after the notification, because that
   date brings the next reminder anyway.
@@ -73,17 +76,22 @@ Telegram reminder, moves the due date; the reminder comes again at the first
 notify hour after the new date.
 
 Editing a reminder's label, target or location keeps its due date. Changing
-its interval, its rule or its first due date, or switching a disabled reminder
-back on, works out the due date again. Changing only the notify hour keeps the
-due day and moves the time on it.
+its interval, its rule or its first due date (compared by calendar day, so
+saving the same date again changes nothing) works out the due date again.
+Changing only the notify hour keeps the due day and moves the time on it; a
+reminder already sent that day is not sent a second time at the later hour.
+Switching a reminder off and on again keeps an open due date for a reminder
+that stays due; a weekly or more frequent one is scheduled from that moment.
 
 Before v1.39.2 every reminder moved on to its next date as soon as it had
 notified, so an open yearly check-up read as due next year on the day it was
-reminded, and a one-time check-up disappeared. The upgrade to v1.39.2 puts
-such reminders back to the day they notified, when that was within the
-previous 90 days and they have not been done, skipped, snoozed or edited
-since. Older cases keep the date they have; snoozing one to a nearer
-day brings it back.
+reminded, and a rule-based check-up on its last date disappeared. The
+upgrade to v1.39.2 puts such reminders back to the day they notified, when
+that was within the previous 90 days and they have not been done, skipped,
+snoozed past that day or edited since. A snooze that had already run out
+before the notification does not count, and a course whose end date had
+passed before it stays closed. Older cases keep the date they have; snoozing
+one to a nearer day brings it back.
 
 ## Practitioners
 

@@ -144,9 +144,10 @@ and the body site and side of a condition.
 
 `0355_checkup_stays_due` adds the column that keeps the repeat of an open
 reminder to once a week, and changes existing data in two places. It puts
-reminders repeating less often than weekly, or once only, that had moved on to
+reminders repeating less often than weekly, or on their last date, that had moved on to
 their next date after notifying in the previous 90 days back to the day they
-notified, unless they were done, skipped, snoozed or edited since (see
+notified, unless they were done, skipped, snoozed past that day or edited
+since, or were a course whose end date had passed before it (see
 [When a reminder is due](/guides/checkups-and-practitioners/#when-a-reminder-is-due)).
 And it adds **Appointments** to every saved choice of start-page items that
 lacks it, so visits show on the start page again for layouts saved before they
