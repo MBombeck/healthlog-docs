@@ -46,7 +46,7 @@ Inside a single Postgres transaction, for every account at once: 98 tables, the 
 Two consequences of the wider scope are worth knowing before pressing the button:
 
 - **The audit history goes with it.** Audit rows are part of the operational trail and are wiped. The `admin.data.clear.start` row written before the transaction survives a crash or rollback; on success, a fresh `admin.data.clear` row written after the commit restarts the trail with the receipt for the wipe itself.
-- **In-database backups go with it.** `DataBackup` rows are in the wipe scope, so `/admin/backups` cannot undo an admin wipe. Objects already written to an off-host bucket are untouched, and restoring one of those is the recovery path.
+- **In-database backups go with it.** `DataBackup` rows are in the wipe scope, so `/admin/backups` cannot undo an admin wipe. The admin wipe leaves the off-host bucket alone, and restoring one of those copies is the recovery path.
 
 ### What "Wipe all data" preserves
 
@@ -94,13 +94,13 @@ After the transaction commits, the deleting request's own wide event is annotate
 
 ## Backups and the right to be forgotten
 
-If your instance has off-host S3 backups configured ([Scaling & Operations](/self-hosting/scaling/)), the user's data still exists in those snapshots until the bucket lifecycle policy expires them. That is by design — backups are the floor against accidental deletion — but if a user invokes Art. 17, you may also need to:
+In-database `DataBackup` rows are deleted with the account. If the instance has [off-host backups](/guides/backups/) configured, since v1.39.3 deleting an account, deleting a managed profile or **Delete all data** also deletes every copy of that account from the bucket, right after the deletion and again at the next nightly pass if the bucket was unreachable. The admin "Wipe all data" does not; see above.
 
-1. Identify any in-database `DataBackup` rows for that user — `onDelete: Cascade` on the FK takes care of those automatically when the user is deleted.
-2. Purge the equivalent objects from S3 (the worker holds `PutObject` + `GetObject` only, so this is an operator action, not an in-app one).
-3. Note in your records that the bucket-side purge happened, so the next audit shows the steps were taken.
+What is left for the operator when someone invokes Art. 17:
 
-The HealthLog code never auto-prunes off-host backups — that's intentional ([Scaling & Operations](/self-hosting/scaling/) explains why a compromised worker must not be able to wipe your backup history).
+1. Make sure the worker's bucket credential has `DeleteObject`, and that the `BACKUP_*` variables are set in the container that handles the deletion (both containers in a web/worker split). Without `DeleteObject` the deletion stays pending, is retried nightly, and **Admin → Backups → Off-host copies** shows it with the bucket's answer.
+2. Delete any backup file you downloaded or copied elsewhere yourself; the app cannot reach it.
+3. Note in your records that the deletion happened. Once the bucket holds nothing for the account, the server writes an `offhost.backup.purged` audit row with the reason and the number of copies deleted; for a deleted account the row does not name the account, because the account's audit history goes with it.
 
 ## Public Privacy Policy page
 
