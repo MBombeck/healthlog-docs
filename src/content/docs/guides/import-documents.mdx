@@ -314,8 +314,8 @@ alone, so it is not a way to read an imported archive in bulk. A scanned
 document without a text layer stays unsearchable until you choose **Read with
 AI** on it. If you want an archive of scans read as it arrives, pass
 `--ai-read` instead: every imported document is then read like any other
-upload, within your daily AI budget. The Paperless workflow does not hold reading back unless you add
-the `aiRead` parameter.
+upload, within your daily AI budget. The Paperless workflow does not hold
+reading back unless you add the `aiRead` parameter.
 
 ## Limits and storage
 
@@ -329,14 +329,14 @@ the `aiRead` parameter.
 - **Lookups.** The script asks before each download whether HealthLog already
   has the document, and a document it recognises this way sends no file and
   does not count as an upload. These questions are limited to 5,000 an hour
-  per token, which covers a re-run over a few thousand documents; the check
-  HealthLog makes on the key sent with an upload draws on the same allowance.
-  When it is spent, the script stops asking and uploads the document, which
-  then counts as one upload.
-- **Waiting.** When an upload is answered with `429`, the script waits for as
-  long as the `Retry-After` header says (at most an hour per wait) and carries
-  on, as often as it takes. A server error or a dropped connection is retried
-  three times, after 5, 15 and 45 seconds.
+  per token, which covers a re-run over a few thousand documents. When they
+  are spent, the script does not wait: it downloads and uploads the document,
+  and HealthLog still recognises it by its source id, at the cost of one
+  upload.
+- **Waiting.** When an upload, Paperless-ngx or Papra answers `429`, the
+  script waits for as long as the `Retry-After` header says (at most an hour
+  per wait) and carries on, as often as it takes. A server error or a dropped
+  connection is retried three times, after 5, 15 and 45 seconds.
 - **Storage.** The default limit is 1 GB per person, counting deleted
   documents until they are removed for good 30 days later. A dry run shows
   what an import needs. An admin can raise the limit in the admin area, for
@@ -400,12 +400,12 @@ but does not look up or download anything older.
 | `HealthLog refused the request (403). Use a document token …`                           | The token is not a document token (a measurement token, for instance), or HealthLog is older than v1.39.2. Create a document token.                                                     |
 | `HealthLog refused the token (401).`                                                    | The token is mistyped, revoked or expired. Create a new one.                                                                                                                            |
 | `Your HealthLog storage is full.`                                                       | HealthLog answered `413`: the storage limit is reached. Delete documents (the space returns after the 30-day undo window) or have an admin raise the limit, then run again.              |
-| `… HealthLog asked to slow down, waiting … s`                                           | Not an error: the hourly upload limit or the lookup allowance is reached (`429`). Let it run; the operator can raise `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`.                                                           |
+| `… HealthLog asked to slow down, waiting … s`                                           | Not an error: the token's hourly upload limit is reached (`429`). Let it run; the operator can raise `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`.                                                   |
 | `The HealthLog address redirects to …`                                                  | Use the address it names with `--healthlog-url`, usually the `https://` one.                                                                                                             |
 | `Paperless-ngx has no tag named "…"` / `Papra has no tag named "…"`                     | Check the spelling. For Papra, the API key also needs `tags:read`.                                                                                                                      |
 | `Paperless-ngx refused the token (403)` / `Papra refused the token (401)`               | The source token is wrong or lacks permission. For Papra, the key needs `documents:read`.                                                                                               |
 | `Paperless-ngx answered 406 for …`                                                      | Paperless-ngx is older than 2.16 and does not speak API version 9. Update it.                                                                                                           |
-| `… could not connect (…)`                                                               | The address is unreachable from where the script runs; it tried three times first.                                                                                                     |
+| `… could not connect (…)`                                                               | The address is unreachable from where the script runs; it retried three times first.                                                                                                     |
 | `skipped … larger than HealthLog accepts (25.0 MB)`                                     | The file is over the per-file limit. An admin can raise it up to 100 MB; run again afterwards.                                                                                          |
 | `skipped … HealthLog does not accept this file type`                                    | The vault refuses the format. Convert it to PDF in the source, or leave it there.                                                                                                       |
 | `skipped … HealthLog answered 409: This file is already stored under too many source ids.` | The same file already carries 20 extra source ids in HealthLog. Nothing was stored. Usually the source holds the same file many times; clean it up there. |
@@ -425,10 +425,16 @@ Anything that can send a multipart form can use a document token. The upload
 is `POST /api/documents/inbound` with the file in a field named `file` and
 optional `title`, `kind`, `documentDate` (`YYYY-MM-DD`) and `aiRead=defer`.
 The source key, `sourceSystem` plus `sourceId`, can travel as form fields or in
-the query string, or both; if both are sent they must agree. The script sends
-it as form fields. In the query string HealthLog answers a known key before the file is
-read and without using an upload slot; that check draws on the lookup
-allowance.
+the query string, or both; if both are sent they must agree.
+
+- **As form fields**, the key is checked after the upload has been counted,
+  so a known key costs one upload. This is what the script sends.
+- **In the query string**, HealthLog answers a known key before the file is
+  read and without counting an upload, but the check draws on the lookup
+  allowance: once that is spent, the upload is refused with `429` as well,
+  even with uploads left.
+
+Details:
 
 - `sourceSystem` is one of `PAPERLESS`, `PAPRA` or `OTHER`. Use `OTHER` for
   anything else. `OTHER` is one shared set of ids per account: if you push from
@@ -445,7 +451,14 @@ allowance.
   means the same file already carries 20 extra source ids; nothing is stored.
 - Every upload whose file is read counts towards the hourly upload limit,
   duplicates included. Only a known key in the query string, or a separate
-  lookup, avoids that.
+  lookup, avoids that. Past the limit the answer is `429` with
+  `documents.inbound.rateLimited` and a `Retry-After` header.
+- Send one upload at a time. While two uploads for the same account are
+  already in progress, a third is refused with `429`,
+  `documents.inbound.uploadBusy` and `Retry-After: 1`.
+- `413` with `meta.reason: quotaExceeded` means the storage limit is reached;
+  `fileTooLarge` means the file is over the per-file limit. `415` is a file
+  type the vault refuses.
 
 The endpoints are listed in the [API reference](/reference/api-endpoints/#documents),
 and the full request and response shapes are in
