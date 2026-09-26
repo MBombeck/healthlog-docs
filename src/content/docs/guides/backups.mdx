@@ -199,7 +199,7 @@ as one value, which takes the memory it took when it was written.
 | Writing one account's copy | 90 minutes | That account's backup fails and its previous copy stays. |
 | The weekly run for all accounts | 2 hours | The run is marked failed ("job timed out"). Copies already written stay. |
 | An upload | 512 MB as sent; the page compresses a plain `.json` in the browser first | Refused with `413`. |
-| A restore | Two minutes plus a second per 5,000 readings, inside 90 minutes (three quarters of the job's two hours): roughly 20 million readings | Refused before anything is deleted, with "too large to restore within the background job's time limit". |
+| A restore | Two minutes plus a second per 5,000 readings, which with ten minutes to spare has to fit into 90 minutes (three quarters of the job's two hours): roughly 20 million readings | Refused before anything is deleted, with "too large to restore within the background job's time limit". |
 
 For scale: an account with 2.6 million readings stores a copy of about
 100 MB, so the default storage limit leaves a wide margin. The limit is there
@@ -212,10 +212,6 @@ app container with `docker compose up -d`. The variable is on the compose
 add `BACKUP_MAX_STORED_MB: "${BACKUP_MAX_STORED_MB:-}"` to it. Make sure the
 database volume has room for a second copy of that size while one is written,
 because the old copy stays until the new one is complete.
-
-| Var | Required | Notes |
-| --- | --- | --- |
-| `BACKUP_MAX_STORED_MB` | no | Largest stored copy of one account, in MB of encrypted copy. Default `2048`. A storage limit, not a memory setting. |
 
 ### When a backup fails
 

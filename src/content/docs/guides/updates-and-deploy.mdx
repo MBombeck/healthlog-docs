@@ -134,7 +134,13 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
-## Migration 0352 in v1.39.2
+## Migrations 0352, 0353 and 0354 in v1.39.2
+
+`0353_document_import_source` and `0354_condition_body_site` only add columns
+and tables: the source key and the held-back AI reading of imported documents,
+the memory of imported documents you deleted (see
+[Import documents](/guides/import-documents/#running-it-again-duplicates-and-deletions)),
+and the body site and side of a condition.
 
 `0352_data_backup_chunks` adds the `data_backup_chunks` table and makes
 `data_backups.data` optional, because from v1.39.2 a stored backup is kept as

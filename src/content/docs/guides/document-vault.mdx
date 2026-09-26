@@ -197,7 +197,9 @@ Honest limits:
   OCR.
 - Per-document **Index for search** indexes one document; **Index all for
   search** runs a bounded, resumable background backfill over your not-yet-
-  indexed documents, stopping at your daily AI budget.
+  indexed documents, stopping at your daily AI budget. It skips imported
+  documents whose AI reading was
+  [held back](#imported-documents-reading-held-back).
 
 ### What this does not change
 
