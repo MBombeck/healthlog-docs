@@ -33,11 +33,10 @@ exact value, and cards show a common fraction as a glyph (1½). The iPhone app
 shows a value it has no button for, such as 1½, as 1 in its edit screen, but
 saving there does not change the stored value unless you pick a different one.
 
-The detail page that follows is a tabbed layout: **Übersicht** (overview),
-**Wirkung** (effect on a metric), **Zeitplan** (schedule, which also carries
-the reminder card), **Bestand** (supply), **Verlauf** (history), **API** (the
-per-medication ingest token), and **Erweitert** (advanced). Injectables get an
-extra **Injektion** tab. Reminders live with the schedule they gate; charts
+The detail page that follows is a tabbed layout: **Overview**, **Effect**
+(effect on a metric), **Schedule** (which also carries the reminder card),
+**Supply**, **History**, **API** (the per-medication ingest token), and
+**Advanced**. Injectables get an extra **Injection** tab. Reminders live with the schedule they gate; charts
 load on demand.
 
 <figure>
@@ -79,12 +78,16 @@ shapes, and within `SCHEDULED` the recurrence engine supports several cadences:
 | **Rolling interval** | An `intervalWeeks` value anchored to the start date | The recurring slots only |
 | **One-time** | A single dose on a date | That one slot |
 | **As-needed (PRN)** | `scheduleType = PRN` | **Excluded** — never projected, never reminded, never counted |
-| **Cyclic** | `scheduleType = CYCLIC`, N weeks on / M weeks off | Only the on-weeks; the inner cadence applies within them |
+| **Cyclic** | `scheduleType = CYCLIC`, N weeks on / M weeks off, counted in whole weeks from the start date | Only the on-weeks; the inner cadence applies within them |
 
 The engine accepts RFC-5545 `RRULE` strings directly. A once-weekly GLP-1
 injection, a weekday-only oral dose, and a cyclic on/off plan therefore each
 score against their **real** cadence rather than a daily denominator — see
 [why compliance is cadence-aware](/explanation/medication-compliance/).
+
+Start and end dates are days on your calendar, and each dose time is placed on
+them in your profile time zone. A plan for Mondays is a Monday plan wherever
+you live. Before v1.39.3, users west of UTC saw such doses a day early.
 
 :::note[GLP-1 example]
 Once-weekly GLP-1 receptor agonists are a common reason to need weekly cadence.
@@ -157,7 +160,10 @@ inside its multi-day catch-up window reads as late, not missed.
 ## Log an intake
 
 Mark a dose taken, skipped, or snoozed from the card, the detail page, or a
-reminder action button. The write path attributes the intake to the slot whose
+reminder action button. A snooze holds the doses whose reminder had already
+come due when you snoozed, not the medication's later doses that day: those are
+still reminded. Before v1.39.3, skipping from a Telegram reminder silenced the
+rest of the day. The write path attributes the intake to the slot whose
 window it falls in. A take outside every window records as **ad-hoc** rather than
 snapping to a far-off slot. A taken, skipped or auto-missed row resolves
 exactly one occurrence, the one nearest its anchor, so on a schedule whose
@@ -214,7 +220,11 @@ A medication with **Track intake** switched off never reminds. See
 
 ## Supply and side effects
 
-The **Bestand** tab tracks a supply count and surfaces a runway ("X days left").
+The **Supply** tab tracks a supply count and surfaces a runway ("≈ N days
+left"). The runway follows the whole plan: an injection every third month with
+two doses left lasts about 180 days, the pause of an on/off plan stretches it,
+and an as-needed schedule shows no runway because it does not consume on a
+cadence. Months count as 30 days, so the figure is an estimate.
 For injections, a site-rotation picker and structured side-effect tracking live
 under the advanced sections.
 

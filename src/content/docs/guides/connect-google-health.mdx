@@ -98,6 +98,10 @@ offered** by the Google Health API, and **skin/wrist temperature** is exposed
 only as a nightly deviation, so neither imports. Google may also ask you to
 reconnect from time to time — the connection shows a clear prompt when it does.
 
+Daily totals are stored at noon of their day in your own time zone, so they
+land on the right day wherever you live (since v1.39.3; see
+[the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
+
 ## Sync cadence and backfill
 
 - **Hourly poll.** A background job walks every connected account once an hour

@@ -11,7 +11,7 @@ Once linked, Polar sleep, heart rate, respiratory rate, activity and the **Night
 
 ## What gets synced
 
-The Polar client (`src/lib/polar/client.ts`) reads from `https://www.polaraccesslink.com` and maps sleep (with stages), heart-rate and resting heart rate, respiratory rate, activity (steps, energy, distance) and the Nightly Recharge recovery reading into HealthLog. Imported rows are tagged `source = POLAR` and pass through the [source-priority](/explanation/source-priority/) resolver.
+The Polar client (`src/lib/polar/client.ts`) reads from `https://www.polaraccesslink.com` and maps sleep (with stages), heart-rate and resting heart rate, respiratory rate, activity (steps, energy, distance) and the Nightly Recharge recovery reading into HealthLog. Imported rows are tagged `source = POLAR` and pass through the [source-priority](/explanation/source-priority/) resolver. Daily totals are stored at noon of their day in your own time zone, so they land on the right day wherever you live (since v1.39.3; see [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
 
 ## OAuth scope
 
