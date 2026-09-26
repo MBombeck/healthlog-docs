@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-The schema is defined in `prisma/schema.prisma` (about 130 models). It uses `cuid()`
+The schema is defined in `prisma/schema.prisma` (about 140 models). It uses `cuid()`
 primary keys, `snake_case` columns via `@map`, and keeps encrypted columns under
 `*Encrypted` suffixes (plus a few exceptions noted below). This page sketches the
 models you are most likely to touch; the schema file is the full reference.
@@ -64,13 +64,18 @@ predictions). Cycle data carries its own threat model in the main repo.
 
 ## Encrypted columns
 
-Sensitive at-rest data is AES-256-GCM-encrypted under the versioned key map.
-Most encrypted columns use a `*Encrypted` suffix — provider OAuth tokens, AI
-keys, notification channel configs, VAPID secrets. Two exceptions worth knowing:
-`CoachMessage.encryptedContent` is a `Bytes` column, and
-`IntegrationStatus.lastError` is encrypted because upstream errors can echo
-secrets. The [rotation script](/guides/encryption-key-rotation/) covers all of
-them. Search `prisma/schema.prisma` for `Encrypted` to enumerate.
+Sensitive at-rest data is AES-256-GCM-encrypted under the versioned key map:
+credentials, free text, documents, questionnaire answers, AI-written text and
+the Coach conversation. Most encrypted columns use a `*Encrypted` suffix, but
+the suffix is a convention, not the rule: `CoachMessage.encryptedContent` is a
+`Bytes` column, `IntegrationStatus.lastError` is encrypted because upstream
+errors can echo secrets, and `DataBackup.data` and
+`IdempotencyKey.responseBody` hold ciphertext under ordinary names. The
+authoritative list is the registry in `src/lib/crypto/encrypted-columns.ts`,
+which a test holds against every write path, and
+[Encryption at rest](/explanation/encryption-at-rest/#what-gets-encrypted)
+spells out what is and is not encrypted. A
+[key rotation](/guides/encryption-key-rotation/) covers all of them.
 
 ## Observability
 

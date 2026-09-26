@@ -20,7 +20,7 @@ backs it.
 
 | Claim | How you check it |
 | --- | --- |
-| Secrets are encrypted at rest with AES-256-GCM | [Encryption at rest](/explanation/encryption-at-rest/), `src/lib/crypto.ts` |
+| Credentials, free text, documents, questionnaire answers and AI-written text are encrypted at rest with AES-256-GCM; measurement values, lab values, medication names and mood scores are not | [Encryption at rest](/explanation/encryption-at-rest/#what-gets-encrypted), `src/lib/crypto.ts` |
 | No usage telemetry, no third-party trackers | [What leaves the instance](#what-leaves-the-instance) below, and the strict CSP in `src/proxy.ts` |
 | The image was built by this repository's release workflow | `cosign verify`, [below](#verify-the-image-you-run) |
 | The image contents are enumerable | SBOM attestation, [below](#the-ingredient-list) |
@@ -39,17 +39,20 @@ decoding into garbage. Each value gets a random 12-byte IV and is stored as
 
 The key id indexes into an `ENCRYPTION_KEYS` JSON map, which is what makes
 zero-downtime rotation possible. Several keys coexist, new writes use the active
-one, and a rotation script re-wraps old rows on its own schedule while the app
-keeps serving. The operator procedure is
+one, and a rotation (**Admin → Encryption → Rotate now**, or the script) re-wraps
+old rows on its own schedule while the app keeps serving. The operator procedure is
 [Rotate the encryption key](/guides/encryption-key-rotation/).
 
-What is encrypted is the class of values that would let an attacker pivot
-outward or impersonate you: provider access and refresh tokens, bring-your-own
-AI keys, VAPID secrets, notification channel credentials, the Coach
-conversation, and even the last integration error string, because upstream
-errors have a habit of echoing secrets back. Measurements themselves are not
-column-encrypted; they are the rows you query and chart constantly, and they sit
-on a database you already control.
+What is encrypted: every credential that would let an attacker pivot outward
+or impersonate you (provider tokens, bring-your-own AI keys, VAPID secrets,
+notification channel credentials, even the last integration error string,
+because upstream errors have a habit of echoing secrets back), free text you
+write, documents with their extracted text, questionnaire answers, AI-written
+text and the Coach conversation. Measurement values, lab values, medication
+names and mood scores are not column-encrypted; they are the rows you query and
+chart constantly, and they sit on a database you already control, so protect
+its volume and backups like the host. The full list is on
+[Encryption at rest](/explanation/encryption-at-rest/#what-gets-encrypted).
 
 The defining property is that **every failure path throws**. A missing key,
 malformed key JSON, an unknown key id, a legacy ciphertext with no `v1` key
@@ -58,21 +61,24 @@ encryption-at-rest bug is a fallback that writes the value in the clear "just
 this once" and nobody notices for a year. A misconfigured key here takes the
 feature down loudly instead, which is the trade the project wants.
 
-The practical corollary during a rotation: keep the old key in the map until the
-rotation script reports zero remaining rows on it. Drop it early and those rows
+The practical corollary during a rotation: keep the old key in the map until
+**Admin → Encryption** reports zero remaining rows on it and no backup you may
+still restore needs it. Drop it early and those rows
 become undecryptable, and the app will tell you so rather than paper over it.
 
 ## What leaves the instance
 
-HealthLog sends **no usage telemetry**. There is no analytics beacon, no
+The software sends **no usage telemetry**. There is no analytics beacon, no
 crash reporting by default, no anonymous statistics, no fonts from a CDN, no tag
 manager, no embedded tracker. The strict Content-Security-Policy with a
 per-request nonce and a surgical `connect-src` makes that enforceable rather
 than promised, and there are no CORS headers anywhere outside the documented
 webhook routes, which authenticate by header secret rather than by cookie.
 
-Most outbound traffic exists only because you asked for it: an AI provider you
-configured, a device vendor you connected, a notification channel you turned on.
+Most outbound traffic exists only because someone configured it: an AI
+provider, a device vendor, a notification channel, a document archive, an
+off-host backup bucket, or the error reporting, page analytics and log shipping
+an operator can point at services of their own.
 [Privacy architecture](/explanation/privacy-architecture/) walks each of those
 flows.
 
@@ -81,9 +87,9 @@ naming rather than rounding the claim up to "nothing leaves".
 
 | Destination | When | What is sent | How to stop it |
 | --- | --- | --- | --- |
-| `api.pwnedpasswords.com` | A password is set, changed, or admin-reset | The first five hex characters of the SHA-1 of the candidate password, and nothing else. The remaining 35 characters are matched locally against the response, so neither the password nor its full hash crosses the network. The request carries `Add-Padding: true` so the response size does not leak which bucket was queried. | Block the host at the network level. The check fails open, so setting a password still works. |
-| `ipwho.is` | A sign-in is geo-resolved for the login-history surface, and only for an address the offline GeoLite2 databases could not place | The IP address of the person signing in | Mount the GeoLite2 databases: since v1.37.1 the resolver reads them first, and an address they place never goes online. `IP_GEO_LOOKUP_DISABLED=1` turns the online lookup off entirely; `IP_GEO_LOOKUP_URL` moves it to a different provider rather than stopping it. See the note below. |
-| `api.github.com` | Roughly once a day per browser via client-side caching, when a signed-in user views a surface that shows the version, plus on demand when the Check-now button is pressed (the daily cadence is a client cache, not a server-enforced bound) | Nothing about the instance beyond the request itself. The route reads the latest release tag and compares it locally. | Block the host at the network level. The check reports `unknown` and the UI carries on. |
+| `api.pwnedpasswords.com` | A password is set, changed, or admin-reset | The first five hex characters of the SHA-1 of the candidate password, and nothing else. The remaining 35 characters are matched locally against the response, so neither the password nor its full hash crosses the network. The request carries `Add-Padding: true` so the response size does not leak which bucket was queried. | `PASSWORD_BREACH_CHECK_DISABLED=1` (v1.39.3 and later), or block the host at the network level. Either way the check fails open: setting a password still works, and a known-breached password is no longer refused. |
+| `ipwho.is` | A sign-in is geo-resolved for the login-history surface, and only for an address the offline GeoLite2 databases could not place | The IP address of the person signing in | Mount the GeoLite2 databases: since v1.37.1 the resolver reads them first, and an address they place never goes online. `IP_GEO_LOOKUP_DISABLED=1` turns the online lookup off entirely (`true`, `yes` and `on` work too since v1.39.3); `IP_GEO_LOOKUP_URL` moves it to a different provider rather than stopping it. See the note below. |
+| `api.github.com` | When a signed-in user opens the About page (at most once a day per browser, remembered in the browser), and on each fresh load of the admin overview. The cadence is a client cache, not a server-enforced bound | Nothing about the instance beyond the request itself. The route reads the latest release tag and compares it locally. | `UPDATE_CHECK_DISABLED=1` (v1.39.3 and later): the route answers `unknown` with reason `disabled` and contacts nobody, and the admin version card says **Update check off**. Blocking the host also works. |
 
 None of the three carries health data. The first two carry something worth
 knowing about: a password prefix, and a login IP. Both are documented above

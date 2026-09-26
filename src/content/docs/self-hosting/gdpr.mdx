@@ -64,6 +64,21 @@ you send it. HealthLog can collapse cycle and medication reminders to a generic
 title so the content is not the thing that travels, which is worth turning on
 when the instance is not only yours.
 
+The off-host backup bucket, if you set one up, holds every account's data
+encrypted on the server under `BACKUP_ENCRYPTION_KEY` before upload. The
+storage provider sees ciphertext and object names (the date and the account
+id), not content, but it is still a party you chose, so pick its location with
+that in mind and set its lifecycle rule to the retention you state.
+
+Three requests leave the server by default without anyone configuring them:
+a password-hash prefix to HaveIBeenPwned when a password is set, a version
+check against the GitHub releases API, and, for a sign-in address the local
+GeoLite2 databases cannot place, the IP address to the online geolocation
+provider (`ipwho.is` unless you change it). None carries health data, but the
+last one is a personal data transfer. `PASSWORD_BREACH_CHECK_DISABLED`,
+`UPDATE_CHECK_DISABLED` and `IP_GEO_LOOKUP_DISABLED` switch each off; see
+[Security and privacy](/security/overview/#what-leaves-the-instance).
+
 ## Legal basis
 
 Health data is a special category under
@@ -177,14 +192,16 @@ It is still not the way to answer a request for erasure: it keeps every
 account, and it wipes every account at once, which is the wrong scope for one
 person invoking Art. 17. Use the per-account paths above.
 
-Backups outlive all three paths. In-database backup rows cascade away with the
-account, but objects already written to an off-host bucket stay until the
-lifecycle policy expires them, and purging those is an operator action by
-design: the backup code never deletes backup objects, so retention is a
-bucket-lifecycle rule, and if you want that guarantee as a hard capability
-bound, issue the worker credentials without delete permission. When somebody
-invokes Art. 17, purge the bucket objects yourself and note in your records
-that you did.
+Backups go with the account too. In-database backup rows are deleted with the
+account, and since v1.39.3 deleting an account, deleting a managed profile or
+**Delete all data** also deletes every copy of that account from the off-host
+bucket, right after and again on the next nightly pass if the bucket was
+unreachable. The worker's credential needs `DeleteObject` for that; without it
+the deletion stays pending, is retried nightly, and **Admin → Backups →
+Off-host copies** says so. Copies kept elsewhere, such as a backup file an
+operator downloaded, are outside the app's reach and are yours to delete. The
+admin **Wipe all data** deletes nothing in the bucket, because it is the
+operator's own recovery path.
 
 [Data deletion](/account/data-deletion/) enumerates each path model by model.
 
@@ -201,7 +218,7 @@ their own:
 | Coach conversation | 365 days | `COACH_MESSAGE_RETENTION_DAYS`, floor of 30 |
 | Notification delivery attempts | 90 days | fixed |
 | Host metrics | 7 days | `HOST_METRIC_RETENTION_DAYS` |
-| Off-host backup objects | as configured | `BACKUP_RETENTION_DAYS` |
+| Off-host backup objects | as configured, and deleted with the account | Your bucket's lifecycle rule (`BACKUP_RETENTION_DAYS` records the number) |
 
 The per-metric status notes are not in that list: since v1.39.0 they live
 encrypted in their own table, one row per metric and language, overwritten each
@@ -240,7 +257,8 @@ categories, so an instance holding somebody else's health data needs a record
 even when it holds one person's. Keep it short and keep it current: the
 categories of data, the people whose data it is, why you hold it, who else sees
 it (the hosting provider, an AI provider if you configured one, the notification
-services you enabled), where it is stored, the retention windows above, and the
+services you enabled, the backup storage provider, the geolocation provider
+unless switched off), where it is stored, the retention windows above, and the
 security measures.
 
 A breach is reportable to your supervisory authority within 72 hours of you
