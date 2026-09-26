@@ -21,10 +21,11 @@ longer if you also want a TLS-fronted public hostname (see
   The app container is capped at `mem_limit: ${APP_MEMORY_LIMIT:-1g}` in the
   compose file. 1 GB is also the floor: below it the app cannot run a backup
   (see [Large accounts and memory](/guides/backups/#large-accounts-and-memory)),
-  so do not lower it to 512 MB. The Apple Health import worker can briefly
-  hold a 1.5 GB `export.zip` in `/tmp`, so raise `APP_MEMORY_LIMIT` in `.env` (for example
-  `APP_MEMORY_LIMIT=2g`) before importing a large export, or the container is
-  OOM-killed mid-import.
+  so do not lower it to 512 MB. A larger cap is not needed for an Apple Health
+  import either: the uploaded `export.zip` (up to 1.5 GB) and the `export.xml`
+  unpacked from it are streamed to `/tmp` on the container's disk and parsed
+  as a stream. Budget disk instead, several gigabytes free while a large
+  export is imported.
 - **Outbound HTTPS** to `ghcr.io` for image pulls, plus whichever integration
   endpoints you enable later.
 - **Optional but recommended:** a reverse proxy that terminates TLS in front of
