@@ -46,6 +46,10 @@ blood-pressure reminder records an actual reading. You can also snooze to a
 day you pick or skip (a skip does not count as done), and each reminder keeps
 a history. A dashboard card shows the next few due, overdue ones first.
 
+A reminder whose rule names several hours, such as the Coach's
+morning-and-evening blood pressure course (`FREQ=DAILY;BYHOUR=7,19`), is sent
+at each of them. Before v1.39.3 only the first hour of the day was sent.
+
 Reminders notify through the ordinary channels (APNs, Telegram, ntfy, Web
 Push, webhook) as the measurement-reminder type, which is on by default; see
 [Reminder channels](/guides/reminder-channels/). Booster reminders from the
@@ -218,9 +222,14 @@ Like the vaccination record it covers the whole record, not only the report
 period. A report selection saved before v1.39.1 keeps what you chose and does
 not include it until you tick it. It also appears on the clinician share page
 when the link includes it. The FHIR export carries no visits or procedures
-section yet. Through MCP, upcoming appointments are a field on the
+section yet; a condition's body site is exported (see the
+[illness journal](/guides/illness/#settings-and-where-it-goes)), a procedure's
+is not. Through MCP, upcoming appointments are a field on the
 preventive-care tool and past visits have their own tool, which can be
 narrowed to procedures; without a time window it then reads the whole record.
+Since v1.39.3 visits and procedures are also found by `search` (by body site,
+side, reason or practitioner) and opened with `fetch`, which is what ChatGPT's
+default mode uses.
 Backups carry the body site and the side and restore them.
 
 The **Body sites** tab reads in the Health background section. Someone you

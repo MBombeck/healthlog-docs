@@ -106,8 +106,13 @@ the **Conditions & illnesses** table. When at least one of them has a body
 site, the table gains a **Body site** column after the condition; a report
 without any keeps its old layout. The clinician share page shows the site in
 the same section. Episodes are exported to FHIR as a Condition with a bounding
-Encounter; the Condition does not carry the body site. Episodes can be linked
-to a visit and to documents.
+Encounter. Since v1.39.3 the Condition carries the body site in
+`bodySite.text`, with the side added in English words ("knee (left)"). The
+side is also coded: a `BodyStructure` contained in the Condition, reached
+through the core FHIR `bodySite` extension, holds it as a SNOMED CT laterality
+qualifier (7771000 left, 24028007 right, 51440002 both sides). No code is
+guessed for the site itself, and without a side only the text is written.
+Episodes can be linked to a visit and to documents.
 
 The Coach sees each active condition and the six most recently recovered ones
 with label, type and dates, plus the body site and side when you set them;
