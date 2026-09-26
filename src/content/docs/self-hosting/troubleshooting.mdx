@@ -222,12 +222,45 @@ loaded a type's whole history at once, and the backup built its whole copy in
 memory, so an account with more than a million readings could restart the app
 in a 1 GB container.
 
-**Fix.** Update to v1.39.1 or later. The clean-up now works through the
-history one day at a time, stops cleanly when it runs short of time and
-continues where it left off, and the backup is saved piece by piece. The admin
-page now says what the job's limit was, and the log names long, expired and
-cut-off jobs by queue; see [App logs](/guides/admin-overview/#app-logs). If
-jobs still time out, check the container's restart count and its memory limit.
+**Fix.** Update to v1.39.2 or later. The clean-up works through the history
+one day at a time, stops cleanly when it runs short of time and continues where
+it left off. The backup is written and stored in pieces of about a megabyte, so
+its size no longer depends on memory; v1.39.1 still capped a stored copy at
+105 MB in a 1 GB container, which an account with about 1.75 million readings
+outgrew. The admin page says what the job's limit was, and the log names long,
+expired and cut-off jobs by queue; see [App logs](/guides/admin-overview/#app-logs).
+If jobs still time out, check the container's restart count and its memory
+limit: the container that runs the worker needs at least 1 GB, and 512 MB is
+not enough for a backup of any account.
+
+## A backup fails with a message naming `BACKUP_MAX_STORED_MB`
+
+**Symptom.** One account's row on the admin backups page keeps an old date, or
+an upload is refused with `413` and `backup.upload.too_large`. The app log's
+`job.data_backup` line has a warning for that account containing
+`Backup stopped after`.
+
+**Cause.** The account's encrypted copy is larger than the storage limit for
+one stored backup, 2048 MB unless you changed it. This is a storage limit, not
+a memory problem.
+
+**Fix.** Set `BACKUP_MAX_STORED_MB` in `.env` to a larger number of megabytes
+and run `docker compose up -d`. Make sure the database volume has room for two
+copies of that size, since the old copy stays until the new one is complete.
+The previous copy is still there in the meantime. See
+[Backups kept in the database](/guides/backups/#backups-kept-in-the-database).
+
+## The reading count drops a day after an Apple Health import
+
+**Symptom.** An import reports millions of readings, and a day later the
+account, the admin status page or a fresh export shows far fewer.
+
+**Cause.** Expected. The nightly clean-up folds heart-rate, HRV and
+blood-oxygen samples older than 90 days into hourly means, and other
+high-frequency types into daily values.
+
+**Fix.** Nothing. See
+[why the reading count drops](/guides/import-apple-health/#why-the-reading-count-drops-after-an-import).
 
 ## Where to look when something else breaks
 

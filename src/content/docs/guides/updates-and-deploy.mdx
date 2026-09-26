@@ -134,6 +134,19 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Migration 0352 in v1.39.2
+
+`0352_data_backup_chunks` adds the `data_backup_chunks` table and makes
+`data_backups.data` optional, because from v1.39.2 a stored backup is kept as
+pieces in the new table (see
+[Backups kept in the database](/guides/backups/#backups-kept-in-the-database)).
+Existing copies are not touched. Going back to the v1.39.1 image is not
+supported: that version reads only the single value, so it finds a copy stored
+in pieces empty, and if it writes a weekly copy into such a row, the row holds
+both forms. v1.39.2 then refuses to read that row ("This backup holds both a
+single stored value and pieces"), and the next weekly backup replaces it. Take
+a database dump before deploying; if you must go back, restore that dump.
+
 ## Rolling back
 
 Rolling back **migrations** is generally one-way (Prisma's `down` step is not

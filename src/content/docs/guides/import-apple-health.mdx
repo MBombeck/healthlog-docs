@@ -97,6 +97,34 @@ Two axes keep re-imports clean:
 The job result reports `recordsInserted` and `recordsUpdated` separately, so a
 monthly re-import shows fresh data merged without duplicates.
 
+### Why the reading count drops after an import
+
+Right after a large import the account can show far more readings than it
+will a few days later. That is the nightly clean-up (03:45 Europe/Berlin,
+with a catch-up pass after the app starts), which folds high-frequency Apple
+Health samples into fewer rows:
+
+| Types | What is kept |
+| --- | --- |
+| Heart rate, heart-rate variability, blood oxygen | Every sample from the last 90 days. Older samples become one mean per hour of your local day. |
+| Respiratory rate, walking speed, step length, walking asymmetry, double support, walking steadiness, walking heart-rate average, stair speeds, environmental and headphone audio exposure | One mean per day, once a day is more than 36 hours old. |
+| Steps, active energy, distance, flights climbed, time in daylight, falls | One total per day, once a day is more than 36 hours old. |
+
+An import of several years therefore loses most of its row count on the first
+night: every heart-rate, HRV and blood-oxygen sample older than 90 days
+collapses into at most 24 rows a day. What goes is the sample-level detail of
+older days: long-range charts read daily values, and the
+[intraday pulse view](/insights/intraday-pulse/) shows older days at hourly
+resolution. The clean-up only touches readings that came from Apple Health
+(import or the iOS app); manual entries and other sources are left as they are.
+
+The replaced heart-rate, HRV, blood-oxygen and daily-mean samples stay in the
+database marked as deleted for 75 days, so paired devices learn about the
+change, and are removed after that. The database volume therefore shrinks
+later than the reading count does. The weekly and off-host backups include
+those marked rows until they are removed, so backups shrink on the same
+schedule.
+
 ## Source-priority interaction
 
 Apple Health outranks Withings for **cumulative** metrics (steps, energy,

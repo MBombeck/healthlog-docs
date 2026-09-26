@@ -102,6 +102,18 @@ If a stored backup was written under a key you have since removed from
 `422` and `meta.errorCode: backup.payload.undecryptable`. Keep the retired entry
 in the map until the rotation script reports zero rows on it.
 
+Stored backups rotate like every other column. A copy stored in pieces
+(v1.39.2 on) is re-sealed piece by piece in small batches without reading the
+backup inside. A copy still in the older single-value form, uploaded copies
+included, is converted into pieces under the new key, one copy at a time and a
+few megabytes at a time, and keeps its date. Each conversion is one
+transaction, so a copy that fails its check is left exactly as it was and
+counted as an error.
+
+Up to v1.39.1 the script counted every stored backup written by v1.38.6 to
+v1.39.1 as an error and never reported clean. After updating to v1.39.2, run
+the rotation again before retiring the old key.
+
 ## Troubleshooting
 
 - `Encryption key id 'v1' is not configured` — the DB still has `v1.`-prefixed
