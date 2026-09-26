@@ -105,9 +105,10 @@ Two optional parameters:
   your AI provider as they arrive. See [AI reading](#ai-reading-of-imported-documents).
 
 Tagging a document again or editing it in Paperless fires the workflow again.
-That is harmless: HealthLog recognises the Paperless document id and answers
-that it already has it, and a document you deleted in HealthLog is not brought
-back.
+HealthLog recognises the Paperless document id and answers that it already has
+it, so no second copy is made, and a document you deleted in HealthLog is not
+brought back. Each re-send still carries the whole file, so it counts towards
+the token's [hourly upload limit](#limits-and-storage).
 
 :::caution[Not for the archive]
 Paperless gives up on a webhook after three retries a few seconds apart, and
@@ -273,7 +274,9 @@ picks up where it stopped.
 - **A file you had already uploaded by hand** is recognised by its content:
   the import answers "already there", stores no second copy and remembers the
   source id for that document from then on. Because the file has to be sent
-  for the content to be compared, this first match counts as one upload.
+  for the content to be compared, this first match counts as one upload. One
+  document can collect up to 20 such extra ids; the file under a 21st id is
+  refused and listed as skipped (`409`, see [Troubleshooting](#troubleshooting)).
 - **Deleted documents stay deleted.** If you delete an imported document in
   HealthLog, neither the script nor the Paperless workflow brings it back,
   also after the 30-day undo window when HealthLog removes it for good. The
@@ -316,15 +319,20 @@ the `aiRead` parameter.
 
 ## Limits and storage
 
-- **Uploads per hour.** A document token may store 120 documents an hour by
-  default, so an archive of a thousand documents takes a night. The limit is
-  per token, and uploads you make yourself in the web app or on your phone are
-  counted separately and are not held up. The operator can change it with
+- **Uploads per hour.** A document token may send 120 uploads an hour by
+  default, so an archive of a thousand documents takes a night. Every upload
+  that sends a file counts, including one HealthLog answers as already stored
+  (a Paperless re-send, for instance). The limit is per token, and uploads you
+  make yourself in the web app or on your phone are counted separately and are
+  not held up. The operator can change it with
   [`DOCUMENT_UPLOAD_LIMIT_PER_HOUR`](/reference/environment-variables/#documents-optional).
-- **Lookups.** Recognising documents HealthLog already has by their source id
-  is limited to 5,000 an hour per token, which covers a re-run over a few
-  thousand documents. Past that, the script sends the document as an upload
-  instead, and HealthLog still recognises it.
+- **Lookups.** The script asks before each download whether HealthLog already
+  has the document, and a document it recognises this way sends no file and
+  does not count as an upload. These questions are limited to 5,000 an hour
+  per token, which covers a re-run over a few thousand documents; the check
+  HealthLog makes on the key sent with an upload draws on the same allowance.
+  When it is spent, the script waits until it frees up, as it does for the
+  upload limit.
 - **Waiting.** When an upload is answered with `429`, the script waits for as
   long as the `Retry-After` header says (at most an hour per wait) and carries
   on, as often as it takes. A server error or a dropped connection is retried
@@ -392,7 +400,7 @@ but does not look up or download anything older.
 | `HealthLog refused the request (403). Use a document token …`                           | The token is not a document token (a measurement token, for instance), or HealthLog is older than v1.39.2. Create a document token.                                                     |
 | `HealthLog refused the token (401).`                                                    | The token is mistyped, revoked or expired. Create a new one.                                                                                                                            |
 | `Your HealthLog storage is full.`                                                       | HealthLog answered `413`: the storage limit is reached. Delete documents (the space returns after the 30-day undo window) or have an admin raise the limit, then run again.              |
-| `… HealthLog asked to slow down, waiting … s`                                           | Not an error: the hourly upload limit is reached (`429`). Let it run; the operator can raise `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`.                                                           |
+| `… HealthLog asked to slow down, waiting … s`                                           | Not an error: the hourly upload limit or the lookup allowance is reached (`429`). Let it run; the operator can raise `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`.                                                           |
 | `The HealthLog address redirects to …`                                                  | Use the address it names with `--healthlog-url`, usually the `https://` one.                                                                                                             |
 | `Paperless-ngx has no tag named "…"` / `Papra has no tag named "…"`                     | Check the spelling. For Papra, the API key also needs `tags:read`.                                                                                                                      |
 | `Paperless-ngx refused the token (403)` / `Papra refused the token (401)`               | The source token is wrong or lacks permission. For Papra, the key needs `documents:read`.                                                                                               |
@@ -400,6 +408,7 @@ but does not look up or download anything older.
 | `… could not connect (…)`                                                               | The address is unreachable from where the script runs; it tried three times first.                                                                                                     |
 | `skipped … larger than HealthLog accepts (25.0 MB)`                                     | The file is over the per-file limit. An admin can raise it up to 100 MB; run again afterwards.                                                                                          |
 | `skipped … HealthLog does not accept this file type`                                    | The vault refuses the format. Convert it to PDF in the source, or leave it there.                                                                                                       |
+| `skipped … HealthLog answered 409: This file is already stored under too many source ids.` | The same file already carries 20 extra source ids in HealthLog. Nothing was stored. Usually the source holds the same file many times; clean it up there. |
 | `skipped … HealthLog answered 500`                                                      | A server error that persisted through three retries. Run again later; the document is picked up then.                                                                                  |
 | `HEALTHLOG_TOKEN is not set.` and similar                                               | Exit code `2`: export the variable, or pass the missing option.                                                                                                                         |
 
@@ -416,8 +425,10 @@ Anything that can send a multipart form can use a document token. The upload
 is `POST /api/documents/inbound` with the file in a field named `file` and
 optional `title`, `kind`, `documentDate` (`YYYY-MM-DD`) and `aiRead=defer`.
 The source key, `sourceSystem` plus `sourceId`, can travel as form fields or in
-the query string. In the query string HealthLog answers a known key before the
-file is read at all.
+the query string, or both, as the script sends it; if both are sent they must
+agree. In the query string HealthLog answers a known key before the file is
+read and without using an upload slot; that check draws on the lookup
+allowance.
 
 - `sourceSystem` is one of `PAPERLESS`, `PAPRA` or `OTHER`. Use `OTHER` for
   anything else. `OTHER` is one shared set of ids per account: if you push from
@@ -430,7 +441,11 @@ file is read at all.
 - A token upload answers with a receipt, not the stored document: `201` with
   `{ "id", "duplicate": false }` for a new document, `200` with
   `"duplicate": true` for one already there, and `200` with `"deleted": true`
-  added for one you deleted.
+  added for one you deleted. `409` with `documents.inbound.sourceAliasLimit`
+  means the same file already carries 20 extra source ids; nothing is stored.
+- Every upload whose file is read counts towards the hourly upload limit,
+  duplicates included. Only a known key in the query string, or a separate
+  lookup, avoids that.
 
 The endpoints are listed in the [API reference](/reference/api-endpoints/#documents),
 and the full request and response shapes are in
