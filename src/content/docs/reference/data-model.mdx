@@ -65,8 +65,10 @@ predictions). Cycle data carries its own threat model in the main repo.
 ## Encrypted columns
 
 Sensitive at-rest data is AES-256-GCM-encrypted under the versioned key map:
-credentials, free text, documents, questionnaire answers, AI-written text and
-the Coach conversation. Most encrypted columns use a `*Encrypted` suffix, but
+credentials, free text, documents, questionnaire answers, AI-written text, the
+Coach conversation and its result tables (`CoachMessage.resultsEncrypted`),
+workout GPS tracks (`WorkoutRoute.geometryEncrypted`) and practitioner contact
+details (`Practitioner.phoneEncrypted`, `Practitioner.locationEncrypted`). Most encrypted columns use a `*Encrypted` suffix, but
 the suffix is a convention, not the rule: `CoachMessage.encryptedContent` is a
 `Bytes` column, `IntegrationStatus.lastError` is encrypted because upstream
 errors can echo secrets, and `DataBackup.data` and

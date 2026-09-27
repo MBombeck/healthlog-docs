@@ -86,6 +86,14 @@ see [why the Coach renders plain text](/explanation/privacy-architecture/#model-
 [the proactive Coach nudge](/explanation/proactive-coach/) for how the same
 restraint shapes its outreach.
 
+The same holds for what the Coach offers around an answer. When it asks back
+because a question is ambiguous, it asks which metric or time window you mean,
+or something only you can tell it. It is instructed never to ask about doses,
+medication changes or diagnoses, and the choices it offers are limited to
+metrics your record holds and fixed time windows. Its follow-up suggestions are fixed phrasings such as
+"Compare with the period before", worded by the server, not by the model. See
+[Coach conversations](/guides/coach-conversations/#when-the-coach-asks-back).
+
 The MCP surface follows the identical rule: it ships data and context, never a
 diagnosis or treatment change, and several signals (the mental-health screeners,
 environmental context, structured records) are kept off it

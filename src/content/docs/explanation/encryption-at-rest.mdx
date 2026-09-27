@@ -8,8 +8,9 @@ sidebar:
 HealthLog stores everything in the operator's own Postgres database, and
 encrypts a defined part of it again, column by column, with **AES-256-GCM**
 under a per-deployment key kept in the environment: free text, documents,
-questionnaire answers, AI-written text, the Coach conversation and every
-credential. This page lists exactly what is and is not encrypted and explains
+questionnaire answers, AI-written text, the Coach conversation with the tables
+of values its answers read, the GPS tracks of your workouts, the phone numbers
+and addresses of your practitioners, and every credential. This page lists exactly what is and is not encrypted and explains
 the model; the operator procedure is in
 [Rotate the encryption key](/guides/encryption-key-rotation/).
 
@@ -34,10 +35,17 @@ the model; the operator procedure is in
   the rest); your own mood-tag labels and cycle symptoms.
 - **Documents.** The file itself, its thumbnail, the extracted and indexed
   text, the summary and the extracted facts.
+- **Where you go and whom you see.** The GPS track of an outdoor workout, and
+  the phone number and address of each practitioner in your list (since
+  v1.39.4). A track usually starts and ends at your front door. It is stored as
+  one encrypted value per workout, labelled for that purpose, so a value
+  encrypted for anything else does not open as a track.
 - **Questionnaire answers.** The item-by-item answers of PHQ-9, GAD-7, WHO-5 and
   the other check-ins.
 - **AI-written text and the Coach.** Coach messages, conversation titles (since
-  v1.39.3), summaries, remembered facts and plans; the daily briefing,
+  v1.39.3), the tables of values an answer read (since v1.39.4; see
+  [Coach conversations](/guides/coach-conversations/#what-the-model-sees-and-what-you-see)),
+  summaries, remembered facts and plans; the daily briefing,
   status notes, reaction lines and workout notes.
 - **ECG waveforms.**
 - **Stored backups** in the database, and cached responses kept for
@@ -48,15 +56,29 @@ constantly: measurement values; lab analyte names, values and reference
 ranges; mood scores; questionnaire totals and severity bands; medication names
 and doses; allergy substances and family-history conditions; illness labels;
 document titles and file names; vaccine names and lot numbers; practitioner
-names and contact details; custom-metric names, units and descriptions;
-workout routes; reminder labels; usernames, display names and email
-addresses. These live on a database you control, so protect the database
+names, specialties and practice names, which the picker searches and sorts on;
+custom-metric names, units and descriptions; the times, speeds and heart rate
+recorded along a workout route, which say nothing about where it went without
+the track; a short description of each Coach table (which source, window and
+grain, and how many rows); reminder labels; the weather module's home and
+travel locations, stored rounded to about 11 km; usernames, display names and
+email addresses. These live on a database you control, so protect the database
 volume and its backups like the host itself.
 
 Two columns moved in v1.39.3: the Coach conversation title and the note on a
-custom-metric reading. The upgrade encrypts existing rows in a background job
-after boot; until it has reached a row, that row is still readable in the old
-column.
+custom-metric reading. Three moved in v1.39.4: the workout GPS track and a
+practitioner's phone number and address. Each upgrade encrypts the existing
+rows in a background job a few minutes after boot, one row at a time, and the
+same job looks again every night at 04:07 Europe/Berlin for rows an older server wrote during
+the upgrade. Until it has reached a row, that row is still readable in the old
+column, and the app reads it from there. The old columns are dropped in a later
+release.
+
+v1.39.4 also removes two readable copies of practitioner contact details: an
+appointment reminder no longer copies the practice address onto itself (it
+looks the address up when it fires), and editing a phone number or address
+now writes only the changed field's name to the audit log, not the old
+value. The background job clears both kinds of copy from existing rows.
 
 ## AES-256-GCM and why GCM
 

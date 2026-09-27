@@ -81,7 +81,7 @@ GET /api/sync/state     — handshake: "should I sync?" + the sync window / rete
 GET /api/sync/changes   — paginated measurement deltas since the last cursor
 ```
 
-`GET /api/sync/changes` pages over an **opaque keyset cursor** — echo it back, never parse it. Each page carries `upserts` (live rows) and `tombstones` (soft-deleted rows, keyed on `externalId`). **Apply tombstones before upserts within a page.** A `cursorExpired: true` response means the cursor has aged out past the retention window — re-initialise with a clean backfill. Default page size is 200, hard cap 500. The delta feed is a catch-up mechanism, never a replacement for the first-pair backfill.
+`GET /api/sync/changes` pages over an **opaque keyset cursor** — echo it back, never parse it. Each page carries `upserts` (live rows) and `tombstones` (soft-deleted rows, keyed on `externalId`). **Apply tombstones before upserts within a page.** A `cursorExpired: true` response means the cursor has aged out past the retention window, or (since v1.39.4) that the account was restored from a backup or wiped after the cursor was issued. Either way, re-initialise with a clean backfill. Default page size is 200, hard cap 500. The delta feed is a catch-up mechanism, never a replacement for the first-pair backfill.
 
 ```bash
 curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limit=200" \

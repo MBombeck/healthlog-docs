@@ -75,8 +75,8 @@ not move the phone's sync checkpoint. See
 
 | Method | Endpoint | Notes |
 | --- | --- | --- |
-| `GET` / `POST` | `/api/medications` | List / create. Since v1.39.1 a medication carries `trackIntake`; see [Keep a medication as a record](/guides/track-medications/#keep-a-medication-as-a-record) |
-| `GET` / `PUT` / `DELETE` | `/api/medications/{id}` | Read / update / delete |
+| `GET` / `POST` | `/api/medications` | List / create. Since v1.39.1 a medication carries `trackIntake`; see [Keep a medication as a record](/guides/track-medications/#keep-a-medication-as-a-record). Since v1.39.4 each medication read also carries `courseStatus` and `intakeActionable`; see [When Taken and Skip appear](/guides/track-medications/#when-taken-and-skip-appear) |
+| `GET` / `PUT` / `DELETE` | `/api/medications/{id}` | Read / update / delete. The read carries `courseStatus` and `intakeActionable` too |
 | `POST` | `/api/medications/{id}/intake` | Log a take / skip |
 | `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate. `applicable: false` with `notApplicableReason: "INTAKE_NOT_TRACKED"` for a medication kept as a record |
 | `GET` | `/api/medications/{id}/cadence` | Read the cadence; schedule edits go through `PUT /api/medications/{id}` |
@@ -108,9 +108,33 @@ SSE coach stream, and the self-context surface.
 | `GET` | `/api/insights/correlations` · `/derived` | Correlations, derived metrics (with `/batch`) |
 | `GET` | `/api/dashboard/snapshot` | Single-cell above-the-fold hydration |
 | `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback |
+| `GET` | `/api/insights/chat/{id}/messages/{messageId}/results` | Since v1.39.4: the tables of values one Coach answer read, decrypted for their owner. A data read, served while the Coach is unavailable |
 | `GET` / `PUT` | `/api/coach/about-me` | Encrypted self-context + follow-up questions |
 | `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences |
 | `GET` / `PATCH` | `/api/auth/me/disable-coach` | Coach kill switch |
+
+### Coach tables, suggestions and questions (since v1.39.4)
+
+The Coach stream adds four frames: `step` (a source the Coach is reading, with
+its window and a count, never a value), `result` (a table of the values it
+read, sent only to the owner), `followUps` (up to three suggestions under the
+latest answer) and `clarification` (the choices for a clarifying question).
+None carries a top-level key an older client decodes, so an older client
+drops them whole. A request taps a suggestion with
+`followUp: { messageId, id }` and answers a question with
+`clarification: { messageId, choiceId? }`; the server reads what the
+suggestion or choice means from the stored message, never from the request.
+
+A stored message carries the descriptions of its tables on `metricSource`
+(`results`, plus `steps`, `method`, `followUps` and `clarification`), never
+their values. The values come from the results route above, in the order of
+`metricSource.results`: each entry is the table, or `{ ref, withheld }` with
+`module_disabled` when the table's module is now off for the record (the table
+is not decrypted) or `unavailable` when the stored tables cannot be read. A
+conversation the caller does not own answers `404`. A suggestion answered from
+a stored table is persisted with `providerType: "reuse"` and uses no model.
+Frame order, shapes and limits are in the OpenAPI document; the behaviour is
+described in [Coach conversations](/guides/coach-conversations/).
 
 ### AI availability (since v1.39.0)
 
@@ -568,7 +592,10 @@ revocation.
 
 `GET /api/sync/state` and `GET /api/sync/changes` provide a paginated,
 opaque-cursor delta feed with measurement tombstones so native and offline
-clients reconcile incrementally.
+clients reconcile incrementally. Since v1.39.4 `/api/sync/changes` also answers
+`cursorExpired: true` to a cursor issued before the account was restored from
+a backup or had all its data deleted; see
+[Sync](/reference/sync/#cursorexpired--clean-re-init).
 
 ## Admin (cookie-only)
 

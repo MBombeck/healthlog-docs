@@ -101,8 +101,10 @@ one to a nearer day brings it back.
 
 `/checkups/practitioners` is your own list of doctors and practices. Each has
 a name (a person or a practice, whichever you think of first), a free-text
-specialty, practice, address, phone, and an encrypted note (parking, which
-entrance, who to ask for). The list is scoped to your account so one
+specialty and practice, and an address, a phone number and a note (parking,
+which entrance, who to ask for). The address, phone number and note are stored
+encrypted (the address and phone number since v1.39.4); the name, specialty
+and practice are not, so the picker can search and sort on them. The list is scoped to your account so one
 household member's cardiologist never appears in another's picker. It is
 deliberately not in Settings: a list of your doctors is record content, not
 configuration.

@@ -49,7 +49,11 @@ key. No model call is made without one. The choice determines what leaves:
 - **OpenAI / Anthropic** see the prompt plus a structured snapshot HealthLog
   assembles per generation (recent metrics, target ranges, coach history). No raw
   row export leaves, but the values are visible to the provider for the request's
-  duration, under their retention policy.
+  duration, under their retention policy. When the Coach reads a table of days,
+  weeks or months, the provider gets a summary of it (counts, average, lowest
+  and highest value, at most 60 values), while you see every row; tables from
+  earlier answers are described to it without their values. See
+  [Coach conversations](/guides/coach-conversations/#what-the-model-sees-and-what-you-see).
 - **Local endpoint** (Ollama / LM Studio / vLLM) keeps AI requests on your
   network. With Ollama on the same host, AI requests never leave the host. An
   endpoint on a private address works only when the operator lists its origin in
@@ -120,7 +124,12 @@ The operator decides which archives can be contacted at all with
 
 The [environmental module](/explanation/environmental-module/) fetches weather
 from Open-Meteo once you set a home location, sending coordinates rounded to
-about a kilometre. Without a home location it makes no request. The operator
+one decimal of a degree, about 11 km, the size of a town or a city district.
+The same rounded values are all that is stored, for home, travel periods and
+each day's weather. Before v1.39.4 they were rounded to about a kilometre,
+which is closer to a street; the upgrade rounds what is already stored. The
+weather data comes in cells of 9 to 25 km, so the coarser value changes the
+weather very little. Without a home location it makes no request. The operator
 can point it at a self-hosted Open-Meteo with `OPENMETEO_BASE_URL` and
 `OPENMETEO_GEOCODING_URL`.
 
@@ -169,7 +178,9 @@ The database is on hardware the operator controls, and the software encrypts a
 defined part of it again with AES-256-GCM under a key kept in the environment:
 free text you write (notes, reasons, descriptions), documents with their
 extracted text and summaries, questionnaire answers, AI-written text, Coach
-conversations and their titles, and every token, key and credential. Values
+conversations with their titles and the tables of values their answers read,
+the GPS tracks of your workouts, your practitioners' phone numbers and
+addresses, and every token, key and credential. Values
 you chart and query, such as measurement values, lab values, medication names
 and mood scores, are stored unencrypted, so the database volume and its backups
 need the same protection as the host. The full list is on

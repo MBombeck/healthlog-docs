@@ -194,6 +194,19 @@ was offline no longer than its refresh window is always inside the safe range â€
 expiry only fires when a device has been away long enough that re-pairing is
 expected anyway.
 
+Since v1.39.4 a second case expires a cursor: the account's record was replaced
+wholesale after the cursor was issued, by a backup restore, by the person's
+**Delete all data**, or by the admin's global wipe. A restore writes rows back
+with their original `updatedAt`, behind the cursor's watermarks, and removes
+rows without leaving tombstones, so an incremental catch-up would miss both.
+The server records when that happened (`users.sync_reset_at`), and a cursor
+issued before it answers `cursorExpired: true` like an aged-out one. The
+comparison uses the time the cursor was issued, which new cursors carry inside
+the opaque token, not its watermarks. A cursor from before v1.39.4 carries no
+issue time and counts as issued before any reset, so on an account that was
+restored or wiped since, it expires once. The client handles both cases the
+same way: drop the cursor and the local copy, and backfill.
+
 ## Tombstones
 
 The user-facing delete routes on every served domain **soft-delete**: they set

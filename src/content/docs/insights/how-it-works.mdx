@@ -19,6 +19,11 @@ The diagram above is the bird's-eye view of the flow: your question (or a schedu
 
 The `/insights` page is mostly **computed, not generated**. It renders a hero strip (greeting plus health score), the daily briefing, a trends row, per-metric status notes, the derived readiness and recovery scores, correlations, rhythm events, the [ECG section](/insights/ecg-recordings/), and the Coach. The pieces a language model writes are the **daily briefing**, the **comprehensive insight**, the short **status note** on each metric, and the Coach. Everything else is server-side arithmetic over your own readings, and stays available with no AI provider configured at all.
 
+What a Coach answer shows besides its text (the sources it read, tables and
+charts of your values, how a figure was worked out, follow-up suggestions and
+clarifying questions) is described in
+[Coach conversations](/guides/coach-conversations/).
+
 The generated pieces are warmed **overnight** by a budget-gated background job, so opening the page is a cache read instead of a synchronous model call. If the cache is cold (a brand-new account, or before the first nightly run), the page shows a *preparing* state rather than blocking the request.
 
 ## With AI off
