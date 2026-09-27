@@ -246,7 +246,7 @@ as one value, which takes the memory it took when it was written.
 | Writing one account's copy | 90 minutes | That account's backup fails and its previous copy stays. |
 | The weekly run for all accounts | 2 hours | The run is marked failed ("job timed out"). Copies already written stay. |
 | An upload | 512 MB as sent; the page compresses a plain `.json` in the browser first | Refused with `413`. |
-| A restore | Two minutes plus a second per 5,000 readings, which with ten minutes to spare has to fit into 90 minutes (three quarters of the job's two hours): roughly 20 million readings | Refused before anything is deleted, with "too large to restore within the background job's time limit". |
+| A restore | Two minutes, plus a second per 1,000 readings in the file and a second per 10,000 readings the account holds now; with ten minutes kept free for rebuilding the charts, this has to fit into 4.5 hours (three quarters of the job's six hours): roughly 14 million readings replacing an account of the same size | Refused before anything is deleted, with "too large to restore within the background job's time limit". See [How long a restore may take](#how-long-a-restore-may-take). |
 
 For scale: an account with 2.6 million readings stores a copy of about
 100 MB, so the default storage limit leaves a wide margin. The limit is there
@@ -307,9 +307,11 @@ shows which step it is on (checking the file, clearing the account's current
 data, writing the readings, writing the other records, rebuilding the charts)
 and how many readings it has written, then whether it finished. You can leave
 the page or reload it; the progress is still there when you come back. A large
-account takes a while: two to three minutes for 1.25 million readings. Because
-the request only starts the restore, a reverse proxy that closes requests after
-60 seconds no longer shows an error for a restore that is still running.
+account takes a while, and the database host decides how long more than the
+app does: see [How long a restore may take](#how-long-a-restore-may-take).
+Because the request only starts the restore, a reverse proxy that closes
+requests after 60 seconds no longer shows an error for a restore that is still
+running.
 
 While it runs, the account keeps showing its current data. The restore is
 written in one go, so nothing changes for the account until the data is
@@ -321,7 +323,9 @@ already in progress.
 If a restore fails, the page says why and what to do: the file is incomplete,
 the backup was replaced by a newer copy while the restore waited, the file is
 too large to restore within the background job's time limit, the worker is not
-running, and so on. The backup stays in the table, so you can start the restore
+running, and so on. When the database itself refused the restore part-way, the
+page names the cause (see [When the database refuses a
+restore](#when-the-database-refuses-a-restore)). The backup stays in the table, so you can start the restore
 again from its row without uploading the file again. A restore interrupted by a
 server restart before its data was written starts again by itself once the
 server is back; if it stops a second time, it is marked as failed, and the
@@ -378,6 +382,85 @@ explains how long to keep an old key.
 A restore also refuses a file that would attach the account's records to
 records of another account on the same server (`backup.foreign_reference`), and
 nothing is written.
+
+### How long a restore may take
+
+A restore deletes the readings the account holds now and writes the ones in the
+file, all in one database transaction. Both halves take time: the account's
+readings include the ones the nightly clean-up has folded into hourly or daily
+values, which stay as deleted rows for 75 days, and writing is the slower half
+because every reading goes into many indexes. Measured on an account of 1.89
+million readings, most of them folded samples:
+
+| Database host | Restore |
+| --- | --- |
+| A fast host | about 3 minutes |
+| Held to half a processor core and 40 MB/s of disk writes | about 15 minutes |
+
+The transaction gets its own time limit: two minutes, plus a second per 1,000
+readings in the file and a second per 10,000 readings the account holds now.
+Since v1.39.4 every step inside it may run that long. Before, each step had
+the limit every database session carries (`DATABASE_STATEMENT_TIMEOUT_MS`, 60
+seconds by default), and on slower hardware deleting
+the old readings of a large account ran past it, so the restore rolled back
+while clearing the account. The same release adds two indexes that make
+deleting readings much faster, which also speeds up the nightly clean-up and
+account deletion. The upgrade builds them at start-up; see
+[Upgrading to v1.39.4](/guides/updates-and-deploy/#upgrading-to-v1394).
+
+A restore is refused before anything is deleted when its limit, plus ten
+minutes for rebuilding the charts, would run past three quarters of the
+restore job's six hours. That admits roughly 14 million readings replacing an
+account of the same size. On a disk that manages only a few hundred writes a
+second, writing is slower than the limit assumes, and a restore of a million
+readings or more can still run out of time; the page then says so, and nothing
+is changed.
+
+Two more things keep a large restore short:
+
+- **Old deletions are not written back.** A backup keeps readings you deleted,
+  and samples the nightly clean-up folded, as deleted rows until they are 75
+  days old, so a paired app that was offline can still learn about the
+  deletion. A restore leaves out every such row older than 75 days, which the
+  next nightly clean-up would remove anyway. Younger ones are restored. The
+  file itself is unchanged, and the restore summary counts the readings it
+  wrote.
+- **The charts are rebuilt with their own allowance.** After the data is
+  written, the restore rebuilds the summaries the charts read, with up to ten
+  minutes per step. Before v1.39.4 that step had the session limit too, and on
+  a slow disk the charts stayed empty until the app was
+  next restarted.
+
+### When the database refuses a restore
+
+A restore the database refuses part-way is rolled back whole, so the account
+stays exactly as it was. Since v1.39.4 the page says why instead of a general
+"the database refused the restore":
+
+| The page says | What to do |
+| --- | --- |
+| The restore ran longer than the database allowed | If the database host was busy, start the restore again when it is quieter. The server log names the step |
+| The restore waited on records another process was changing | Start the restore again |
+| The database rejected a record in the backup | The server log names the table and the rule |
+| The database ran out of disk space or memory | Free up space on the database host, then start the restore again |
+| The connection to the database was lost | Check that the database is running, then start the restore again |
+
+Anything else keeps the general message. The full error is in the server log
+and in the audit log, which also records the cause and the database's error
+code. The job's own record, which the page reads, carries only the cause,
+because the database's message can quote the rows involved.
+
+### Paired apps after a restore
+
+An app that keeps its own copy of your data and catches up through the change
+feed (`/api/sync/changes`) holds a position in that feed. After a restore, that
+position no longer fits: the restored readings keep their original dates, so
+they sit behind it, and the readings the restore removed leave nothing for the
+app to notice. Since v1.39.4 the server records when an account was restored,
+and it does the same for **Delete all data** and for the admin's global wipe.
+An app asking with a position from before that moment is told to start over
+(`cursorExpired`) and loads the account afresh. See
+[Sync](/reference/sync/#cursorexpired--clean-re-init).
 
 ## Large accounts and memory
 

@@ -260,6 +260,28 @@ copies of that size, since the old copy stays until the new one is complete.
 The previous copy is still there in the meantime. See
 [Backups kept in the database](/guides/backups/#backups-kept-in-the-database).
 
+## A restore fails and everything was rolled back
+
+**Symptom.** A restore on the admin backups page ends as failed, and the page
+says the restore ran longer than the database allowed, waited on records
+another process was changing, hit a record the database rejected, ran out of
+disk space or memory, or lost its connection to the database. Before v1.39.4
+all of these read "The database refused the restore part-way".
+
+**Cause.** The database refused the restore transaction, so nothing was
+changed. On a large account on slower hardware the usual cause was time: up to
+v1.39.3 every step of the restore had the limit every database session
+carries (`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default), and deleting the account's old readings could take longer.
+
+**Fix.** Update to v1.39.4 or later, which gives the restore its own time
+limit and makes deleting readings much faster. Then act on the cause the page
+names: start again when the database host is quieter, free up disk space on
+it, or check that the database is running. For a rejected record, the server
+log names the table and the rule. The audit log records the cause and the
+database's error code. See
+[When the database refuses a restore](/guides/backups/#when-the-database-refuses-a-restore)
+and [How long a restore may take](/guides/backups/#how-long-a-restore-may-take).
+
 ## The reading count drops a day after an Apple Health import
 
 **Symptom.** An import reports millions of readings, and a day later the
