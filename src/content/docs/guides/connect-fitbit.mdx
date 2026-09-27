@@ -80,6 +80,11 @@ account's display locale. Classic Fitbit refresh tokens rotate (one-time
 use); HealthLog replaces the stored token on every refresh, so the connection
 stays healthy without re-authorising.
 
+Daily totals are stored at noon of their day in your own time zone, so they
+land on the right day wherever you live (since v1.39.3; see
+[the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
+Weigh-ins are read in your time zone as well.
+
 ## Redirect URI override
 
 Only when the callback origin differs from `NEXT_PUBLIC_APP_URL`:

@@ -120,7 +120,12 @@ dashboard, and the readiness, recovery and sleep score rings. See
 
 Connection cards for Withings, WHOOP, Fitbit, Google Health, Apple Health,
 Polar, Oura, Strava and Nightscout, the nutrients intake card (only with the
-nutrients module on), and the delivery channels group (Telegram, ntfy, Web
+nutrients module on), the **Document archives** card for Paperless-ngx and
+Papra (when the administrator set `DOCUMENT_SOURCE_ORIGINS` and the Documents
+module is on, or with only **Disconnect** while a saved connection can no
+longer be used; see
+[Import documents](/guides/import-documents/#pick-documents-inside-healthlog)),
+and the delivery channels group (Telegram, ntfy, Web
 Push, webhook, email) at the `#channels` anchor. Each OAuth provider needs
 its client id, secret and redirect URI in the environment before the card can
 connect; each channel needs the matching admin toggle under Services, and Web
@@ -147,7 +152,10 @@ is explained in [Record sharing](/explanation/record-sharing/).
 CSV exports for measurements, medications and mood; the full backup either
 as a passphrase-encrypted `.hlx` file or as plain JSON; and the import cards
 for Apple Health, CSV, JSON and dose history. The encrypted export is a
-step-up action for accounts with a second factor. See
+step-up action for accounts with a second factor, and since v1.39.3 both forms
+of the full backup ask you to confirm it is you unless you signed in within the
+last five minutes (see
+[Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you)). See
 [Backups](/guides/backups/), [Import Apple Health](/guides/import-apple-health/)
 and [Import a CSV](/guides/import-csv/).
 

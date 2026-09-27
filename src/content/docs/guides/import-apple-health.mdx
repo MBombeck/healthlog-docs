@@ -97,6 +97,13 @@ Two axes keep re-imports clean:
 The job result reports `recordsInserted` and `recordsUpdated` separately, so a
 monthly re-import shows fresh data merged without duplicates.
 
+A day on which your phone or watch installed an update counts in full since
+v1.39.3. Before, the import could treat the device before and after the update
+as two sources and count only the larger part of that day's steps. Uploading
+the same `export.zip` again does not correct it, because the file-level check
+returns the earlier job; export again from the iPhone and import the new
+archive.
+
 ### Why the reading count drops after an import
 
 Right after a large import the account can show far more readings than it

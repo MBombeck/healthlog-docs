@@ -36,6 +36,14 @@ the previous UTC day. The import worker defaults to `Europe/Berlin` when no
 preference is set. Get this wrong and a midnight workout lands on the wrong day's
 total.
 
+Daily totals synced from Withings, Fitbit, Google Health, Polar and Oura (steps,
+distance, energy, overnight oxygen, resting pulse and similar) are stored at
+noon of their day in your own time zone, so they appear on the day they belong
+to wherever you live. Before v1.39.3 they were stored at noon UTC, which from
+UTC+12 on (New Zealand, Fiji, Tonga, Samoa) is already the next day. The next
+sync moves the days inside each integration's re-read window; reconnecting
+Fitbit or Google Health rereads the whole history.
+
 ### Chart ranges
 
 Every chart range up to a year cuts days at midnight in the timezone of your

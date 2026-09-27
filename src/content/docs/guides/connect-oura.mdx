@@ -23,7 +23,7 @@ The Oura client (`src/lib/oura/client.ts`) reads from the Oura v2 user collectio
 - **Daily resilience** — the resilience level, encoded on a 1 to 5 scale.
 - **Cycle phases** — a best-effort import of `daily_cycle_phases` for Cycle Insights, where the ring provides it.
 
-Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's.
+Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's. Daily totals are stored at noon of their day in your own time zone, so they land on the right day wherever you live (since v1.39.3; see [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
 
 ## OAuth scopes
 

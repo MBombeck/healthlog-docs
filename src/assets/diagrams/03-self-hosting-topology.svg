@@ -73,7 +73,7 @@
     <rect x="740" y="420" width="220" height="80" rx="10" fill="#44475a" stroke="#ffb86c" stroke-width="1.5" />
     <text x="850" y="446" text-anchor="middle" fill="#f8f8f2" font-size="14" font-weight="600">S3-compatible backup</text>
     <text x="850" y="466" text-anchor="middle" fill="#bd93f9" font-size="11">R2 · B2 · MinIO · AWS</text>
-    <text x="850" y="482" text-anchor="middle" fill="#6272a4" font-size="11">AES-GCM weekly off-host</text>
+    <text x="850" y="482" text-anchor="middle" fill="#6272a4" font-size="11">AES-GCM nightly off-host</text>
   </g>
 
   <!-- Test result probe (right side) -->

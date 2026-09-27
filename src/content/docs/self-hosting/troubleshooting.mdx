@@ -62,8 +62,10 @@ under it still existed. HealthLog fails closed on an unknown key id — it will
 never silently return plaintext or garbage.
 
 **Fix.** Restore the legacy key entry to the map (its id is embedded in each
-encrypted value), then run the rotation script until it reports **zero
-remaining rows** on the old key. Only then remove the entry. The full playbook
+encrypted value), then rotate again (**Admin → Encryption → Rotate now**, or
+the rotation script) until it reports **zero remaining rows** on the old key
+and **Keys the backups still need** no longer lists it. Only then remove the
+entry. The full playbook
 is in [encryption key rotation](/guides/encryption-key-rotation/).
 
 ## iOS push notifications never arrive
@@ -104,6 +106,14 @@ Both values are the ones the server registers with the provider, resolved from
 time. In v1.38.0 the check read the app address from the browser bundle, which
 the published image is built without, so on that version the warning never
 appeared and the guide showed only a path.
+
+Leave `WITHINGS_REDIRECT_URI`, `FITBIT_REDIRECT_URI`,
+`GOOGLE_HEALTH_REDIRECT_URI`, `POLAR_REDIRECT_URI`, `OURA_REDIRECT_URI`,
+`WHOOP_REDIRECT_URI` and `STRAVA_REDIRECT_URI` unset unless the callback lives
+on a different address than `NEXT_PUBLIC_APP_URL`. Since v1.39.3 an empty or
+blank value counts as unset for all of them. Before, an empty Withings value
+was sent to Withings as an empty callback, and an empty Fitbit or Google Health
+value stopped the connection from starting.
 
 ## The dashboard briefing / insights are empty
 

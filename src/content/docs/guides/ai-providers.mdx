@@ -85,13 +85,23 @@ stays on your network end to end.
   `http://<host>:8000/v1`.
 
 :::caution[SSRF guard for local endpoints]
-Local endpoints route through the same outbound-URL validation as every other
-fetch. The guard rejects private-IP targets by default. To allow a private
-destination, set `ALLOW_LOCAL_AI_PRIVATE_HOSTS` in the container environment —
-preferably to a comma-separated host allowlist (`ollama.lan, 10.0.0.5`), which
-permits exactly those hosts. The legacy value `true` opens **every** private
-host and remains accepted. Leave it unset on internet-facing instances unless
-you specifically run an internal endpoint.
+Any user of the instance can type a base URL, so a base URL on a private
+address is refused unless the operator has listed it. List the endpoint's exact
+origin in `AI_PRIVATE_ORIGINS` in the container environment, comma-separated:
+`AI_PRIVATE_ORIGINS="http://ollama.lan:11434"`. An origin is
+`scheme://host[:port]` and nothing else. A listed endpoint is called over a
+pinned connection that does not follow redirects, and the cloud metadata
+address, link-local addresses and the unspecified address stay unreachable even
+when listed.
+
+The older `ALLOW_LOCAL_AI_PRIVATE_HOSTS` still works as a host list
+(`ollama.lan, 10.0.0.5`), which grants those hosts on any port. Its `true` form
+is deprecated since v1.39.3 and will be removed in a later release: until then
+it covers only the server key in the admin panel and AI settings saved on an
+admin account, over the same pinned connection, and no longer any other
+account's endpoint. While `true` is set, the admin AI settings page shows the
+exact `AI_PRIVATE_ORIGINS` line for the private endpoints saved on the
+instance, or says the old variable can be removed when there are none.
 :::
 
 Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
@@ -115,8 +125,8 @@ Structured generations send `response_format: { type: "json_object" }` by
 default. Since v1.28.28 the flag falls back **per endpoint**: a gateway that
 rejects the parameter with a 400 flips that base URL to a no-flag dialect and
 the request is retried, so strict gateways work without configuration.
-Hosted gateways on public hosts need no `ALLOW_LOCAL_AI_PRIVATE_HOSTS` entry;
-a gateway on your LAN does.
+Hosted gateways on public hosts need no entry; a gateway on your LAN needs its
+origin in `AI_PRIVATE_ORIGINS`.
 
 The **admin** server-key path has a separate guard: an admin-set custom base
 URL must additionally be allowed via `ADMIN_AI_BASE_URL_ALLOWLIST` in the
@@ -293,10 +303,12 @@ you would see, but opening your record never starts AI work on it.
 
 - **"No AI provider configured."** Set up at least one BYOK provider in
   `/settings/ai`, or configure an admin-shared key in the admin panel.
-- **Local endpoint rejected as "internal/private host".** Set
-  `ALLOW_LOCAL_AI_PRIVATE_HOSTS` to the endpoint's exact hostname
-  (comma-separate several) in the container environment. Prefer the host list
-  over the legacy `true`; leave it unset on internet-facing instances.
+- **Local endpoint rejected as "internal/private host".** Add the endpoint's
+  exact origin to `AI_PRIVATE_ORIGINS` in the container environment (for
+  example `http://ollama.lan:11434`; comma-separate several) and restart. Under
+  `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` an admin account's endpoint still works
+  but no other account's does; the admin AI settings page lists the origins to
+  add.
 - **ChatGPT OAuth disconnects after a few weeks of inactivity.** ChatGPT
   refresh tokens lapse after extended idle periods. Reconnect via **Connect
   ChatGPT** — the device-code flow re-runs and the new tokens land in the same

@@ -1,6 +1,6 @@
 ---
 title: Backups and restore
-description: Enable encrypted daily off-host backups to any S3-compatible bucket, and restore a user dump when you need it.
+description: Enable encrypted nightly off-host backups to any S3-compatible bucket, and restore a user dump when you need it.
 sidebar:
   order: 9
 ---
@@ -27,29 +27,41 @@ The backup runs at **02:30 Europe/Berlin** daily from the worker container
 | `BACKUP_S3_SECRET_KEY` | yes | |
 | `BACKUP_S3_REGION` | no | defaults to `auto` (Cloudflare R2) |
 | `BACKUP_RETENTION_DAYS` | no | Not read by the app. The number you set your bucket's lifecycle rule to. |
+| `BACKUP_ENCRYPTION_PREVIOUS_KEYS` | no | Retired off-host keys, comma-separated. Read only, never written with. See [Rotating the off-host key](#rotating-the-off-host-key). |
 
 These are **all-or-none**: setting some but not all disables backups silently.
 The set is on the compose `environment:` whitelist. If you run a
 [web/worker split](/guides/updates-and-deploy/), the backup job runs in the
 worker, but the admin smoke test runs in the web container — set `BACKUP_*` on
-**both**.
+**both**. The web container needs them for deletion too: an account deleted
+there records its off-host copies for deletion only when it sees the backup
+configured.
 
 ## Wire format
 
 ```
 magic   = "HLBK"           (4 bytes, ASCII)
-version = 0x03             (1 byte)
+version = 0x04             (1 byte)
+keyIdLen, keyId            (1 byte + 12 ASCII hex: the first 12 hex digits of
+                            SHA-256 over the 32-byte key)
 iv      = 12 random bytes  (AES-GCM nonce)
-ciphertext = N bytes       (AES-256-GCM over gzip(JSON dump), key = BACKUP_ENCRYPTION_KEY)
+ciphertext = N bytes       (AES-256-GCM over gzip(JSON dump), key = BACKUP_ENCRYPTION_KEY,
+                            associated data = "healthlog/offhost-backup/v4|<object key>")
 authTag = 16 bytes         (AES-GCM tag, trailing)
 ```
 
-The trailing tag is what lets the object be written as a stream: GCM only
-produces the tag once the last block is in, so a leading tag means the whole
-object has to exist before its first byte can be sent. Versions `0x01` (JSON
-encrypted directly) and `0x02` (gzipped first, tag in front) are still read, so
-older objects restore unchanged and the restore script needs no flag to tell
-them apart.
+Version `0x04` (v1.39.3) adds a key id and binds each object to its place in
+the bucket. The key id says which off-host key opens the object, so a server
+holding a retired key as well picks the right one. The object's own key,
+`YYYY-MM-DD/user-<id>.json.enc`, is authenticated with the ciphertext: an
+object copied under another account's name or another date no longer
+decrypts. The trailing tag is what lets the object be written as a stream: GCM
+only produces the tag once the last block is in, so a leading tag means the
+whole object has to exist before its first byte can be sent. Versions `0x01`
+(JSON encrypted directly), `0x02` (gzipped first, tag in front) and `0x03`
+(gzipped, tag trailing, no key id) are still read by trying each key the
+server holds, so older objects restore unchanged and the restore script needs
+no flag to tell them apart.
 
 ## Smoke test
 
@@ -97,30 +109,56 @@ apart and for a cohort walked one account at a time. Without it a healthy host
 would paint its whole cohort **due** once a year.
 
 The verdicts come from a ledger the worker writes when the object lands
-(`offhost_backup_state`), not from a listing of the bucket, so the worker's
-grant stays PutObject, GetObject and AbortMultipartUpload and the card still
-tells the truth. The row is wiped with the account and is not part of the
+(`offhost_backup_state`), not from a listing of the bucket, so the card needs no
+bucket call to tell the truth. The row is wiped with the account and is not part of the
 backup itself: it describes this host's relationship with this bucket, and a
 restore elsewhere must not assert a copy that host never wrote.
 
+Since v1.39.3 the same card says two more things. It reads the bucket's
+lifecycle rule and tells you when there is none, which means every nightly
+copy is kept forever, or when the credential may not read it. And it shows
+deleted or wiped accounts whose copies are still in the bucket, with the
+bucket's answer when it refused to delete them.
+
+## Bucket permissions
+
+The worker needs `PutObject`, `GetObject`, `ListBucket`, `DeleteObject` and
+`AbortMultipartUpload`. On Cloudflare R2 the **Object Read & Write** token
+covers them. Add `GetLifecycleConfiguration` if you want the admin page to
+confirm your lifecycle rule. `DeleteObject` is new in v1.39.3.
+
+The app deletes objects only for these reasons:
+
+- **An account's data goes.** When an account is deleted, a managed profile is
+  deleted, or someone uses **Delete all data**, every copy of that account
+  (`YYYY-MM-DD/user-<id>.json.enc`) is deleted from the bucket right after, and
+  again at the next nightly pass (03:40) if the bucket was unreachable. A
+  nightly upload that finds the account deleted or wiped while it ran deletes
+  the copy it just wrote. If the bucket refuses the delete, the request is kept
+  and retried every night, and **Admin → Backups → Off-host copies** shows it.
+- **The connection test** deletes its own `_healthcheck/<ts>.bin`.
+
+The admin **Delete all data globally** (the Danger zone wipe) deletes nothing in
+the bucket. It is you clearing your own host, the bucket is yours, and its
+copies are how you get back from a wipe pressed by mistake. If you are handing
+the host on, empty the bucket yourself.
+
 ## Bucket lifecycle
 
-The worker never deletes a backup object — its grant is `PutObject`,
-`GetObject` and `AbortMultipartUpload` only — so the provider's lifecycle rule
-is the only thing that expires them, and nothing in the app reads
-`BACKUP_RETENTION_DAYS`. Set the rule to the number of days you want the
-history to survive, and set the variable to the same number so the two agree
-on paper. For Cloudflare R2, add it from the bucket's
-**Settings → Lifecycle**.
+The app does not expire copies by age, and nothing in it reads
+`BACKUP_RETENTION_DAYS`. Set a lifecycle rule on the bucket to the number of
+days you want the history to survive, and set the variable to the same number
+so the two agree on paper. Without a rule every nightly copy is kept forever.
+For Cloudflare R2, add it from the bucket's **Settings → Lifecycle**.
 
 ## Restore
 
 Pick a key from the bucket and run the restore script with the same backup
 credentials and **the encryption key the backup was written under**. Never
 generate a fresh `BACKUP_ENCRYPTION_KEY` for a restore — a new key cannot
-decrypt any existing object. If you rotated the backup key at some point,
-pre-rotation objects are only readable with the retired key, so keep retired
-backup keys somewhere durable for as long as their objects live.
+decrypt any existing object. If you rotated the backup key, put the old one
+into `BACKUP_ENCRYPTION_PREVIOUS_KEYS` for the restore; objects written from
+v1.39.3 name the key they need.
 
 ```bash
 BACKUP_S3_ENDPOINT=https://...r2.cloudflarestorage.com \
@@ -148,6 +186,15 @@ production image does not carry, and the image strips `tsx` as well. Run it
 from a checkout of the repository with the backup variables exported, through
 `pnpm dlx tsx` as above, not inside the container.
 :::
+
+## Rotating the off-host key
+
+Put the new key into `BACKUP_ENCRYPTION_KEY`, move the old one into
+`BACKUP_ENCRYPTION_PREVIOUS_KEYS` (comma-separated if there are several), and
+restart. New copies are written under the new key and older copies stay
+readable. Remove the old key once your lifecycle rule has retired every copy
+written under it, which is `BACKUP_RETENTION_DAYS` after the restart. Keep a
+copy of every retired key somewhere durable for as long as its objects live.
 
 ## Backups kept in the database
 
@@ -318,6 +365,20 @@ manifest names a section it does not carry, it belongs to another account) is
 reported on the page as a failed restore with the reason, and nothing is
 changed either.
 
+A copy can also open and still need a key you no longer have. Its content is
+the database's encrypted fields exactly as they were stored when the copy was
+taken, and a restore writes them back as they are. Since v1.39.3, if they were
+written under an `ENCRYPTION_KEYS` entry this server no longer has, or under an
+id whose key has changed, the preview and the upload refuse with `422` and
+`meta.errorCode: backup.key.missing` naming the key id, and a restore fails in
+the background with the same reason on the page. Nothing is changed. Put the
+key back and the copy restores. [Key rotation](/guides/encryption-key-rotation/)
+explains how long to keep an old key.
+
+A restore also refuses a file that would attach the account's records to
+records of another account on the same server (`backup.foreign_reference`), and
+nothing is written.
+
 ## Large accounts and memory
 
 An account with years of imported Apple Health data can hold millions of
@@ -386,24 +447,28 @@ without getting one.
 
 A pg-boss job (`data-restore-drill`, 04:11 on the 1st of each month) exercises
 the read path end to end: it fetches the most recent backup object, decrypts
-it under the current `BACKUP_ENCRYPTION_KEY`, JSON-parses it, and sanity-checks
+it with the off-host keys the server holds (current and previous), JSON-parses
+it, and sanity-checks
 the payload shape. It performs **no database restore** — it validates the
 artefact, not the import path. Outcomes:
 
-- **Success** — record counts, object age, and sizes land in the wide-event
+- **Success**: record counts, object age, and sizes land in the wide-event
   meta (`job.restore_drill`).
-- **Stale chain** — the newest object is older than 3 days: the nightly
+- **Stale chain**: the newest object is older than 3 days, so the nightly
   uploader has stalled, or the lifecycle rule is too aggressive. The drill
   pages via the worker error reporter.
-- **Failure** — empty bucket, fetch error, decryption failure, or malformed
+- **Failure**: empty bucket, fetch error, decryption failure, or malformed
   JSON pages the same way. A decryption failure right after a
-  `BACKUP_ENCRYPTION_KEY` change means the new key cannot read the existing
-  objects — re-encrypt, or accept that pre-rotation backups are only readable
-  with the retired key.
-- **Not configured** — deployments without the `BACKUP_S3_*` vars skip
+  `BACKUP_ENCRYPTION_KEY` change means the old key is missing from
+  `BACKUP_ENCRYPTION_PREVIOUS_KEYS`.
+- **Content under a missing key** (since v1.39.3): the object opens, but the
+  drill decrypts one encrypted value per application key it finds inside, and
+  one of them needs a key this server does not have. It pages with the key id.
+  Restoring that copy would bring back records nobody can read, so put the key
+  back first.
+- **Not configured**: deployments without the `BACKUP_S3_*` vars skip
   silently.
 
-The drill lists the bucket to find the newest object, so it needs
-`ListBucket` on top of the uploader's `PutObject`, `GetObject` and
-`AbortMultipartUpload`. Cloudflare R2's **Object Read & Write** token covers
-all four.
+The drill needs `GetObject` and `ListBucket`, both in the worker's grant above.
+Since v1.39.3 it reads the whole listing, so it finds the newest copy in a
+bucket of any size.

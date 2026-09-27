@@ -1,52 +1,63 @@
 ---
 title: Privacy architecture
-description: What leaves your HealthLog instance and when — BYOK AI, guarded egress, no telemetry, no CORS, and the same-origin-by-construction design.
+description: What the HealthLog software sends across the network and when, who switches each flow on, what is stored encrypted, and the guards on every outbound request.
 sidebar:
   order: 5
 ---
 
 import dataFlow from "../../../assets/diagrams/01-data-flow.svg";
 
-HealthLog is built so that, by default, nothing about your health leaves the
-server you run. This page is the honest accounting of every case where data
-*does* cross the boundary, and the controls that keep it minimal.
+HealthLog is software you run on your own server. There is no HealthLog
+service behind it: the software stores what you enter in your own Postgres
+database and sends nothing to its authors. This page lists every case in which
+the software does send something across the network, who switches it on (the
+person using the app or the operator running the server), and the controls that
+keep it small. It describes the software, not any particular installation;
+what a given server sends depends on how its operator configured it.
 
-## The baseline: nothing leaves
+## The baseline: health data stays
 
-Every reading walks the same path inside the instance, from the device or
-form that produced it, through an ingest endpoint and the source-priority
-resolver, into Postgres, and out to the dashboard, AI Insights, the Coach, and
-the doctor report. Nothing on that path crosses the network.
+Every reading walks the same path inside the server, from the device or form
+that produced it, through an ingest endpoint and the source-priority resolver,
+into Postgres, and out to the dashboard, AI Insights, the Coach, and the doctor
+report. Nothing on that path crosses the network.
 
 <img src={dataFlow.src} alt="Five-stage pipeline: sources (Withings, an Apple Health export, iPhone HealthKit, manual entry, OAuth wearable syncs) feed ingest endpoints, which write to the Postgres Measurement and MeasurementRollup tables, which the dashboard tiles, Insights cards, the Coach, and the doctor PDF read" />
 
-- **No telemetry.** HealthLog phones no home. There is no usage analytics beacon,
-  no crash-reporting-by-default, no "anonymous statistics."
-- **No third-party tracking.** No fonts-from-a-CDN, no tag managers, no embedded
+- **No usage telemetry.** The software has no usage analytics beacon, no crash
+  reporting by default, and no "anonymous statistics". Page analytics and error
+  reporting exist only if the operator points them at a service of their own
+  (see [below](#set-up-by-the-operator)). The three small requests the server
+  makes on its own carry no health data and each has an off-switch; see
+  [Requests the server makes on its own](#requests-the-server-makes-on-its-own).
+- **No third-party tracking.** No fonts from a CDN, no tag managers, no embedded
   trackers. The strict Content-Security-Policy (per-request nonce, surgical
   `connect-src`) makes this enforceable, not just promised.
 - **Same-origin by construction.** There are **no CORS headers** anywhere except
   the documented webhook routes, and those authenticate by header secret, not by
   cookie. Adding `Access-Control-Allow-Origin: *` would silently open every
-  authenticated endpoint to cross-origin POST — so it is never added.
+  authenticated endpoint to cross-origin POST, so it is never added.
 
 ## Where data does leave, and why
 
-### AI providers (only when you opt in)
+### AI providers (only when configured)
 
-The Coach and insights call an AI provider **only if you configure one**. No model
-call is made without a key you supply. Your choice determines what leaves:
+The Coach and insights call an AI provider **only if one is configured**, either
+by the operator (a server key in the admin panel) or by a person with their own
+key. No model call is made without one. The choice determines what leaves:
 
 - **OpenAI / Anthropic** see the prompt plus a structured snapshot HealthLog
   assembles per generation (recent metrics, target ranges, coach history). No raw
   row export leaves, but the values are visible to the provider for the request's
   duration, under their retention policy.
-- **Local endpoint** (Ollama / LM Studio / vLLM) keeps everything on your network.
-  With Ollama on the same host, nothing leaves the host at all. The provider
+- **Local endpoint** (Ollama / LM Studio / vLLM) keeps AI requests on your
+  network. With Ollama on the same host, AI requests never leave the host. An
+  endpoint on a private address works only when the operator lists its origin in
+  `AI_PRIVATE_ORIGINS` (see [Guarded egress](#guarded-egress)). The provider
   settings show which provider is configured, and each Coach message's footer
   names the model that answered it.
-- **ChatGPT OAuth** routes via OpenAI's Codex endpoint — same data caveat as
-  OpenAI, billed against your ChatGPT subscription instead of API tokens.
+- **ChatGPT OAuth** routes via OpenAI's Codex endpoint, with the same data caveat
+  as OpenAI, billed against your ChatGPT subscription instead of API tokens.
 
 This is the BYOK ("bring your own key") principle: the privacy/convenience
 trade-off is yours to make per user, and the local option removes the trade-off
@@ -75,47 +86,123 @@ only take away:
 Your data does not depend on any of this. Readings, charts, scores and
 statistics are served the same with AI on, off or never set up.
 
-The text a model writes about you is stored encrypted like the rest of your
-health data. Since v1.39.0 that includes the per-metric status notes, which were
-kept as plain text in the audit log before. Withdrawing your AI consent deletes
-the notes the app can write again (status notes, the daily briefing,
-model-written period summaries, reaction lines and workout notes); your Coach
-conversations and document summaries stay until you delete them.
+The text a model writes about you is stored encrypted. Since v1.39.0 that
+includes the per-metric status notes, which were kept as plain text in the
+audit log before. Withdrawing your AI consent deletes the notes the app can
+write again (status notes, the daily briefing, model-written period summaries,
+reaction lines and workout notes); your Coach conversations and document
+summaries stay until you delete them.
 
 ### Device integrations (only what you connect)
 
-When you link Withings, WHOOP, or Google Health, HealthLog calls those vendors'
-APIs to pull *your* data inbound. That is an inbound flow you initiated; the only
-outbound content is the OAuth handshake and sync requests scoped to your account.
+When you link Withings, WHOOP, Fitbit, Google Health, Polar, Oura, Strava or
+Nightscout, HealthLog calls that service's API to pull *your* data inbound. That
+is an inbound flow you initiated; the only outbound content is the OAuth
+handshake and sync requests scoped to your account.
 
 ### Notifications (only to channels you enable)
 
-A medication reminder leaves the instance only through the channels you turned on
-— APNs to Apple, Telegram to Telegram, ntfy to your ntfy server, Web Push to the
-browser push service. Each delivery is logged in `push_attempts` for 90 days.
+A reminder leaves the server only through the channels you turned on: APNs to
+Apple, Telegram to Telegram, ntfy to your ntfy server, Web Push to the browser
+push service, email to the operator's mail server, a webhook to the address you
+entered. Each delivery is logged in `push_attempts` for 90 days.
+
+### Document archives (only while you search or import)
+
+With the document picker (since v1.39.3), HealthLog contacts your own
+Paperless-ngx or Papra with the API token you stored for it, and only while you
+search, filter, test the connection or import. Nothing polls in the background.
+The operator decides which archives can be contacted at all with
+`DOCUMENT_SOURCE_ORIGINS`. See
+[Import documents](/guides/import-documents/#pick-documents-inside-healthlog).
+
+### Weather (only with a home location)
+
+The [environmental module](/explanation/environmental-module/) fetches weather
+from Open-Meteo once you set a home location, sending coordinates rounded to
+about a kilometre. Without a home location it makes no request. The operator
+can point it at a self-hosted Open-Meteo with `OPENMETEO_BASE_URL` and
+`OPENMETEO_GEOCODING_URL`.
+
+### Set up by the operator
+
+These exist only if the operator configures them, and each goes to a
+destination the operator chooses:
+
+- **Off-host backups.** With the five `BACKUP_*` variables set, the server
+  writes every account's data to an S3-compatible bucket every night, encrypted
+  on the server with AES-256-GCM under `BACKUP_ENCRYPTION_KEY`, a key separate
+  from the database key, before upload. The bucket and its provider are the
+  operator's choice. How long copies survive is the bucket's lifecycle rule, and
+  since v1.39.3 deleting an account, deleting a managed profile or **Delete all
+  data** also deletes that account's copies from the bucket. See
+  [Backups](/guides/backups/).
+- **Error reporting.** With GlitchTip configured under Admin, Integrations,
+  server errors are sent to that GlitchTip, with secrets and sensitive fields
+  redacted first (see [Redaction at the boundary](#redaction-at-the-boundary)).
+- **Page analytics.** With Umami configured under Admin, Integrations, page
+  views are sent to that Umami through the server. Off by default.
+- **Log shipping.** With `LOKI_ENDPOINT` set, the server's structured logs go to
+  that Loki.
+- **Email.** With the `SMTP_*` variables set, the email notification channel
+  sends through that mail server.
+
+### Requests the server makes on its own
+
+Three requests happen without anyone configuring anything. None carries health
+data, and since v1.39.3 each has an off-switch (`1`, `true`, `yes` or `on`):
+
+| Request | What is sent | Off-switch |
+| --- | --- | --- |
+| Password breach check against HaveIBeenPwned, when a password is set (registration, change, admin reset) | The first five hex characters of the password's SHA-1 (k-anonymity); the password and its full hash never leave | `PASSWORD_BREACH_CHECK_DISABLED` |
+| Update check against the GitHub releases API, for the update badge; at most once a day per browser when a signed-in user opens the About page, and when an admin opens the admin overview | Nothing about the instance beyond the request itself | `UPDATE_CHECK_DISABLED` |
+| Location lookup for the sign-in history, only for an address the local GeoLite2 databases cannot place; the default online provider is `ipwho.is` | The IP address of the person signing in | `IP_GEO_LOOKUP_DISABLED`; mounting the GeoLite2 databases keeps most addresses local |
+
+With the breach check off, a known-breached password is no longer refused. With
+the geo lookup off, an address the local databases cannot place shows no
+location. [Security and privacy](/security/overview/#what-leaves-the-instance)
+has the details, and the commands that verify the image you are running.
+
+## What is stored encrypted
+
+The database is on hardware the operator controls, and the software encrypts a
+defined part of it again with AES-256-GCM under a key kept in the environment:
+free text you write (notes, reasons, descriptions), documents with their
+extracted text and summaries, questionnaire answers, AI-written text, Coach
+conversations and their titles, and every token, key and credential. Values
+you chart and query, such as measurement values, lab values, medication names
+and mood scores, are stored unencrypted, so the database volume and its backups
+need the same protection as the host. The full list is on
+[Encryption at rest](/explanation/encryption-at-rest/#what-gets-encrypted).
 
 ## Guarded egress
 
 Every outbound `fetch` from server code goes through a single `safeFetch` wrapper
 with `redirect: "manual"` and a request timeout by default. For any
-operator- or user-supplied host (a local AI endpoint, a notification URL), it can
-pin a connect-time public-host check to defeat DNS-rebinding and
-SSRF-via-redirect. An in-repo lint rule bans raw `fetch(` in server code outside
-the wrapper, so a new egress path cannot skip the guard by accident.
+operator- or user-supplied host (a local AI endpoint, a notification URL, a
+document archive), it can pin a connect-time public-host check to defeat
+DNS-rebinding and SSRF-via-redirect. An in-repo lint rule bans raw `fetch(` in
+server code outside the wrapper, so a new egress path cannot skip the guard by
+accident.
 
 User-supplied URLs are also validated at input time against an `isPublicUrl`
 floor that rejects every private-IP notation class (octal/hex/decimal IPv4,
 IPv4-mapped IPv6, ULA, CGNAT, link-local, loopback, metadata addresses).
 
-The floor has exactly one kind of exception, and it is the operator's, not the
-user's: an exact origin listed in the server environment
-(`NIGHTSCOUT_PRIVATE_ORIGINS` for a Nightscout instance, and since v1.38.17
-`NOTIFICATION_PRIVATE_ORIGINS` for a webhook or ntfy relay on the same
-network). A listed origin is still dialled through the pinned resolver with
-redirects forbidden, link-local and the metadata range stay refused even when
-listed, and a granted send is marked in the wide event as
-`notification.egress.private_origin` with the channel and origin. Grammar and
-refusal codes are on the
+The floor has exceptions only the operator can make, never the user: an exact
+origin listed in the server environment
+(`NIGHTSCOUT_PRIVATE_ORIGINS` for a Nightscout instance,
+`NOTIFICATION_PRIVATE_ORIGINS` since v1.38.17 for a webhook or ntfy relay, and
+`AI_PRIVATE_ORIGINS` since v1.39.3 for a self-hosted AI endpoint on the same
+network; the older `ALLOW_LOCAL_AI_PRIVATE_HOSTS` host list, kept for existing
+installs, grants a host on any port). A listed origin is still dialled through the pinned resolver with
+redirects forbidden, and link-local and the metadata range stay refused even
+when listed. A granted notification send is marked in the wide event as
+`notification.egress.private_origin` with the channel and origin.
+`DOCUMENT_SOURCE_ORIGINS` (since v1.39.3) goes one step further:
+it is the whole decision for the document picker, so an archive that is not
+listed is refused even on a public address. Grammar and refusal codes are on
+the
 [environment-variables reference](/reference/environment-variables/#notification-targets-on-a-private-network-optional).
 
 ## Redaction at the boundary
@@ -174,24 +261,21 @@ holding manage grants on it. The reasoning is in
 | AI Insights | Only if a provider is set up and every switch allows it; never with a local one | Operator switches, your modules, consent |
 | Device sync | Inbound pull you initiated | OAuth, scoped to your account |
 | Notifications | Only to channels you enable | Per-channel opt-in |
-| Telemetry / analytics | No | None exists |
+| Document picker | Only to your own archive, while you search or import | `DOCUMENT_SOURCE_ORIGINS`, your stored token |
+| Weather | Rounded coordinates, once a home location is set | Home location; `OPENMETEO_BASE_URL` |
+| Off-host backups | Encrypted on the server, to the operator's bucket | The `BACKUP_*` variables |
+| Error reporting, page analytics, log shipping | Only to services the operator set up | Admin, Integrations; `LOKI_ENDPOINT` |
+| Usage telemetry | No | None exists |
+| Breach check, update check, sign-in location | Yes, small and without health data | `PASSWORD_BREACH_CHECK_DISABLED`, `UPDATE_CHECK_DISABLED`, `IP_GEO_LOOKUP_DISABLED` |
 | Clinician share | Only via a link you create and revoke | Scoped, time-limited |
 | Another account you shared with | No | Grant on the same instance at the level you named, accepted then revocable |
 
-If you run a local AI endpoint and no device integrations, nothing about your
-data crosses the network: it is read and written on hardware you control.
+With a local AI endpoint and no device integrations, none of your health data
+crosses the network: it is read and written on hardware you control. Set the
+three switches as well and the server makes no request of its own.
 
 Who can read it *on* that hardware is a different question, and this page is not
 the whole answer to it. The instance operator can always reach the database, an
 admin account on the instance can reach health data directly, and any account
 you granted access to can read your record until you end it.
 [What a shared record is](/explanation/record-sharing/) covers all three.
-
-Two outbound calls happen without you configuring anything: a breached-password
-check that sends five characters of a hash, and a geo lookup for the login
-history that sends the signing-in IP. A release check against GitHub exists too,
-but it is not a background phone-home: it runs when an admin opens the admin
-overview (cached for a day per browser) or presses the check-for-updates button.
-Each is named with its off-switch on
-[Security and privacy](/security/overview/#what-leaves-the-instance), which also
-carries the commands that verify the image you are running.

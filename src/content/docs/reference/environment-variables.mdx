@@ -18,6 +18,12 @@ container. When you add a new optional var, add it to the whitelist too — the
 tables below flag the variables that are **not** whitelisted by default.
 :::
 
+An empty value counts as unset. The compose file passes every whitelisted
+variable you did not set as an empty string, and since v1.39.3 the app reads an
+empty or blank value as "use the default" everywhere. Switch-style variables
+(the `*_DISABLED` ones below) are on for `1`, `true`, `yes` or `on`, in any
+case; any other value, including an empty one, leaves them off.
+
 ## Core
 
 `DATABASE_URL`, `API_TOKEN_HMAC_KEY` and a valid encryption key are checked at
@@ -55,7 +61,7 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_COOKIE_SECURE` | tracks `NODE_ENV=production` | Force or disable the cookie `Secure` flag. Set `false` for trusted plain-HTTP LANs. |
-| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. See [reverse proxy](/guides/reverse-proxy/). On the compose whitelist since v1.37.33. |
+| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. `0` trusts neither `X-Forwarded-For` nor `X-Real-IP`. An empty value means the default since v1.39.3. See [reverse proxy](/guides/reverse-proxy/#trust_proxy_hops). On the compose whitelist since v1.37.33. |
 | `TRUST_CF_CONNECTING_IP` | unset | Set `1` **only** behind Cloudflare to trust the `cf-connecting-ip` header. |
 | `DATABASE_POOL_MAX` | `20` | Total Postgres connection budget for the process, not the Prisma ceiling: pg-boss takes 2 of it and Prisma gets the rest (18 at the default). Not whitelisted by default, so `DB_CONNECTION_LIMIT` is the knob that reaches the container. |
 | `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | The compose file feeds them into the `connection_limit` and `pool_timeout` query params of the default `DATABASE_URL`, and the app also reads both directly (`src/lib/db.ts`), where they take precedence over `DATABASE_POOL_MAX` and over the URL's query params. |
@@ -193,8 +199,22 @@ user-supplied.
 | `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. Since v1.37.1 the resolver reads them first and goes online only for an address they cannot place. |
 | `MAXMIND_LICENSE_KEY` | A free MaxMind licence key. Set it and the worker downloads the GeoLite2 City + ASN databases into `GEOLITE2_DIR` itself at boot, refreshed monthly. The third way to supply the databases, no rebuild or manual mount; a mounted database still wins. |
 | `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. |
-| `IP_GEO_LOOKUP_DISABLED` | Disable third-party IP lookups entirely (no geo egress). Also silences the one-time admin notice about online lookups, since there is nothing to warn about. |
+| `IP_GEO_LOOKUP_DISABLED` | Turns third-party IP lookups off entirely (no geo egress): the resolver uses only the GeoLite2 databases, if present, and the monthly MaxMind download is skipped too. Also silences the one-time admin notice about online lookups, since there is nothing to warn about. Before v1.39.3 only `1` worked. |
 | `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
+
+## Outbound requests the server makes on its own (optional)
+
+Since v1.39.3. Besides the services you connect yourself, the server contacts
+three third parties by default. Each has an off-switch; the third is
+`IP_GEO_LOOKUP_DISABLED` in the section above. Both variables below are on the
+compose whitelist. See
+[Security and privacy](/security/overview/#what-leaves-the-instance) for what
+each request carries.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PASSWORD_BREACH_CHECK_DISABLED` | unset (check on) | Stops the HaveIBeenPwned range query made when a password is set: at registration, on a password change and on an admin reset. Only the first five hex characters of the password's SHA-1 are ever sent. With the switch on, a known-breached password is no longer refused. |
+| `UPDATE_CHECK_DISABLED` | unset (check on) | Stops the request to the GitHub releases API behind the update badge on the About page and the admin version card. The route then answers `unknown` with reason `disabled` and contacts nobody, and the admin version card says the check is off. |
 
 ## Off-host backups (all-or-none)
 
@@ -206,6 +226,7 @@ See [Backups](/guides/backups/).
 | `BACKUP_S3_ACCESS_KEY` / `BACKUP_S3_SECRET_KEY` | Credentials. |
 | `BACKUP_S3_REGION` | Defaults to `auto`. |
 | `BACKUP_ENCRYPTION_KEY` | Separate AES key — **must not** equal `ENCRYPTION_KEY`. |
+| `BACKUP_ENCRYPTION_PREVIOUS_KEYS` | Retired off-host keys, comma-separated, kept so older objects stay readable during a rotation of `BACKUP_ENCRYPTION_KEY`. Read only, never written with. Optional and not part of the all-or-none set. On the compose whitelist since v1.39.3. See [Rotating the off-host key](/guides/backups/#rotating-the-off-host-key). |
 | `BACKUP_RETENTION_DAYS` | Not read by the app. The number for your bucket's lifecycle rule, kept here so the two agree. |
 
 ## Stored backups in the database
@@ -278,7 +299,8 @@ reaches the container.
 
 | Variable | Purpose |
 | --- | --- |
-| `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Let the SSRF guard reach private AI endpoints. Preferred form is a comma-separated host allowlist (`ollama.lan, 10.0.0.5`) — only those hosts pass. The legacy `true` opens **every** private host and remains accepted; unset / `false` allows none. |
+| `AI_PRIVATE_ORIGINS` | AI endpoints on your own network (Ollama, LM Studio, LiteLLM). Comma-separated exact origins (`scheme://host[:port]`, no path, no wildcard), e.g. `http://ollama.lan:11434`. Unset, a private AI base URL is refused, apart from what the deprecated `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` still covers. Metadata, link-local and unspecified addresses stay refused even when listed; a malformed entry is logged once and grants nothing. Since v1.39.3, on the compose whitelist. See [Configure AI providers](/guides/ai-providers/). |
+| `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Older form of `AI_PRIVATE_ORIGINS`, kept for existing installs. A comma-separated host list (`ollama.lan, 10.0.0.5`) grants those hosts on any port, over the same pinned connection. `true` is deprecated since v1.39.3: it covers only the admin AI key and AI settings saved on an admin account, is named in the boot summary and on the admin AI settings page, and will be removed in a later release. Unset or `false` allows none. |
 | `INSIGHTS_RATE_LIMIT_PER_HOUR` | Bounds `POST /api/insights/generate` per user per hour (default 10). |
 | `INSIGHTS_MAX_TOKENS` | Completion-token budget per insight generation. Default `2500`, clamped to 500–8000. Raise it when a verbose local model truncates its JSON mid-answer. |
 | `NATIVE_CANVAS` | Override for the native canvas renderer (document thumbnails, scanned-PDF rasterization). Default auto-detects AVX2 on Linux x64 and disables cleanly on CPUs without it. `off` force-disables; `on` force-enables (crashes the process on a CPU that truly lacks AVX2). |
@@ -293,6 +315,7 @@ reaches the container.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DOCUMENT_UPLOAD_LIMIT_PER_HOUR` | `120` | Hourly upload ceiling for each document token, the credential a Paperless-ngx workflow or the import script uploads with. Counted per token, and every upload that sends a file counts, duplicates included; uploads from the web app and the phone keep their own limit of 60 an hour per person. Clamped to 1–1000; a value that is not a number falls back to the default. Raise it to let a large import finish sooner; the per-account storage quota still applies. On the compose whitelist since v1.39.2. See [Import documents](/guides/import-documents/#limits-and-storage). |
+| `DOCUMENT_SOURCE_ORIGINS` | unset | The Paperless-ngx and Papra instances the [document picker](/guides/import-documents/#pick-documents-inside-healthlog) may contact, as comma-separated exact origins, e.g. `https://paperless.example.com,http://papra.lan:1221`. Unset or empty, the picker is off and the Document archives card does not appear. Same grammar as [`NOTIFICATION_PRIVATE_ORIGINS`](#notification-targets-on-a-private-network-optional): one `scheme://host[:port]` per entry, no path, wildcard or CIDR; link-local, metadata and unspecified addresses are never granted; a malformed entry is logged once and grants nothing. Unlike that list it is the whole decision: an origin that is not listed is refused even when it is public. Requests are pinned to the listed origin and never follow a redirect. Removing an origin cuts off the connections that use it; people can still see and remove a stored connection. On the compose whitelist since v1.39.3; needs a restart. |
 
 The per-file cap and the per-account quota for documents are admin settings,
 not environment variables; see [the document vault](/guides/document-vault/#limits-and-how-to-tune-them).

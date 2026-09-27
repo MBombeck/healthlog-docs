@@ -134,6 +134,84 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.39.3
+
+### Migrations 0356 to 0359
+
+All four only add tables, columns and indexes; nothing is deleted.
+
+- `0356_document_source_connections` adds the table behind the
+  [document picker](/guides/import-documents/#pick-documents-inside-healthlog)
+  (one connection per person and archive, its token encrypted), and a nullable
+  source instance to the imported-document keys, whose unique indexes are
+  rebuilt to include it. Keys stored by v1.39.2 have no instance and keep
+  matching any.
+- `0357_encrypt_coach_title_and_metric_note` adds encrypted columns for the
+  Coach conversation title and the note on a custom-metric reading, and makes
+  the old title column optional. SQL cannot encrypt, so a background job after
+  boot encrypts the existing rows one at a time and empties the readable value
+  in the same step. The old columns are dropped in a later release.
+- `0358_backup_key_ids_and_offhost_purge` records which encryption keys each
+  stored backup needs (copies written before v1.39.3 are marked as not
+  recorded), when the nightly run last wrote an off-host object needing each
+  key, and the accounts whose off-host copies are waiting to be deleted.
+- `0359_session_reproof_stamp` adds the time a browser session last confirmed
+  it is the account holder.
+
+Take a database dump before deploying. Going back to v1.39.2 after the
+background job has run is not supported, because that version reads only the
+readable title and note the job empties; restore the dump instead.
+
+### What to check as an operator
+
+- **Off-host backup credential.** The worker now deletes an account's copies
+  when the account is deleted, a managed profile is deleted or someone uses
+  **Delete all data**, so its credential needs `DeleteObject` alongside
+  `PutObject`, `GetObject`, `ListBucket` and `AbortMultipartUpload`. Add
+  `GetLifecycleConfiguration` if you want the admin page to confirm your
+  lifecycle rule. In a web/worker split, set the `BACKUP_*` variables on both
+  containers. See [Bucket permissions](/guides/backups/#bucket-permissions).
+  New objects use wire format `0x04`, which only `scripts/restore-backup.ts`
+  from v1.39.3 or later reads.
+- **Local AI endpoints.** `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` now covers only
+  the admin AI key and AI settings saved on an admin account; every other
+  account's private endpoint is refused until its origin is in
+  `AI_PRIVATE_ORIGINS`. The admin AI settings page shows the exact line to add.
+  A host list in `ALLOW_LOCAL_AI_PRIVATE_HOSTS` keeps working. See
+  [Configure AI providers](/guides/ai-providers/).
+- **Reverse proxy.** Nothing in the proxy has to change. Behind it, the app now
+  accepts request bodies over 1 MB only on the upload routes, and it trusts
+  `X-Real-IP` only when `TRUST_PROXY_HOPS` is `1` or more: if your proxy sets
+  only `X-Real-IP` and you had set `TRUST_PROXY_HOPS=0` for it, set `1`. An
+  empty `TRUST_PROXY_HOPS` now means `1`. See
+  [Reverse proxy](/guides/reverse-proxy/#trust_proxy_hops).
+- **Your own compose file.** If you keep one, add the new variables to its
+  `environment:` whitelist: `DOCUMENT_SOURCE_ORIGINS`, `AI_PRIVATE_ORIGINS`,
+  `PASSWORD_BREACH_CHECK_DISABLED`, `UPDATE_CHECK_DISABLED` and
+  `BACKUP_ENCRYPTION_PREVIOUS_KEYS`, each as `NAME: "${NAME:-}"`. See the
+  [environment variables](/reference/environment-variables/).
+- **New switches.** `PASSWORD_BREACH_CHECK_DISABLED` and `UPDATE_CHECK_DISABLED`
+  turn off the breach and update checks, and `IP_GEO_LOOKUP_DISABLED` now also
+  accepts `true`, `yes` and `on`.
+
+### What people will notice
+
+- **Confirming it is you.** Downloading a full backup, making a doctor share
+  link, creating an assistant, measurement or document token, adding a second
+  factor or passkey, and changing the password or email address ask for a
+  password, second factor or passkey unless the person signed in within the
+  last five minutes. The admin backup download, upload and restore, the global
+  wipe and resetting another account's password ask the admin the same. An
+  account that signs in only through single sign-on signs in again instead.
+  See [Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you).
+- **Sign out everywhere else** now also ends connected assistants, API tokens
+  (Home Assistant, scale bridges, document importers) and, unless unticked,
+  doctor share links. A password change ends all of them.
+- **Single sign-on** links to an existing account with the same email only after
+  one sign-in to that account with its own password or passkey. Accounts
+  already linked are not affected.
+- **The password reset script** ships in the image from this release.
+
 ## Migrations 0352 to 0355 in v1.39.2
 
 `0353_document_import_source` and `0354_condition_body_site` only add columns

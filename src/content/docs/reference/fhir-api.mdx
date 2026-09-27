@@ -65,7 +65,8 @@ serialised Bundle size.
 
 `POST /api/export/health-record` produces a **selectable** export: an enriched
 clinical PDF, a machine-readable FHIR R4 document Bundle (LOINC-coded
-observations, a BP panel, medication statements, a diagnostic report), or both
+observations, a BP panel, medication statements, and a diagnostic report when
+the window holds vital signs), or both
 packaged as one zip with a short README. The body carries a `format` (`pdf`,
 `fhir`, or `package`), an optional `range` (a date window of at most 365 days),
 and a required leaf-level `selection` list naming exactly which metrics and
@@ -73,6 +74,16 @@ record types to include. A scope has to be stated: the older grouped `sections`
 toggles are rejected with a 422 rather than defaulted, because an absent key
 used to resolve to "included". Both formats read the same aggregator, so they
 describe identical numbers.
+
+Since v1.39.3 every code the export sends has been checked against the HL7
+validator. A metric without a fitting LOINC term is sent with its text, and
+for step length, walking speed, walking asymmetry and VO₂ max with its
+HealthKit identifier, rather than under a code that means something else; this
+covers mood, estimated A1C and average cycle and period length. Resting heart
+rate and pulse-oximetry SpO₂ also carry the codes the R4 vital-signs profiles
+require. A medication's ATC coding carries no display, since your name for it
+is not the ATC name; the name stays in the text. Mood is a survey finding, not
+part of the vital-signs panel.
 
 Optional patient identity (name, insurer, insurance number) on the account feeds
 the report cover and the FHIR `Patient`. There is no AI summary in this export;

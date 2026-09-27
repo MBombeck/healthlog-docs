@@ -1,25 +1,62 @@
 ---
 title: Encryption at rest
-description: How HealthLog encrypts sensitive at-rest data with AES-256-GCM under a versioned key map, and why every path fails closed rather than writing plaintext.
+description: Exactly what HealthLog encrypts at rest with AES-256-GCM and what it stores unencrypted, the versioned key map, and why every path fails closed rather than writing plaintext.
 sidebar:
   order: 4
 ---
 
-HealthLog encrypts sensitive at-rest data — OAuth tokens, AI provider keys,
-notification channel configs, web-push subscription secrets, VAPID private keys,
-coach messages — with **AES-256-GCM** under a per-deployment key. This page
-explains the model; the operator procedure is in
+HealthLog stores everything in the operator's own Postgres database, and
+encrypts a defined part of it again, column by column, with **AES-256-GCM**
+under a per-deployment key kept in the environment: free text, documents,
+questionnaire answers, AI-written text, the Coach conversation and every
+credential. This page lists exactly what is and is not encrypted and explains
+the model; the operator procedure is in
 [Rotate the encryption key](/guides/encryption-key-rotation/).
 
 ## What gets encrypted
 
-Not everything — measurements themselves are not encrypted column-by-column,
-because they are the data you query and chart constantly and they live on a
-database you already control. What *is* encrypted is the class of secrets that
-would let an attacker pivot outward or impersonate you: provider access/refresh
-tokens, BYOK AI keys, VAPID secrets, notification credentials, the coach
-conversation (`CoachMessage.encryptedContent`, a `Bytes` column), and even
-`IntegrationStatus.lastError` (because upstream error strings can echo secrets).
+- **Credentials and secrets.** OAuth access and refresh tokens and the per-user
+  client ids and secrets for Withings, WHOOP, Fitbit, Google Health, Polar,
+  Oura and Strava; the Nightscout address and token; ChatGPT (Codex) tokens;
+  the Telegram bot token and every notification channel's settings; Web Push
+  subscription keys and the VAPID private key; your own and the admin's AI
+  keys; the API token for a connected document archive; the authenticator
+  secret; the insurance number on your profile; and
+  `IntegrationStatus.lastError`, because upstream error strings can echo
+  secrets. API tokens and session cookies are not stored at all, only as
+  one-way HMAC digests.
+- **Free text you write.** Notes on measurements, lab results, illness episodes
+  and day logs, mood entries and their context, custom-metric readings,
+  medication side effects, dose changes and supply entries, vaccinations,
+  practitioners, cycle days; allergy reactions and notes; family-history notes;
+  a visit's reason, outcome and body site; a condition's body site; the health
+  profile (about me, conditions, allergies, implants, emergency contacts and
+  the rest); your own mood-tag labels and cycle symptoms.
+- **Documents.** The file itself, its thumbnail, the extracted and indexed
+  text, the summary and the extracted facts.
+- **Questionnaire answers.** The item-by-item answers of PHQ-9, GAD-7, WHO-5 and
+  the other check-ins.
+- **AI-written text and the Coach.** Coach messages, conversation titles (since
+  v1.39.3), summaries, remembered facts and plans; the daily briefing,
+  status notes, reaction lines and workout notes.
+- **ECG waveforms.**
+- **Stored backups** in the database, and cached responses kept for
+  idempotent retries.
+
+What is **not** encrypted, because it is what you query, sort and chart
+constantly: measurement values; lab analyte names, values and reference
+ranges; mood scores; questionnaire totals and severity bands; medication names
+and doses; allergy substances and family-history conditions; illness labels;
+document titles and file names; vaccine names and lot numbers; practitioner
+names and contact details; custom-metric names, units and descriptions;
+workout routes; reminder labels; usernames, display names and email
+addresses. These live on a database you control, so protect the database
+volume and its backups like the host itself.
+
+Two columns moved in v1.39.3: the Coach conversation title and the note on a
+custom-metric reading. The upgrade encrypts existing rows in a background job
+after boot; until it has reached a row, that row is still readable in the old
+column.
 
 ## AES-256-GCM and why GCM
 
@@ -38,7 +75,7 @@ A key id prefixes every new ciphertext:
 
 `<keyId>` indexes into an `ENCRYPTION_KEYS` JSON map. This is what makes
 **zero-downtime rotation** possible: multiple keys coexist, new writes use the
-active key, and a background script re-wraps old rows on its own schedule while
+active key, and a background job re-wraps old rows on its own schedule while
 the app keeps serving. Legacy ciphertexts (from before versioning) have no `.`
 prefix and are decrypted under the synthetic `v1` id.
 
@@ -56,14 +93,16 @@ cost is that a misconfigured key takes the feature down loudly; the benefit is
 that you can never end up with silent plaintext.
 
 The practical corollary for operators: **keep the legacy key in the map until the
-rotation script reports zero remaining rows on it.** Drop it too early and those
+rotation reports zero remaining rows on it and no backup you may still restore
+needs it.** Drop it too early and those
 rows become undecryptable — and the app tells you so rather than papering over it.
 
 ## What this does and does not protect
 
-- **It protects** the secret columns if someone obtains a database dump, a
-  backup, or read access to the table — the tokens and keys are useless without
-  the encryption key, which lives in the environment, not the database.
+- **It protects** the encrypted columns if someone obtains a database dump, a
+  backup, or read access to the table: the tokens, keys and texts are useless
+  without the encryption key, which lives in the environment, not the database.
+  The unencrypted columns listed above are readable to anyone with the dump.
 - **It does not protect** against an attacker who has both the database *and* the
   running environment (they have the key too), and it is not a substitute for the
   other layers — passkey auth, server-side sessions, strict CSP, rate limits.

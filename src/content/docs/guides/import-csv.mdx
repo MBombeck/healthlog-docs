@@ -150,7 +150,7 @@ These are the reasons a row can be skipped, in the wording the card shows:
 | note is too long | The `notes` cell exceeds 200 characters. |
 | external ID is too long | The `externalId` cell exceeds 120 characters. |
 | external ID is not stable across exports | The id is a memory address (`0x…`) or an object description (`<Class: 0x…>`). Such a value changes on every run of the exporting app and would mint a fresh row every time. |
-| already imported | A row for this type and instant already exists. See below. |
+| already imported | A row for this type and instant already exists, or, with an `externalId`, the stored row already holds exactly what the file says. See below. |
 
 ## What a re-upload does
 
@@ -158,11 +158,12 @@ Rows are written under the `IMPORT` source, and duplicate handling depends on
 whether the row carries an `externalId`.
 
 With an `externalId`, the row is matched on your account, the type, the
-`IMPORT` source and the id. A second upload of the same id updates the existing
-row in place, rewriting value, unit, timestamp, notes and glucose context, and
-reports the line as updated. A row you had deleted comes back, because import
-rows are meant to be re-importable. If the same id appears twice inside one
-file, the last occurrence wins.
+`IMPORT` source and the id. If the stored row already holds exactly what the
+file says, the line is skipped as `already imported` and nothing is written. If
+anything differs (value, unit, timestamp, notes or glucose context), the
+existing row is updated in place and the line is reported as updated. A row you
+had deleted comes back, because import rows are meant to be re-importable. If
+the same id appears twice inside one file, the last occurrence wins.
 
 Without an `externalId`, a row that matches an existing `IMPORT` row on type
 and instant is skipped as `already imported`, never overwritten. Each such row
@@ -173,6 +174,12 @@ watch or scale delivered at the same second.
 So if you expect to re-export and re-upload the same history as it grows, put a
 stable id from the source system in `externalId`. If you upload once, you can
 leave the column out entirely.
+
+The rows are written in batches of 200, each saved on its own. If an upload
+stops part-way, the batches before it are kept; upload the same file again and
+the rest goes in while the saved rows are skipped. Before v1.39.3,
+re-uploading a large file with an `externalId` column could end in an error
+after a few seconds.
 
 ## Limits
 

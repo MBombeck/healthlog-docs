@@ -18,10 +18,17 @@ Privacy**.
 Registration asks for an email address, a username and a password. The
 password must be at least 12 characters and score well on a strength check
 that knows your username and email, and it is checked against a breach
-corpus (by hashed prefix, so the password itself is never sent). Passwords are
+corpus (by hashed prefix, so the password itself is never sent; the operator
+can switch that check off with `PASSWORD_BREACH_CHECK_DISABLED`). Passwords are
 stored as Argon2id hashes. Sign-in accepts email or username, case-insensitive,
 and is limited to five attempts per 15 minutes per address. Failed attempts are
 audited without the typed identifier.
+
+Since v1.39.3 there is also a limit per account: after ten wrong passwords for
+one account within fifteen minutes, password sign-in for that account pauses
+until the fifteen minutes are over, whichever networks the attempts came from.
+A passkey and single sign-on still work while it is paused, and entering the
+right password does not use up an attempt.
 
 Registration is open by default. The admin can close it under Admin, General;
 a closed instance still accepts a valid invite link, and a fresh instance with
@@ -29,15 +36,22 @@ no accounts always allows the first signup, which becomes the admin.
 
 To change your password, open Settings, Security and use the password card.
 It asks for the current password, and for a fresh second factor if you have
-one enrolled.
+one enrolled. Each attempt counts toward the same limit as every other
+confirmation (five in fifteen minutes per account, see
+[Confirming it is you](#confirming-it-is-you)). Changing the password ends every
+other way into the account, as
+[Sign out everywhere else](#sessions-devices-and-activity) does with share
+links included; the browser you changed it on stays signed in with a fresh
+session.
 
 ## Passkeys
 
 A passkey is a primary sign-in method, not a second factor: it replaces the
 password at sign-in and counts as a satisfied second factor for the session it
 creates. Add one under Settings, Security. Before the browser can start the
-enrolment you must re-prove an existing factor: a password, an authenticator
-code, or an existing passkey or security key. Re-proving with a password
+enrolment you must re-prove an existing factor: a password, a code from an
+authenticator you have already confirmed, or an existing passkey or security
+key. Re-proving with a password
 authorises that one enrolment only; re-proving with a strong factor also
 refreshes the session's step-up window. Removing a passkey asks for a fresh
 factor as well, and the last passkey on an account with no password cannot be
@@ -59,10 +73,21 @@ Two kinds of second factor exist, both managed under Settings, Security:
 - **Security keys.** Hardware or platform WebAuthn keys registered as a
   second factor. These are kept separately from passkeys.
 
+Adding either kind needs more than being signed in. Within five minutes of
+signing in, or of completing a second factor, the setup starts straight away.
+Later, HealthLog first asks you to confirm it is you, with your password, an
+authenticator you have already confirmed, a passkey or a security key, and then
+continues. An authenticator whose setup you started but never confirmed with a
+code is not a second factor anywhere: its codes are refused at sign-in, at every
+step-up and when confirming another change. Turning on your first second factor
+signs out your other sessions and leaves tokens, connected assistants and share
+links alone.
+
 With a second factor enrolled, a correct password no longer creates a session
 on its own. Sign-in returns a short-lived ticket and the second-factor step
 offers the methods you have: authenticator code, recovery code, or security
-key. At that step you can tick **remember this device**. A remembered device
+key. That step allows five attempts per sign-in, counted before each one is
+checked, however quickly they arrive. At that step you can tick **remember this device**. A remembered device
 skips the second factor for 30 days, but only the second factor: the password
 is still required, and a session that came in through a remembered device
 does not count as freshly verified. A recovery-code sign-in never remembers
@@ -84,11 +109,52 @@ account, resetting all data, the passphrase-encrypted export, creating an
 access invite, and creating, editing or deleting a managed profile or its
 guardians.
 Encryption-key rotation in the admin console is behind the same gate. An
-account with no second factor passes the conditional gates without a prompt.
+account with no second factor passes these gates without a prompt; the
+confirmation described under [Confirming it is you](#confirming-it-is-you) is
+separate and applies to every account.
 
 The native app can satisfy a step-up through a short-lived elevation minted
 from a re-proved factor; a recovery code is deliberately not accepted there,
 so an app-only user who lost the authenticator uses the web.
+
+### Confirming it is you
+
+Since v1.39.3 some actions ask you to confirm it is you even when no second
+factor is involved, because they hand your record, or a way into it, to
+someone else or change how you sign in:
+
+- downloading the full backup, plain or encrypted;
+- making a doctor share link;
+- creating an assistant (MCP), measurement or document token;
+- adding a passkey, an authenticator or a security key;
+- changing your password or your email address.
+
+If you signed in within the last five minutes they go straight through; with a
+second factor, that means a sign-in that included it, or a passkey sign-in (a
+sign-in through a remembered device does not count). Otherwise the app asks you
+to confirm first:
+
+- With a second factor turned on, use your authenticator code, your security
+  key or a passkey. Your password alone is not enough, just as it is not
+  enough to sign in.
+- Without a second factor, enter your password or use a passkey.
+
+One confirmation covers five minutes, so a download followed by a share link
+asks once. If you signed in through single sign-on and have no password or
+passkey in the app, sign in again and repeat the action within five minutes.
+
+Every one of these confirmations, and the native app's step-up, shares one
+limit per account: five attempts in fifteen minutes. Each wrong attempt is
+recorded and shows in **Security activity** under Settings, Data & Privacy.
+
+Changing the email address needs your current password unless you signed in,
+completed a second factor or confirmed within the last five minutes. The
+profile form shows the password field as soon as the address differs from the
+saved one. Without it, the rest of the form is saved and the address stays as
+it was.
+
+The admin actions that move or replace data ask the same of the admin: see
+[Admin overview](/guides/admin-overview/).
 
 ### Forced enrolment
 
@@ -128,8 +194,13 @@ additive: the button appears next to password and passkey sign-in.
 
 How identities are matched: the first SSO sign-in either provisions a new
 account (subject to the registration setting) or links to an existing account
-by email, and only when the provider asserts `email_verified: true`. Either
-way the account is pinned to the provider's issuer and subject, and every later
+with the same email, and only when the provider asserts
+`email_verified: true`. Since v1.39.3 an existing account is never linked on
+the email alone, because HealthLog never verified the address on it: anyone
+could have registered with it or typed it into their profile. Instead the
+sign-in page explains that the account exists, and the person signs in to it
+once with its own password (and second factor) or passkey within ten minutes.
+That sign-in makes the link. Either way the account is pinned to the provider's issuer and subject, and every later
 sign-in matches on that pair alone. An email change at the provider updates
 the displayed email but can never re-point the login. An email that already
 belongs to an account pinned to a different identity is refused and audited.
@@ -155,6 +226,11 @@ is not the boundary. Before turning it on:
   password-only builds are locked out.
 - The token exchange that completes a native SSO sign-in, the second-factor
   verify step and the refresh route are deliberately not blocked.
+- Linking an existing account still works: after the provider round-trip the
+  sign-in page shows the password form for that one step, and it accepts only
+  the account the provider's email matched. An account that has only a
+  passkey cannot be confirmed while `OIDC_ONLY` is on; turn it off for the
+  first sign-in or have an operator link it.
 
 ### Break-glass
 
@@ -178,19 +254,33 @@ second-factor ticket when the account has one), valid for 90 seconds. The app
 exchanges the code at `POST /api/auth/oidc/native/token` for its normal token
 bundle. A PKCE mismatch burns the code. The token pair never rides a URL, the
 redirect target is compiled in (there is no `redirect_uri` parameter to
-abuse), and the resulting session is never marked as freshly verified. Device
-setup is in [Connect the iOS app](/getting-started/connect-ios-app/).
+abuse), and the resulting session is never marked as freshly verified. When
+the provider's email matches an account that is not linked yet, the app
+receives `oidc_link_required`; confirm the account once on the web and SSO in
+the app works from then on. Device setup is in [Connect the iOS app](/getting-started/connect-ios-app/).
 
 ## Sessions, devices and activity
 
 Web sessions last 30 days and slide: after a day of use the expiry is
 extended back to a full 30 days. Under Settings, Data & Privacy you can see
 every session with device label, masked IP, location and last activity, sign
-one out, or sign out everywhere else. Signing out everywhere else also revokes
-the native app's refresh tokens, forgets every remembered device and clears
-step-up elevations; it leaves API tokens alone, since those are managed under
-Settings, API & Tokens. The same page lists remembered devices and a read-only feed of
-security events: sign-ins, factor changes, password changes, session
+one out, or use **Sign out everywhere else**. Since v1.39.3 that ends every way
+into your account except the device you press it on:
+
+- every other browser and phone sign-in, with the native app's refresh
+  tokens, remembered devices and step-up elevations;
+- every AI assistant you connected (it has to be connected again);
+- every API token: Home Assistant, scale bridges, document importers, and
+  connector tokens you created by hand;
+- every doctor share link, unless you untick **Also end the doctor share
+  links** in the confirmation.
+
+Share links are ended by default because a link made by someone who had your
+session would keep opening your record without a sign-in. If you are sure your
+links are yours, keep them.
+
+The same page lists remembered devices and a read-only feed of security events
+(**Security activity**): sign-ins, factor changes, password changes, session
 revocations, exports and deletions.
 
 ## Password reset
@@ -199,9 +289,10 @@ There is no self-service "forgot password" flow. Recovery paths are:
 
 - **Recovery codes** for a lost authenticator, as above.
 - **An admin reset.** Under Admin, Users, the reset action sets a new password
-  (subject to the same strength and breach checks) and in one transaction
-  destroys the user's sessions, API tokens, refresh tokens and trusted
-  devices, then writes an audit row. It is a cookie-only admin call
+  (subject to the same strength and breach checks), asks the admin to confirm
+  it is them first, and in one transaction destroys the user's sessions, API
+  tokens, refresh tokens, trusted devices, connected assistants and share
+  links, then writes an audit row. It is a cookie-only admin call
   (`POST /api/admin/users/{id}/reset-password`); an API token cannot invoke
   it.
 - **The operator CLI**, for when no admin can sign in. It runs under plain
@@ -215,3 +306,8 @@ There is no self-service "forgot password" flow. Recovery paths are:
   username or email case-insensitively and must resolve to exactly one user;
   the password must be at least 12 characters. Prefer the prompt over passing
   the password as a second argument, which would land in shell history.
+
+  The script ships in the image from v1.39.3. On v1.39.2 and earlier the
+  command fails with "Cannot find module"; update first, or run it from a
+  source checkout of the same release (after `pnpm install`) with
+  `DATABASE_URL='postgres://…' node scripts/reset-password.mjs <username-or-email>`.

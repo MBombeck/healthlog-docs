@@ -172,6 +172,40 @@ avatar, source priority, and the Codex device-OAuth flow.
 | `POST` | `/api/auth/refresh` | Per-device refresh-token rotation |
 | `POST` | `/api/auth/codex/device-start` · `/device-poll` · `/disconnect` | ChatGPT device-OAuth |
 | `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs. Since v1.39.1 `timezone` on `/api/user/profile` is the zone the server uses, as on `/api/auth/me`: the instance default when the stored value is not a usable zone name |
+| `GET` / `POST` | `/api/auth/reproof` | Since v1.39.3. Confirm it is you on the web; see [Fresh proof on the web](#fresh-proof-on-the-web) |
+| `DELETE` | `/api/auth/me/sessions` | Sign out everywhere else. Since v1.39.3 it ends every other sign-in, every AI-assistant connection, every token except the caller's own and, unless `keepShareLinks=1` is sent, every clinician share link. The answer carries `sessionsRevoked`, `accessTokensRevoked`, `connectorsRevoked` and `shareLinksRevoked` |
+
+### Fresh proof on the web
+
+Since v1.39.3 `GET /api/export/full-backup`, `POST /api/export/encrypted`,
+`POST /api/share-links`, `POST /api/mcp/tokens`,
+`POST /api/tokens/measurements`, `POST /api/tokens/documents` and the admin
+backup download, upload and restore, `DELETE /api/admin/data` and
+`POST /api/admin/users/{id}/reset-password` answer a browser session that has
+not signed in or re-proved within five minutes with `401`
+`auth.reproof.required`. On an account with a second factor, only a sign-in
+that included it (or a passkey sign-in) counts. `meta.methods` lists what the
+account can use: `password` and `passkey` without a second factor; `totp`,
+`webauthn` and `passkey` with one. An empty list means the account has nothing
+to re-prove in place and has to sign in again.
+
+`POST /api/auth/reproof` takes the body `POST /api/auth/step-up` takes
+(`{ "method": "password", "password": ... }`, `{ "method": "totp", "code": ... }`,
+or a passkey or security-key assertion begun at
+`POST /api/auth/passkey/register-options` with `{ "method": "passkey" }` or
+`{ "method": "webauthn" }`). A method the account cannot use here is `422`
+`auth.reproof.too_weak`; a proof that does not verify is `401`
+`auth.reproof.failed`; attempts share the five-per-fifteen-minutes budget of
+the step-up mint. `GET /api/auth/reproof` answers `200` when the session's
+proof is recent and the same `401` otherwise, so a client can ask before a
+large upload.
+
+On a Bearer token: `GET /api/export/full-backup` needs an `X-Step-Up`
+elevation (a second-factor one on an account with a second factor);
+`POST /api/export/encrypted` needs a second-factor elevation on an account with
+a second factor and nothing more on one without. The measurement and document
+token mints refuse Bearer outright. Share links and connector tokens are not
+yet asked for more than the token.
 
 ### Onboarding (the needs-based flow)
 
@@ -211,7 +245,7 @@ before upgrading.
 | Method | Endpoint | Notes |
 | --- | --- | --- |
 | `GET` | `/api/tokens` | The account's tokens with their scopes and expiry |
-| `POST` | `/api/tokens/measurements` | Mint a `measurements:write` token. Cookie only; the raw `hlk_` value is in this one response and nowhere else. Expires after 365 days unless a shorter `expiresInDays` is given; ten mints a minute |
+| `POST` | `/api/tokens/measurements` | Mint a `measurements:write` token. Cookie only, with [fresh proof](#fresh-proof-on-the-web) since v1.39.3; the raw `hlk_` value is in this one response and nowhere else. Expires after 365 days unless a shorter `expiresInDays` is given; ten mints a minute |
 | `POST` | `/api/tokens/documents` | Mint a `documents:write` token (since v1.39.2). Same rules as the measurement mint: cookie only, raw value in this one response, 365 days unless a shorter `expiresInDays`, ten mints a minute, at most ten live document tokens (`409` beyond that) |
 | `DELETE` | `/api/tokens/{id}` | Revoke one token |
 
@@ -521,7 +555,7 @@ See
 | --- | --- | --- |
 | `POST` | `/api/export/health-record` | PDF + FHIR R4 bundle, selectable |
 | `GET` | `/api/fhir/{Patient,Observation,MedicationStatement,...}` | Read-only FHIR R4, `fhir:read` scope |
-| `GET` / `POST` / `DELETE` | `/api/share-links` · `/{id}` | Scoped clinician share links |
+| `GET` / `POST` / `DELETE` | `/api/share-links` · `/{id}` | Scoped clinician share links. Creating one needs [fresh proof](#fresh-proof-on-the-web) on the web since v1.39.3 |
 
 See the [FHIR read API](/reference/fhir-api/). These are for handing a record to
 somebody with no account on the instance. Giving another *account* read access is
@@ -550,7 +584,7 @@ shared AI config. Bearer tokens cannot reach any of these.
 | `POST` | `/api/admin/backups/upload` | Store a backup file as a new row without restoring it. The raw body is JSON or gzip-compressed JSON up to 512 MB; a `multipart/form-data` body with one `file` field is limited to 10 MB. `413` with `meta.errorCode: backup.upload.too_large` when the encrypted copy is larger than `BACKUP_MAX_STORED_MB` (default 2048 MB) |
 | `POST` | `/api/admin/backups/{id}/restore` | Since v1.39.1, queue the restore of one stored snapshot over its owner's record and answer `202` with `jobId` and `statusUrl` (before, `200` with the result). Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key`. A copy that cannot be decrypted is still refused straight away with `422`; `409` with `meta.errorCode: backup.restore.active` while another restore of the same account is queued or running |
 | `GET` | `/api/admin/backups/restores` · `/{jobId}` | Restore jobs: the queued and running ones and those from the last day, or one job. Each has its status (`queued`, `running`, `succeeded`, `failed`), its current step (`validating`, `clearing`, `measurements`, `sections`, `rebuilding`) and counts, and either the result the old synchronous answer carried or a failure with a stable `code` and a message |
-| `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot |
+| `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot. Download, upload and restore need [fresh proof](#fresh-proof-on-the-web) since v1.39.3 |
 
 ## Meta & health
 

@@ -1,6 +1,6 @@
 ---
 title: Rotate the encryption key
-description: Rotate the AES-256-GCM key that protects at-rest secrets without downtime, using the versioned key map and the rotation CLI.
+description: Rotate the AES-256-GCM key that protects at-rest secrets without downtime, using the versioned key map and the Rotate now action in the admin console or the rotation script.
 sidebar:
   order: 10
 ---
@@ -54,23 +54,50 @@ refuses to silently fall back to the active key and throws a clear error instead
    Restart. New writes encrypt under `v2`; existing `v1`-keyed and legacy rows
    still decrypt.
 
-3. **Run the rotation script** to re-encrypt every existing encrypted column
-   under the new active key:
+3. **Re-encrypt the stored data under the new key.** Open **Admin →
+   Encryption** and press **Rotate now**. The button needs an admin account
+   with a second factor, confirmed within the last five minutes. It queues one
+   background run on the app's own worker, so it works on the published image
+   with nothing else installed, and the same page shows the per-column counts
+   and the last run's result.
+
+   Without a second factor on any admin account, run the rotation script from a
+   source checkout of the same release; the image does not contain it. It needs
+   the app's `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY_ID` and a `DATABASE_URL`
+   that reaches the database. The bundled `db` service publishes no port, so
+   publish 5432 for the duration or run the checkout in a throwaway `node:22`
+   container on the compose network:
 
    ```bash
+   git checkout vX.Y.Z
+   pnpm install && pnpm db:generate
    pnpm dlx tsx scripts/rotate-encryption-key.ts v2
    ```
 
-   It is idempotent — re-running is a no-op for rows already prefixed `v2.`. It
-   rotates every encrypted column across the schema; the script enumerates
-   them, from the connection credentials and notification channels through
-   Coach content, mood entries, lab results, documents and the search index,
-   so a new release's encrypted columns ride along. The summary line reports
-   `scanned` / `rotated` / `errors` per table+field; treat `errors > 0` as a
+   Both paths are idempotent: re-running is a no-op for rows already prefixed
+   `v2.`. They rotate every encrypted column across the schema, from the
+   connection credentials and notification channels through Coach content,
+   mood entries, lab results, documents and the search index, so a new
+   release's encrypted columns ride along. The script's summary reports
+   `scanned` / `rotated` / `errors` per table and field; treat `errors > 0` as a
    hard failure and re-run after fixing the cause.
 
-4. **Drop the old key (optional, recommended)** once the script reports zero
-   remaining legacy rows:
+4. **Drop the old key (optional, recommended)** once **Admin → Encryption**
+   reports zero rows outside the active key (or a full script run reports
+   `rotated=0`, `errors=0` and every column walked) **and no backup you may
+   still restore needs it**. Rotation re-encrypts every row, and every stored
+   backup's outer layer, but not the content inside a backup: a restore writes
+   that content back as it was stored, so a copy taken before the rotation
+   still needs the old key. The same goes for every copy in the off-host bucket
+   and every backup file you downloaded. Since v1.39.3 **Admin → Encryption →
+   Keys the backups still need** lists, per key id, the stored copies that need
+   it with the oldest date, and when the last off-host copy that needs it
+   expires under your bucket's lifecycle rule. The weekly copy replaces itself
+   within a week; delete old uploaded copies you no longer want, and wait out
+   the off-host retention. Copies written before v1.39.3 did not record their
+   keys and are listed as such; treat them as needing every key that existed
+   when they were written. The coverage badge only says the old key is safe to
+   drop when both the rows and the backups are clear.
 
    ```env
    ENCRYPTION_KEYS='{"v2":"<new key>"}'
@@ -81,7 +108,8 @@ refuses to silently fall back to the active key and throws a clear error instead
 </Steps>
 
 Adding a third key (v2 → v3) is the same procedure with shifted labels — keep
-`v2` in the map until the script reports zero `v2.`-prefixed rows.
+`v2` in the map until the rotation reports zero `v2.`-prefixed rows and no
+backup still needs it.
 
 ## Rollback
 
@@ -97,10 +125,14 @@ expects bare base64 and will throw on that prefix. So:
 Run rotation in a window where you have a fresh DB snapshot and the new image has
 been smoke-tested in production for at least 24 hours.
 
-If a stored backup was written under a key you have since removed from
-`ENCRYPTION_KEYS`, the console refuses to restore, download or preview it with
-`422` and `meta.errorCode: backup.payload.undecryptable`. Keep the retired entry
-in the map until the rotation script reports zero rows on it.
+If you drop a key too early, nothing is lost for good and nothing is changed by
+mistake. A stored copy sealed under the removed key is refused on restore,
+download and preview with `422` and
+`meta.errorCode: backup.payload.undecryptable`. A copy whose content needs the
+removed key is refused on preview and upload with `422` and
+`meta.errorCode: backup.key.missing`, naming the key, and its restore fails with
+the same reason. Put the key back into `ENCRYPTION_KEYS` and restart, and both
+copies restore.
 
 Stored backups rotate like every other column. A copy stored in pieces
 (v1.39.2 on) is re-sealed piece by piece in small batches without reading the

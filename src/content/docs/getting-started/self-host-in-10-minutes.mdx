@@ -121,13 +121,18 @@ box, so password reset has no self-service path until you set up SMTP (see
 [reminder channels](/guides/reminder-channels/#email)). Two recovery paths
 exist without it. An admin who can still sign in resets any other user from
 the admin panel (**Admin → Users**, backed by
-`POST /api/admin/users/{id}/reset-password`), which sets a new password and
+`POST /api/admin/users/{id}/reset-password`), which asks you to confirm it is you, sets a new password and
 signs that user out everywhere. A locked-out solo admin runs the reset script
 that ships in the image, from the host:
 
 ```bash
 docker compose exec app node scripts/reset-password.mjs <username-or-email>
 ```
+
+The script ships in the image from v1.39.3. On v1.39.2 and earlier the command
+fails with "Cannot find module"; update first, or run it from a source checkout
+as described under
+[Password reset](/guides/sign-in-and-security/#password-reset).
 
 It prompts for the new password without echoing it (minimum 12 characters)
 and writes the same Argon2id hash the app would. See
@@ -204,6 +209,14 @@ when a guide tells you to set a new variable, it also tells you to add it to the
 whitelist. `HEALTHLOG_IMAGE_REF` lets you pin a release instead of `:latest`
 (`HEALTHLOG_IMAGE_REF=:v1.38.1` or an `@sha256:…` digest), and
 `APP_MEMORY_LIMIT` raises the app container's memory cap.
+
+Out of the box the server makes three small requests of its own, none carrying
+health data: a password breach check when a password is set, an update check
+for the version badge, and a location lookup for sign-in addresses. Set
+`PASSWORD_BREACH_CHECK_DISABLED`, `UPDATE_CHECK_DISABLED` or
+`IP_GEO_LOOKUP_DISABLED` to `1` to switch any of them off (v1.39.3 and later);
+[Security and privacy](/security/overview/#what-leaves-the-instance) says what
+each one sends.
 
 ## Where to go next
 
