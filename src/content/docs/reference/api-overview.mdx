@@ -138,6 +138,18 @@ appears on error responses only (carrying `errorCode` and similar):
 Validation failures (422) return all Zod issues in a multi-issue envelope,
 sanitised against the echoed input.
 
+## Resolved on the server
+
+Where an answer depends on rules, the server publishes the resolved value and
+clients render it rather than working it out again, so the web app and the
+native app cannot disagree. Examples: the `ai` block on `GET /api/auth/me`
+(whether each AI feature is available, and why not); `courseStatus` and
+`intakeActionable` on the medication reads (since v1.39.4: where today sits in
+the course, and whether taken and skip are offered); and `cursorExpired` on
+`GET /api/sync/changes` (the client's position no longer holds, since v1.39.4
+also after a restore or a data wipe). The OpenAPI document describes each
+field.
+
 ## Idempotency
 
 Idempotency is opt-in per route, not a property of the method. A route that
@@ -187,6 +199,10 @@ records. Its 429 carries the four headers and, uniquely among the limiter's
 refusals, `meta.errorCode: record_write.rate_limited`, which is how a client
 tells the shared bucket from a route's own. The batch endpoints keep their own
 60-a-minute buckets.
+
+The Coach stream allows 20 messages a minute per account. A tapped follow-up
+suggestion is a message too, including one answered from a stored table
+without a model call.
 
 Limits live in Postgres (a single atomic SQL
 upsert), so multi-instance correctness is structural. The bucket key is
