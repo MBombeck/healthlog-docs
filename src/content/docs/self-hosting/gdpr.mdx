@@ -242,6 +242,13 @@ versioned key map, passkey-first sign-in with Argon2id passwords behind it,
 server-side sessions, HMAC-hashed API tokens, rate limits in the database rather
 than in memory, and a strict Content-Security-Policy.
 
+Location data gets the same care. The GPS track of an outdoor workout is
+stored encrypted, since its first and last points usually give away a home
+address, and so are the phone numbers and addresses of the practitioners a
+person records. The weather module keeps its home and travel places rounded
+to one decimal of a degree, about 11 km: enough for regional weather, not
+enough to find a street.
+
 What it cannot bring is the deployment. Serve the instance over TLS, keep
 `ENCRYPTION_KEYS` somewhere other than the disk holding the database, restrict
 who can reach the host, keep the image current, and verify what you deployed.

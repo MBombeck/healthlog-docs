@@ -67,6 +67,14 @@ silent tracking, no coarse-location guess from your network, no continuous
 position feed. The override is something you reach for deliberately, not a sensor
 running in the background.
 
+Whatever place you set is stored coarse. Since v1.39.4 the home location, the
+places of travel periods and the location saved with each day's weather are
+rounded to one decimal of a degree, about 11 km north to south, the size of a
+town or a city district. Before, they were rounded to about a kilometre, which
+is closer to a street; the upgrade rounds what is already stored. The weather
+data comes in grid cells of 9 to 25 km, so the coarser location changes the
+weather attached to your days very little.
+
 Later stages — coarse location from the iOS client, or a bedroom-temperature feed
 from a home-automation setup — are separate, opt-in follow-ups, not part of this
 first version.
