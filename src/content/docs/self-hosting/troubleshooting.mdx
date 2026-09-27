@@ -243,6 +243,29 @@ If jobs still time out, check the container's restart count and its memory
 limit: the container that runs the worker needs at least 1 GB, and 512 MB is
 not enough for a backup of any account.
 
+## The app restarts with "JavaScript heap out of memory"
+
+**Symptom.** The app log shows `FATAL ERROR: Reached heap limit Allocation
+failed - JavaScript heap out of memory`, the container restarts, and after the
+restart the log names jobs that were cut off (`worker.boot.jobs_cut_off`). A
+restore on the admin backups page says it was restarted after a server
+restart. `docker inspect` reports `OOMKilled` as `false`: the app hit its own
+heap limit, which in a 1 GB container is about 524 MB, before Docker stepped
+in.
+
+**Cause.** Before v1.39.5 two paths could hold more than that on a very large
+account. The Google Health import of a full history read a per-minute
+heart-rate stream into memory all at once, which on 1.3 million readings went
+past the limit within seconds. A restore kept the values of its last hundred
+database statements, a thousand readings each, for the whole time it wrote
+readings.
+
+**Fix.** Update to v1.39.5 or later. The import writes one page at a time and
+the restore a hundred readings per statement. If you set
+`NODE_OPTIONS=--max-old-space-size=1536` as a stopgap, remove it again; if the
+error comes back without it, please open an issue with the log lines around
+it.
+
 ## A backup fails with a message naming `BACKUP_MAX_STORED_MB`
 
 **Symptom.** One account's row on the admin backups page keeps an old date, or

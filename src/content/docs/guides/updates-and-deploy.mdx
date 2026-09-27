@@ -134,6 +134,23 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.39.5
+
+There are no migrations of HealthLog's own and no new settings. Take a database
+backup first, as always.
+
+The job queue library (pg-boss) moves to 12.34 and updates its own tables in
+the `pgboss` schema on the first start, from schema version 37 to 42. The
+update adds a few columns to its small bookkeeping tables and replaces some of
+its functions; it does not rewrite the job table and runs in a moment. Schedules
+that carry no time zone are set to UTC, which is what they already ran on;
+HealthLog sets a time zone on every schedule it creates.
+
+If you raised `NODE_OPTIONS=--max-old-space-size` because a large heart-rate
+history or a restore ran the app out of memory, you can drop it again after
+updating. See [The app restarts with "JavaScript heap out of
+memory"](/self-hosting/troubleshooting/#the-app-restarts-with-javascript-heap-out-of-memory).
+
 ## Upgrading to v1.39.4
 
 ### Migrations 0360 to 0363
