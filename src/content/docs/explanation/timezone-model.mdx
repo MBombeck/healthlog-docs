@@ -49,7 +49,10 @@ Fitbit or Google Health rereads the whole history.
 Every chart range up to a year cuts days at midnight in the timezone of your
 profile. Ranges longer than a year still group readings by weeks and months cut
 at UTC midnight, where a few hours at the edge of a month make no visible
-difference. Before
+difference. Before v1.39.4 such a week or month was also labelled by that UTC
+midnight, which west of UTC is the evening before, so every month of the
+**All** range sat one month early; it now falls in its own week or month in
+every timezone. Before
 v1.39.0 the 7-day chart counted readings on your calendar day while the longer
 ranges read totals cut at midnight UTC and labelled them in your timezone, so
 steps, active energy, flights climbed and walking and running distance could
