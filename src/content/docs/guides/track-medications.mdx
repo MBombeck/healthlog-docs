@@ -20,6 +20,19 @@ Open `/medications` and start the wizard. You set the name, an optional dosage
 and unit, a route of administration (oral / injection / other — injection adds a
 site picker), an optional supply count for the runway estimate, and a schedule.
 
+The wizard also asks what kind of medication it is: blood pressure, diabetes,
+hormones, GLP-1 injection, pain, allergy, vitamins, supplement, antibiotic,
+mental health, thyroid, gastrointestinal, skincare, sleep aid or other. The
+card shows the category. **Mental health** (antidepressants, anxiety and ADHD
+medication, mood stabilisers) is new in v1.39.4; such medications used to go
+under **Other**. From the same release, editing a medication keeps its category
+unless you pick another one. Before, a thyroid, gastrointestinal, skincare or
+sleep-aid medication opened in the edit wizard as **Other** and was saved back
+as **Other** with any unrelated change. Backups carry the category too since
+v1.39.4; before, no backup did, and after a restore every medication read as
+**Other**. A backup written by an earlier version carries no category, so its
+medications still restore as **Other**.
+
 ### Units per dose
 
 Units per dose says how many units one dose uses, for example one tablet or
@@ -102,7 +115,7 @@ HealthLog only tracks the dose schedule and intake; it gives no dosing advice.
 Not every medication needs a daily check-in. If you want HealthLog to hold what
 you take, since when, at which dose and on which schedule, without logging each
 dose, switch off **Track intake**. The switch sits at the top of the
-**Zeitplan** tab and on the summary page of the medication wizard. It exists
+**Schedule** tab and on the summary page of the medication wizard. It exists
 since v1.39.1 and is on for every medication until you change it.
 
 With tracking off:
@@ -151,7 +164,7 @@ medication in the web app.
 Each dose time can carry either a point time or an explicit range — for example
 `07:00–09:00`. The default is ±1 hour. The window defines the **on-time band**:
 an intake that lands inside it counts as on time rather than late. Edit the
-window on the **Zeitplan** tab or in the wizard.
+window on the **Schedule** tab or in the wizard.
 
 This matters because the ledger grades each slot against its window. A take a
 few minutes outside the band reads as late, not missed; a weekly dose taken
@@ -192,9 +205,29 @@ signal both look like that, but turning your "taken" into a "skipped" is refused
 at every level.
 :::
 
+### When Taken and Skip appear
+
+A medication offers **Taken** and **Skip**, on its card, in the table and in
+the button that takes every due dose at once, only while all three hold: it is
+active, its intake is tracked, and its course includes today. The course is
+counted in calendar days on your clock, and both ends count: a course that
+starts today offers them from midnight, and one that ends today keeps them for
+the whole of today. Before the start date nothing is offered yet. After the
+end date the medication shows an **Ended** badge, the table shows **Ended**
+where the next dose would be, and nothing is due. Reminders and the doses card
+on the start page already stopped at the end date; up to v1.39.3 the card and
+the table still offered a dose, and the detail page called the last day of a
+course ended before that day was over. You can still add a missed dose
+afterwards from the **History** tab.
+
+For API clients, the medication list and detail reads carry `courseStatus`
+(`UPCOMING`, `CURRENT` or `ENDED`) and `intakeActionable` since v1.39.4. Show
+Taken and Skip when `intakeActionable` is true rather than working it out
+from `active` and the dates.
+
 ## Attribute an off-schedule dose to its slot
 
-When an intake lands off schedule, the **Verlauf** (history) row shows when the
+When an intake lands off schedule, the **History** row shows when the
 dose had been due and offers to **attribute** the intake to that slot. The
 attributed dose is visibly badged and reversible at any time. Since v1.39.1 it
 counts exactly as if it had been logged for that slot: on time when it was
@@ -209,7 +242,7 @@ fact.
 
 ## Reminders
 
-Set reminder times and channels on the reminder card inside the **Zeitplan**
+Set reminder times and channels on the reminder card inside the **Schedule**
 tab, under the times editor. The dispatcher fans
 each reminder out to whichever channels the user enabled, with late/missed
 escalation. See [Reminder channels](/guides/reminder-channels/) for the channel
