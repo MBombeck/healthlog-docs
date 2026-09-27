@@ -134,6 +134,94 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.39.4
+
+### Migrations 0360 to 0363
+
+Three of the four only add columns and indexes. One rounds stored
+coordinates, which cannot be undone.
+
+- `0360_coach_message_results` adds a column to `coach_messages` for the tables
+  of values a Coach answer read, stored encrypted (see
+  [Coach conversations](/guides/coach-conversations/)). Nothing else changes.
+- `0361_encrypt_route_geometry_and_practitioner_contact` adds encrypted columns
+  for the GPS track of a workout and for a practitioner's phone number and
+  address, makes the old track column optional, and adds two small indexes
+  that let the background job find the rows it still has to encrypt. SQL cannot
+  encrypt, so a background job starts a few minutes after boot, encrypts the
+  existing rows one at a time and empties the readable value in the same step.
+  It looks again every night at 04:07 Europe/Berlin for rows an older server
+  wrote during the upgrade. Until it has reached a row, the app reads that row
+  as before, so the map, the splits, the GPX download and the address book look
+  the same throughout. A large archive of outdoor workouts takes a few minutes.
+  The old columns are dropped in a later release. The same migration rounds the
+  weather module's stored coordinates (home, travel periods, each day's
+  weather) to one decimal of a degree, about 11 km; see
+  [the environmental module](/explanation/environmental-module/#a-conservative-location-posture).
+- `0362_measurement_reference_indexes` indexes the two columns that point into
+  the readings table, `personal_records.source_measurement_id` and
+  `ecg_recordings.measurement_id`. Without them, deleting readings checked both
+  tables once per deleted reading, which made a restore of a large account run
+  out of time, and slowed the nightly clean-up and account deletion. Both
+  tables are small, and the indexes are built during start-up, before the app
+  takes traffic.
+- `0363_user_sync_reset_at` adds `users.sync_reset_at`, the moment an
+  account was last restored from a backup or wiped. Paired apps holding a sync
+  position from before it start over (see
+  [Paired apps after a restore](/guides/backups/#paired-apps-after-a-restore)).
+
+Take a database dump before deploying. Going back to v1.39.3 after the
+background job has run is not supported: that version reads only the readable
+columns the job empties, so workout tracks and practitioner phone numbers and
+addresses would disappear from view. Restore the dump instead.
+
+### What to check as an operator
+
+- **Nothing to configure.** No new variable, and the encryption uses your
+  existing `ENCRYPTION_KEYS`. [Key rotation](/guides/encryption-key-rotation/)
+  covers the new columns; as always, keep an old key until the rotation reports
+  nothing left on it.
+- **Restores of large accounts.** The restore job may now run for six hours
+  instead of two, and a restore's own time limit counts the readings the
+  account holds as well as the ones in the file. A restore that the database
+  refuses names the cause on the admin backups page. See
+  [How long a restore may take](/guides/backups/#how-long-a-restore-may-take).
+- **Backup files.** A disaster-recovery backup carries the new encrypted
+  fields (practitioner phone and address, Coach tables) as ciphertext, like the
+  practice note; a portable export carries them readable, since that file is
+  meant to be read. Restoring either kind, or a file from before v1.39.4,
+  stores them encrypted. Workout GPS tracks are still not part of a backup, and
+  the file's manifest still says so.
+
+### What people will notice
+
+- **The Coach shows its work.** With a provider that can call tools, an answer
+  lists the sources the Coach read, shows the values as tables and charts that
+  can be copied, explains how a figure was worked out, and offers follow-up
+  suggestions. An ambiguous question gets a short question back with choices.
+  See [Coach conversations](/guides/coach-conversations/).
+- **Ended medications stop asking for a dose.** After a course's end date the
+  card and the table no longer offer Taken and Skip and show **Ended**; **Mental
+  health** is a new medication category, and editing a medication or
+  restoring a backup keeps its category. See
+  [When Taken and Skip appear](/guides/track-medications/#when-taken-and-skip-appear).
+- **Long charts show the average day.** On the **All** range each week or
+  month of steps, active energy, distance, flights or daylight is the average
+  daily total, captioned **Daily avg per week** or **Daily avg per month**, the
+  same on a long history as on a short one. Before, a long history showed the
+  whole total, about thirty times higher for a month. West of UTC, months on
+  that range no longer sit one month early. See
+  [Dashboard customization](/features/dashboard-customization/).
+- **Weather locations are coarser.** A home place stored to about a kilometre
+  is now stored to about 11 km. The weather readings change very little, since
+  the weather data comes in cells of 9 to 25 km.
+- **The sidebar's collapse control moved** from the top of the desktop sidebar
+  to the bottom: a row labelled **Collapse**, directly above **Admin Console**,
+  or above **Settings** for an account without admin access. A saved choice to
+  keep the sidebar collapsed carries over.
+- **Editing a practitioner's phone number or address** records only which
+  field changed in the audit log, not the old value.
+
 ## Upgrading to v1.39.3
 
 ### Migrations 0356 to 0359
