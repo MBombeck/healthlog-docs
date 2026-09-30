@@ -218,7 +218,10 @@ where the next dose would be, and nothing is due. Reminders and the doses card
 on the start page already stopped at the end date; up to v1.39.3 the card and
 the table still offered a dose, and the detail page called the last day of a
 course ended before that day was over. You can still add a missed dose
-afterwards from the **History** tab.
+afterwards from the **History** tab. Since v1.39.6 the quick dose entry on the
+dashboard offers the same medications, so an ended course no longer appears
+there, and when none can be taken today it says nothing is due instead of
+saying you have no medications.
 
 For API clients, the medication list and detail reads carry `courseStatus`
 (`UPCOMING`, `CURRENT` or `ENDED`) and `intakeActionable` since v1.39.4. Show

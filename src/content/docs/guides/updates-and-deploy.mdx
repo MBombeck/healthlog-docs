@@ -134,6 +134,26 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.39.6
+
+Take a database backup first, as always. There are no new settings.
+
+Migration `0364_data_backup_preview` adds one nullable column,
+`data_backups.preview`, which holds the counts the restore dialog shows. New
+backups fill it when they are written. Backups made before the upgrade have
+none until the dialog first opens them; see
+[Restore from the console](/guides/backups/#restore-from-the-console).
+
+This release moves Next.js to 16.3.6, which fixes a critical vulnerability in
+the versions HealthLog used before, and raises fast-uri, ip-address and
+dompurify for advisories of their own. Please update.
+
+Full-history imports of connected services now have sixteen hours instead of
+fifteen minutes. An import that was already queued before the upgrade keeps
+the fifteen-minute limit it was queued with until it has run once. A retry of
+it that starts while it is still running stops at once, so it no longer runs
+twice.
+
 ## Upgrading to v1.39.5
 
 There are no migrations of HealthLog's own and no new settings. Take a database
