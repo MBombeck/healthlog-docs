@@ -1,6 +1,6 @@
 ---
 title: Push readings from your own hardware
-description: Mint a measurement ingest token and post readings from a scale, a watch bridge, or a Home Assistant rule to your own record, with a worked rest_command and the error responses explained.
+description: Mint a measurement or workout ingest token and post readings or workouts from a scale, a watch bridge, or a Home Assistant rule to your own record, with a worked rest_command and the error responses explained.
 sidebar:
   order: 21
 ---
@@ -14,7 +14,8 @@ reaches.
 Nothing here is specific to Home Assistant. Node-RED, a cron job with `curl`,
 or anything else that can set a header works the same way.
 
-For documents rather than readings, see
+For workouts, a bridge needs a token of its own; see
+[Push workouts](#push-workouts). For documents rather than readings, see
 [Import documents from Paperless-ngx or Papra](/guides/import-documents/).
 
 ## Mint a token
@@ -36,6 +37,8 @@ session cookie only, so no API token can mint one of these, not even the
 wildcard token a native sign-in holds. The reason is lifetime rather than
 reach: the sign-in a phone holds lasts a day, and what it could mint here lasts a year, so a credential that
 leaked for an afternoon would leave behind one that outlives cancelling it.
+Unless you signed in within the last five minutes, HealthLog first asks you to
+[confirm it is you](/guides/sign-in-and-security/#confirming-it-is-you).
 Mints are limited to ten per minute, and if the operator has switched the API
 off in the admin panel the mint is refused with `403`. You may hold ten live
 tokens at once; the eleventh mint is refused with `409` and the remedy is to
@@ -320,6 +323,63 @@ endpoint reports such an entry as `duplicate` instead of failing the call;
 skipped as `value_out_of_range` also carries `convertedValue` (the value after
 conversion into the stored unit) and `range` (`min`, `max` and `unit`), so a
 body-fat percentage sent as a fraction is easy to spot.
+
+## Push workouts
+
+A measurement token does not cover workouts. A bridge that forwards sessions
+from a watch, or a script that replays an exported history, needs a workout
+token: **Settings → API & Tokens → Workout tokens**. Minting works like the
+measurement token above. The token is shown once, lives a year unless you
+pick a shorter lifetime (1 to 365 days), needs a browser session and a recent
+confirmation that it is you, and appears in the same token list, where you
+revoke it. You may hold ten live workout tokens at once; the eleventh mint is
+refused with `409`. A bridge that sends both readings and workouts holds one
+token of each kind.
+
+It can add workouts to your own record through `POST /api/workouts/batch`, up
+to 100 per call, and nothing else. It cannot list or read a workout, change or
+delete one, reach the measurement or document endpoints, or mint another
+token; a request to any other route is refused with `403`. A measurement token
+sent to the workout endpoint is refused with `403` as well.
+
+Workouts written with it carry `source: EXTERNAL`. As with readings, the body
+must not name a source: a batch in which any entry carries `source` is refused
+whole with `422` and `meta.errorCode: workout.batch.source_not_permitted`.
+`EXTERNAL` is on none of the source priority ladders, so when your phone also
+recorded the same session, the phone's recording is the one the workout list
+shows. The bridged copy is still stored.
+
+```bash
+curl -X POST https://healthlog.example.com/api/workouts/batch \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "workouts": [
+        { "sportType": "running",
+          "startedAt": "2026-03-14T06:30:00Z",
+          "endedAt": "2026-03-14T07:12:00Z",
+          "totalDistanceM": 8200,
+          "totalEnergyKcal": 610,
+          "avgHeartRate": 148,
+          "maxHeartRate": 171,
+          "externalId": "suunto-7f3c2a91" }
+      ] }'
+```
+
+`sportType` is one of `walking`, `running`, `cycling`, `hiking`, `swimming`,
+`rowing`, `elliptical`, `stairClimber`, `yoga`, `mindAndBody`, `strength`,
+`hiit`, `dance`, `golf`, `badminton`, `tennis`, `basketball`, `soccer`,
+`crossTraining`, `mixedCardio` or `other`. `startedAt` and `endedAt` need a
+time zone offset or `Z`, and `endedAt` has to be later than `startedAt`.
+
+Give every workout an `externalId` taken from the source's own record id and
+keep it the same on every run. A workout sent again with the same id is
+answered with `"status": "duplicate"` in `entries` and not stored twice. An
+id that changes between runs, such as one that embeds a memory address, is
+refused for that entry as `skipped` with the reason `unstable_external_id`,
+and the rest of the batch still lands. A body that fails validation is
+refused with `400` and `workout.batch.invalid`, and more than 100 workouts in
+one call with `400` and `workout.batch.too_large`. The endpoint allows 60
+calls a minute per account.
 
 ## When it stops working
 

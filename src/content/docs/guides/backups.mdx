@@ -294,6 +294,17 @@ The bucket object is the disaster path. The routine one is the backup table
 under `/admin/backups`, which holds each account's stored snapshots as database
 rows. Pick a row, choose **Restore**, and type `RESTORE`.
 
+Before you confirm, the dialog shows what the backup contains: how many
+readings, medications, mood entries, lab results, documents, workouts and so
+on. Since v1.39.6 these counts are worked out when the backup is made and kept
+with it, so the preview appears at once however large the account is. A backup
+made before v1.39.6 has no counts yet. The first time you open it, the server
+reads the whole copy once and keeps the counts, and from then on it opens
+instantly too. For a large account that first read can take longer than the
+dialog waits; it then says the backup was made by an earlier version and is
+still being read, and to open the dialog again in a few minutes. The restore
+itself does not depend on the preview.
+
 To restore a file you hold (a dump from the restore script, or an export),
 upload it on the same page first; it becomes a row of its own. The upload
 takes a `.json` or a `.json.gz` file. Since v1.39.1 the page compresses a
@@ -424,7 +435,9 @@ Two more things keep a large restore short:
   deletion. A restore leaves out every such row older than 75 days, which the
   next nightly clean-up would remove anyway. Younger ones are restored. The
   file itself is unchanged, and the restore summary counts the readings it
-  wrote.
+  wrote. Since v1.39.6 that clean-up leaves an account alone while a restore
+  of it is running and removes that account's old deleted rows the next
+  night, instead of waiting on the restore's rows until it ran out of time.
 - **The charts are rebuilt with their own allowance.** After the data is
   written, the restore rebuilds the summaries the charts read, with up to ten
   minutes per step. Before v1.39.4 that step had the session limit too, and on

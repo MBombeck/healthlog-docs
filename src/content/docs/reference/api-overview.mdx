@@ -51,11 +51,13 @@ Two methods, with a hard structural boundary between them:
   `measurements:write` for
   [pushing readings from your own hardware](/guides/ingest-token/), and
   `documents:write` (since v1.39.2) for
-  [importing documents](/guides/import-documents/). Only the
+  [importing documents](/guides/import-documents/), and `workouts:write`
+  (since v1.39.6) for [pushing workouts](/guides/ingest-token/#push-workouts).
+  Only the
   login, passkey and refresh paths mint a wildcard (`["*"]`) token; every
-  user-facing mint endpoint hardcodes one narrow scope. The measurement-token
-  and document-token mints additionally accept the session cookie only, so no
-  API token, wildcard included, can mint one.
+  user-facing mint endpoint hardcodes one narrow scope. The measurement-token,
+  document-token and workout-token mints additionally accept the session cookie
+  only, so no API token, wildcard included, can mint one.
 
 :::caution[Bearer scope is fail-closed since v1.30.17]
 A route accepts a narrow-scope token only if it **names** the scope it accepts.

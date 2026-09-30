@@ -243,6 +243,16 @@ If jobs still time out, check the container's restart count and its memory
 limit: the container that runs the worker needs at least 1 GB, and 512 MB is
 not enough for a backup of any account.
 
+The full-history import of a connected service (WHOOP, Fitbit, Google Health,
+Strava) had fifteen minutes before v1.39.6. A long heart-rate history takes
+hours, so the import was marked as timed out while it was still running, and
+its retry started beside it; the log could show the same import running
+several times at once. From v1.39.6 an import has sixteen hours, and a second
+start of the same import for the same account stops at once and says so in
+the log. The Google Health import stops by itself after twelve hours and is
+tried again later; the new attempt reads the history from the start and
+overwrites what the first one wrote, so nothing is doubled.
+
 ## The app restarts with "JavaScript heap out of memory"
 
 **Symptom.** The app log shows `FATAL ERROR: Reached heap limit Allocation
