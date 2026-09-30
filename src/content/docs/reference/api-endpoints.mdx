@@ -37,7 +37,9 @@ The core ingest and read surface. Batch endpoints power the native client.
 | `DELETE` | `/api/measurements/by-external-ids` | Soft-delete rows by external id (HealthKit deletion reconciliation) |
 | `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
 | `GET` | `/api/analytics/range` | Trend summaries over a window |
+| `GET` | `/api/measurements/series` | One kind as a time series with summary `stats`; see the bucketing note below |
 | `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
+| `POST` | `/api/workouts/batch` | Workout ingest, up to 100 per call. Also accepts a `workouts:write` token (since v1.39.6) |
 | `GET` | `/api/devices` | Registered device list |
 
 :::note[Batch overwrite contract]
@@ -63,6 +65,18 @@ key writes again. See
 [Push readings from your own hardware](/guides/ingest-token/#sleep-stages) for
 sleep stages by name.
 
+`GET /api/measurements/series` sends `pulse` and `glucose` as buckets where
+raw readings would be too many: one point per local day beyond 90 days
+(`id` starting with `day:`), and inside 90 days one point per local hour
+(`id` starting with `hour:`) when the window holds more than 10,000 readings.
+A bucket's `value` is the mean; a `pulse` bucket also carries `valueMin` and
+`valueMax`, and a `glucose` bucket is converted to the user's unit like a raw
+reading. `stats` always counts every reading, never the buckets. Hourly pulse
+buckets exist since v1.39.5 and hourly glucose buckets since v1.39.6, so a
+continuous glucose sensor now arrives hourly inside 90 days while a
+fingerstick meter stays far under the threshold and keeps its raw points. The
+doctor report keeps glucose raw inside 90 days.
+
 The two `POST` endpoints are the only routes a `measurements:write` token can
 reach. Such a token writes on its owner's own record only (a request carrying
 the account selector is refused with `403` before any sharing grant is read),
@@ -70,6 +84,13 @@ its rows are attributed `EXTERNAL` (since v1.39.1; `MANUAL` before), a body or
 entry that names any `source` is refused with `422`, and a batch from it does
 not move the phone's sync checkpoint. See
 [Push readings from your own hardware](/guides/ingest-token/).
+
+`POST /api/workouts/batch` is the only route a `workouts:write` token can
+reach, and a `measurements:write` token is refused there with `403`. Rows it
+writes are attributed `EXTERNAL`, a batch in which any entry names a `source`
+is refused with `422` (`workout.batch.source_not_permitted`), and a re-sent
+`externalId` comes back as `duplicate`. See
+[Push workouts](/guides/ingest-token/#push-workouts).
 
 ## Medications
 
@@ -203,7 +224,8 @@ avatar, source priority, and the Codex device-OAuth flow.
 
 Since v1.39.3 `GET /api/export/full-backup`, `POST /api/export/encrypted`,
 `POST /api/share-links`, `POST /api/mcp/tokens`,
-`POST /api/tokens/measurements`, `POST /api/tokens/documents` and the admin
+`POST /api/tokens/measurements`, `POST /api/tokens/documents`,
+`POST /api/tokens/workouts` (since v1.39.6) and the admin
 backup download, upload and restore, `DELETE /api/admin/data` and
 `POST /api/admin/users/{id}/reset-password` answer a browser session that has
 not signed in or re-proved within five minutes with `401`
@@ -271,6 +293,7 @@ before upgrading.
 | `GET` | `/api/tokens` | The account's tokens with their scopes and expiry |
 | `POST` | `/api/tokens/measurements` | Mint a `measurements:write` token. Cookie only, with [fresh proof](#fresh-proof-on-the-web) since v1.39.3; the raw `hlk_` value is in this one response and nowhere else. Expires after 365 days unless a shorter `expiresInDays` is given; ten mints a minute |
 | `POST` | `/api/tokens/documents` | Mint a `documents:write` token (since v1.39.2). Same rules as the measurement mint: cookie only, raw value in this one response, 365 days unless a shorter `expiresInDays`, ten mints a minute, at most ten live document tokens (`409` beyond that) |
+| `POST` | `/api/tokens/workouts` | Mint a `workouts:write` token (since v1.39.6). Same rules as the measurement mint: cookie only with fresh proof, raw value in this one response, 365 days unless a shorter `expiresInDays`, ten mints a minute, at most ten live workout tokens (`409` with `tokens.workouts.ceiling_reached` beyond that) |
 | `DELETE` | `/api/tokens/{id}` | Revoke one token |
 
 MCP connector tokens have their own list and mint under `/api/mcp/tokens`
