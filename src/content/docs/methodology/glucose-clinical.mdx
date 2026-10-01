@@ -17,13 +17,20 @@ HealthLog stores glucose canonically in mg/dL and converts once, at the point a 
 
 Time-in-range is the share of your readings that fall in the target band, with the out-of-range readings split into low and high sub-bands. HealthLog uses the **2019 international consensus** band edges:
 
-| Band | Range (mg/dL) | Goal |
-| --- | --- | --- |
-| Very low (level 2) | < 54 | < 1% |
-| Low (level 1) | 54–69 | low + very-low < 4% |
-| **Target (in range)** | **70–180** | **> 70%** |
-| High (level 1) | 181–250 | high + very-high < 25% |
-| Very high (level 2) | > 250 | < 5% |
+| Band | Range (mg/dL) | Range (mmol/L) | Goal |
+| --- | --- | --- | --- |
+| Very low (level 2) | < 54 | < 3.0 | < 1% |
+| Low (level 1) | 54–69 | 3.0–3.8 | low + very-low < 4% |
+| **Target (in range)** | **70–180** | **3.9–10.0** | **> 70%** |
+| High (level 1) | 181–250 | 10.1–13.9 | high + very-high < 25% |
+| Very high (level 2) | > 250 | > 13.9 | < 5% |
+
+The band labels, the target line on the glucose page, its description and the
+fasting explanation state these edges in your unit. On mmol/L they use the
+figure the guideline itself prints rather than a converted one, which can differ
+in the last digit: the fasting cut-point of 100 mg/dL reads 5.6 mmol/L, where a
+plain conversion gives 5.5. Before v1.39.8 those labels and sentences always
+said mg/dL.
 
 These edges and goals are not HealthLog's invention — they are the consensus targets from Battelino et al., *Clinical Targets for Continuous Glucose Monitoring Data Interpretation* (Diabetes Care 2019, [DOI 10.2337/dci19-0028](https://doi.org/10.2337/dci19-0028)). The 70–180 mg/dL target band and the >70% goal are the headline numbers a clinician reads; the 54 and 250 cut points separate the clinically urgent extremes from the merely out-of-range.
 
