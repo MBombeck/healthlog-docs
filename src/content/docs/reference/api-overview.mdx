@@ -152,6 +152,11 @@ the course, and whether taken and skip are offered); and `cursorExpired` on
 also after a restore or a data wipe). The OpenAPI document describes each
 field.
 
+Text the server writes for a person is written in that person's units. Since
+v1.39.7 the health score's glycaemia labels, the Coach's tables of values and
+the metric status texts follow the reader's glucose unit and metric or imperial
+preference, so a client shows them as they come rather than converting them.
+
 ## Idempotency
 
 Idempotency is opt-in per route, not a property of the method. A route that

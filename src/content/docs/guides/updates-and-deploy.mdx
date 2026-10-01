@@ -134,6 +134,21 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.39.7
+
+Take a database backup first, as always. There are no migrations and no new
+settings.
+
+The daily briefing now carries its figures in each person's units, so every
+account's briefing is written once more at the next nightly run. With a paid
+AI provider that is one extra model request per account, once. With AI off or
+not set up, nothing is sent.
+
+Backups made from this release on also carry each account's settings and module
+selection, and a restore writes them back. Backups made before it restore as
+they always did, with the data and without the settings. See
+[Account settings in a backup](/guides/backups/#account-settings-in-a-backup).
+
 ## Upgrading to v1.39.6
 
 Take a database backup first, as always. There are no new settings.

@@ -41,6 +41,9 @@ The core ingest and read surface. Batch endpoints power the native client.
 | `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
 | `POST` | `/api/workouts/batch` | Workout ingest, up to 100 per call. Also accepts a `workouts:write` token (since v1.39.6) |
 | `GET` | `/api/devices` | Registered device list |
+| `POST` | `/api/mood-entries` · `/bulk` | Mood entries. Since v1.39.7 a write reports `droppedTagKeys` and `droppedFactorKeys`, each present only when non-empty: the submitted tag or factor keys that were not stored (unknown, archived or the wrong kind). The entry itself is stored. `PUT /api/mood-entries/{id}` reports them the same way |
+| `POST` | `/api/insights/ecg` | One ECG recording from the iPhone app. Since v1.39.7 `averageHeartRate` and `samplingFrequency` may carry a fraction; the server rounds both before storing. See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive) |
+| `POST` | `/api/labs/ocr/extract` | Read lab values from a photo or PDF. Since v1.39.7 a PDF longer than the page cap carries `pageCoverage` (`read`, `total`): only the first `read` pages were read |
 
 :::note[Batch overwrite contract]
 `POST /api/measurements/batch` recognises `externalId` values starting with
@@ -76,6 +79,18 @@ buckets exist since v1.39.5 and hourly glucose buckets since v1.39.6, so a
 continuous glucose sensor now arrives hourly inside 90 days while a
 fingerstick meter stays far under the threshold and keeps its raw points. The
 doctor report keeps glucose raw inside 90 days.
+
+Since v1.39.7 heart-rate variability (`heartRateVariability`) and blood oxygen
+(`oxygenSaturation`) follow the same rule, because watches and rings write them
+every few minutes overnight. They can return `day:` and `hour:` points under
+the same thresholds, with the mean as `value`.
+
+`GET /api/measurements?type=SLEEP_DURATION` lists one row per night and reads
+at most one year, ending at `to` (or now). An earlier `from` narrows that year
+but never widens it, and older nights are reached by moving `to` back. Since
+v1.39.7, when `from` reached further back than the year, `meta.windowFrom`
+says where the window actually started, so a client can tell a cut window
+from an empty history.
 
 The two `POST` endpoints are the only routes a `measurements:write` token can
 reach. Such a token writes on its owner's own record only (a request carrying

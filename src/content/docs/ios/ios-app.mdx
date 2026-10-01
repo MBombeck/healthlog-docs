@@ -115,6 +115,7 @@ The iPhone can generate a doctor-report PDF from the device, mirroring the [heal
 | Sign-in fails immediately | The instance is not served over HTTPS, or the certificate is not trusted by the device | Serve over valid TLS; see [TLS certificates](/self-hosting/tls-certificates/). For a private CA, configure a [pin](/security/certificate-pinning/). |
 | No HealthKit data appears | Read permission was denied for those types | Re-grant in iOS **Settings → Privacy & Security → Health → HealthLog**. |
 | Duplicate steps after an `export.zip` import | None — the external-ID convention dedupes phone syncs against the importer | If you still see duplicates, check [Source priority](/explanation/source-priority/). |
+| Newer ECG recordings are missing | Before v1.39.7 the server refused recordings whose average heart rate had a fraction | Update the server; recordings refused earlier arrive once an app update sends them again, or right away by uploading the Apple Health `export.zip` under Import. See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive). |
 | Push reminders arrive twice | Both the phone and the server are reminding | The app should opt into client-managed reminders; see [Notifications](/guides/reminder-channels/). |
 
 ## Links
