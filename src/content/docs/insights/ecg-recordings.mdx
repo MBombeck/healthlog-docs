@@ -29,6 +29,23 @@ line. Around the trace, each recording carries:
 
 Recordings list newest first, so the most recent strip is the one you open.
 
+## How recordings arrive
+
+The iPhone app sends each recording from Apple Health to the server. Apple
+Health hands over the average heart rate and the sampling frequency as
+decimal numbers, and the heart rate often carries a fraction, such as 64.7
+beats per minute. Up to v1.39.6 the server
+expected whole numbers and refused those recordings, so many newer ones never
+arrived while older ones whose values happened to be whole did. Since v1.39.7
+the server accepts both values with a fraction and rounds them to whole
+numbers before storing them.
+
+A recording the server refused before stays missing until it is sent again.
+That needs an iPhone app update that sends it once more. Until then, you can
+bring the recordings in by uploading the Apple Health export ZIP under Import:
+the ECG files in its `electrocardiograms` folder are read as recordings. See
+[Import Apple Health](/guides/import-apple-health/).
+
 ## The result belongs to the device, not to HealthLog
 
 The classification shown with a recording is the **recording device's own

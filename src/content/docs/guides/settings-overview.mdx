@@ -33,6 +33,21 @@ block holds the identity details that end up on the doctor report (full name,
 insurer, insurance number). Needs nothing beyond a signed-in session. Cycle
 tracking is not switched on here; that lives under Modules.
 
+This section also holds the time zone, the date and time format, metric or
+imperial units, and the glucose unit (mg/dL or mmol/L). Since v1.39.7 every
+surface follows the two unit choices: charts and lists, the metric status
+notes, the period review, the health score's glucose labels, the glucose
+thresholds under Targets, workouts (distance, pace, elevation), the trends row,
+fever entries, basal temperature, the Coach and the daily briefing. The texts
+the AI writes are handed their figures in your units, and changing a unit
+rewrites the stored status notes, period reviews and briefing in the new one.
+The clinician share view and the doctor report show glucose in your glucose
+unit, but keep weight, length and temperature in metric units whatever you
+chose, because they are written for a doctor. Storage stays in SI units, and the
+[FHIR export](/features/fhir-export/) keeps its standard UCUM units. The time
+zone decides where your days begin and end; see
+[the time zone model](/explanation/timezone-model/).
+
 A **Setup** card, since v1.38.18, is the way back into the first run.
 **Set up again** asks the questions once more with the old answers prefilled;
 it resets the steps and the first result and writes no module state, so a

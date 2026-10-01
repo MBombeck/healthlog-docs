@@ -53,7 +53,9 @@ The parser folds three XML element types into the schema:
 | `<Correlation>` | `Measurement` rows | Compound samples like blood pressure explode into per-metric children; the child Records import individually. |
 
 Anything outside the mapped set (`<ClinicalRecord>` elements, workout routes,
-ECG voltage traces) is counted in the skip tally but not stored.
+ECG entries in `export.xml`) is counted in the skip tally but not stored. ECG
+recordings come in through the export's `electrocardiograms` folder instead:
+each CSV file there is stored as a recording when you upload the ZIP.
 
 ### Cumulative types collapse to one row per day
 

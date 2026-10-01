@@ -23,6 +23,8 @@ A clinical system, or a script of your own, can pull your record as FHIR resourc
 
 For a person with no account and no software, the **Sharing** card under **Settings → Health record** mints a time-limited, passphrase-protected link to a read-only view of a frozen selection of your record. The same link offers the PDF and the FHIR Bundle of that selection for download, and you revoke it when the visit is over. A share link never opens the FHIR API. See [Sharing documents with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
 
+Every statistic in the shared view carries its unit, so a doctor reads "latest 5.8 mmol/L" rather than a bare number. Glucose is shown in the unit you chose under **Settings → Account** (mg/dL or mmol/L), in the view and in the PDF alike. Weight, length and temperature stay in metric units even when you use imperial ones, because the view is written for a clinician. The FHIR Bundle keeps its standard UCUM units either way.
+
 ## Another account on your instance gets none of these
 
 A [shared-access grant](/guides/shared-access/) lets somebody with their own account read or maintain your record inside the app, but a delegate cannot export it, reach the FHIR API, or mint a share link at any grant level. Taking a copy of a record out is a different act from keeping the record; the reasoning is in [What a shared record is](/explanation/record-sharing/).

@@ -360,7 +360,7 @@ entered this morning is gone if the snapshot is from last night. That is the
 point of the action, and it is why the typed confirmation is there.
 
 **The instance settings stay put unless you ask.** The checkbox beside the
-confirmation, **Restore instance settings**, is off by default. Off, the restore
+confirmation, **Also restore instance settings**, is off by default. Off, the restore
 touches one account's data. On, it also rewrites the singleton settings row:
 registration, the second-factor requirement, the default language and timezone,
 module availability, notification and AI configuration, and the document size
@@ -512,6 +512,45 @@ samples into hourly or daily values. A backup keeps the replaced samples,
 marked as deleted, until they are removed 75 days later, so backups of such an
 account get smaller only then. See
 [why the reading count drops](/guides/import-apple-health/#why-the-reading-count-drops-after-an-import).
+
+## Account settings in a backup
+
+Since v1.39.7 a backup also carries how the account is set up, in a section of
+its own (`accountSettings`). A restore writes these back onto the account, so
+a record restored into a fresh account reads the way it did before instead of
+starting from the defaults.
+
+What comes back: the unit preference and the glucose unit, language, time
+zone, date and time format, the module selection, thresholds, the dashboard and
+list layouts, notification and reminder preferences, the health score
+configuration, source priority, and your AI choices (provider, model, order,
+timeout, privacy options, whether the Coach is on), but never the AI keys. The
+profile comes back too: height, date of birth, sex, name, insurance details,
+the profile picture, the home location, and how far the account got through
+setup, the tour and the disclaimer.
+
+What never comes back: the password, passkeys, two-factor secrets, API keys,
+integration keys and tokens, single sign-on links, and the state of a
+connection. The Telegram bot token and chat are credentials too, so Telegram
+reminders stay as the receiving account has them, which in a fresh account
+means off until you connect the bot again. A restored AI provider without its
+key reads as not configured until you enter one, the same as after removing a
+key in Settings. The account's role, sign-in name and the limits an operator
+set for it are never changed by a restore either.
+
+Each value from the file is checked the way the settings page checks it when
+you save it, because the file may come from another host, an older release or
+a text editor. A value this server will not take, such as an unknown language
+or time zone, a threshold out of range, or a local AI address this host does
+not allow, is skipped. The account keeps the value it had, and the restore
+result lists the column under **Account setting**, so a setting that did not
+come back is never reported as restored.
+
+A backup made before v1.39.7 has no settings section. It restores exactly as
+before, with the data and without the settings, and the account keeps its
+current ones. The instance-wide settings are a separate matter: they come back
+only when you tick **Also restore instance settings** (see
+[Restore from the console](#restore-from-the-console)).
 
 ## What a backup does not carry
 
