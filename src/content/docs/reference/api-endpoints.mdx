@@ -39,10 +39,10 @@ The core ingest and read surface. Batch endpoints power the native client.
 | `GET` | `/api/analytics/range` | Trend summaries over a window |
 | `GET` | `/api/measurements/series` | One kind as a time series with summary `stats`; see the bucketing note below |
 | `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
-| `POST` | `/api/workouts/batch` | Workout ingest, up to 100 per call. Also accepts a `workouts:write` token (since v1.39.6) |
+| `POST` | `/api/workouts/batch` | Workout ingest, up to 100 per call, 60 calls a minute per account. Also accepts a `workouts:write` token (since v1.39.6), whose calls count in a separate allowance (since v1.39.8) |
 | `GET` | `/api/devices` | Registered device list |
 | `POST` | `/api/mood-entries` · `/bulk` | Mood entries. Since v1.39.7 a write reports `droppedTagKeys` and `droppedFactorKeys`, each present only when non-empty: the submitted tag or factor keys that were not stored (unknown, archived or the wrong kind). The entry itself is stored. `PUT /api/mood-entries/{id}` reports them the same way |
-| `POST` | `/api/insights/ecg` | One ECG recording from the iPhone app. Since v1.39.7 `averageHeartRate` and `samplingFrequency` may carry a fraction; the server rounds both before storing. See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive) |
+| `POST` | `/api/insights/ecg` | One ECG recording from the iPhone app. Since v1.39.7 `averageHeartRate` and `samplingFrequency` may carry a fraction; the server rounds both before storing. Since v1.39.8 it allows 600 requests a minute per account (60 before). See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive) |
 | `POST` | `/api/labs/ocr/extract` | Read lab values from a photo or PDF. Since v1.39.7 a PDF longer than the page cap carries `pageCoverage` (`read`, `total`): only the first `read` pages were read |
 
 :::note[Batch overwrite contract]
@@ -104,7 +104,9 @@ not move the phone's sync checkpoint. See
 reach, and a `measurements:write` token is refused there with `403`. Rows it
 writes are attributed `EXTERNAL`, a batch in which any entry names a `source`
 is refused with `422` (`workout.batch.source_not_permitted`), and a re-sent
-`externalId` comes back as `duplicate`. See
+`externalId` comes back as `duplicate`. Since v1.39.8 its batches count in an
+allowance of their own, 60 a minute shared by all workout tokens of the
+account, so a bridge stuck retrying cannot use up the iPhone app's. See
 [Push workouts](/guides/ingest-token/#push-workouts).
 
 ## Medications

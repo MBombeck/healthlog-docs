@@ -205,7 +205,9 @@ delegate burns their own allowance and cannot collect a fresh one by switching
 records. Its 429 carries the four headers and, uniquely among the limiter's
 refusals, `meta.errorCode: record_write.rate_limited`, which is how a client
 tells the shared bucket from a route's own. The batch endpoints keep their own
-60-a-minute buckets.
+60-a-minute buckets; on `/api/workouts/batch` a `workouts:write` token counts in
+a separate one, shared by all such tokens of the account (since v1.39.8).
+`POST /api/insights/ecg` allows 600 recordings a minute per account.
 
 The Coach stream allows 20 messages a minute per account. A tapped follow-up
 suggestion is a message too, including one answered from a stored table

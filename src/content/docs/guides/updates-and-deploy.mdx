@@ -134,6 +134,19 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.39.8
+
+Take a database backup first, as always. There are no migrations and no new
+settings.
+
+Two limits change, which matters only if you run a client of your own against
+the API. `POST /api/insights/ecg` now allows 600 requests a minute per account
+instead of 60, so the iPhone app can bring a long backlog of ECGs through in one
+sync. Batches sent to `POST /api/workouts/batch` with a `workouts:write` token
+count in an allowance of their own, 60 a minute shared by all workout tokens of
+the account, separate from the iPhone app's. See
+[Push workouts](/guides/ingest-token/#push-workouts).
+
 ## Upgrading to v1.39.7
 
 Take a database backup first, as always. There are no migrations and no new

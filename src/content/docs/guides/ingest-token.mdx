@@ -379,7 +379,10 @@ refused for that entry as `skipped` with the reason `unstable_external_id`,
 and the rest of the batch still lands. A body that fails validation is
 refused with `400` and `workout.batch.invalid`, and more than 100 workouts in
 one call with `400` and `workout.batch.too_large`. The endpoint allows 60
-calls a minute per account.
+calls a minute per account. Since v1.39.8 calls made with a workout token count
+in an allowance of their own, apart from the iPhone app's, so a bridge stuck
+retrying cannot hold up the app's workout sync. All workout tokens of one
+account share that allowance; minting a second token does not double it.
 
 ## When it stops working
 
