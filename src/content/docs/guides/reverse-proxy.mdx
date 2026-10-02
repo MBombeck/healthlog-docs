@@ -103,6 +103,15 @@ streams Server-Sent Events, which only require buffering off.
 The 300-second read timeout matters for long-running insight generations —
 anything shorter cuts streamed responses mid-flight.
 
+It also sets the ceiling for a slow model. Since v1.39.9 every AI call waits as
+long as the response timeout set under Settings → AI (60 seconds by default, up
+to 600), and the page waits with it. A proxy that ends requests sooner wins:
+reading a long document with a local model can take several model calls in one
+request. Raise the proxy's read timeout to match the setting you use. Cloudflare
+ends a proxied request after 100 seconds on every plan below Enterprise, so
+behind Cloudflare keep the setting under that, or serve the instance without the
+orange cloud.
+
 A backup restore does not need it. Since v1.39.1 the restore request only
 starts a background job and answers within a second or two, and the admin page
 follows the progress with short requests.

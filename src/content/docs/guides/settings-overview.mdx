@@ -247,6 +247,15 @@ key you set yourself; using it needs your consent. The operator's master
 switch stops every AI feature, and **Test connection** says so instead of
 calling the model while it is off. See [AI providers](/guides/ai-providers/).
 
+The response timeout applies to every AI call: reading and summarising
+documents, lab scans, filing suggestions, medication extraction, the Coach and
+the briefing (since v1.39.9; before, several of these stopped after 60 seconds
+whatever was set). Left empty it is 60 seconds, and the briefing allows 180.
+Two short notes keep their own quick limit, the Coach's nudge and the reaction
+line under a new reading, because each has a plain text to fall back on. A
+reverse proxy in front can still end a long request earlier; see
+[Reverse proxy](/guides/reverse-proxy/).
+
 ## Coach
 
 The Coach on/off switch, then (only while it is on) preferences, the nudge
