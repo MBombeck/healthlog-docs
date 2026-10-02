@@ -40,6 +40,7 @@ The core ingest and read surface. Batch endpoints power the native client.
 | `GET` | `/api/measurements/series` | One kind as a time series with summary `stats`; see the bucketing note below |
 | `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
 | `POST` | `/api/workouts/batch` | Workout ingest, up to 100 per call, 60 calls a minute per account. Also accepts a `workouts:write` token (since v1.39.6), whose calls count in a separate allowance (since v1.39.8) |
+| `DELETE` | `/api/workouts/{id}` | Delete a workout the account entered by hand (`source: "MANUAL"`, since v1.39.9). A synced workout answers `409` with `workout.delete.synced_source`, since the next sync would bring it back; any other id `404`. Cookie session or a full-access token only |
 | `GET` | `/api/devices` | Registered device list |
 | `POST` | `/api/mood-entries` · `/bulk` | Mood entries. Since v1.39.7 a write reports `droppedTagKeys` and `droppedFactorKeys`, each present only when non-empty: the submitted tag or factor keys that were not stored (unknown, archived or the wrong kind). The entry itself is stored. `PUT /api/mood-entries/{id}` reports them the same way |
 | `POST` | `/api/insights/ecg` | One ECG recording from the iPhone app. Since v1.39.7 `averageHeartRate` and `samplingFrequency` may carry a fraction; the server rounds both before storing. Since v1.39.8 it allows 600 requests a minute per account (60 before). See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive) |
