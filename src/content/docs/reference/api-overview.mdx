@@ -166,6 +166,15 @@ honours it. The first request runs and the response is cached; a replay with
 the same key returns the cached response with `X-Idempotent-Replay: true`
 instead of re-running the mutation.
 
+Since v1.40.0 a key replays only the **same request**: the cache stores a
+SHA-256 fingerprint of the method, the path and the body (JSON compared with
+its keys sorted, so key order does not matter; a multipart boundary ignored, so
+a rebuilt form still matches). A different body under the same key is executed
+and saved, not answered with the first one's response. Use **one key per
+write**. Before, a client that sent two different writes under one key, as the
+iPhone app did with the two halves of a blood pressure reading, had the second
+silently answered with the first's cached response.
+
 - Keys are **user-scoped** — a composite unique index by
   `userId_key_method_path` means a client cannot replay another user's key.
 - The cache refuses to persist a response body containing secret-shaped patterns
@@ -265,6 +274,13 @@ sentence beside it may be reworded or localised at any time.
 | `auth.reproof.failed` | `401` | The confirmation did not verify. Re-prompt; attempts share the step-up budget |
 | `auth.scope.insufficient` | `403` | The credential is valid but its scope does not reach this route, which includes any Bearer token against an admin surface |
 | `auth.admin.required` | `403` | A cookie session that is not an admin's |
+
+Two further codes can meet a client before any route body runs. Since v1.40.0
+a server whose encryption key cannot open its data answers every route except
+`/api/health` and `/api/version` with `503` `encryption.key_mismatch`; show it
+as a server configuration problem, not as offline. And the browser sign-in
+routes refuse with `409` `auth.session.insecure_transport` when the web client
+reports a plain `http://` page while the server sets `Secure` cookies.
 
 A route that checks a credential of its own, meaning sign-in, the MFA challenge
 exchange or a password confirmation, may still answer `401` with prose and no

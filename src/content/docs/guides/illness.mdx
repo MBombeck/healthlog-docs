@@ -64,6 +64,30 @@ Each episode takes one log per calendar day:
   to 3.
 - **Note**, encrypted.
 
+## Your own symptoms
+
+The catalog above belongs to a day log inside an episode. Since v1.40.0 you can
+also define up to eight symptoms of your own, such as aura, headache or neck
+tension, and log one whenever it happens, with or without an episode.
+
+Define them under **Your symptoms** on `/illness` with **New symptom**: a name
+and an icon. Log one from **Log** beside it, or straight from the dashboard's
+**+ Add** menu (**Log symptom**) or the capture picker (**Symptom**), with:
+
+- an **Intensity** from 0 (**None**) to 10 (**Worst imaginable**);
+- **When** it happened, now by default;
+- optionally **During an illness**, to attach it to an episode that is still
+  open;
+- an optional **Note**, encrypted.
+
+Each symptom shows how often it came in the last 30 days and how strong. Hide a
+symptom to make room for another while keeping its history; deleting it removes
+every entry of it as well. Names are encrypted at rest. Each symptom becomes
+its own line in the pattern analysis and in the Coach's data, and an episode
+lists the symptoms logged with it. Your symptoms belong to the Illness module:
+with the module off, their routes refuse. Backups carry
+them, and a portable backup carries their names and notes readable.
+
 ## While you are unwell
 
 An active episode puts the account into rest mode. The health score keeps
@@ -135,3 +159,13 @@ Since v1.39.2 an episode carries `bodySite` (text, or `null`) and `laterality`
 `PATCH` a field left out keeps its stored value, and `null` or a blank site
 clears it, so a client that does not know the fields never erases them. A side
 sent without a site is stored but shown nowhere in the app.
+
+Your own symptoms (since v1.40.0): `GET` and `POST /api/symptoms/definitions`
+(at most eight active, `{ label, icon? }`), `PATCH` and `DELETE
+/api/symptoms/definitions/{id}` (`DELETE` hides; `?purge=true` deletes the
+symptom and every entry), `GET` and `POST /api/symptoms/events`
+(`{ definitionId, intensity, occurredAt?, note?, episodeId? }`, intensity 0 to
+10, filterable by `from`, `to`, `definitionId` and `episodeId`), and `PATCH` and
+`DELETE /api/symptoms/events/{id}`. An `episodeId` must name an open episode.
+With the Illness module off they answer `403` `illness.disabled`; the error
+codes are `symptoms.*`.

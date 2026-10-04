@@ -107,6 +107,19 @@ instance, or says the old variable can be removed when there are none.
 Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
 16-24 GB (the BYOK sweet spot), 70B+ for 48 GB+.
 
+### Reasoning
+
+Since v1.40.0 the **Local** and **OpenAI-compatible gateway** settings have a
+**Reasoning** choice: **Default**, **Off**, **Low**, **Medium** or **High**.
+Reasoning models such as Gemma or Qwen think before they answer; **Off** leaves
+the whole answer budget for the answer itself, which helps a thinking model
+that spends a minute deliberating over a short summary. **Default** sends
+nothing, so existing setups behave exactly as before; the other choices send
+`reasoning_effort` (`none` for Off). An endpoint that rejects the field no
+longer has its JSON mode switched off because of it. The setting is stored per
+provider in the fallback chain. OpenAI, Anthropic and Codex pin their own
+models and parameters, so the setting is not offered for them.
+
 ## OpenAI-compatible gateways
 
 The **Local** provider speaks the plain OpenAI chat-completions dialect, so it

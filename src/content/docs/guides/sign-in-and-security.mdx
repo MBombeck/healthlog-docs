@@ -44,6 +44,17 @@ other way into the account, as
 links included; the browser you changed it on stays signed in with a fresh
 session.
 
+### Signing in over plain http
+
+With `SESSION_COOKIE_SECURE=true` (or unset in production), a browser on an
+`http://` address drops the sign-in cookie. Since v1.40.0 the sign-in page says
+so before you start ("Signing in cannot complete on this page"), and the server
+refuses such a sign-in before it checks a password or uses up a second-factor
+code, so a code is no longer burnt on a sign-in that could never stick. Use
+https, or set `SESSION_COOKIE_SECURE=false` for a server you only reach on your
+own network. See
+[Troubleshooting](/self-hosting/troubleshooting/#signing-in-cannot-complete-on-this-page).
+
 ## Passkeys
 
 A passkey is a primary sign-in method, not a second factor: it replaces the

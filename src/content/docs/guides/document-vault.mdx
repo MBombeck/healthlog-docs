@@ -10,7 +10,8 @@ import documentsEmpty from '../../../assets/screenshots/documents-empty.png';
 The Documents module is a flat, encrypted, searchable store for the paper
 trail a household accumulates: doctor letters, discharge summaries, lab
 reports, imaging findings, prescriptions, referrals, insurance letters,
-vaccination records. One timeline, filtered by type, condition, year, and
+vaccination records, and since v1.40.0 sick notes as a type of their own, which
+the type filter and filing suggestions know as well. One timeline, filtered by type, condition, year, and
 text search — no folders to maintain.
 
 It is **available by default**. Each user can turn it off under Settings →
@@ -175,6 +176,29 @@ is. **Show extracted text** returns its raw transcribed text. Both are shown
 once, for that view only — they are never saved into the coach, snapshots, the
 structured records, or the search index. The summary is descriptive and is not a
 diagnosis; it never flags a value as high, low, or abnormal.
+
+### Long reads run in the background
+
+Since v1.40.0 reading a document with AI, its summary, filing suggestions,
+extracting values and scanning a lab report run as a job on the server while
+the page waits, instead of inside one long request. A reverse proxy that ends
+long requests (Cloudflare does at 100 seconds) can therefore no longer cut a
+slow model off. The page says "Reading in the background" while it waits.
+
+Whether you can leave the page depends on where the result goes:
+
+- **Read with AI**, a **stored summary** and **extracted values** keep their
+  result with the document. You can leave the page and come back.
+- A **lab scan** and **Suggest details** keep nothing until you review and
+  save, so keep the page open until they finish.
+
+A finished run's result is kept for an hour and then deleted. The read needs
+the server's background worker, which runs inside the app container by
+default. If a read sits in the queue for more than 30 seconds, the page shows
+"Waiting for the background worker"; a run that no worker picks up within 15
+minutes fails and its AI budget is handed back. See
+[Scaling](/self-hosting/scaling/#document-and-lab-scan-reads-run-on-the-worker)
+for a separate worker container. The iPhone app works as before.
 
 ### Content search (search inside documents)
 
@@ -407,6 +431,16 @@ Document AI prefers a **local** reader that keeps the file on your machine, then
 a **no-training API** provider, and only a subscription/OAuth provider last.
 Before a document leaves your machine to a third-party AI service, HealthLog
 shows a notice — and any external read requires your explicit AI consent.
+
+### Previews and scanned PDFs
+
+For a while before v1.40.0 no document got a preview, PDF or photo, because the
+server image shipped a graphics library that did not match its own loader, and
+scanned PDFs could come out of the reader nearly blank because the server had
+no fonts to draw their text with. Both are fixed in v1.40.0. Missing previews
+fill in by themselves after the update, and a page that still renders empty is
+reported as such instead of being passed to the AI as an empty image. A
+document that was read nearly empty before can be read again from its page.
 
 ### Honest limits
 

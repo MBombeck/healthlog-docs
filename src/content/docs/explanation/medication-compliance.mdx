@@ -41,6 +41,12 @@ denominator is "doses that were actually due in this window" — not "days." A
 weekly injection taken every week reads 100%, everywhere from the dashboard tile
 to the detail page.
 
+A medication taken in **courses** (since v1.40.0) applies the same idea
+across time: doses are due only inside a course, so the weeks between two
+courses are neither misses nor part of the denominator. Every course counts,
+and the streak and the dose history read the same windows as the rate. See
+[Courses](/guides/track-medications/#courses-medications-that-come-and-go).
+
 ## The dose ledger
 
 Rather than keep a separate compliance counter that can drift from the visible

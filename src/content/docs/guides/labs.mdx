@@ -26,7 +26,8 @@ also offered). A result has:
   pre-fills unit and range.
 - **Value** as a number, or a **text result** such as "negative" for
   qualitative tests. Exactly one of the two.
-- **Unit.** Free text; the app never converts units.
+- **Unit.** Free text; the app never converts units. Since v1.40.0 a reading
+  must be in its marker's unit; see [One unit per marker](#one-unit-per-marker).
 - **Sample date and time.**
 - Optionally a **panel** label, the **reference range printed on the report**,
   and a **note**. The note is encrypted at rest.
@@ -50,6 +51,10 @@ where each one can be edited or deleted. A deletion is soft and offers undo.
 When your configured AI provider can read images, **Add** offers **Scan a
 report**. Pick a photo or PDF (PDF only where the provider supports it). The
 image is sent to the provider for extraction, never stored, and never logged.
+Since v1.40.0 the scan runs as a background job on the server, so a slow model
+is no longer cut off by a proxy timeout; keep the page open until it finishes,
+because nothing is kept until you review it (see
+[Long reads run in the background](/guides/document-vault/#long-reads-run-in-the-background)).
 Each proposed row comes back with analyte, value, unit, the printed reference
 text verbatim, a date, and a confidence per field.
 
@@ -80,6 +85,27 @@ an hourly limit per person, set with `LABS_OCR_LIMIT_PER_HOUR` (default 6).
 Reports that arrive in the [document vault](/guides/document-vault/) take the
 other direction: a stored document that looks like a lab report is staged as
 pending facts for the same kind of review, never committed on its own.
+
+## One unit per marker
+
+A marker is tracked in one unit. Before v1.40.0, if a marker was tracked in
+mg/dL and a later report printed it in mmol/L, the number was kept and labelled
+mg/dL, so 5.6 mmol/L of glucose showed up as 5.6 mg/dL and "far below range".
+Now a reading whose unit differs from its marker's is refused with a message,
+on every path that writes a lab value, the form, a scan and the API included. Spelling is
+forgiven (`mmol/l` for `mmol/L`, `ug/L` for `µg/L`); a different unit is
+refused, never relabelled or converted.
+
+The scan review marks such a row before you save ("Tracked in mg/dL; this
+report says mmol/L"). Change the unit if the report was misread, or deselect
+the row; the other rows are saved.
+
+A marker's unit can no longer be changed while it has readings, because the
+stored values would be shown in the new unit without being converted. Values
+already stored under the wrong unit before v1.40.0 cannot be found
+automatically. If a marker shows a reading far outside its usual range, check
+the report it came from, delete the reading and enter it again under a marker
+in the right unit.
 
 ## Reference ranges and the range bar
 

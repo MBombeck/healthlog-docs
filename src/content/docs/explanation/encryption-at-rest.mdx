@@ -119,6 +119,105 @@ rotation reports zero remaining rows on it and no backup you may still restore
 needs it.** Drop it too early and those
 rows become undecryptable — and the app tells you so rather than papering over it.
 
+## Keep a copy of the key
+
+The key is not stored in the database. Without it, the encrypted parts of the
+database and every in-database backup cannot be read, so a reinstall or a move
+to a new server with a fresh key leaves them unreadable. Since v1.40.0 the
+admin sees a **Back up your encryption key** step under Admin, Encryption. It
+shows the active key id, a fingerprint (the first 12 hex characters of SHA-256
+over the key) and where the key lives on your platform:
+
+| Platform | Where the key is set |
+| --- | --- |
+| Compose | `.env` next to `docker-compose.yml` |
+| TrueNAS | Apps, HealthLog, Edit, Environment |
+| Coolify | the application's Environment Variables |
+| Unraid | the container template (Docker tab, Edit) or the Compose `.env` |
+| Portainer | the stack's Environment variables |
+
+`HEALTHLOG_PLATFORM` (`compose`, `truenas`, `coolify`, `unraid` or
+`portainer`) opens the step on the matching instructions; unset or any other
+value means Compose. The Unraid and Portainer templates set it for you.
+
+**Check my copy** compares a pasted key with the active one and discards it;
+it is never stored or logged. Without pasting anything, you can compute the
+fingerprint of your copy yourself:
+
+```bash
+echo -n "<your key>" | xxd -r -p | sha256sum | cut -c1-12
+```
+
+Pressing **I have backed up this key** records the confirmation for that key
+id and fingerprint. Until then admins see a reminder on the dashboard, and it
+comes back when the key changes, after a rotation for example.
+
+## The start-up key check
+
+Before v1.40.0 a server started with a different key than the one its data was
+written with let people sign in and then failed wherever something had to be
+decrypted. Now the app checks at every start that its key opens the stored
+data.
+
+If it proves that the key cannot open the data, it refuses to serve:
+
+- every page shows "HealthLog cannot open its data" with the three fixes below;
+- every API route answers `503` with `meta.errorCode`
+  `encryption.key_mismatch`, MCP included, except `/api/health` and
+  `/api/version`;
+- `/api/health` answers `503` with `reason: "encryption_key_mismatch"`, so a
+  container platform shows the app as unhealthy rather than crashed;
+- no background job starts, so nothing is written under the wrong key.
+
+Fix it one of three ways, then restart:
+
+1. Put the original `ENCRYPTION_KEY` (or `ENCRYPTION_KEYS` entry) back.
+2. Point `DATABASE_URL` at the database that belongs to this key.
+3. Start fresh with an empty database. The old data and its backups can only be
+   read with the old key.
+
+The check remembers the key it first saw for each key id in the table
+`encryption_key_canaries`. Before it records a key, it reads the oldest
+encrypted values in the database, so that nothing written later can mislead it,
+and records the key only if they open, or if the database holds no encrypted
+value under that key id at all. When the stored data proves neither (a single
+unreadable value, the oldest values failing while newer ones open, or a probe
+that ran out of time), the app keeps serving, records nothing, logs a warning
+that starts with `[boot] Encryption key check inconclusive`, and checks again at
+the next start.
+
+### Resetting the check
+
+If you are certain the configured key is the one your data was written with,
+and the check still refuses because it recorded a different key earlier, reset
+the check for that key id and restart. The refusal in the log prints the exact
+statement; for the default key id it is:
+
+```bash
+docker compose exec -T db psql -U healthlog healthlog \
+  -c "DELETE FROM encryption_key_canaries WHERE key_id = 'v1';"
+docker compose restart app
+```
+
+The next start probes the stored data again and records the key only if that
+data opens with it. Do this only when you are sure: if the key is in fact wrong,
+the app serves errors on every encrypted value instead of the one clear refusal.
+After a [key rotation](/guides/encryption-key-rotation/) the rotation script
+removes the record of a retired key id itself, once it reports that no values
+remain under that id.
+
+### `ENCRYPTION_KEY_CHECK=warn` as a last resort
+
+At a first start there is no record yet, so there is nothing to reset. If the
+check refuses there and you are certain the key is right, set
+`ENCRYPTION_KEY_CHECK=warn` (the default is `enforce`). The check still runs and
+logs its full result, `/api/health` names it as
+`warning: "encryption_key_mismatch"` without failing, requests are served, and
+no key is recorded while the check does not pass. This switches off a safety
+check. With a wrong key every encrypted value fails and new rows are written
+under that key, so use it only after the three real fixes, and remove the
+setting once the key is confirmed.
+
 ## What this does and does not protect
 
 - **It protects** the encrypted columns if someone obtains a database dump, a

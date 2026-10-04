@@ -23,6 +23,43 @@ or VPN-only deployment — set `SESSION_COOKIE_SECURE=false` in `.env` **and**
 make sure it is listed in the compose `environment:` whitelist. Never disable it
 on a host that serves plain HTTP to the open internet.
 
+## Signing in cannot complete on this page
+
+**Symptom.** Since v1.40.0 the login page shows "Signing in cannot complete on
+this page" before you type anything, and a sign-in attempt is refused.
+
+**Cause.** The same as above, caught earlier. The server sets its session
+cookie with the `Secure` flag and the page was opened over `http://`, where the
+browser would drop it. Before v1.40.0 that went unnoticed until after the
+password was checked, and with two-factor sign-in on it used up your code and
+ended in "Invalid or expired challenge". Now the server refuses such a sign-in
+with `409` and `meta.errorCode` `auth.session.insecure_transport` before it
+checks a password or uses up a code, passkey challenge or ticket.
+
+**Fix.** Open the `https://` address (behind a TLS proxy, make sure it forwards
+`X-Forwarded-Proto: https`), or set `SESSION_COOKIE_SECURE=false` for a server
+you only reach over plain HTTP on your own network, and restart it. On
+`http://localhost` most browsers accept the cookie anyway, so the page only
+warns there.
+
+## HealthLog cannot open its data
+
+**Symptom.** Every page shows "HealthLog cannot open its data", API requests
+answer `503` with `meta.errorCode` `encryption.key_mismatch`, and
+`/api/health` answers `503` with `reason: "encryption_key_mismatch"`.
+
+**Cause.** Since v1.40.0 the app checks at start that its encryption key opens
+the data already in the database. This server was started with a different key
+than the one its data was written with, typically after a reinstall or a move
+that generated a fresh `ENCRYPTION_KEY`. Nothing is served and no background
+job runs, so nothing is written under the wrong key.
+
+**Fix.** Put the original key back, point `DATABASE_URL` at the database that
+belongs to this key, or start with an empty database; then restart. How the
+check decides, how to reset it when you are certain the key is right, and the
+`ENCRYPTION_KEY_CHECK=warn` last resort are in
+[the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check).
+
 ## `docker compose up` "updates" but the version does not change
 
 **Symptom.** You pull an update, restart, and `/api/version` still reports the

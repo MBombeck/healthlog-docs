@@ -59,7 +59,7 @@ longer if you also want a TLS-fronted public hostname (see
    | Variable | Purpose | Rotation cost |
    | --- | --- | --- |
    | `POSTGRES_PASSWORD` | Bundled Postgres password — used by both the `db` service and the derived `DATABASE_URL` | Database restart |
-   | `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets (provider tokens, AI keys, VAPID secrets) | Coordinated; see [key rotation](/guides/encryption-key-rotation/) |
+   | `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets (provider tokens, AI keys, VAPID secrets) | Coordinated; see [key rotation](/guides/encryption-key-rotation/). Keep a copy outside the server and confirm it under Admin, Encryption ([why](/explanation/encryption-at-rest/#keep-a-copy-of-the-key)) |
    | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer API tokens **and web session cookies** before storage | Invalidates every issued `hlk_*` token **and signs out every browser session** |
 
    There is no connection string to edit: the compose file derives

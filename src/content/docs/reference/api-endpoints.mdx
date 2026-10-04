@@ -37,14 +37,17 @@ The core ingest and read surface. Batch endpoints power the native client.
 | `DELETE` | `/api/measurements/by-external-ids` | Soft-delete rows by external id (HealthKit deletion reconciliation) |
 | `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
 | `GET` | `/api/analytics/range` | Trend summaries over a window |
-| `GET` | `/api/measurements/series` | One kind as a time series with summary `stats`; see the bucketing note below |
+| `GET` | `/api/measurements/series` | One kind as a time series with summary `stats`; see the bucketing note below. Since v1.40.0 pulse, HRV and SpO2 read the [source-priority](/guides/source-priority/) ladder's source per day; types without a ladder (glucose) keep every source |
 | `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
 | `POST` | `/api/workouts/batch` | Workout ingest, up to 100 per call, 60 calls a minute per account. Also accepts a `workouts:write` token (since v1.39.6), whose calls count in a separate allowance (since v1.39.8) |
+| `POST` | `/api/workouts/batch` (`manual:` ids) | Since v1.40.0 a changed resubmit of a hand-entered workout (`manual:` `externalId`, `source: "MANUAL"`) updates it and reports `"updated"` |
 | `DELETE` | `/api/workouts/{id}` | Delete a workout the account entered by hand (`source: "MANUAL"`, since v1.39.9). A synced workout answers `409` with `workout.delete.synced_source`, since the next sync would bring it back; any other id `404`. Cookie session or a full-access token only |
 | `GET` | `/api/devices` | Registered device list |
 | `POST` | `/api/mood-entries` · `/bulk` | Mood entries. Since v1.39.7 a write reports `droppedTagKeys` and `droppedFactorKeys`, each present only when non-empty: the submitted tag or factor keys that were not stored (unknown, archived or the wrong kind). The entry itself is stored. `PUT /api/mood-entries/{id}` reports them the same way |
 | `POST` | `/api/insights/ecg` | One ECG recording from the iPhone app. Since v1.39.7 `averageHeartRate` and `samplingFrequency` may carry a fraction; the server rounds both before storing. Since v1.39.8 it allows 600 requests a minute per account (60 before). See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive) |
-| `POST` | `/api/labs/ocr/extract` | Read lab values from a photo or PDF. Since v1.39.7 a PDF longer than the page cap carries `pageCoverage` (`read`, `total`): only the first `read` pages were read |
+| `POST` | `/api/labs/ocr/extract` | Read lab values from a photo or PDF. Since v1.39.7 a PDF longer than the page cap carries `pageCoverage` (`read`, `total`): only the first `read` pages were read. Since v1.40.0 it always answers `202` with a run id; `GET /api/ai-runs/{id}` serves the proposed rows (see [Background document reads](/reference/native-clients/#background-document-reads)) |
+| `POST` | `/api/labs` · `PUT /api/biomarkers/{id}` | Since v1.40.0 a numeric reading in another unit than its marker's is refused with `422` `labs.unit.mismatch` (`meta.markerUnit`, `meta.readingUnit`; spelling is forgiven), and a marker's unit cannot change while it has readings (`422` `biomarkers.unit.locked`). The scan commit skips such a row with `reason: "unit_mismatch"`. See [One unit per marker](/guides/labs/#one-unit-per-marker) |
+| `GET` / `POST` | `/api/symptoms/definitions` · `/events` | Since v1.40.0, your own symptoms and their entries; `PATCH` / `DELETE` on `/{id}`. Gated on the Illness module. See [Your own symptoms](/guides/illness/#your-own-symptoms) |
 
 :::note[Batch overwrite contract]
 `POST /api/measurements/batch` recognises `externalId` values starting with
@@ -122,6 +125,16 @@ account, so a bridge stuck retrying cannot use up the iPhone app's. See
 | `POST` | `/api/medications/extract` | Parse a label into a draft |
 | `POST` | `/api/medications/intake/bulk` | Native bulk intake |
 | `GET` / `POST` | `/api/medications/{id}/glp1` | GLP-1 titration log. `POST` honours `Idempotency-Key` |
+| `GET` / `POST` | `/api/medications/{id}/courses` | Since v1.40.0. The medication's courses / start one (`{ startsOn, endsOn?, note? }`). The medication's own `startsOn` and `endsOn` follow the latest course. Owner only |
+| `PATCH` / `DELETE` | `/api/medications/{id}/courses/{courseId}` | Edit or delete one course. Deleting the only course makes the medication continuous again. Owner only |
+| `GET` / `POST` | `/api/medications/categories` | Since v1.40.0. Your own categories, hidden ones included, each with its medication count / create one (`{ label }`), at most 20. A category's key is `custom:<id>` |
+| `PATCH` / `DELETE` | `/api/medications/categories/{key}` | Rename, reorder, hide or delete one. `DELETE` moves its medications to `OTHER` and reports how many. Owner only |
+
+Since v1.40.0 a medication read carries `courses[]`, `courseCount`,
+`previousCourseEndedOn`, `canStartCourse` and `categoryLabel`, and `category`
+can be `custom:<id>`. An update from a native client that sends `OTHER` over a
+custom category keeps the custom one. Errors are `medications.category.*` and
+`medications.course.*`.
 
 The compliance numbers come from the dose ledger — see
 [Medication compliance](/explanation/medication-compliance/).
@@ -145,6 +158,8 @@ SSE coach stream, and the self-context surface.
 | `POST` | `/api/insights/generate` | Regenerate (rate-limited per hour) |
 | `GET` | `/api/insights/blood-pressure-status` | One per metric (pulse, weight, bmi, mood, …) |
 | `GET` | `/api/insights/correlations` · `/derived` | Correlations, derived metrics (with `/batch`) |
+| `GET` / `PATCH` | `/api/user/ai-provider` | Your AI provider settings. Since v1.40.0 they carry `localReasoningEffort` and `compatReasoningEffort` (`none`, `low`, `medium`, `high`, or `null` for Default) |
+| `GET` / `PUT` | `/api/insights/provider-chain` | The fallback chain. Since v1.40.0 a Local or OpenAI-compatible entry may carry `reasoningEffort`; see [Reasoning](/guides/ai-providers/#reasoning) |
 | `GET` | `/api/dashboard/snapshot` | Single-cell above-the-fold hydration |
 | `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback |
 | `GET` | `/api/insights/chat/{id}/messages/{messageId}/results` | Since v1.39.4: the tables of values one Coach answer read, decrypted for their owner. A data read, served while the Coach is unavailable |
@@ -614,6 +629,15 @@ account already in progress (`documents.inbound.uploadBusy`, `Retry-After: 1`).
 See
 [Import documents](/guides/import-documents/#writing-your-own-importer).
 
+The AI reads of a stored document take a session or a wildcard token:
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `POST` | `/api/documents/inbound/{id}/index` · `/summary` · `/suggest` · `/extract` | Since v1.40.0 each accepts `Prefer: respond-async` and then answers `202` with a run id; without the header they answer as before. See [Background document reads](/reference/native-clients/#background-document-reads) |
+| `GET` | `/api/ai-runs/{id}` | Since v1.40.0. Status and result of a background read the caller queued; `404` `aiRuns.notFound` an hour after it ends |
+
+The document kind `SICK_NOTE` is new in v1.40.0.
+
 ## Export, FHIR & clinician links
 
 | Method | Endpoint | Notes |
@@ -652,6 +676,9 @@ shared AI config. Bearer tokens cannot reach any of these.
 | `POST` | `/api/admin/backups/upload` | Store a backup file as a new row without restoring it. The raw body is JSON or gzip-compressed JSON up to 512 MB; a `multipart/form-data` body with one `file` field is limited to 10 MB. `413` with `meta.errorCode: backup.upload.too_large` when the encrypted copy is larger than `BACKUP_MAX_STORED_MB` (default 2048 MB) |
 | `POST` | `/api/admin/backups/{id}/restore` | Since v1.39.1, queue the restore of one stored snapshot over its owner's record and answer `202` with `jobId` and `statusUrl` (before, `200` with the result). Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key`. A copy that cannot be decrypted is still refused straight away with `422`; `409` with `meta.errorCode: backup.restore.active` while another restore of the same account is queued or running |
 | `GET` | `/api/admin/backups/restores` · `/{jobId}` | Restore jobs: the queued and running ones and those from the last day, or one job. Each has its status (`queued`, `running`, `succeeded`, `failed`), its current step (`validating`, `clearing`, `measurements`, `sections`, `rebuilding`) and counts, and either the result the old synchronous answer carried or a failure with a stable `code` and a message |
+| `GET` | `/api/admin/encryption/key-backup` | Since v1.40.0. The key backup step's state: active key id, fingerprint, whether a confirmation is due, the platform hint. Never the key |
+| `POST` | `/api/admin/encryption/key-backup/verify` | "Check my copy": `{ encryptionKey }`, compared and discarded, never stored or logged. 5 a minute per admin |
+| `POST` | `/api/admin/encryption/key-backup/confirm` | Record the backup confirmation for the active key id and fingerprint |
 | `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot. Download, upload and restore need [fresh proof](#fresh-proof-on-the-web) since v1.39.3 |
 
 ## Meta & health
@@ -659,6 +686,7 @@ shared AI config. Bearer tokens cannot reach any of these.
 | Method | Endpoint | Notes |
 | --- | --- | --- |
 | `GET` | `/api/version` | Public — `version` + `buildSha` + `builtAt`, no auth |
+| `GET` | `/api/health` | Public. `200` with `status: "ok"`, or `503` with `status: "degraded"`. Since v1.40.0 a key that cannot open the data adds `reason: "encryption_key_mismatch"`; under `ENCRYPTION_KEY_CHECK=warn` the same finding shows as `warning` without failing |
 | `GET` | `/api/meta/capabilities` | Feature/capability flags for clients |
 
 `/api/version` is what you assert against after a deploy — see

@@ -22,7 +22,10 @@ openssl rand -hex 32
 Run it three times, one value each for `POSTGRES_PASSWORD`, `ENCRYPTION_KEY`,
 and `API_TOKEN_HMAC_KEY`. Back up `ENCRYPTION_KEY` somewhere outside the box.
 It encrypts your health data at rest; if it is lost, the encrypted columns
-cannot be recovered.
+cannot be recovered. Since v1.40.0 the admin is asked to confirm that copy under
+Admin, Encryption, and a server started with a key that does not open its data
+refuses to serve and says why; see
+[Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key).
 
 Decide how you will reach the app. On a plain-HTTP LAN address such as
 `http://nas:3000` you must set `SESSION_COOKIE_SECURE=false`. Left unset, the
@@ -144,7 +147,11 @@ template dropdown. Fill in the fields:
 The template also exposes `ENCRYPTION_KEYS` and `ENCRYPTION_ACTIVE_KEY_ID` as
 advanced fields. Leave them empty unless you are
 [rotating the encryption key](/guides/encryption-key-rotation/); a normal
-install uses `ENCRYPTION_KEY` alone. The container runs with
+install uses `ENCRYPTION_KEY` alone. Since v1.40.0 it also carries two
+advanced fields: `HEALTHLOG_PLATFORM` (preset to `unraid`, so the key backup
+step opens on the Unraid instructions) and `ENCRYPTION_KEY_CHECK` (preset to
+`enforce`; leave it). The Portainer template carries the same two, with
+`HEALTHLOG_PLATFORM` preset to `portainer`. The container runs with
 `--security-opt no-new-privileges:true` and has no persistent volume of its
 own; every byte of state sits in the PostgreSQL container you installed, so
 that is the one to back up.

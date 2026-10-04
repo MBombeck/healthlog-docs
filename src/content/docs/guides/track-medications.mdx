@@ -33,6 +33,19 @@ v1.39.4; before, no backup did, and after a restore every medication read as
 **Other**. A backup written by an earlier version carries no category, so its
 medications still restore as **Other**.
 
+### Your own categories
+
+Since v1.40.0 you can add categories of your own next to the built-in ones:
+choose **New category** in the category picker, give it a name (for example
+"Travel kit") and **Add**. Up to 20 per account, hidden ones included. The
+medication list gains a **Category** filter (**All categories** by default) and
+a **Manage categories** sheet, where you rename, reorder, hide a category from
+the picker or delete it. Deleting a category moves the medications filed under
+it to **Other**; the medications themselves stay. Blood pressure insights only
+count medications in the built-in **Blood pressure** category, so a blood
+pressure medication filed under a category of your own does not reach them.
+The names are encrypted at rest.
+
 ### Units per dose
 
 Units per dose says how many units one dose uses, for example one tablet or
@@ -109,6 +122,27 @@ insulin secretion, suppressed glucagon, slowed gastric emptying
 ([overview on Wikipedia](https://en.wikipedia.org/wiki/GLP-1_receptor_agonist)).
 HealthLog only tracks the dose schedule and intake; it gives no dosing advice.
 :::
+
+## Courses: medications that come and go
+
+Some medications are taken in spells: an antiviral for a week now and then, an
+antibiotic each winter. Since v1.40.0 a medication can have several
+**courses**, each with its own first day, optional last day and an optional
+note. They are under **Advanced**, **Lifecycle**, **Courses** on the
+medication's page. Once every course has ended, **Start a new course** adds the
+next one; a course cannot share days with another, and a new one cannot be
+added after a course that is still running. A one-time medication has a single
+course.
+
+Doses are expected only inside a course. Adherence, the streak and the dose
+history count every course and never the weeks between them, so the rate and
+the history agree. Reminders follow the current course. Deleting a course keeps
+the doses you logged in the history; deleting the only one makes the medication
+count as taken continuously since you added it, and the app asks first.
+
+The update to v1.40.0 turns every existing medication that has a start or end
+date into one course with the same dates. Nothing about the dates changes. The
+doctor report and the clinician share page list the courses as well.
 
 ## Keep a medication as a record
 

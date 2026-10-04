@@ -39,6 +39,10 @@ joined in v1.39.8, so a value read off a watch or taken on waking lands in the
 resting heart rate chart rather than among your pulse readings. It belongs to the
 Recovery module and is offered while that module is on.
 
+Since v1.40.0 the sleep field takes a duration the way you say it: `7.5`,
+`7,5`, `7:30`, `7h30m`, `7 h 30 min` or `45 min`, and shows how it read your
+entry ("Read as 7 h 30 min") before you save. One entry is at most 24 hours.
+
 ## Custom thresholds
 
 Override the computed default ranges per metric with the targets your clinician
@@ -132,7 +136,10 @@ picker. Take / skip / snooze logging, a traceable dose history, supply runway,
 and structured side-effect tracking. An
 [efficacy chart](/guides/track-medications/#see-a-medications-effect-on-a-metric)
 plots how a metric moved since a medication started — a data-scaled axis, a
-"% since start" view, and the full intake history. See
+"% since start" view, and the full intake history. Since v1.40.0 a medication
+can have several [courses](/guides/track-medications/#courses-medications-that-come-and-go),
+each with its own start and end, and you can file medications under
+[categories of your own](/guides/track-medications/#your-own-categories). See
 [Track medications](/guides/track-medications/).
 
 ## Clinical signals and records
@@ -157,7 +164,9 @@ define your own measurement — name, unit, optional target range — and log an
 chart it alongside the built-ins; custom definitions stay private to your
 account and deliberately stay out of device sync and FHIR export, though they
 do feed the correlation discovery that the Coach and the insights surfaces
-read. Single-lead [ECG recordings](/insights/ecg-recordings/) synced from a
+read. Since v1.40.0 you can also define up to eight
+[symptoms of your own](/guides/illness/#your-own-symptoms), such as aura or
+headache, and log one in a single step with an intensity from 0 to 10. Single-lead [ECG recordings](/insights/ecg-recordings/) synced from a
 compatible watch are shown on a calibration grid with date, duration and average
 heart rate — the device's own result attributed to the device, and no
 interpretation of the trace by HealthLog. Each carries a plain-language, strictly

@@ -552,6 +552,18 @@ current ones. The instance-wide settings are a separate matter: they come back
 only when you tick **Also restore instance settings** (see
 [Restore from the console](#restore-from-the-console)).
 
+## Moving to a server with a different key
+
+A portable backup is meant to be restored on another server, which has its own
+encryption key. Since v1.40.0 cycle notes and labels, your own mood labels,
+visit and practitioner notes, vaccination notes and your own symptoms travel in
+it readable and are encrypted again with the new server's key on restore.
+Before, some of these travelled as the old server's ciphertext, so the restore
+failed or the text was lost. Your own mood tags also come back when the backup
+holds no mood entries. Text that the file still carries sealed under a key the
+server does not hold is skipped and named in the restore summary, and the entry
+it belongs to is kept without it.
+
 ## What a backup does not carry
 
 Every credential-shaped row is left out, and this is a decision rather than an

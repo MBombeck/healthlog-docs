@@ -14,7 +14,7 @@ The optional `HEALTHLOG_PROCESS_TYPE` env var splits HTTP traffic and pg-boss ba
 | Value | Behaviour |
 |-------|-----------|
 | `all` (default) | Single container — HTTP + pg-boss in the same process. |
-| `web` | HTTP only. pg-boss is not started. Reminders, insight caching, and the nightly off-host backup will not run. |
+| `web` | HTTP only. No background job runs here; the container opens a send-only pg-boss connection to hand jobs (imports, document reads, lab scans) to the worker. Reminders, insight caching, and the nightly off-host backup run only on the worker. |
 | `worker` | pg-boss only. The proxy refuses HTTP traffic with `503 Service Unavailable` and an `X-HealthLog-Process-Type: worker` header so a misrouted request fails loudly. |
 
 Run **one** worker per database. pg-boss claims jobs atomically via row-level locking (`FOR UPDATE SKIP LOCKED`), so a second worker replica is safe — no job runs twice — but it doubles the DB load and muddies telemetry without adding throughput a personal instance needs. Scale the web containers instead.
@@ -42,6 +42,29 @@ immediately instead of silently doubling cron load. The off-host backup job
 runs in the worker only, while the admin backup smoke test runs in the web
 container — set the `BACKUP_*` vars on **both** (see
 [Backups](/guides/backups/)).
+
+## Document and lab-scan reads run on the worker
+
+Since v1.40.0 the AI read of a document or a lab report runs as a background
+job: reading a document for search, a document summary, filing suggestions,
+extracting facts from a stored document, and a lab scan. The request only
+queues the read and answers `202`, and the client polls the run until it ends,
+so a slow model is not cut off by a proxy timeout. When the enqueue itself
+fails, the request answers `503` straight away and nothing is charged.
+
+"Waiting for the background worker" is what the app shows when a read has sat
+in the queue for more than 30 seconds. On a single `all` container that is rare
+and short. If it does not go away, no worker is consuming the queue: the worker
+container is stopped, crashing on boot, or pointed at another database. A run
+that no worker picks up within 15 minutes fails as `aiRuns.workerUnavailable`
+and its AI budget reservation is handed back. That sweep is itself a worker
+job, so with no worker running at all the run stays queued until one starts.
+
+**In a web/worker split, the worker must run the same version as the web
+containers.** Only a worker that knows the document read queue can execute it.
+A worker left on a pre-v1.40 image never takes these jobs, so every document
+read and lab scan waits and then fails, while everything else looks healthy.
+Deploy both from the same image tag and restart them together.
 
 ## Healthchecks and liveness
 
