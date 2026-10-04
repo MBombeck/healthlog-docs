@@ -207,7 +207,8 @@ redirects to `https://` fails.
 Two optional parameters:
 
 - `kind`: one of `DOCTOR_REPORT`, `DISCHARGE_LETTER`, `LAB_RESULT`,
-  `IMAGING`, `PRESCRIPTION`, `REFERRAL`, `INSURANCE`, `VACCINATION` or `OTHER`,
+  `IMAGING`, `PRESCRIPTION`, `REFERRAL`, `INSURANCE`, `VACCINATION`,
+  `SICK_NOTE` (since v1.40.0) or `OTHER`,
   if this workflow only ever sends one type of document. Without it a document
   is filed as **Other** and you can change the type in HealthLog.
 - `aiRead` with the value `defer`, if you do not want new documents read by

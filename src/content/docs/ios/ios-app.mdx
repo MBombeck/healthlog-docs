@@ -116,6 +116,8 @@ The iPhone can generate a doctor-report PDF from the device, mirroring the [heal
 | No HealthKit data appears | Read permission was denied for those types | Re-grant in iOS **Settings → Privacy & Security → Health → HealthLog**. |
 | Duplicate steps after an `export.zip` import | None — the external-ID convention dedupes phone syncs against the importer | If you still see duplicates, check [Source priority](/explanation/source-priority/). |
 | Newer ECG recordings are missing | Before v1.39.7 the server refused recordings whose average heart rate had a fraction, and before v1.39.8 it turned away the newest recording on every sync when more than 60 were waiting | Update the server; recordings refused earlier arrive once an app update sends them again, or right away by uploading the Apple Health `export.zip` under Import. See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive). |
+| A blood pressure entered in the app shows only the upper value | Before v1.40.0 the server took the second half of a manual reading for a retry of the first and dropped it | Update the server. The lower value of such a reading never reached the server and cannot be recovered: delete the reading and enter it again with both values and its original time. |
+| Every request fails although the server is up | Since v1.40.0 a server whose encryption key does not match its data answers every request with `503` `encryption.key_mismatch` | The operator restores the original key; see [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check). |
 | Push reminders arrive twice | Both the phone and the server are reminding | The app should opt into client-managed reminders; see [Notifications](/guides/reminder-channels/). |
 
 ## Links

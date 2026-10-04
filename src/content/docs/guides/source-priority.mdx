@@ -49,6 +49,12 @@ readings they are all kept. On a day where a ranked source such as `MANUAL`
 also has a reading, the ranked one counts and the pushed one stays stored
 beside it.
 
+Since v1.40.0 the pulse, heart rate variability and blood oxygen charts follow
+the ladder as well. With Apple Health and a second provider they used to blend
+the two and could show a reading twice; now they take the source your priority
+picks for each day, like every other chart. Glucose has no priority setting and
+keeps all its sources.
+
 ## Adjust the ladder
 
 Open **Settings → Source priority** (`/settings/sources`). For each metric (or

@@ -94,7 +94,7 @@ The measurement delete routes **soft-delete** (write a tombstone) rather than ha
 
 An [idempotent](https://en.wikipedia.org/wiki/Idempotence) request can be safely retried without changing the result beyond the first attempt — essential for a mobile client on a flaky network that can't tell a lost request from a lost response. HealthLog implements the [`Idempotency-Key` HTTP header](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header) convention (an IETF draft, still the canonical reference for the pattern).
 
-A route that declares idempotency honours an `Idempotency-Key: <8-128 chars>` header, and the OpenAPI document names the header on each one; the method alone does not decide it. Measurement, mood, lab, cycle, document and medication writes are covered, including adding a medication, logging a side effect, registering a supply container, logging a GLP-1 titration step and adding a custom cycle symptom, which an offline queue replays after a lost response. Re-sending the same key for the same `(userId, method, path)` within 24 hours replays the original response with `X-Idempotent-Replay: true`.
+A route that declares idempotency honours an `Idempotency-Key: <8-128 chars>` header, and the OpenAPI document names the header on each one; the method alone does not decide it. Measurement, mood, lab, cycle, document and medication writes are covered, including adding a medication, logging a side effect, registering a supply container, logging a GLP-1 titration step and adding a custom cycle symptom, which an offline queue replays after a lost response. Re-sending the same key with the same request within 24 hours replays the original response with `X-Idempotent-Replay: true`. Since v1.40.0 "the same request" means the same method, path and body (JSON compared with sorted keys, a multipart boundary ignored); a different body under the same key is executed and saved. Use one key per write: two halves of one reading sent as two requests need two keys.
 
 ```bash
 curl -X POST https://your-instance.example.com/api/measurements \
@@ -105,6 +105,31 @@ curl -X POST https://your-instance.example.com/api/measurements \
 ```
 
 **Not cached**: 401, 403, 408, 429, any 5xx, and any response body containing a token prefix (`hlk_`, `hlr_`, `sk-`, `sk-ant-`). Validation 4xx (e.g. 422) **is** cached, so a broken retry doesn't re-hit the database. A `429` from the rate limiter carries `Retry-After` in whole seconds plus the `X-RateLimit-Limit`, `-Remaining` and `-Reset` triple, so an offline queue holds the request for that long instead of re-sending it into the same wall. A `429` without them came from a budget or from an upstream provider and has no window to wait out. A `429` carrying `meta.errorCode: record_write.rate_limited` is the shared per-account bucket the single-record creates use (300 a minute, keyed on the token's owner), not a route of its own: an offline queue that replays one row at a time should drain slower rather than retry the one request.
+
+## Background document reads
+
+Since v1.40.0 `POST /api/documents/inbound/{id}/index`, `/summary`, `/suggest`
+and `/extract` accept a `Prefer: respond-async` header. With it they answer
+`202` with `{ runId, status: "QUEUED", pollAfterMs }`, a `Location` header
+pointing at `/api/ai-runs/{id}` and `Preference-Applied: respond-async`.
+`GET /api/ai-runs/{id}` returns the run's status (`QUEUED`, `RUNNING`,
+`SUCCEEDED`, `FAILED`), on success the `result` the synchronous route would
+have answered with, and on failure an `error` with the code and status it would
+have answered with, so one error table covers both paths. It may carry
+`Retry-After`. A finished run is readable for an hour; after that, like another
+account's run, it is a `404` `aiRuns.notFound`. Codes only a run produces are
+`aiRuns.workerUnavailable`, `aiRuns.timedOut` and `aiRuns.failed`.
+
+Without the header the four routes answer exactly as before.
+`POST /api/labs/ocr/extract` always answers `202` with a run id since v1.40.0.
+
+## When the server cannot open its data
+
+Since v1.40.0 a server whose encryption key does not match its data answers
+`503` with `meta.errorCode` `encryption.key_mismatch` on every route except
+`/api/health` and `/api/version`. Show it as a server configuration problem the
+operator has to fix, not as offline, and do not retry in a loop. See
+[the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check).
 
 ## Device Registration
 

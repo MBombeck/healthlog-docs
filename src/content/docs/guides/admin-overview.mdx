@@ -255,6 +255,14 @@ legacy `ENCRYPTION_KEY`; a key is 64 hex characters or 32 bytes of base64, and
 anything else stops the container at startup. Procedure in
 [Encryption key rotation](/guides/encryption-key-rotation/).
 
+Since v1.40.0 the section opens with **Back up your encryption key**: the
+active key id, its fingerprint, where the key is set on your platform, an
+optional **Check my copy** that compares a pasted key and discards it, and
+**I have backed up this key**. The status card at the top of the admin page
+shows **Encryption key backup** as **Not confirmed** or **Confirmed**, and
+admins see a dashboard reminder until the active key is confirmed. See
+[Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key).
+
 ## Danger zone
 
 One action: wipe all data on the instance. It requires typing `DELETE ALL`,

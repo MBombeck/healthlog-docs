@@ -36,7 +36,7 @@ deployment but have compose defaults.
 | `POSTGRES_PASSWORD` | Password for the bundled `db` service. `openssl rand -hex 32`. |
 | `NEXT_PUBLIC_APP_URL` | Public URL embedded in OAuth redirects, webhook callbacks, deep links. |
 | `APP_URL` | Server-side mirror of the above, used by background workers. Must match. |
-| `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets. 64 hex chars. Required unless `ENCRYPTION_KEYS` is set. |
+| `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets. 64 hex chars. Required unless `ENCRYPTION_KEYS` is set. Keep a copy outside the server; see [Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key). |
 | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer tokens, refresh tokens and web session cookies. 64 hex chars. |
 
 :::caution[Rotating `API_TOKEN_HMAC_KEY` signs everyone out]
@@ -55,6 +55,8 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | --- | --- |
 | `ENCRYPTION_KEYS` | JSON map, e.g. `{"v1":"<hex>","v2":"<hex>"}`. |
 | `ENCRYPTION_ACTIVE_KEY_ID` | The key id new writes use, e.g. `v2`. |
+| `ENCRYPTION_KEY_CHECK` | Since v1.40.0. `enforce` (default) refuses to serve when the key does not open the stored data; `warn` only logs it, reports it as a `warning` on `/api/health` and serves anyway. A last resort for a refusal you are certain is false; it disables a safety check. See [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check). |
+| `HEALTHLOG_PLATFORM` | Since v1.40.0. Where this server's environment lives: `compose`, `truenas`, `coolify`, `unraid` or `portainer`. Opens the admin's key backup step on that platform's instructions; unset or unknown means `compose`. |
 
 ## Session, proxy & database pool
 

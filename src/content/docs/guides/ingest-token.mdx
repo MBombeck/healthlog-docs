@@ -303,8 +303,10 @@ batch entry with `sleepStage` `1`) covering the whole session.
 ## Retries and duplicates
 
 Both endpoints honour an `Idempotency-Key` header. Send a value your automation
-can reproduce for the same reading, and a retry with the same key returns the
-original response instead of writing a second row:
+can reproduce for the same reading. A retry with the same key and the same body
+returns the original response instead of writing a second row. Since v1.40.0 a
+different body under the same key is a different reading and is written
+(before, it was answered with the first reading's response and dropped):
 
 ```yaml
 headers:

@@ -134,6 +134,51 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.40.0
+
+Take a database backup first. There are seven migrations, `0365` to `0371`;
+after them you cannot go back to v1.39.9 without restoring that backup. They are
+quick and safe to run again if interrupted.
+
+| Migration | What it adds |
+| --- | --- |
+| `0365_encryption_key_canaries_and_key_backup` | The record the start-up key check keeps per key id, and the key backup confirmation |
+| `0366_document_ai_runs` | Background runs for document and lab-scan reads |
+| `0367_workout_insight_claim_set_null` | Deleting a workout no longer frees a slot for another AI paragraph that day |
+| `0368_medication_courses_and_custom_categories` | Medication courses and your own categories. Every existing medication with a start or end date becomes one course with the same dates |
+| `0369_symptom_definitions_and_events` | Your own symptoms and their entries |
+| `0370_document_ai_run_kinds_summary_suggest_extract` | Summary, filing suggestions and extraction as background runs |
+| `0371_idempotency_request_fingerprint` | The request fingerprint that makes an `Idempotency-Key` replay only the same request |
+
+What to check after the update:
+
+- **Back up the encryption key.** The admin sees a **Back up your encryption
+  key** step under Admin, Encryption and a dashboard reminder until it is
+  confirmed. See [Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key).
+- **The start-up key check.** A server whose key cannot open its data now
+  refuses to serve and says why, instead of failing on every encrypted value.
+  See [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check).
+- **Background worker.** Long document reads and lab scans run on the
+  background worker, which runs inside the app container by default. If you
+  run a separate `app-worker`, update it to the same version. See
+  [Scaling](/self-hosting/scaling/#document-and-lab-scan-reads-run-on-the-worker).
+- **Two optional settings.** `HEALTHLOG_PLATFORM` (`compose`, `truenas`,
+  `coolify`, `unraid` or `portainer`) opens the key backup step on the matching
+  instructions. `ENCRYPTION_KEY_CHECK=warn` is a last resort if the key check
+  refuses a server whose key you are certain is right; it disables a safety
+  check, so use it only after the three real fixes. Both are on the compose
+  `environment:` list.
+- **Sign-in over plain http.** With `SESSION_COOKIE_SECURE` left at its
+  production default, the sign-in page on an `http://` address now says it
+  cannot complete there. Set `SESSION_COOKIE_SECURE=false` for a server you
+  only reach on your own network, or use https.
+- **Blood pressure entered on the iPhone.** Readings saved by the iPhone app
+  before v1.40.0 may be missing their lower value; it never reached the server
+  and cannot be recovered. Delete such a reading and enter it again with both
+  values and its original time.
+
+There is a new page for [TrueNAS SCALE](/self-hosting/truenas/).
+
 ## Upgrading to v1.39.8
 
 Take a database backup first, as always. There are no migrations and no new
