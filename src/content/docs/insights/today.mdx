@@ -24,8 +24,13 @@ number comes from.
   measurements and graded pillar by pillar against published reference bands.
   Below full breadth it names how many areas of health it was built from, and
   it refuses only when nothing in your record is readable yet.
-- **The day's lead read.** The single most relevant line from the briefing
-  prepared overnight — what changed, or what's worth your attention today.
+- **The day's lead line.** One sentence about the day with something in it,
+  never a greeting. With an AI provider it comes from the briefing prepared
+  overnight; without one it is built from your own readings. See
+  [The Today overview](#the-today-overview).
+- **A short "Today" list** (since v1.40.2). What is on today, in a few lines:
+  medications taken so far, an appointment, last night, your vitals, the cycle
+  day, Rest Mode.
 - **A "worth a look" rail.** A short list of priority items, each a single tap
   to the right place: a dose window that's open, an integration to reconnect, a
   check-up that is due or overdue, a visit booked for today or the next two
@@ -38,9 +43,74 @@ number comes from.
   <figcaption>The Today view sitting above the tile strip. Nothing needed attention on the account that was captured, so the card shows the all-clear line instead of a worth-a-look rail.</figcaption>
 </figure>
 
-The greeting stays; the tiles and charts sit just below, unchanged. A layout
+The tiles and charts sit just below, unchanged. A layout
 saved with the older opt-in hero card simply ignores that setting — the two
 never stack.
+
+## The Today overview
+
+Since v1.40.2 the top of the card says what matters today instead of greeting
+you. It has three parts: a lead line, a short list headed **Today**, and the
+score ring.
+
+### The lead line
+
+The first line is a sentence with content. HealthLog picks it in this order:
+
+1. A short reaction to something that landed today, written by the AI model
+   (only with a provider and while AI analysis is on).
+2. The first sentence of the overnight briefing that says something. A
+   greeting such as "Good morning." and a sentence that only repeats the score
+   in the ring are skipped.
+3. Without either, a sentence built from your own readings, about the day's
+   strongest signal:
+   - a vital outside your personal range, the one furthest out first, for
+     example "Resting heart rate is at 64 bpm, above your usual range of 52 to
+     60 bpm." When more vitals are outside, the sentence says how many;
+   - a night at least an hour longer or shorter than your usual;
+   - all your recent vitals inside their usual range;
+   - an ordinary night ("Last night you slept 7 h 20 min, close to your
+     usual.").
+
+When nothing holds, there is no lead line; the card never fills the space with
+a filler sentence. Everything in point 3 comes from the server and works on an
+instance without any AI provider.
+
+### The Today list
+
+Below the lead line, a list headed **Today** shows up to five facts about the
+day, always in this order:
+
+| Fact | Shows | When |
+| --- | --- | --- |
+| **Rest mode** | **Day 3** | An illness episode is open and the Illness module is on |
+| **Medications** | **2 of 3 taken** | Something is scheduled today and the Medications module is on. On the day the clocks go back, the whole 25-hour day counts |
+| **Appointment** | **Today 14:30** or **Tomorrow 09:00**, with the practitioner or the kind of visit | A visit booked for today or tomorrow, nothing further out. Several on the same day read "+1". Left out when the worth-a-look rail already names that appointment |
+| **Last night** | **7 h 20 min, 40 min less than usual** | Last night's sleep is in and the Sleep module is on. Within 20 minutes of your usual it reads "close to your usual" |
+| **Vitals** | **4 checked, all in your range**, **Resting heart rate above your range**, or **2 of 4 outside your range** | Recent readings of your vitals, against your personal ranges |
+| **Cycle** | **Follicular, day 9** | The Cycle module is on and knows the day |
+
+Three rules hold for every line:
+
+- **A fact is a statement.** No line asks you to do anything. The worth-a-look
+  rail below is the only place on the card that does.
+- **A switched-off module has no fact.** The server leaves it out, so no client
+  can show it.
+- **Nothing is said twice.** When the lead line is built from a fact, such as
+  last night's sleep, that fact leaves the list.
+
+The list is never padded: a quiet day has fewer lines, and no lines is a valid
+answer. A phone shows the first four, a wide screen all five. Each line opens
+the page it belongs to.
+
+### The ring and "steady for"
+
+The health score ring stays. Under it, instead of a change since yesterday, the
+card can say **Steady for 3 weeks**: the score has stayed in the same band and
+within two points of today's value, computed the same way, for at least two
+whole weeks. A gap of more than three days without a stored score ends the
+run. The read looks back 120 days; a run longer than that reads **Steady for at
+least 17 weeks**. When the score has not held for two weeks, nothing is said.
 
 ## Morning freshness
 
@@ -131,7 +201,8 @@ reached — a separate, calmer primitive.
 A once-a-day morning notification carrying the day's read is available, **off by
 default** and opt-in per channel under Notifications. It carries the refreshed
 digest once sleep is in, never repeats within a day, and is a calm note — never
-an alert. It rides the same [reminder channels](/guides/reminder-channels/) as
+an alert. Since v1.40.2 its text carries no number: no reading, dose or score
+appears on a locked phone. The figures stay in the app's own lead line. It rides the same [reminder channels](/guides/reminder-channels/) as
 the rest of the app.
 
 ## Dashboard tiles

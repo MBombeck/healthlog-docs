@@ -96,6 +96,15 @@ on the compose environment whitelist.) Plan total Postgres slots as
 ceiling consume all 100 slots and starve every other client (`psql`, backups,
 the Prisma CLI during a migration deploy).
 
+In the default single-container setup (`HEALTHLOG_PROCESS_TYPE=all`) the web
+requests and the background worker run in one process. Since v1.40.1 that
+process holds one database client instead of one per server bundle (three
+before, about 55 MB more memory and three pools each sized to the whole
+budget), so web pages and background jobs share the one pool of
+`DB_CONNECTION_LIMIT` connections. A limit sized for the web traffic alone
+leaves the worker's jobs queueing for the same connections; keep the default of
+20 unless you have a reason to lower it.
+
 Rules of thumb:
 
 - Set `DB_CONNECTION_LIMIT` on every container that needs a non-default
@@ -106,6 +115,30 @@ Rules of thumb:
 - If the sum approaches `max_connections`, raise the Postgres ceiling, lower
   the per-container pool, or front the database with PgBouncer in
   transaction-pooling mode.
+
+## Memory
+
+The compose file caps the app container with `mem_limit: ${APP_MEMORY_LIMIT:-1536m}`.
+Node sizes its heap from that cap: `1536m` gives about 792 MB, `1g` about
+524 MB. Before v1.40.1 the default was `1g`, and a long-used account filled
+that heap in normal operation, so garbage collection stalled requests for
+seconds and a weekly backup could end the process.
+
+- **A host with 2 GB of memory or less.** Set `APP_MEMORY_LIMIT=1g` in `.env`,
+  so Postgres and the system keep enough room. Do not go below 1 GB (see
+  [Large accounts and memory](/guides/backups/#large-accounts-and-memory)).
+- **A busy instance.** Raise it.
+- **A split worker.** The worker example in the compose file carries its own
+  `WORKER_MEMORY_LIMIT`, with the same `1536m` default.
+
+If you set `APP_MEMORY_LIMIT` yourself already, the update to v1.40.1 changes
+nothing. The Unraid Community Applications template and the TrueNAS app set no
+memory limit, so this does not apply to them. The Portainer app template and
+Unraid's Compose Manager deploy the project's `docker-compose.yml` and get the
+same default; set `APP_MEMORY_LIMIT` as a stack environment variable there.
+
+The Postgres service deliberately carries no `mem_limit`, so under memory
+pressure the app is stopped before the database.
 
 ## Related operations runbooks
 

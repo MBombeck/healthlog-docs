@@ -134,6 +134,52 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.40.2
+
+There are no migrations and no new settings. Take a backup as usual before
+updating.
+
+- **Rolling back to v1.40.1 or earlier.** An account that saved the Coach
+  lookback **12 months** (`lastYear`, new in v1.40.2) has its whole Coach
+  preferences read as defaults by the older version, metric exclusions
+  included, until they are saved again. Ask such accounts to pick another
+  lookback before a rollback, or to save their exclusions again after it.
+- **What users see.** The Coach has a conversations panel, quick settings
+  behind a gear and a lookback that is now a real limit
+  ([Coach conversations](/guides/coach-conversations/#the-coach-page)); the
+  dashboard opens with a Today overview
+  ([The Today view](/insights/today/#the-today-overview)); the document
+  archive filters by procedure.
+
+## Upgrading to v1.40.1
+
+Take a database backup first. There are three migrations, `0372` to `0374`:
+
+| Migration | What it does |
+| --- | --- |
+| `0372_pulse_hourly_mean_day` | Recalculates the stored pulse summaries so a day is the mean of its hours and a week, month or year the mean of its days. It reads every pulse reading once, so it takes longer on an account with years of heart-rate data |
+| `0373_backup_pass_attempts` | A small table noting when each backup pass started and finished per account |
+| `0374_document_thumbnail_failures` | A small table for document previews that cannot be rendered, so they are not retried at every start |
+
+What to check after the update:
+
+- **Memory.** The compose file now gives the app `1536m` instead of `1g` by
+  default (`APP_MEMORY_LIMIT`), a Node heap of about 792 MB instead of 524 MB.
+  If your host has 2 GB of memory or less, set `APP_MEMORY_LIMIT=1g` in `.env`
+  before `docker compose up -d`. If you set it yourself already, nothing
+  changes. See [Scaling](/self-hosting/scaling/#memory).
+- **Database pool.** Web pages and background jobs in the default `all` mode
+  now share one connection pool of `DB_CONNECTION_LIMIT` connections. If you
+  lowered it a lot, check that jobs do not queue.
+- **A restore that was refused.** A restore refused on v1.40.0 with "the key
+  material behind the id differs" works now; start it again from its row. See
+  [Restore from the console](/guides/backups/#restore-from-the-console).
+- **Pulse averages change.** Daily, weekly and monthly pulse values are usually lower
+  on days with a workout, because every hour now counts once. See
+  [A day of pulse](/insights/intraday-pulse/#a-day-of-pulse).
+- **Umami.** If you use Umami with this instance, reload open tabs once after
+  the update.
+
 ## Upgrading to v1.40.0
 
 Take a database backup first. There are seven migrations, `0365` to `0371`;

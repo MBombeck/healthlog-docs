@@ -87,6 +87,13 @@ all parse). The card names the host reports go to and never the key. Press
 no default target: reports leave the host only after somebody typed a DSN
 here.
 
+Page views go to Umami through the HealthLog server, so the browser only talks
+to this host. Since v1.40.1 that also works with an Umami whose tracker was
+built with a custom collect endpoint: the server reads the endpoint from the
+tracker script and forwards the events to the configured Umami host. Before,
+those events ended in errors on the HealthLog server. After updating, reload
+open tabs once so they load the new tracker.
+
 ## API tokens
 
 A read-only, instance-wide list of every personal API token with owner,

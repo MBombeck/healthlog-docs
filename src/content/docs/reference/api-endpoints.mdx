@@ -161,10 +161,11 @@ SSE coach stream, and the self-context surface.
 | `GET` / `PATCH` | `/api/user/ai-provider` | Your AI provider settings. Since v1.40.0 they carry `localReasoningEffort` and `compatReasoningEffort` (`none`, `low`, `medium`, `high`, or `null` for Default) |
 | `GET` / `PUT` | `/api/insights/provider-chain` | The fallback chain. Since v1.40.0 a Local or OpenAI-compatible entry may carry `reasoningEffort`; see [Reasoning](/guides/ai-providers/#reasoning) |
 | `GET` | `/api/dashboard/snapshot` | Single-cell above-the-fold hydration |
-| `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback |
+| `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback. The web no longer shows the feedback thumbs since v1.40.2; the route stays |
 | `GET` | `/api/insights/chat/{id}/messages/{messageId}/results` | Since v1.39.4: the tables of values one Coach answer read, decrypted for their owner. A data read, served while the Coach is unavailable |
 | `GET` / `PUT` | `/api/coach/about-me` | Encrypted self-context + follow-up questions |
-| `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences |
+| `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences. Since v1.40.2 `defaultWindow` is the lookback limit and gains `lastYear`; see below |
+| `GET` | `/api/daily/digest` | The dashboard's daily digest. Since v1.40.2 it carries the Today overview; see below |
 | `GET` / `PATCH` | `/api/auth/me/disable-coach` | Coach kill switch |
 
 ### Coach tables, suggestions and questions (since v1.39.4)
@@ -189,6 +190,40 @@ conversation the caller does not own answers `404`. A suggestion answered from
 a stored table is persisted with `providerType: "reuse"` and uses no model.
 Frame order, shapes and limits are in the OpenAPI document; the behaviour is
 described in [Coach conversations](/guides/coach-conversations/).
+
+### Coach lookback (since v1.40.2)
+
+`defaultWindow` in the Coach preferences is `last7days`, `last30days`,
+`last90days`, `lastYear` (new) or `allTime`, the default. It used to set only
+the window the Coach started from; it is now a limit on everything the Coach
+reads in every answer: the snapshot, every retrieval tool and the summaries.
+`allTime` is no limit. When a Coach tool finds readings that all lie beyond the
+limit, the model is told `outside_reach` and gets no figure from them (no count,
+date or value); in the stream's `step` frames such a read shows as empty with
+the reason `outside_window`. Preferences are parsed field by
+field, so one invalid value no longer resets the others to their defaults.
+MCP tools are not affected; they keep their own window arguments.
+
+Rolling a server back to v1.40.1 or earlier after an account saved `lastYear`
+makes the older server read that account's whole Coach preference blob as
+defaults, metric exclusions included, until it is saved again.
+
+### Today overview in the daily digest (since v1.40.2)
+
+`GET /api/daily/digest` gains five additive fields:
+
+| Field | Meaning |
+| --- | --- |
+| `lead` | The lead line, resolved: `{ text, source }` with `source` `reaction` or `briefing` (cached model text, only while that capability is available) or `signal` (a deterministic sentence about the day's strongest signal: a vital outside its personal range, an unusual night, vitals in range, last night). `null` when there is nothing to say. When the `signal` sentence is built from a fact, that fact is left out of `today` |
+| `today[]` | Up to 5 facts in priority order, never padded: `{ kind, label, value, href, moduleKey? }` with `kind` one of `rest_mode`, `medications`, `appointment`, `sleep`, `vitals`, `cycle`. `label` and `value` are localised on the server. A fact about a switched-off module is absent. A narrow surface shows the first 4. A fact never asks the reader to do anything; the rail is the only place that does |
+| `restMode` | `{ day }`, the 1-based day of the open illness episode on the reader's calendar, while the Illness module is on; else `null` |
+| `score.steadyWeeks` | Whole weeks the score has held in the same band and within two points, computed the same way, read off the stored daily scores. `null` under two weeks, when the stored record does not reach today, or when the score on screen differs from the newest stored day. Shown in place of a delta, never beside one |
+| `score.steadyAtLeast` | `true` when the run reaches back past the 120 days the read covers: `steadyWeeks` is then a lower bound, said as "at least". Absent on older cached digests |
+
+The push and lock-screen `line` carries no number any more (no reading, dose or
+score); the in-app `lead` keeps its figures. `briefingLead` now skips a greeting
+and a sentence that only repeats the score, and is `null` when no sentence
+qualifies. See [The Today overview](/insights/today/#the-today-overview).
 
 ### AI availability (since v1.39.0)
 
@@ -637,6 +672,13 @@ The AI reads of a stored document take a session or a wildcard token:
 | `GET` | `/api/ai-runs/{id}` | Since v1.40.0. Status and result of a background read the caller queued; `404` `aiRuns.notFound` an hour after it ends |
 
 The document kind `SICK_NOTE` is new in v1.40.0.
+
+The archive's list and its filter choices take a session or a wildcard token:
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `GET` | `/api/documents/inbound/usage` | Quota, limits and filter choices. `linkedEpisodes` lists the conditions with a linked document; since v1.40.2 `linkedProcedures` lists the visits of kind procedure that carry at least one linked document, newest first (`encounterId`, `occurredAt`, `reason`, `bodySite`, `laterality`, `practitionerName`). Empty when a sharing grant does not cover visits |
+| `GET` | `/api/documents/inbound` | The archive list. `encounterId` filters to the documents linked to that visit; the procedure filter passes a `linkedProcedures` entry's `encounterId`. An id that is not one of the caller's visits matches nothing |
 
 ## Export, FHIR & clinician links
 

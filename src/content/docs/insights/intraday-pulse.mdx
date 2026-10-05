@@ -1,6 +1,6 @@
 ---
 title: Intraday pulse
-description: The within-day heart-rate curve — 10-minute means with a day navigator, a dense-then-hourly retention model, and a conservative elevated-at-rest note.
+description: The within-day heart-rate curve — 10-minute means with a day navigator, a dense-then-hourly retention model, how a day's pulse is averaged, and a conservative elevated-at-rest note.
 sidebar:
   order: 4
 ---
@@ -30,6 +30,30 @@ days fall back to a coarser **hourly** shape — the per-sample rows are folded 
 one mean per local hour rather than pretending an old day still carries
 10-minute resolution. The chart labels which resolution a day was drawn at, so a
 folded older day is never mistaken for a dense recent one.
+
+## A day of pulse
+
+Since v1.40.1 a day's pulse is the **mean of its hours**: HealthLog averages the
+readings of each local hour, then averages those hourly values. A week, a month
+or a year is the mean of its days.
+
+The reason is how watches sample. At rest a watch measures every five to ten
+minutes, during a workout every few seconds, so one hard hour can hold more
+readings than the rest of the day together. A plain average over every reading
+let that hour decide the day: a day with one hour at 150 bpm and 23 calm hours
+at about 60 read around 128. Averaged by the hour, the same day reads about 64,
+because every hour counts once.
+
+The rule applies to the pulse (heart rate) series, everywhere it shows an
+average: the dashboard tile, the charts and their data tables, the doctor
+report, the clinician share view, the Coach and the status notes. The chart tooltip says **(average of the hours)**, and the data
+table under a chart says so in a note. The number of readings, the lowest and
+the highest value still cover every reading, so a workout peak stays visible
+as the day's maximum. Resting heart rate, walking heart rate and the
+10-minute curve above are not affected.
+
+The update to v1.40.1 recalculates the stored pulse summaries once, in
+migration `0372`.
 
 ## The elevated-at-rest note
 

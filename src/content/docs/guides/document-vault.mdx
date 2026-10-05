@@ -11,7 +11,7 @@ The Documents module is a flat, encrypted, searchable store for the paper
 trail a household accumulates: doctor letters, discharge summaries, lab
 reports, imaging findings, prescriptions, referrals, insurance letters,
 vaccination records, and since v1.40.0 sick notes as a type of their own, which
-the type filter and filing suggestions know as well. One timeline, filtered by type, condition, year, and
+the type filter and filing suggestions know as well. One timeline, filtered by type, condition, procedure, year, and
 text search — no folders to maintain.
 
 It is **available by default**. Each user can turn it off under Settings →
@@ -122,6 +122,15 @@ document. Only the small **×** beside it removes the link, and right after you
 remove one, a line under the chips offers to undo it. This works the same from
 both sides, and on visits too. Before, a chip was one button, so opening the
 linked record removed the link.
+
+### Filter by procedure or surgery
+
+Since v1.40.2 the archive has a filter for **Procedures and surgeries** next to
+the **Condition** filter. It lists the procedures you have linked at least one
+document to, newest first; the button reads **All procedures** until you pick
+one. Picking one shows the documents linked to that procedure. A procedure without a linked document
+does not appear, and the filter is absent until there is one. On a phone the
+filters keep the height of the search field when several are active.
 
 ## What the vault is not for
 
