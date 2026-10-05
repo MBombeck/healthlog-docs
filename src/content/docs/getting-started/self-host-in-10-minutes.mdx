@@ -18,8 +18,12 @@ longer if you also want a TLS-fronted public hostname (see
   multi-arch image from GitHub Container Registry (`linux/amd64` +
   `linux/arm64`), so a Raspberry Pi 5 or an x86 VPS both work unchanged.
 - **2 GB RAM, 10 GB free disk.** The Postgres data volume grows with history.
-  The app container is capped at `mem_limit: ${APP_MEMORY_LIMIT:-1g}` in the
-  compose file. 1 GB is also the floor: below it the app cannot run a backup
+  The app container is capped at `mem_limit: ${APP_MEMORY_LIMIT:-1536m}` in the
+  compose file (`1g` before v1.40.1), which gives Node a heap of about 792 MB.
+  On a 2 GB host that leaves too little for Postgres and the system, so set
+  `APP_MEMORY_LIMIT=1g` in `.env` there (a heap of about 524 MB); a long-used
+  account then runs closer to that heap. 1 GB is also the floor: below it the
+  app cannot run a backup
   (see [Large accounts and memory](/guides/backups/#large-accounts-and-memory)),
   so do not lower it to 512 MB. A larger cap is not needed for an Apple Health
   import either: the uploaded `export.zip` (up to 1.5 GB) and the `export.xml`
@@ -168,7 +172,7 @@ services:
       HEALTHLOG_PROCESS_TYPE: "${HEALTHLOG_PROCESS_TYPE:-all}"
       SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-}"
       # … plus the backup, WHOOP, FHIR, deploy-webhook, and TLS-pin vars
-    mem_limit: "${APP_MEMORY_LIMIT:-1g}"
+    mem_limit: "${APP_MEMORY_LIMIT:-1536m}"
     depends_on:
       db:
         condition: service_healthy
@@ -208,7 +212,8 @@ never reach the container even when `.env` defines them. This is intentional;
 when a guide tells you to set a new variable, it also tells you to add it to the
 whitelist. `HEALTHLOG_IMAGE_REF` lets you pin a release instead of `:latest`
 (`HEALTHLOG_IMAGE_REF=:v1.38.1` or an `@sha256:…` digest), and
-`APP_MEMORY_LIMIT` raises the app container's memory cap.
+`APP_MEMORY_LIMIT` sets the app container's memory cap (`1536m` by default,
+`1g` on a host with 2 GB of memory or less).
 
 Out of the box the server makes three small requests of its own, none carrying
 health data: a password breach check when a password is set, an update check

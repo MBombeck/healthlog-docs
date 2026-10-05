@@ -131,6 +131,29 @@ Since v1.40.0 a server whose encryption key does not match its data answers
 operator has to fix, not as offline, and do not retry in a loop. See
 [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check).
 
+## Changes in v1.40.1 and v1.40.2
+
+Everything here is additive; a client that ignores it keeps working.
+
+- **Pulse averages.** Since v1.40.1 a day's pulse is the mean of its hours'
+  means, and a week, month or year the mean of its days, wherever the server
+  returns a pulse average or a daily pulse value. Count, minimum and maximum
+  still cover every reading. See [A day of pulse](/insights/intraday-pulse/#a-day-of-pulse).
+- **Blood pressure series.** Since v1.40.1 the series takes systolic and
+  diastolic from one source per day, the one the source priority ranks first.
+- **The daily digest** (`GET /api/daily/digest`) gains `lead`, `today[]`,
+  `restMode`, `score.steadyWeeks` and `score.steadyAtLeast` in v1.40.2, and its
+  push `line` no longer carries vital values. `label` and `value` of a fact are
+  localised on the server; render them, do not compose your own. See
+  [Today overview in the daily digest](/reference/api-endpoints/#today-overview-in-the-daily-digest-since-v1402).
+- **The Coach lookback.** `defaultWindow` gains `lastYear` and is a limit on
+  every Coach read since v1.40.2. See
+  [Coach lookback](/reference/api-endpoints/#coach-lookback-since-v1402).
+- **Message feedback.** The web no longer shows the thumbs, but
+  `POST /api/insights/chat/messages/{id}/feedback` stays for the app.
+- **Documents.** `GET /api/documents/inbound/usage` gains `linkedProcedures`;
+  pass an entry's `encounterId` to the list's `encounterId` filter.
+
 ## Device Registration
 
 Native clients register their push-notification handle through `POST /api/devices`.

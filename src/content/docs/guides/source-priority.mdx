@@ -55,6 +55,11 @@ the two and could show a reading twice; now they take the source your priority
 picks for each day, like every other chart. Glucose has no priority setting and
 keeps all its sources.
 
+Since v1.40.1 the blood pressure chart picks one source per day for both
+values, the one your priority ranks first, so a reading is never paired from a
+systolic value of one device and a diastolic value of another. The same holds
+for the blood pressure series the API returns.
+
 ## Adjust the ladder
 
 Open **Settings → Source priority** (`/settings/sources`). For each metric (or

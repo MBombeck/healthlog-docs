@@ -1,6 +1,6 @@
 ---
 title: Coach conversations
-description: What the Coach shows around an answer (the sources it read, tables and charts of your values, how a figure was worked out, follow-up suggestions, clarifying questions) and what of it reaches the AI model.
+description: The Coach page (conversations panel, quick settings, how far back the Coach looks), what it shows around an answer (the sources it read, tables and charts of your values, how a figure was worked out, follow-up suggestions, clarifying questions) and what of it reaches the AI model.
 sidebar:
   order: 9
 ---
@@ -31,6 +31,99 @@ An iPhone app from before v1.39.4 shows the answer as before, without these
 parts.
 :::
 
+## The Coach page
+
+Since v1.40.2 the Coach page has the chat in the middle and your conversations
+in a panel on the right.
+
+- **The conversations panel.** Conversations are grouped as Today, Yesterday,
+  This week and Earlier, newest first. The toggle at the
+  right of the top bar (**Show conversations** / **Hide conversations**) folds
+  the panel away, and the page remembers your choice on that device. On a
+  narrower window or a phone the panel opens as a sheet from the right and
+  closes again when you pick a conversation.
+- **Rename and delete.** Each row has a menu with **Rename** and **Delete**. A
+  deleted conversation can be brought back for a few seconds with **Undo** on
+  the **Conversation deleted** notice.
+- **New chat.** The round button at the bottom of the panel starts a new
+  conversation.
+- **Quick settings.** The gear in the panel header opens the Coach's settings
+  in place: a popover on a wide screen, a sheet on a phone. See
+  [Quick settings](#quick-settings).
+
+### Under each answer
+
+One row sits under every answer: copy, **Read aloud**, **Try again** and the
+time on the left, the tokens and the model the answer used on the right. On a
+computer the row appears when you point at the message; on a touch screen it is
+always there. The copy button needs the browser's clipboard, so a server
+reached over plain HTTP shows none.
+
+Under your own message the row holds copy, the time and **Remember**, a
+bookmark icon. It saves what you said to your self-context, so the Coach knows
+it in later conversations; the icon confirms in place.
+
+The thumbs up and down and the **What I'm looking at** box are gone from the
+web. What the Coach read is in the list above the answer (see
+[What the Coach looked at](#what-the-coach-looked-at)), which now also holds the
+tables the answer did not point at and the line on how a figure was worked out.
+Follow-up suggestions sit right under the answer, in the size of its text. When
+you scroll up in a long conversation, a round button (**Jump to the latest
+message**) brings you back down.
+
+### Quick settings
+
+The gear opens three things:
+
+- **Model.** **Answers with** picks which of your providers answers. Only
+  providers that can actually answer are offered, ones with a working key or
+  sign-in. When the server's operator provides the connection, the panel says
+  so; once one of your own providers is set up, it answers first. The model and
+  the reasoning level appear where they are yours to set; otherwise the panel
+  says the model is set in AI settings.
+- **What I can see.** The data areas the Coach may read, each a switch, and how
+  far back it may look (see below). A change is saved at once.
+- **All AI settings.** Keys, sign-ins and the fallback order stay in
+  **Settings → AI**.
+
+**Settings → Coach** sums this up in one line, for example "The Coach sees 8 of
+10 data areas and looks back 90 days", with a link, **Open Coach settings**,
+that opens the Coach page with these settings open (`/coach?settings=data`).
+
+### How far back the Coach looks
+
+Under **How far back the Coach can look** you choose **7 days**, **30 days**,
+**90 days**, **12 months** or **All**. **All** is the default.
+
+Since v1.40.2 this is a real limit. Before, it only set where the Coach started
+reading, and a tool could still reach further. Now it holds for everything the
+Coach reads in any answer: the summary of your record it starts from, every
+reading tool, and the overviews such as correlations, lab results and glucose.
+An overview that needs more history than the limit allows is shortened or left
+out rather than computed over a shorter window that would disagree with its
+page.
+
+The line under the choice says what that means:
+
+- With a limit: "The Coach reads nothing older than 90 days, in any answer."
+- With **All**: everything you recorded, the last 12 months in daily detail,
+  older readings as monthly values up to 10 years back, and lab results from
+  the last 12 months.
+
+Some things are not history and stay visible under any limit: your profile
+(age, sex, height), your current medications, an illness that is still open,
+upcoming visits, and what you told the Coach (remembered facts, plans,
+reminders). Answers the Coach gave earlier, in older conversations, may still
+quote older values.
+
+When you ask about something older than the limit, the Coach does not say the
+data is missing. It says the readings lie beyond the lookback and that you can
+widen it in the Coach settings, and it names no figure from them: no count, no
+date, no value.
+
+Connected tools using [MCP](/guides/mcp-server/) are not affected. They read
+with their own time windows; the lookback is a Coach setting.
+
 ## What the Coach looked at
 
 While the Coach works, a line above its answer names the source it is reading,
@@ -56,8 +149,8 @@ your own records, never appears there.
 When the Coach reads a stretch of days, weeks or months, or a set of workouts,
 sleep nights, lab results or medication adherence, it keeps what it read as a
 table. The tables the answer relies on appear under the answer. Tables it read
-without pointing at them sit under **Data used** inside the **What I'm looking
-at** disclosure.
+without pointing at them sit under **Data used** in the opened sources list
+above the answer.
 
 - **The latest rows in view.** A table over time shows its latest 12 periods,
   still in date order, and any other table its first 12 rows. **Show all**
@@ -70,7 +163,7 @@ at** disclosure.
   the ones the app's own charts show for that period.
 - **The default grain follows the window.** Up to 90 days are listed by day,
   the last 12 months by week, and all time by month, unless you ask for another
-  grain.
+  grain. No table reaches past [the lookback you set](#how-far-back-the-coach-looks).
 - **From an earlier answer.** When the Coach shows a table again that an
   earlier answer in the same conversation read, the table says **From an
   earlier answer** with that answer's date. It is the stored table with the
@@ -130,7 +223,7 @@ than drawing a histogram of noise.
 
 ## How a figure was worked out
 
-Inside **What I'm looking at**, the line **How this was worked out** lists each
+At the end of the opened sources list, the line **How this was worked out** lists each
 source the answer rests on with its window, the number of readings and how
 they were combined, for example "Blood pressure, last 90 days: 142 readings,
 weekly averages · Sleep, last 30 days: no readings in this window". A source

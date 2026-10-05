@@ -21,6 +21,7 @@ one value you must keep yourself: the encryption key.
 | Start period | at least 60 seconds, with more retries than the image's 3 × 30 seconds: migrations run at every boot |
 | Database | PostgreSQL 16 (17 and later are not a drop-in), no extensions |
 | Volumes | none for the app; the database gets its own dataset |
+| Memory | the app is not deployed from the compose file, so `APP_MEMORY_LIMIT` does not apply. If you give the app a memory limit, keep it at 1 GB or more; 1.5 GB matches the compose default |
 
 ## Environment
 

@@ -110,7 +110,7 @@ The **last provider that successfully answered** is cached for an hour per user.
 
 ## Feedback
 
-Feedback lives on the **Coach**: every settled Coach reply carries a small per-message thumbs pair, stored against the message. A separate recommendation-feedback endpoint (`/api/insights/feedback`) stores a helpful / not-helpful verdict per user and recommendation; rating the same recommendation twice is refused rather than double-counted.
+Feedback lives on the **Coach**: a settled Coach reply can carry a per-message helpful / not-helpful verdict, stored against the message. Since v1.40.2 the web no longer shows the thumbs; the route stays for the iPhone app. A separate recommendation-feedback endpoint (`/api/insights/feedback`) stores a helpful / not-helpful verdict per user and recommendation; rating the same recommendation twice is refused rather than double-counted.
 
 Today, feedback affects two things:
 

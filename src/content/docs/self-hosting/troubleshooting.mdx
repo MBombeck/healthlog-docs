@@ -297,8 +297,8 @@ failed - JavaScript heap out of memory`, the container restarts, and after the
 restart the log names jobs that were cut off (`worker.boot.jobs_cut_off`). A
 restore on the admin backups page says it was restarted after a server
 restart. `docker inspect` reports `OOMKilled` as `false`: the app hit its own
-heap limit, which in a 1 GB container is about 524 MB, before Docker stepped
-in.
+heap limit, which in a 1 GB container is about 524 MB (about 792 MB at the
+compose default of `1536m` since v1.40.1), before Docker stepped in.
 
 **Cause.** Before v1.39.5 two paths could hold more than that on a very large
 account. The Google Health import of a full history read a per-minute

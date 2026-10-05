@@ -57,6 +57,23 @@ ECG entries in `export.xml`) is counted in the skip tally but not stored. ECG
 recordings come in through the export's `electrocardiograms` folder instead:
 each CSV file there is stored as a recording when you upload the ZIP.
 
+### Values HealthLog wrote itself are left out
+
+The iPhone app writes values into Apple Health: readings you enter in the app,
+and readings from other sources it mirrors there. An Apple Health export
+carries those back. Since v1.40.1 the import recognises them, by the marker the
+app stamps on every sample it writes or, for samples from older app builds, by
+their HealthLog id, and leaves them out **when this account already holds
+them**. Cycle samples count too: they are left out when the account has a
+cycle entry on that day. The result says how many: "3 records that HealthLog
+wrote into Apple Health itself were left out, because they are already in your
+data."
+
+A marked sample whose reading this account does not hold is imported as usual.
+So when you move to a new server without a backup, importing an Apple Health
+export still brings those values back. The import takes about as long as
+before.
+
 ### Cumulative types collapse to one row per day
 
 Cumulative quantity types — steps, active energy, distance, flights — collapse

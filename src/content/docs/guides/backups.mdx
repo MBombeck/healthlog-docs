@@ -280,6 +280,16 @@ because the old copy stays until the new one is complete.
   pieces".** An older version wrote to the row after v1.39.2 had, which only
   happens after a downgrade. The row is not read; the next weekly backup
   replaces it.
+- **The backups page names an account under "A run stopped partway and never
+  came back".** Since v1.40.1 both backup jobs report a heartbeat while they
+  run, so a run the process died under (a restart, or the container running
+  out of memory) is noticed within minutes instead of after two hours, and the
+  queue's retries take it from there. The page shows **Running since** for a
+  run in progress, and under the weekly and the off-host card it names each
+  account whose copy was started and never finished. The next run takes those
+  accounts last, so every other account gets its copy first. The same account
+  showing up there twice needs more memory than the container has; see
+  [Large accounts and memory](#large-accounts-and-memory).
 - **The run fails with "job timed out", or the app restarts during the run.**
   Check the container's restart count and memory limit (see
   [Large accounts and memory](#large-accounts-and-memory)). On v1.39.1 or
@@ -390,6 +400,14 @@ the background with the same reason on the page. Nothing is changed. Put the
 key back and the copy restores. [Key rotation](/guides/encryption-key-rotation/)
 explains how long to keep an old key.
 
+On v1.40.0 that check could refuse a good backup with "the key material behind
+the id differs". It sampled one value from the server settings, an older value
+written before encrypted values carried a key prefix, misread it and concluded
+the key had changed, although the key opened every value in the backup. Since
+v1.40.1 such older values open correctly, and the check samples only the
+sections that count. A key that really differs is still refused. If a restore
+was refused this way, update and start it again from its row.
+
 A restore also refuses a file that would attach the account's records to
 records of another account on the same server (`backup.foreign_reference`), and
 nothing is written.
@@ -478,9 +496,11 @@ An app asking with a position from before that moment is told to start over
 ## Large accounts and memory
 
 An account with years of imported Apple Health data can hold millions of
-readings. Every backup path works a piece at a time, so the standard 1 GB app
-container is enough. Measured on an account with 2.6 million readings, with the
-web server and the worker in one 1 GB container:
+readings. Every backup path works a piece at a time, so a 1 GB app container is
+enough, and since v1.40.1 the weekly backup needs far less memory than before.
+The compose default is `1536m` since v1.40.1 (see
+[Scaling](/self-hosting/scaling/#memory)). Measured on an account with 2.6
+million readings, with the web server and the worker in one 1 GB container:
 
 | Step | Time |
 | --- | --- |
@@ -593,10 +613,13 @@ without getting one.
 ## Monthly restore drill (automatic)
 
 A pg-boss job (`data-restore-drill`, 04:11 on the 1st of each month) exercises
-the read path end to end: it fetches the most recent backup object, decrypts
-it with the off-host keys the server holds (current and previous), JSON-parses
-it, and sanity-checks
-the payload shape. It performs **no database restore** — it validates the
+the read path end to end: it fetches every backup object of the most recent
+date (one per account), decrypts each with the off-host keys the server holds
+(current and previous), JSON-parses it, and sanity-checks
+the payload shape. Before v1.40.1 it checked only one account's object. Each
+account is checked and reported on its own, the drill runs as one locked pass,
+and a failing account is reported once, by its object key, while the others are
+still read. It performs **no database restore** — it validates the
 artefact, not the import path. Outcomes:
 
 - **Success**: record counts, object age, and sizes land in the wide-event
@@ -609,8 +632,9 @@ artefact, not the import path. Outcomes:
   `BACKUP_ENCRYPTION_KEY` change means the old key is missing from
   `BACKUP_ENCRYPTION_PREVIOUS_KEYS`.
 - **Content under a missing key** (since v1.39.3): the object opens, but the
-  drill decrypts one encrypted value per application key it finds inside, and
-  one of them needs a key this server does not have. It pages with the key id.
+  drill decrypts the shortest value of each section under every application
+  key id it finds inside (since v1.40.1; one value per key before), and one of
+  them needs a key this server does not have. It pages with the key id.
   Restoring that copy would bring back records nobody can read, so put the key
   back first.
 - **Not configured**: deployments without the `BACKUP_S3_*` vars skip
