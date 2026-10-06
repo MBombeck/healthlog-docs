@@ -168,6 +168,69 @@ What to know after the update:
 Rolling back to v1.40.x leaves the three columns in place; the older image does
 not read them.
 
+## Upgrading to v1.40.6
+
+There are no migrations and no new settings. Take a backup as usual before
+updating.
+
+- **Coach answers about long histories.** On an account with many series the
+  Coach could get a block without numbers and still treat it as data. It now
+  reads each series on its own, condensed when it is long, and says so when a
+  read fails instead of answering from nothing. Nothing to do on your side.
+- **Today means today.** The signals of the day, the lead line, the health
+  status and the morning push speak about today only from readings taken today
+  in the person's timezone, and a briefing stored on an earlier day is no
+  longer shown as today's.
+- **MCP clients that accept only JSON Schema 2020-12** can load the tools now.
+  If such a client refused to connect before, connect it again. See
+  [MCP server](/guides/mcp-server/).
+- **What users see.** On a phone the dashboard card puts a small score ring
+  beside the lead line. Text fields show focus as a neutral border instead of
+  a purple ring, and the Coach panel drops its search field (the full
+  conversation list keeps one).
+
+## Upgrading to v1.40.5
+
+There are no migrations and no new settings. The Coach's conversations panel
+runs the full height of the window, the top bar on the Coach names the open
+conversation, and a new chat starts from a round plus button at the bottom of
+the panel. See [The Coach page](/guides/coach-conversations/#the-coach-page).
+
+## Upgrading to v1.40.4
+
+There are no migrations and no new settings. The Coach's conversations panel
+sits against the right edge of the window, and the model and token count of
+an answer move behind an info icon in the row under it. With touch, the
+panel's buttons keep their full size at any width, a tablet included. See
+[Under each answer](/guides/coach-conversations/#under-each-answer).
+
+## Upgrading to v1.40.3
+
+Take a backup as usual. There is one migration:
+
+| Migration | What it does |
+| --- | --- |
+| `0375_coach_conversation_updated_at_repair` | Moves Coach conversations that an earlier release made look recently active back to the time of their last message. It changes only the conversations table and runs in seconds |
+
+What to know after the update:
+
+- **Key rotation keeps the order.** Rotating the encryption key or encrypting
+  stored text in place no longer makes old Coach conversations look new, and
+  measurements, mood entries and every other encrypted record keep their sync
+  position through the same rewrite. See
+  [Encryption key rotation](/guides/encryption-key-rotation/).
+- **Usual ranges.** A personal usual range never shrinks to a single value, and
+  glucose today is compared with the same hours of earlier days. A fasting
+  morning no longer reads as low against whole days.
+- **What users see.** The Today lead shows whole sentences, and chart
+  legends, trend lines and tooltips name every metric in the reader's
+  language. See [The Today overview](/insights/today/#the-today-overview).
+- **For API clients.** The daily digest carries a `signalLine` decided on the
+  server, and health status deviations carry a `basis` (`day` or
+  `sameHours`).
+
+Rolling back to v1.40.2 is safe; the migration only corrected timestamps.
+
 ## Upgrading to v1.40.2
 
 There are no migrations and no new settings. Take a backup as usual before
