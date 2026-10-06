@@ -1,6 +1,6 @@
 ---
 title: Coach conversations
-description: The Coach page (conversations panel, quick settings, how far back the Coach looks), what it shows around an answer (the sources it read, tables and charts of your values, how a figure was worked out, follow-up suggestions, clarifying questions) and what of it reaches the AI model.
+description: The Coach page (conversations panel, quick settings, how far back the Coach looks, thinking depth), the status line above an answer, tables, comparison charts, follow-up suggestions, clarifying questions, what the Coach remembers, and what of it reaches the AI model.
 sidebar:
   order: 9
 ---
@@ -14,6 +14,14 @@ chart, how a figure was worked out, and up to three suggestions for what to ask
 next. When a question could mean several things, the Coach asks back with a
 few choices instead of guessing.
 
+Since v1.41.0 the Coach can think before it answers, with a model that
+supports it. A single line above the answer says what it is doing while it
+works, comparisons of two periods or two metrics share one chart, a question
+that could mean two things gets suggested replies, and the Coach remembers
+what you tell it, with an undo right where it says so. See
+[Thinking depth](#thinking-depth), [The status line](#the-status-line) and
+[What the Coach remembers](#what-the-coach-remembers).
+
 All of this is built by the server from what the Coach actually read. The AI
 model writes the answer text; it never writes a step label, a table, a chart,
 the method line or the wording of a suggestion.
@@ -26,6 +34,11 @@ entry can. The [**Local** provider](/guides/ai-providers/#local-endpoints)
 cannot, and neither can a provider chain that includes it. With such a chain
 the Coach reads a summary of your whole record at once, as before: the sources list shows one line, **Reading
 your record summary**, and there are no tables, charts or suggestions.
+
+Since v1.41.0 the Coach still thinks on such a chain when the local model can
+reason, and it still knows what it remembered about you. Saving something new
+to memory during an answer, suggesting a plan and comparison charts need a
+provider that can call tools.
 
 An iPhone app from before v1.39.4 shows the answer as before, without these
 parts.
@@ -73,16 +86,21 @@ message**) brings you back down.
 
 ### Quick settings
 
-The gear opens three things:
+The gear opens these:
 
 - **Model.** **Answers with** picks which of your providers answers. Only
   providers that can actually answer are offered, ones with a working key or
   sign-in. When the server's operator provides the connection, the panel says
-  so; once one of your own providers is set up, it answers first. The model and
-  the reasoning level appear where they are yours to set; otherwise the panel
-  says the model is set in AI settings.
+  so; once one of your own providers is set up, it answers first. The model
+  appears where it is yours to set; otherwise the panel says the model is set
+  in AI settings.
+- **Thinking depth.** How much the Coach thinks before it answers. A change is
+  saved at once. See [Thinking depth](#thinking-depth).
 - **What I can see.** The data areas the Coach may read, each a switch, and how
   far back it may look (see below). A change is saved at once.
+- **Memory.** A link, **Memory** with the number of things the Coach keeps,
+  opens the list under Settings, Coach. See
+  [What the Coach remembers](#what-the-coach-remembers).
 - **All AI settings.** Keys, sign-ins and the fallback order stay in
   **Settings → AI**.
 
@@ -124,9 +142,99 @@ date, no value.
 Connected tools using [MCP](/guides/mcp-server/) are not affected. They read
 with their own time windows; the lookback is a Coach setting.
 
+## Thinking depth
+
+With a model that can reason, the Coach thinks before it answers. **Thinking
+depth**, in the quick settings and under Settings, Coach, sets how much:
+**Off**, **Low**, **Medium** or **High**. **Medium** is the default. Deeper
+thinking gives more careful answers, takes a little longer and uses more
+tokens.
+
+Some models cannot switch thinking off. With them the lowest option reads
+**Minimal**, and the model thinks as little as it can. That is the case for
+OpenAI's GPT-5 models before GPT-5.1 and its o-series, and for Claude models
+from generation 5 on. A model that cannot reason at all, such as `gpt-4o`,
+simply answers, and the setting changes nothing.
+
+The server's operator can switch thinking off for everyone or set the highest
+depth anyone may pick. A level above that limit stays in the list but cannot be
+chosen and says **(limited by the admin)**; a choice you saved earlier then runs
+at the limit. With thinking switched off, the field is locked and says so. When
+the operator pays for the model (the server's shared key or shared ChatGPT
+connection), the Coach thinks at **Medium** at most.
+
+The **Reasoning** choice of a Local or OpenAI-compatible provider in AI
+settings still applies to everything else that provider does. In the Coach,
+thinking depth applies. Which providers reason and how is on
+[AI providers](/guides/ai-providers/#reasoning).
+
+### How long the Coach keeps looking
+
+Until v1.41.0 the Coach read your record in at most three rounds per answer.
+Now a question gets a budget of time and tokens instead, so a "why" question
+can look at several series, compare them and come back with an answer:
+
+| Who pays for the model | Tokens per answer | Time | Rounds |
+| --- | --- | --- | --- |
+| You (your own key, your ChatGPT sign-in, your local model) | 120,000 | 150 s | 12 |
+| The server's operator | 40,000 | 90 s | 6 |
+
+Thinking counts toward the tokens. Input a provider serves from its cache
+counts at a tenth of its size, since later rounds resend almost the whole
+conversation. The Coach also stops when another lookup brings nothing new.
+Room for the answer is held back from the start, so a question never ends
+without one. Every round is reserved against your daily AI budget before it
+runs and settled afterwards, and at most two answers run at the same time per
+person.
+
+### Shorter answers
+
+The first sentence of an answer answers the question. Most answers stay
+between 40 and 120 words and end with at most one next step.
+
+## The status line
+
+While the Coach works, one quiet line at the top of the answer says what it is
+doing right now, with the seconds so far: **Thinking…**, **Fetching blood
+pressure, last 90 days…**, **Summarising 214 readings…**, **Writing the
+answer…**. With a provider that sends summaries of its reasoning, a short
+title from that reasoning takes the place of **Thinking…**. When the answer is
+ready, the line settles into a summary such as **Thought it through, 2
+lookups, 11 s**.
+
+When the Coach had to stop early, the line says why: **Budget reached,
+answering with what it has**, **Time limit reached, answering with what it
+has**, **Many steps, wrapping up** or **No new data, wrapping up**.
+
+Nothing opens by itself. Tap the line to see one entry per step, each with
+its status. The reasoning behind a round sits in its own entry, closed as
+well, and below the steps come the line on
+[how a figure was worked out](#how-a-figure-was-worked-out) and the tables the
+answer read without pointing at them. Once open, the trail stays open until
+you close it and keeps growing while the Coach works.
+
+Reasoning text is model text, so it is checked like an answer before you see
+it. A title or summary that names a dose change, a diagnosis or a figure the
+Coach did not read is dropped, and the step keeps its plain label. Titles are
+cut at 80 characters and summaries at 400. The text is stored encrypted with
+the answer and only loaded when you open the trail. The labels themselves
+("Fetching", "Summarising" and so on) are written by the server, never by the
+model. A screen reader hears the line through a polite status region, at most
+once every one and a half seconds, and the summary once at the end.
+
+Answers saved before v1.41.0 keep the sources list described below.
+
+### Tables while the Coach works
+
+As soon as the Coach has read a table, a short line for it appears under the
+status line: its title, window and number of readings, with a small sparkline.
+There are at most three. Tap one to open its chart or table right there.
+When the answer is ready, the lines go: the tables the answer points at become
+its charts, and the rest sit under **Data used** in the trail.
+
 ## What the Coach looked at
 
-While the Coach works, a line above its answer names the source it is reading,
+Before v1.41.0, while the Coach worked, a line above its answer names the source it is reading,
 for example **Checking: Blood pressure, last 90 days…**. Once the answer is
 complete, the line reads **Looked at 3 sources**. Tap it to open the list: one
 row per source, with the time window and how many readings it found, or why it
@@ -141,7 +249,7 @@ your own records, never appears there.
 
 <figure>
   <img src={coachSteps.src} alt="Coach conversation on a phone: the question 'How is my blood pressure lately?', then the opened list 'Looked at 3 sources' with blood pressure over the last 90 days at 142 readings, sleep over the last 30 days with no readings, and lab results over the last 12 months at 4 rows, the answer below it, and the collapsed 'What I'm looking at' disclosure" width="360" />
-  <figcaption>A settled answer with its sources list opened. The list is closed by default; the line above the answer opens it.</figcaption>
+  <figcaption>An answer from before v1.41.0 with its sources list opened. Newer answers show the status line instead; both are closed by default.</figcaption>
 </figure>
 
 ## Tables of your values
@@ -200,10 +308,25 @@ model has no say in it.
 | A total over time (steps, active energy, distance, flights, daylight, …) | Vertical bars, one per day, week or month |
 | Counts per category (workouts by sport) | Bars, horizontal once there are more than six categories. The eight largest are drawn and the rest are grouped as **Other** |
 | How often each range of values came up | A histogram |
+| A comparison of two periods of one metric | Both periods overlaid in one chart, labelled for example "Sep vs Aug" |
+| A comparison of two metrics over the same window | Both series in one chart, on two axes when their units differ |
 | Lab results, or a table with a single row | No chart, the table only |
 
-A chart never mixes units: a table with values in different units draws the
-first value column, plus a second only when it shares the unit.
+A chart never mixes units on one axis: a table with values in different units
+draws the first value column, plus a second only when it shares the unit. A
+comparison of two metrics is the exception and gets a second axis.
+
+### Comparisons
+
+Ask how this month compares with the last one, or whether your sleep moves
+with your resting heart rate, and since v1.41.0 the Coach reads both series
+in one step and draws them in one chart. Two periods of one metric are the
+current window against the one before, or against the same window a year
+earlier; the server works out the change between them, and the model gets
+both summaries and that change. Two metrics share the same window. Both sides
+are read like any other table, so a switched-off module, an excluded metric
+or [the lookback you set](#how-far-back-the-coach-looks) holds for each of
+them.
 
 A table with a chart has a **Chart** / **Table** toggle. A table under the
 answer opens as the chart unless you asked for the table, a table under
@@ -248,9 +371,10 @@ appears only when what it asks for is grounded in what the Coach just read:
 | **Show as a chart** / **Show as a table** | A table of this answer has a chart and is shown in the other view |
 | **Compare with the period before** | A table over time covers the current period |
 | **Compare with a year earlier** | The same, over at most 90 days, and your readings of that metric go back more than a year |
+| **Instead:** *choice* | The answer assumed something instead of asking (see [When the Coach asks back](#when-the-coach-asks-back)) |
 | **Look further back** | Your record holds readings older than the table's window |
 | **See also:** *metric* | The Coach found a link between a metric it read and another metric you record |
-| **Keep looking** | The Coach ran out of reading rounds before it finished (see below) |
+| **Keep looking** | The Coach had to stop before it finished (see below) |
 
 The comparison and wider-window suggestions are offered for metrics read by
 day, week or month; glucose, medication adherence and workouts have their own
@@ -269,30 +393,94 @@ switch off **Suggest follow-up questions** under **Settings → Coach** in
 
 ## Keep looking
 
-The Coach reads your record in at most three rounds per answer. When it still
-wanted to read more after the third, it answers with what it has and offers
-**Keep looking**. Tapping it continues the same question: the Coach is told what
+When the Coach had to stop for its budget, its time or its number of rounds
+(see [How long the Coach keeps looking](#how-long-the-coach-keeps-looking)),
+it answers with what it has and offers **Keep looking**. Stopping because
+nothing new turned up offers no such button. Tapping it continues the same question: the Coach is told what
 it already read, so it can show those tables again instead of reading them a
 second time, and goes on from there. An answer can be continued once; the
 continued answer offers no further **Keep looking**.
 
 ## When the Coach asks back
 
-If a question stays ambiguous, such as "how is my pulse?" when you record
-pulse, resting heart rate and walking heart rate, the Coach replies with one
-short question and a card above the message box: **The Coach has a question**,
-with two to four choices. Tap one, or type your own answer; the card says when
-a typed answer works too.
+If the answer really depends on something the conversation does not settle,
+such as "how is my pulse?" when you record pulse, resting heart rate and
+walking heart rate, the Coach asks one short question instead of answering.
+Since v1.41.0 the choices appear as suggested replies right under the
+question, in the conversation, rather than in a card above the message box.
+Tap one, or type your own answer.
 
-- The question is about which metric, which time window, or something only you
-  can tell (then there are no choices, and you type the answer).
-- Metric choices only name metrics your record holds. If fewer than two
-  remain, there is nothing to choose between, and the question stays a plain
-  reply without a card.
-- The Coach asks at most once in a row; a second question right after the
-  first gets no card. It is instructed never to ask about doses, medication
-  changes or diagnoses, and a question that trips the reply screening loses
-  its choices.
+- The question can be about which metric, which time window, what to compare
+  with (the period before, a year earlier, or your usual 90 days), which of
+  your goals or active plans, from which starting point (a medication start,
+  an illness, a cycle phase), or something only you can tell, which has no
+  choices and is answered by typing.
+- The choices come from your record, written by the server: a metric is only
+  offered when you record it, a goal only when you have it. There are at most
+  four. If fewer than two remain, the question is dropped and the Coach
+  answers.
+- The question names what the Coach will assume if you do not answer, and
+  that assumption is the first choice.
+- The Coach asks at most once in six turns of a conversation and three times a
+  day. It is instructed never to ask about doses, medication changes or
+  diagnoses, and a question that trips the reply screening loses its choices.
+
+When the Coach may not ask, because of those limits or because the question
+did not hold up, it goes ahead on the likelier reading and says which one in a
+line under the answer, **Assumed:** *value*, with **Change**, which offers the
+other readings. Each also appears among the follow-up suggestions as
+**Instead:** *the other choice*, and tapping it asks the same question again on
+that reading. An answer carries at most two such
+assumptions.
+
+## What the Coach remembers
+
+Since v1.41.0 the Coach remembers what you tell it about your preferences,
+your goals and your circumstances, and uses it in later conversations.
+
+When it keeps something, a note under the answer says so, **Remembered:**
+*what it kept*, with **Undo** right beside it. Anything about your health (a
+condition, a limitation, a medication) it only keeps after you agree: the note
+then asks, with **Yes, remember it** and **No**. What it keeps has to come
+from your own message in that turn, words and figures alike, so a document you
+discussed, a quote or the Coach's own idea cannot end up in memory. There is at
+most one note per answer, and nothing is kept when the answer itself is
+blocked or fails.
+
+The **Remember** button under one of your own messages saves that message as
+it is. The tap is your agreement, so it works for a health message too. If the
+Coach already knows it, it says so.
+
+Every question starts with what the Coach knows about you: up to 8 remembered
+things and up to 6 active plans with how they are going, plus reminders that
+are due soon, in about 1,500 characters at most. This is only sent when the
+question itself may go to your provider, and things about a medication stay
+out while the Medications module is off. Once a conversation has been quiet
+for 30 minutes, a background pass may also note what it learned from it. A
+health fact that pass finds is offered to you once, in a later answer, and kept
+only if you say yes; unanswered, it lapses after 14 days.
+
+### The memory list
+
+**What the Coach remembers** under Settings, Coach lists everything, by
+category, each with where it came from: **from you** for what you asked it to
+keep or confirmed, **from the Coach** for what it kept or worked out itself.
+**Edit** changes the wording (3 to 160 characters); an edited health entry
+counts as confirmed by you. **Forget** removes one entry, **Forget everything**
+all of them. The list stays readable and editable while the Coach is off. The
+**Memory** link in the Coach's quick settings opens it.
+
+### Plans
+
+When you name a goal or agree to a suggestion, the Coach can propose a small
+plan: one if-then intention tied to one metric, with an optional target and a
+look-back after 7 to 56 days. It appears under the answer with **Take on this
+plan** and **Not now**. Only your tap starts it. The plan's text goes through
+the same check as an answer, so a plan that would change a dose is never
+proposed. There is at most one proposal per answer and at most three open at a
+time, and one you leave unanswered lapses after 14 days. The daily briefing
+mentions how up to two active plans are going, with figures the server worked
+out from your readings. See [Coach plans](/guides/coach-plans/).
 
 ## What the model sees and what you see
 
@@ -321,6 +509,12 @@ A table's values are health data, so they are handled as such:
   hidden because its module is switched off") and is not even decrypted.
   Switch the module back on and it returns.
 
+- **Reasoning state stays with the provider.** Some providers hand back a
+  signed or encrypted form of their reasoning that must go with the next round
+  of the same answer. HealthLog passes it on within that answer and never
+  stores it. What you can read in the trail is the screened summary, stored
+  encrypted.
+
 Your stored tables stay readable while the Coach is unavailable, like the
 conversations they belong to.
 
@@ -331,19 +525,25 @@ tokens, to what the model reads.
 **Show as a chart** and **Show as a table** cost nothing: no model call, no
 share of your AI budget. The other suggestions and **Keep looking** are normal
 turns and cost what any question costs. A clarifying question ends the turn
-early, so it costs less than an answer. Every message, a tapped suggestion
+early, so it costs less than an answer. Thinking adds tokens on every round;
+**Low** adds the least and **High** the most, which is the reason for the
+[budget per answer](#how-long-the-coach-keeps-looking). Every message, a tapped suggestion
 included, counts toward the limit of 20 Coach messages a minute.
 
 ## Limits
 
 | What | Limit |
 | --- | --- |
-| Tables per answer | 6 |
+| Tables per answer | 8 |
 | Rows per table | 400, the latest kept; the table then says "Showing the latest 400 of *n* rows" |
 | Stored tables per answer | 128 KB before encryption; tables past it are dropped from the end, before the answer is shown |
 | Rows shown before **Show all** | 12 |
-| Sources in the list | 12 per answer; later reads still happen but get no row |
-| Reading rounds per answer | 3, then **Keep looking** |
+| Lookups per answer | 48 |
+| Steps in the status line's trail | 99 |
+| Rounds per answer | 12 on your own provider, 6 on the operator's, then **Keep looking** |
+| Clarifying questions | 1 in 6 turns of a conversation, 3 a day |
+| Remembered things a question starts with | 8, plus 6 active plans |
+| Open plan proposals | 3; an unanswered one lapses after 14 days |
 | Follow-up suggestions | 3, under the latest answer only |
 | Choices on a clarifying question | 4 |
 | Earlier tables the model is told about | 3 from each of the last 5 answers that have tables |
@@ -351,12 +551,15 @@ included, counts toward the limit of 20 Coach messages a minute.
 
 ## For API clients
 
-The stream, the new frames (`step`, `result`, `followUps`, `clarification`) and
-the request fields for tapping a suggestion (`followUp`) or answering a question
-(`clarification`) are described in the
+The stream, its frames (`step`, `result`, `followUps`, `clarification`, and
+since v1.41.0 `activity`, `memoryNote`, `planProposal`, interim `result` frames
+and `done.stop`) and the request fields for tapping a suggestion (`followUp`),
+answering a question (`clarification`) or answering a memory note or plan
+(`memoryDecision`, `planDecision`) are described in the
 [OpenAPI document](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml).
 A stored answer carries only the tables' descriptions; the values come from
-`GET /api/insights/chat/{id}/messages/{messageId}/results`. See
+`GET /api/insights/chat/{id}/messages/{messageId}/results`, and the text of
+the trail from `GET /api/insights/chat/{id}/messages/{messageId}/trail`. See
 [API endpoints](/reference/api-endpoints/#insights--coach).
 
 ## Related

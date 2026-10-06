@@ -131,6 +131,33 @@ Since v1.40.0 a server whose encryption key does not match its data answers
 operator has to fix, not as offline, and do not retry in a loop. See
 [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check).
 
+## Changes in v1.41.0
+
+Everything here is additive; a client that ignores it keeps working.
+
+- **Thinking depth.** `GET /api/auth/me` carries `coachReasoning` with the
+  resolved level, the person's preference, the highest level to offer and
+  whether **Off** is really off on the active provider.
+  `PUT /api/auth/me/coach-prefs` accepts `reasoning` (`off`, `low`, `medium`,
+  `high`). Offer the levels up to `maxLevel`, label the lowest "Minimal" when
+  `offIsReal` is `false`, and lock the field when `maxLevel` is `off`. See
+  [Coach reasoning, trail and memory](/reference/api-endpoints/#coach-reasoning-trail-and-memory-since-v1410).
+- **The Coach stream** adds `activity`, `memoryNote` and `planProposal`
+  frames, interim `result` frames while the turn runs, and `stop` and
+  `withheldResults` on `done`. A client that does not know a frame type
+  ignores it, as before. Answer a memory note with `memoryDecision` and a plan
+  with `planDecision` on the next chat request.
+- **The trail.** `GET /api/insights/chat/{id}/messages/{messageId}/trail`
+  serves the text of an answer's trail; fetch it when the person opens it.
+- **Memory.** The facts list carries each fact's `source`, `sourceMessageId`
+  and `lastUsedAt`; `POST /api/insights/coach/facts` with a message id saves
+  one of the person's own messages, and `PATCH /api/insights/coach/facts/{id}`
+  edits a fact's wording.
+- **The usual-range line.** `GET /api/insights/coach-read` adds `basis`,
+  `latestDate` and `latestIsToday` to the baseline. Name the date when
+  `latestIsToday` is `false`, and say the range is the one for this time of day
+  when `basis` is `sameHours`.
+
 ## Changes in v1.40.1 and v1.40.2
 
 Everything here is additive; a client that ignores it keeps working.

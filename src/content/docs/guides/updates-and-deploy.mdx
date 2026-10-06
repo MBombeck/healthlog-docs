@@ -134,6 +134,40 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.41.0
+
+Take a backup as usual. There are three migrations, `0376` to `0378`. They only
+add columns, with constant defaults or nullable, rewrite no table and run in
+seconds:
+
+| Migration | What it does |
+| --- | --- |
+| `0376_ai_reasoning_controls` | The two reasoning controls on the instance settings: reasoning allowed, no cap |
+| `0377_coach_message_trail` | An encrypted column for the text of a Coach answer's trail |
+| `0378_coach_fact_source` | Where each remembered fact came from, when it was last used and the message it came out of. Facts from before the update read as found by the background pass |
+
+What to know after the update:
+
+- **Reasoning is on.** With a model that can reason, the Coach thinks at
+  **Medium** unless a person picks otherwise, and the daily briefing and the
+  weekly and monthly summaries reason too. That uses more tokens per answer. To
+  switch it off or cap it, use **Allow deeper thinking** and **Highest thinking
+  depth** under Admin, Coach, on the Assistant card. On your own shared key or
+  shared ChatGPT connection the Coach is held to **Medium** in any case. See
+  [Thinking](/guides/admin-overview/#thinking).
+- **Longer Coach answers in time.** A question may now run up to 150 seconds on
+  a person's own provider and 90 seconds on yours. The stream sends a status
+  update with every step, and the 300-second read timeout in
+  [Reverse proxy](/guides/reverse-proxy/) covers it; a proxy set much shorter
+  may cut a long answer off.
+- **What users see.** Thinking depth in the Coach settings, a status line above
+  each answer, comparison charts, suggested replies under a clarifying
+  question, and a Coach that remembers with an undo. See
+  [Coach conversations](/guides/coach-conversations/).
+
+Rolling back to v1.40.x leaves the three columns in place; the older image does
+not read them.
+
 ## Upgrading to v1.40.2
 
 There are no migrations and no new settings. Take a backup as usual before

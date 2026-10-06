@@ -45,6 +45,17 @@ Per-metric status notes are stored encrypted in their own table, one row per met
 
 The briefing is a short narrative paragraph plus up to five **key findings**: one-liners that each summarise a single trend with a tone (good / watch / info), an optional delta string ("↓ 4 mmHg"), and the metric and time window the finding was drawn from. The findings list is hard-capped at five so a runaway model cannot pad the surface with filler, and the prompt instructs the model to derive every finding from a number visible in the snapshot.
 
+Since v1.41.0 the briefing, scheduled or on request, and the weekly and monthly
+summaries ask the model to think first when it can. On your own provider the
+briefing and the monthly summary think at **Medium** and the weekly one at
+**Low**; on the operator's, all of them at **Low**. When you have an active
+[Coach plan](/guides/coach-plans/), the briefing gets one sentence each on how
+up to two of them are going, with figures worked out from your readings, so it
+can check in on them without guessing. The status notes and the line after a
+new reading never think, so they stay quick. The signals of the day compare
+blood glucose with the same hours of earlier days, so a morning fasting reading
+is no longer set against whole-day averages.
+
 <figure>
   <img src={insightsDailyBriefing.src} alt="Daily Briefing card with three signals of the day covering blood pressure, sleep and resting heart rate, then four key findings on blood pressure, weight, medication adherence and mood, two of them carrying a delta value on the right" />
   <figcaption>The rendered briefing: signals of the day above, key findings below, each with its one-line explanation and an optional delta. The text in this capture is seeded, not generated.</figcaption>

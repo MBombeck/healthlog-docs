@@ -138,6 +138,29 @@ called **Status cards**, and the card itself was called **Assistant Surfaces**.
 With the master switch off, **Test connection** in a user's AI settings says
 AI is off on this server instead of calling the model.
 
+### Thinking
+
+Since v1.41.0 the Assistant card also decides whether models may think before
+they answer. **Allow deeper thinking** is on by default and covers the Coach,
+the daily briefing and the weekly and monthly summaries. Status notes,
+workout notes, reaction lines, nudges and document reading never think,
+whatever this says. Switched off, no request asks a model to reason, and each
+person's **Thinking depth** in the Coach settings is locked with a sentence
+saying so.
+
+**Highest thinking depth** (**Low**, **Medium** or **High**; **High** by
+default, which means no limit) is the deepest level anyone on the server may
+choose. A person who picked more runs at this level, and the higher options in
+their settings say **(limited by the admin)**.
+
+When the model is yours to pay for, through the server's shared key or the
+shared ChatGPT connection, the Coach thinks at **Medium** at most, whatever
+the two controls allow, and an answer gets a smaller budget: 40,000 tokens, 90
+seconds and six rounds instead of 120,000 tokens, 150 seconds and twelve on a
+person's own provider. The background jobs ask for **Low** on your budget. See
+[Thinking depth](/guides/coach-conversations/#thinking-depth) and
+[AI providers](/guides/ai-providers/#reasoning).
+
 ## Module availability
 ## Module availability
 

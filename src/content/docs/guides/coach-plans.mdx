@@ -24,17 +24,30 @@ charts of your values and follow-up suggestions, is on
 
 ## Proposed, never self-activated
 
-When a conversation converges on something worth keeping, the Coach writes it
-as a **proposal**. A proposal card appears in the conversation with two
-choices:
+When you name a goal or agree to one of its suggestions, the Coach can write a
+plan as a **proposal**. Since v1.41.0 the proposal sits under the answer that
+offers it, with two choices:
 
-- **Accept** — the plan becomes active and starts counting.
-- **Decline** — the plan is removed; nothing is kept.
+- **Take on this plan**: the plan becomes active and starts counting. The
+  Coach replies that it will check in with you after the plan's review window,
+  which is 7 to 56 days.
+- **Not now**: nothing is kept.
 
 Only your tap activates a plan. The Coach cannot activate, edit, or resurrect
 one on its own, and declined proposals never feed back into what the Coach
-knows about you. Accepted plans do — an active plan is part of the context the
-Coach reasons with, which is the point: it remembers what you two agreed.
+knows about you. Accepted plans do: an active plan is part of what the Coach
+starts every question with, together with one sentence on how it is going,
+which the server works out from your own readings (the latest week against
+the two weeks before the plan began). The daily briefing mentions up to two
+active plans the same way.
+
+A proposal is one if-then plan tied to one metric. Its wording goes through
+the same check as an answer, so a plan that would change a dose or a
+medication is never proposed. It is only kept when the answer that shows it is
+stored, so an answer that fails leaves no plan behind. There is at most one
+proposal per answer and at most three open at a time; one you leave unanswered
+lapses after 14 days. Proposals need a provider that can call tools; see
+[Coach conversations](/guides/coach-conversations/#plans).
 
 ## The plans page
 

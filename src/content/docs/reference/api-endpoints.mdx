@@ -163,8 +163,11 @@ SSE coach stream, and the self-context surface.
 | `GET` | `/api/dashboard/snapshot` | Single-cell above-the-fold hydration |
 | `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback. The web no longer shows the feedback thumbs since v1.40.2; the route stays |
 | `GET` | `/api/insights/chat/{id}/messages/{messageId}/results` | Since v1.39.4: the tables of values one Coach answer read, decrypted for their owner. A data read, served while the Coach is unavailable |
+| `GET` | `/api/insights/chat/{id}/messages/{messageId}/trail` | Since v1.41.0: the text of one answer's trail (screened reasoning titles and summaries, the remembered things the turn recalled, a pending memory proposal), decrypted for the owner. Fetch it when the person opens the trail; see below |
+| `GET` / `POST` / `DELETE` | `/api/insights/coach/facts` | What the Coach remembers. Since v1.41.0 each fact carries `source`, `sourceMessageId` and `lastUsedAt`, and `POST { messageId }` saves one of the caller's own messages (the remember button) |
+| `PATCH` / `DELETE` | `/api/insights/coach/facts/{id}` | Since v1.41.0 `PATCH { fact }` rewrites one fact (3 to 160 characters) |
 | `GET` / `PUT` | `/api/coach/about-me` | Encrypted self-context + follow-up questions |
-| `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences. Since v1.40.2 `defaultWindow` is the lookback limit and gains `lastYear`; see below |
+| `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences. Since v1.40.2 `defaultWindow` is the lookback limit and gains `lastYear`; see below. Since v1.41.0 `reasoning` (`off`, `low`, `medium`, `high`; absent means `medium`) |
 | `GET` | `/api/daily/digest` | The dashboard's daily digest. Since v1.40.2 it carries the Today overview; see below |
 | `GET` / `PATCH` | `/api/auth/me/disable-coach` | Coach kill switch |
 
@@ -190,6 +193,68 @@ conversation the caller does not own answers `404`. A suggestion answered from
 a stored table is persisted with `providerType: "reuse"` and uses no model.
 Frame order, shapes and limits are in the OpenAPI document; the behaviour is
 described in [Coach conversations](/guides/coach-conversations/).
+
+### Coach reasoning, trail and memory (since v1.41.0)
+
+Everything here is additive; a client that ignores it keeps working.
+
+**Reasoning.** `GET /api/auth/me` carries `coachReasoning`, resolved on the
+server. Render from it rather than working it out yourself:
+
+| Field | Meaning |
+| --- | --- |
+| `level` | The level a Coach turn runs at now, every limit applied |
+| `preference` | What the person picked, `medium` when they never did |
+| `maxLevel` | The highest level to offer; `off` when the operator switched reasoning off |
+| `available` | `false` when the operator switched reasoning off or the provider cannot reason |
+| `offIsReal` | `false` when the provider cannot switch thinking off; label the lowest option "Minimal" then |
+| `source` | Why `level` is what it is: `user`, `job`, `admin_off`, `admin_cap`, `cost_cap` or `unsupported` |
+
+The operator's controls are `aiReasoningEnabled` and `aiReasoningMaxEffort`
+(`low`, `medium`, `high`) on `PUT /api/admin/settings/assistant-flags`, read
+back as `reasoning: { enabled, maxEffort }`. A turn the operator pays for runs
+at `medium` at most.
+
+**The stream.** The frame order is now `(activity | step)*`, `token*`,
+`provenance`, `result*`, `suggestion?`, `suggestedAction?`, `memoryNote?`,
+`planProposal?`, `clarification?`, `followUps?`, `done`. `result` frames
+with `interim: true` may arrive among the `activity` frames while the turn still
+runs; a turn blocked after that sends `withheldResults: true` on `done`, and the
+client removes them.
+
+| Frame / field | Meaning |
+| --- | --- |
+| `activity` | One trail entry: `phase` (`thinking`, `memory`, `fetch`, `digest`, `checkpoint`, `remember`, `plan`, `asking`, `stop`, `answer`), `status`, a server-rendered `label`, optional `count`, `durationMs`, `stepRef` and `stop`. `title` and `text` are screened model text, owner only. Ids `a1` to `a99` |
+| `memoryNote` | A fact the turn saved (`proposal: false`, undo deletes `factId`) or proposes (`proposal: true`, answer with `memoryDecision`) |
+| `planProposal` | A proposed plan: `planId`, `metric`, `reviewInDays` (7 to 56), `ifCue`, `thenAction`, optional `target`. Answer with `planDecision` |
+| `done.stop` | `{ reason, rounds }` when the Coach answered before it was done reading: `budget`, `time`, `cap` or `no_progress` |
+| `provenance.assumptions` | Up to two assumptions the answer made instead of asking; the `followUps` frame carries `change_assumption` chips that pick another reading |
+
+The chat request accepts `memoryDecision: { messageId, proposalId, accept }` and
+`planDecision: { messageId, planId, accept }`. A decision is read against what
+the server stored for that message, never from the request. Clarifications
+gain the kinds `comparison`, `goal` and `anchor`; result ids now run `r1` to
+`r8` and step ids `s1` to `s48`. A `compare` chart joins the chart kinds.
+
+A stored answer carries the trail's structure on `metricSource.activity` and
+no model text; `GET …/messages/{messageId}/trail` serves the text. While the
+Coach's text may not be shown, `entries` is empty and the `ai` state rides
+beside it, but recalled facts and a pending proposal are still served, since
+they are the person's own data. A foreign or unknown id is a 404.
+
+**Memory.** `GET /api/insights/coach/facts` lists confirmed facts with
+`source` (`user`, `coach`, `extracted` for the background pass and every fact
+from before v1.41.0, or `pattern`), `sourceMessageId` and `lastUsedAt`; a health fact
+still waiting for the person is not listed. `POST` with `{ messageId }` saves
+one of the caller's own user messages and returns `created: false` when the
+fact was already there. `PATCH /api/insights/coach/facts/{id}` with `{ fact }`
+rewrites the text and files it again by its wording; an edited health fact
+counts as confirmed. These are data routes: they work while the Coach is off.
+
+**Usual-range line.** `GET /api/insights/coach-read` adds `latestDate` and
+`latestIsToday` to the baseline, so a client names the date of a latest reading
+that is not from today, and `basis: "sameHours"` when a day still in progress
+(blood glucose) is compared with the same hours of earlier days.
 
 ### Coach lookback (since v1.40.2)
 

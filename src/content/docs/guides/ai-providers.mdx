@@ -107,18 +107,8 @@ instance, or says the old variable can be removed when there are none.
 Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
 16-24 GB (the BYOK sweet spot), 70B+ for 48 GB+.
 
-### Reasoning
-
-Since v1.40.0 the **Local** and **OpenAI-compatible gateway** settings have a
-**Reasoning** choice: **Default**, **Off**, **Low**, **Medium** or **High**.
-Reasoning models such as Gemma or Qwen think before they answer; **Off** leaves
-the whole answer budget for the answer itself, which helps a thinking model
-that spends a minute deliberating over a short summary. **Default** sends
-nothing, so existing setups behave exactly as before; the other choices send
-`reasoning_effort` (`none` for Off). An endpoint that rejects the field no
-longer has its JSON mode switched off because of it. The setting is stored per
-provider in the fallback chain. OpenAI, Anthropic and Codex pin their own
-models and parameters, so the setting is not offered for them.
+Reasoning models served this way can think before they answer; see
+[Reasoning](#reasoning).
 
 ## OpenAI-compatible gateways
 
@@ -180,6 +170,72 @@ The settings UI states this plainly: the shared access is a single signed-in
 AI account the operator connected for everyone on the server, not the user's
 own key. Users who want their data to reach only a provider under their own
 contract should configure a personal provider instead.
+
+## Reasoning
+
+Since v1.41.0 HealthLog asks a model to think before it answers wherever that
+helps: in the Coach, at the depth each person picks under **Thinking depth**
+(see [Coach conversations](/guides/coach-conversations/#thinking-depth)), and
+in a few background jobs, namely the daily briefing (scheduled and on request),
+the weekly and monthly summaries and the upkeep of the Coach's memory. Status
+notes, workout notes, reaction lines, nudges and document reading never ask
+for it, so they stay fast and cheap.
+
+Every provider gets the request in its own documented form:
+
+| Provider | How it is asked | What the Coach shows |
+| --- | --- | --- |
+| ChatGPT OAuth (Codex) | A reasoning effort, with summaries. **Off** really switches thinking off | Reasoning summaries while the model thinks |
+| OpenAI (your key) | `reasoning_effort` for GPT-5 and the o-series; models such as `gpt-4o` do not reason. Sent only on rounds without tool calls, since this interface cannot carry the reasoning between rounds. **Off** is real from GPT-5.1 on; older reasoning models get their lowest effort | No summaries |
+| Anthropic | Adaptive thinking with an effort from Claude 4.6 on, a thinking budget for 3.7 to 4.5; 3.5 and older do not think. From generation 5 the model always thinks a little, so **Off** becomes the lowest effort | Reasoning summaries once a round is done |
+| OpenRouter | `reasoning` with an effort; the reasoning details go back unchanged between tool rounds | Reasoning text once a round is done |
+| Other OpenAI-compatible gateways and local servers | `reasoning_effort`; the reply's `reasoning_content` or `reasoning` field, or a leading `<think>` block, is read as reasoning | Reasoning text, live from a local server |
+
+Providers that take a budget rather than a named effort get 1,024 thinking
+tokens for **Low**, 4,096 for **Medium** and 12,000 for **High**, on top of the
+answer.
+
+Some providers hand back a signed or encrypted form of their reasoning that
+has to travel with the next round of the same answer. HealthLog passes it on
+within that answer and never stores it. The readable summary the Coach shows is
+checked like an answer and stored encrypted.
+
+### When a model refuses
+
+No model list has to be kept up to date. A model name HealthLog does not
+recognise gets the request as if it could reason. If the endpoint answers with
+a 400 that names one of the reasoning parameters, the request is sent again
+without it and the answer arrives as usual. The server remembers that for an
+hour, per provider, endpoint and model, so the next request goes out without
+the parameter straight away, and after the hour it tries again in case the
+endpoint learned it. Only such a 400 teaches anything: an authentication
+error, a rate limit or a server error never does, and neither does an error
+about the reasoning handed back between rounds.
+
+### The Reasoning setting on Local and gateway providers
+
+Since v1.40.0 the **Local** and **OpenAI-compatible gateway** settings have a
+**Reasoning** choice: **Default**, **Off**, **Low**, **Medium** or **High**.
+**Off** leaves the whole answer budget for the answer itself, which helps a
+thinking model that spends a minute deliberating over a short summary.
+**Default** sends nothing, so existing setups behave exactly as before; the
+other choices send `reasoning_effort` (`none` for Off). An endpoint that
+rejects the field no longer has its JSON mode switched off because of it. The
+setting is stored per provider in the fallback chain. OpenAI, Anthropic and
+Codex pin their own models and parameters, so the setting is not offered for
+them.
+
+Since v1.41.0 this choice applies to everything that provider does except the
+Coach, which uses the person's **Thinking depth**; a line under the field says
+so.
+
+### What the operator controls
+
+Under Admin, Coach, on the Assistant card, **Allow deeper thinking**
+switches reasoning off for the whole server and **Highest thinking depth** caps
+it. When the operator pays for the model (the shared key or the shared ChatGPT
+connection), the Coach thinks at **Medium** at most and the background jobs at
+**Low**. See [Admin overview](/guides/admin-overview/#thinking).
 
 ## Caching and budget
 
