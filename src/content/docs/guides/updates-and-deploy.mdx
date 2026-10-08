@@ -134,6 +134,90 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.42.0
+
+Take a backup before updating. This release has twelve migrations, `0379` to
+`0390`. They add tables and nullable columns, one value to the measurement
+source list and one relaxed constraint; none rewrites a table, and together
+they run in seconds:
+
+| Migration | What it does |
+| --- | --- |
+| `0379_measurement_source_health_connect` | Adds `HEALTH_CONNECT` to the measurement sources |
+| `0380_import_job_kind` | Tells Apple Health and Health Connect import jobs apart |
+| `0381_environment_air_quality` | Nullable air-quality, pollen and UV columns on the stored environment days, and the per-account air-quality switch (on) |
+| `0382_environment_location_encrypted` | Encrypted columns for the home, travel and day locations; the readable ones become nullable |
+| `0383_managed_profile_handover` | The table for managed-profile handover links |
+| `0384_healthkit_type_sync` | When each Apple Health type last arrived, and how |
+| `0385_lab_unit_conversion_source` | Three empty columns for lab unit conversion, which arrives in a later release |
+| `0386_custom_vaccine` | A record's own vaccine definitions, and the link from a dose to one |
+| `0387_life_event` | Life events for the timeline, title and note encrypted |
+| `0388_documents_layout` | The per-account layout choice of the document vault |
+| `0389_measurement_fold_repair` | Which accounts the one-time fold repair has finished |
+| `0390_handover_creator_set_null` | Keeps a claimed handover when the guardian who made it deletes their account |
+
+**The database restarts once.** The bundled `docker-compose.yml` now loads
+`pg_stat_statements` through the `command:` of the `db` service, so the first
+`docker compose up` after pulling it recreates the database container. Plan a
+minute without the app. Reading the statistics is optional and needs one
+`CREATE EXTENSION`; see
+[Query statistics](/self-hosting/database-maintenance/#query-statistics). If
+you keep your own compose file, nothing changes until you add the same lines.
+
+New optional variables, all on the compose whitelist:
+
+| Variable | What it does |
+| --- | --- |
+| `ENVIRONMENT_AIR_QUALITY_DISABLED` | `1` turns air quality and pollen off for the whole instance |
+| `OPENMETEO_AIR_QUALITY_URL` | Points the air-quality requests at a self-hosted Open-Meteo |
+| `DATABASE_WORK_MEM` | Postgres `work_mem` per app session, `16MB` by default |
+| `DATABASE_SESSION_OPTIONS_DISABLED` | `1` behind PgBouncer, which refuses the session settings otherwise |
+
+If your database sits behind PgBouncer without `options` in its
+`ignore_startup_parameters`, set `DATABASE_SESSION_OPTIONS_DISABLED=1` before
+updating. Setting the statement timeout to `0` no longer keeps the app from
+sending session settings. See
+[Session settings](/self-hosting/database-maintenance/#session-settings-work_mem-and-pgbouncer).
+
+What runs by itself after the update:
+
+- **The fold repair, then the cleanup.** Once per account, a background job
+  corrects hourly and daily means that an earlier fold computed from part of a
+  day, and writes only values that differ. After that, a second job removes
+  the folded Apple Health samples older releases kept as deleted rows. On an
+  instance that has synced Apple Health for a while the measurements table
+  shrinks a lot. When the cleanup has finished, start the table rebuild from
+  the admin area in a quiet hour to give the index space back. See
+  [Database maintenance](/self-hosting/database-maintenance/).
+- **Locations are sealed.** The boot-time encryption pass encrypts the stored
+  home, travel and day locations and clears their readable copies.
+- **Air quality fills in.** With a home location set, the nightly environment
+  run adds air quality for up to 90 stored days per account and night, newest
+  first.
+
+What to know:
+
+- **Correlations change.** Every daily correlation now removes the season and
+  the trend first. Some patterns people saw before disappear; they were mostly
+  the season. See
+  [Correlations look past the season](/explanation/environmental-module/#correlations-look-past-the-season).
+- **What users see.** Any date opens [its day](/guides/day-view/), an opt-in
+  [timeline](/guides/timeline/) with life events, air quality and pollen in
+  [the environment module](/explanation/environmental-module/), a
+  [Health Connect import](/guides/import-health-connect/), the
+  [handover of a managed profile](/guides/managed-profiles/#hand-the-profile-over),
+  [own vaccines](/guides/vaccinations/#your-own-vaccines), editing a workout
+  entered by hand, and a confirmation before every delete in the document
+  vault.
+- **For API and MCP clients.** New routes under `/api/day`, `/api/timeline`
+  and `/api/life-events`, two new MCP tools (`get_day`, `get_environment`), and
+  `HEALTH_CONNECT` as a source value. A client that decodes the source list
+  strictly needs to accept it. See [MCP](/reference/mcp/#read-tools).
+
+Rolling back to v1.41.x is not a plain image swap once the locations are
+sealed: the older image cannot open them and shows no home or travel places.
+Roll back with the backup you took before updating.
+
 ## Upgrading to v1.41.0
 
 Take a backup as usual. There are three migrations, `0376` to `0378`. They only

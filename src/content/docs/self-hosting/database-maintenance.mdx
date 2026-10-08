@@ -1,0 +1,141 @@
+---
+title: Database maintenance
+description: The one-time fold repair and cleanup after v1.42.0, the measurement table rebuild you start yourself, query statistics with pg_stat_statements, and the session settings for work_mem and PgBouncer.
+sidebar:
+  order: 30
+---
+
+This page is for operators. It covers what happens to the measurements table
+after the update to v1.42.0, the maintenance run you start yourself once that
+is done, how to see which queries take the time, and two database settings.
+
+## After the update: repair, then cleanup
+
+Up to v1.42.0 the nightly folds of Apple Health data turned raw samples into
+hourly or daily rows and kept each folded sample as a deleted row for 75 days.
+Nothing ever read those rows, and on an instance that has synced Apple Health
+for a while they were most of the measurements table and of its indexes. From
+v1.42.0 the folds delete what they fold, and a re-sent sample whose hour or
+day is already folded is answered as a duplicate.
+
+Two background jobs deal with what is already stored, in this order. Neither
+needs anything from you.
+
+**The fold repair** runs once per account. Earlier releases could fold a day
+in two runs, and the second run stored the mean of the later part of the day
+only. The repair recomputes those hourly and daily means from all of the day's
+samples, including the deleted ones, and writes a mean only where it differs.
+It works through an account a day at a time, resumes where it stopped, and
+records each finished account in `measurement_fold_repairs`. You can see how
+many accounts are left:
+
+```sql
+SELECT count(*) AS accounts_left
+FROM users u
+LEFT JOIN measurement_fold_repairs r ON r.user_id = u.id
+WHERE r.user_id IS NULL;
+```
+
+**The cleanup** removes the folded leftovers, 5,000 rows at a time and one
+account at a time, with a short pause between batches. It is queued at every
+boot and continues by itself while there is work. It leaves an account alone
+until the repair has finished it, because it deletes what the repair reads.
+Rows a person deleted themselves are never part of it; they keep their 75
+days.
+
+Do not delete the leftovers by hand, and do not add rows to
+`measurement_fold_repairs` to hurry things along: a mean the repair has not
+seen keeps its wrong value for good once its samples are gone.
+
+Restoring a backup made before an account's repair finished puts the
+leftovers back and queues the repair for that account again.
+
+## Rebuild the table afterwards
+
+The cleanup leaves the indexes full of empty pages, and only a rebuild gives
+that space back. That step is yours to start, once the cleanup has finished:
+in the admin area under **System Status**, or with a signed-in admin session:
+
+```sh
+curl -X POST https://<your-instance>/api/admin/maintenance/measurements \
+  -H 'content-type: application/json' \
+  --cookie 'healthlog_session=<session>' \
+  -d '{"vacuum": true, "reindex": true}'
+```
+
+It runs `VACUUM (ANALYZE)` on the measurements table and then
+`REINDEX INDEX CONCURRENTLY` for each of its indexes, largest first. Reads and
+writes keep working while it runs. Either step can be left out
+(`"reindex": false` runs only the vacuum). The route is cookie-only like every
+admin route and answers `503` without a background worker.
+
+Before you start:
+
+- Pick a quiet time. Each rebuild reads the whole table and writes a new copy
+  of the index.
+- Have at least twice the size of the largest index free on the database
+  volume:
+
+  ```sql
+  SELECT c.relname, pg_size_pretty(pg_relation_size(c.oid))
+  FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
+  WHERE i.indrelid = 'measurements'::regclass
+  ORDER BY pg_relation_size(c.oid) DESC
+  LIMIT 3;
+  ```
+
+- Take a [backup](/guides/backups/).
+
+The run refuses to start while the cleanup is still queued or running, and
+the admin card says so. If a rebuild fails, most likely for lack of disk, it
+drops its half-built copy and stops; the remaining indexes keep working as they
+are. Free some space and start it again. It never retries by itself.
+
+`VACUUM FULL` is not needed. After the cleanup the remaining table is small and
+new rows reuse the space inside it.
+
+## Query statistics
+
+From v1.42.0 the bundled database loads the `pg_stat_statements` library
+through the `command:` of the `db` service in `docker-compose.yml`. Loading it
+only collects statistics in the database's shared memory; nothing is sent
+anywhere. Because the command changed, the first `docker compose up` after the
+update restarts the database container once.
+
+To read the statistics, create the extension once:
+
+```sh
+docker compose exec db psql -U healthlog -d healthlog \
+  -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
+```
+
+The slowest query shapes by total time:
+
+```sh
+docker compose exec db psql -U healthlog -d healthlog -c "SELECT calls, round(total_exec_time) AS total_ms, round(mean_exec_time, 1) AS mean_ms, left(query, 120) AS query FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 15;"
+```
+
+Statements are stored with their parameters replaced by placeholders, so no
+value from anyone's record appears there. `SELECT pg_stat_statements_reset();`
+starts the counts over.
+
+On your [own PostgreSQL](/self-hosting/external-postgres/), add
+`pg_stat_statements` to `shared_preload_libraries` in its configuration and
+restart it before creating the extension. The step is optional; HealthLog does
+not need it.
+
+## Session settings: work_mem and PgBouncer
+
+Every app connection sets two things when it opens: the statement timeout
+(`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default) and, since v1.42.0,
+`work_mem` from `DATABASE_WORK_MEM` (16MB by default). Sorts and aggregates
+larger than `work_mem` spill to disk; each sort step of each pooled connection
+may use that much memory, so raise it with the pool size in mind.
+
+Both travel to Postgres in the libpq `options` startup parameter. PgBouncer
+refuses that parameter ("unsupported startup parameter: options") unless it is
+listed in its `ignore_startup_parameters`. Behind such a pooler, set
+`DATABASE_SESSION_OPTIONS_DISABLED=1` (or `true`, `yes`) and the app sends no
+session settings at all; the pooler's or the database's own defaults then
+apply. All three variables are on the compose whitelist. See
+[Environment variables](/reference/environment-variables/).

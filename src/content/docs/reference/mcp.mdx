@@ -124,6 +124,8 @@ analytics is computed at the wire.
 | `get_nutrients` | Synced micronutrient intake (water, caffeine, 24 vitamins/minerals) as day totals, with the EFSA dietary reference resolved against the user's profile. Gated on the nutrients module. |
 | `get_intraday_pulse` | The 10-minute heart-rate shape for one local day, with a cautious descriptive elevated-at-rest window when every confidence gate holds. Gated on the insights module. |
 | `get_ecg_recordings` | Metadata for stored ECG recordings — time, duration, average HR, lead, and the device's own rhythm classification. Never the waveform. Gated on the insights module. |
+| `get_day` | Since v1.42.0. One local calendar day (`date`, `YYYY-MM-DD` in the user's time zone): what ran through it (medications and courses with dose and day number, pauses, an illness, a cycle phase), the readings with the usual range of the 30 days before, what happened on it (intakes, dose changes, symptoms, labs, visits, vaccinations, check-ups, documents by kind, mood, workouts) and notable observations decided by fixed rules. Notes, document names and life events are never included, and the person's Coach exclusions apply. Each result carries `url`, the day in the app. |
+| `get_environment` | Since v1.42.0. The stored days of the environment module: weather, and while air quality is on, PM2.5, PM10, NO2, the ozone 8-hour high, the European AQI peak, UV, dust and six pollen kinds, plus coverage and a short summary. Modelled outdoor conditions, not personal exposure. No coordinates and no place names. Every result lists its attribution lines. Answers `module_disabled` when the environment module is off. |
 | `search` | Free-text search over the user's record: metric domains, medications, lab analytes, and the clinical records (visits including procedures, conditions, documents, vaccinations). Ranked and deterministic; record results capped at 50. Returns `{ results: [{ id, title, url }], nextCursor? }`. |
 | `fetch` | Hydrate one record by the id `search` returned (`metric:weight`, `med:<id>`, `lab:LDL`, `visit:<id>`, `condition:<id>`, `document:<id>`, `vaccination:<id>`). Returns `{ id, title, text, url, metadata }` with a citation deep-link; clinical records carry their direct links. |
 
@@ -236,9 +238,9 @@ the other flavour.
 
 :::caution[Off the MCP surface by construction]
 The PHQ-9 / GAD-7 / WHO-5 / SCI mental-health screeners (item content and totals)
-and the environmental-context signals (`ENV_*`: temperature, sunshine, daylight,
-precipitation, barometric pressure) remain excluded from the MCP surface by
-construction — the connector's read reach grew, but these did not join it. The
+and the environmental-context signals (`ENV_*`) as metric series remain excluded
+from the MCP surface by construction. The stored environment days are readable
+only through `get_environment`, without location. The
 structured records (allergies, family history) and the inbound-document store are
 not exposed either — the document pipeline extracts facts for the user to confirm
 in-app rather than streaming them to a model. A metric is only readable once it
