@@ -64,6 +64,16 @@ On first sync the app requests HealthKit read permission for the metric types it
 
 Grant only the types you want synced — denied types simply never leave the phone.
 
+On iOS and watchOS 27 the app can also read the newer RMSSD heart-rate
+variability. The server stores it as HRV RMSSD (since v1.42.0), next to SDNN
+and never averaged with it, and the HRV page charts each measure on its own.
+
+Since v1.42.0 the Apple Health card under **Settings, Integrations** shows,
+per type, when the server last received it and how: in the background, when
+the app came to the front, or from a manual **Sync all**. A type that only
+ever arrives with a manual sync stands out there, which helps when some values
+only reach the server after you open the app.
+
 ### How the round-trip stays clean
 
 Live reads use HealthKit's observer and anchored-query APIs, and a background-processing task gives delivery a second chance when the app is not in the foreground. Every iOS-side write carries a stable external identifier so the server and Apple Health do not echo each other's writes back and forth. Day-aggregated cumulative metrics (steps, energy, distance) use the same `stats:<HKType>:<YYYY-MM-DD>` external-ID convention the bulk importer uses, so a phone sync and a later `export.zip` import resolve to the same rows rather than duplicating. See [Source priority](/explanation/source-priority/) for how readings from the phone, a Withings device, and manual entry collapse to one canonical value per day.
@@ -91,7 +101,7 @@ The app schedules **local notifications** for medication doses, with action butt
 
 The **pen list** reads a container's manufacturer and printed strength from the server (v1.30.34). Containers created on the web before that release carry neither, so they stay unlabelled until you fill the two fields in on the medication's **Bestand** tab.
 
-Because the phone owns these reminders, you can tell the server to stop sending its own push reminders for that device. The client opts in through the notification-preferences endpoint; the server then suppresses dose-due [APNs](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) pushes for that device. See [Notifications](/guides/reminder-channels/) for the channel cascade and [Certificate pinning](/security/certificate-pinning/) for how the app secures its connection.
+Because the phone owns these reminders, you can tell the server to stop sending its own push reminders for that device. The client opts in through the notification-preferences endpoint; the server then leaves the push that announces a dose to the phone and keeps sending [APNs](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) follow-ups for a dose that stays open, which the phone does not send itself (since v1.42.0; before, every dose-due push was suppressed). See [Notifications](/guides/reminder-channels/) for the channel cascade and [Certificate pinning](/security/certificate-pinning/) for how the app secures its connection.
 
 ## On-device AI coach
 

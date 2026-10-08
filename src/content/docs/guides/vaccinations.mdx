@@ -60,6 +60,21 @@ antigen. The number written in your pass wins over the chronological index;
 the total is your own override, else the catalog's typical count, else
 nothing. Once a series is complete, further doses are shown as boosters.
 
+## Your own vaccines
+
+Since v1.42.0 a dose can name a vaccine the catalog does not list, such as an
+older combination from a childhood record. Define it once: a name, the
+diseases it protects against (picked from the catalog's list), the series
+length and the booster interval. You can add one from the dose form without
+leaving it, and the vaccinations page lists your definitions for editing.
+
+A dose of your own vaccine then behaves like a catalog combination. It counts
+into the series of each disease you listed, settles a booster reminder for
+one of them and offers a booster when the interval runs out. When a dose names
+both a catalog entry and one of your own, the catalog wins. Removing a
+definition keeps its doses, each with its name. Your definitions travel in
+backups along with the doses that use them.
+
 ## Booster reminders
 
 After a dose, the app can prefill a booster reminder from the catalog's

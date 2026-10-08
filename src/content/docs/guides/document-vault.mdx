@@ -77,7 +77,10 @@ per-file cap and the quota apply to them as to any upload.
 
 ## Deleting, undo, and backups
 
-Delete is a soft delete with an Undo toast. A deleted document stays
+Since v1.42.0 every delete in the vault asks first: the Delete button in the
+selection bar, the Delete key on a focused card and Delete in a document's
+sheet. Before, all three deleted at once with only an Undo toast behind them.
+Delete is still a soft delete with an Undo toast. A deleted document stays
 restorable — via undo or the API — for **30 days**; a nightly job then
 removes it permanently and returns the space.
 
@@ -91,6 +94,14 @@ Documents live in PostgreSQL alongside everything else, so a normal
 backup growth roughly linear in stored document bytes. The off-host S3
 JSON backup carries the encrypted document bytes too, so its size grows
 with the vault as well; budget the off-host storage accordingly.
+
+## How the vault is laid out
+
+The archive shows each month as a grid of preview tiles, two across on a phone
+and three or four on a wider screen. The wrench beside Upload opens
+**Settings, Appearance, Documents**, where you choose preview cards or a
+compact list, and months stacked as blocks or flowing across the full width.
+The choice is saved per account and travels in the account-settings backup.
 
 ## Linking a document to visits and vaccinations
 

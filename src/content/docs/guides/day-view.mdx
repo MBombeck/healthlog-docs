@@ -1,0 +1,81 @@
+---
+title: Open a day
+description: Open any past day over the page you are on, see what ran through it, how its readings compare with the weeks before and what happened in the order of the clock.
+sidebar:
+  order: 3
+---
+
+Since v1.42.0 every date in the app can open its day. The day is a layer over
+the page you are on, so you look at a Tuesday in March and close it again
+without losing your place.
+
+## Where a day opens from
+
+- **A chart drawn in days.** Click a point or a bar. On a touch screen the
+  first tap shows the value, and the tooltip offers the day; that second step
+  keeps a scroll from opening a day by accident. Under the axis a quiet row of
+  dots marks the days that hold entries, and a ring marks a notable one.
+- **A chart's data table**, where each date is a link.
+- **Lists.** Measurements, mood entries, intakes, lab readings, symptoms and
+  illness days, documents and workouts open their day with one tap, on a phone
+  too.
+- **Calendars and heatmaps**, such as the mood calendar and the adherence
+  heatmap.
+- **A Coach answer.** When the Coach looked at particular days to answer, those
+  days appear as chips under the answer.
+
+Some places deliberately do not open a day: the today area of the dashboard,
+the small charts inside tiles, the cycle calendar, text a model wrote, future
+dates, a clinician share link and the doctor-report PDF.
+
+The address carries the open day as `?day=YYYY-MM-DD`, so a bookmark or a link
+reopens it. A malformed or future date is simply dropped from the address.
+
+## How it opens
+
+On a wide window (1280 px and up) the day docks beside the page, the way the
+Coach's conversations panel does, and the page reflows next to it. Below that
+it opens as a sheet from the right. On a phone it is a bottom sheet that starts
+at a little over half the height; drag its handle up for the full height. On
+the Coach page the day is always a sheet, so there is never more than one
+docked panel.
+
+Back or Escape closes the day. The arrows in its header step to the previous
+or next day without filling your browser history, and Alt with the left or
+right arrow key does the same from the keyboard.
+
+## What the day shows
+
+- **The value you opened it from**, with the reading before it for comparison.
+- **What ran through the day**: medications and courses with their dose and
+  day number, pauses, an illness with its day number, a cycle phase.
+- **The readings**, each placed on a short line against your own usual range
+  over the 30 days before. Eight are shown first; the rest sit behind **All
+  values**.
+- **What happened**, in the order of the clock: intakes, dose changes,
+  symptoms, lab results, visits, vaccinations, check-ups, documents, mood
+  entries, workouts. Each row links to its record.
+- **Notable observations**, decided by fixed rules rather than a model: the
+  highest or lowest daily value for at least three months, or the first
+  reading of a kind.
+
+The footer offers **Add for this day**, which opens the capture forms on that
+date, and the timeline when the [timeline module](/guides/timeline/) is on.
+**Ask the Coach about this day** starts a question about it.
+
+Days are cut in your own time zone. A reading at 23:30 belongs to the day you
+lived it, also when you travelled across time zones.
+
+## On a record someone shared with you
+
+You see the sections the share covers. Anything else is named as not shared
+rather than shown as empty, and is not read at all. Weather and air quality
+and life events stay with the record's owner.
+
+## Before the next visit
+
+A planned visit shows what happened since the last one: every change the
+record holds (dose changes, medications and courses that started or ended,
+pauses) and every notable reading, including a regular reading that stopped
+for two weeks or more. Each date opens its day, and the block offers a
+[doctor report](/guides/checkups-and-practitioners/) for exactly that stretch.

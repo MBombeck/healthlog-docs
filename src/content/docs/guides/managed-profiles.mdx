@@ -1,18 +1,22 @@
 ---
 title: Records with no login of their own
-description: Keep a health record for a child or somebody you care for. Create a managed profile, add a second guardian, know why the last one cannot leave, and see where its reminders go.
+description: Keep a health record for a child or somebody you care for. Create a managed profile, add a second guardian, know why the last one cannot leave, see where its reminders go, and hand the profile over when the person signs in themselves.
 sidebar:
   order: 27
 ---
 
+import { Steps } from '@astrojs/starlight/components';
+
 A grant between two accounts covers half of looking after somebody's health. The
-other half is the person who has no account to begin with, and never will: a
+other half is the person who has no account to begin with: a
 child, or somebody you care for. A **managed profile** is a health record for
 exactly that person.
 
-It has no password, no passkey and no second factor, and it never gains one. The
-people who look after it are its **guardians**, and a guardian can switch into
-the record the way any shared record is opened.
+It has no password, no passkey and no second factor of its own. The people who
+look after it are its **guardians**, and a guardian can switch into the record
+the way any shared record is opened. When the person is ready to sign in
+themselves, a guardian can [hand the profile over](#hand-the-profile-over) and
+it becomes an ordinary account, history included.
 
 If the person you want to look after does sign in themselves, you want an
 ordinary grant instead. See
@@ -188,6 +192,66 @@ only guardian.
 So the way out of a profile you are alone with is one of two things: add
 somebody else and wait for them to accept, or delete the profile.
 
+## Hand the profile over
+
+A child grows up, or somebody you cared for wants to look after their own
+record. Since v1.42.0 a guardian can turn the profile into a full account for
+that person, without moving or copying any data: the record stays where it is
+and gains a login.
+
+<Steps>
+
+1. Under **Settings, Shared access**, open the row of the profile and choose
+   the handover at its end. It asks for a fresh second factor, as creating the
+   profile did.
+
+2. For every guardian, propose what happens to their access afterwards: end
+   it, keep **view only**, or keep **manage**. View only is the default. If the
+   profile's date of birth says the person is under 16, the panel points that
+   out.
+
+3. Pick how long the link stays valid: one, seven or fourteen days. The link
+   is shown once, with a copy button and a QR code. HealthLog sends no mail;
+   you pass the link on yourself. You can withdraw it while it is unused, and
+   there is only ever one open link per profile.
+
+</Steps>
+
+The person opens the link (`/claim/…`) while signed out. They see the name of
+the record, when the link expires and which guardian keeps which access, by
+display name only, and nothing from the health record. They choose a username,
+an email address (required) and a password under the instance's password
+rules.
+
+The claim happens in one step. If any part of it fails, the profile stays
+managed and the link stays unused. When it succeeds:
+
+- the link is used up and the person signs in to their own account,
+- every invitation the record had open is withdrawn,
+- each guardian's access is set to what you proposed, and each guardian is
+  told on their own notification channels,
+- the medical disclaimer, onboarding and any AI consent start fresh, because
+  the person has to agree to them themselves,
+- every step is written to the audit log of the record and of each guardian.
+
+The proposal is not the last word. Right after their first sign-in the new
+owner sees each guardian's access and decides it; until they do, the proposal
+holds, and the decision waits at the top of **Shared access**. The same screen
+points them at their own notification channels, since reminders no longer go
+to the guardians. A guardian whose access changed in between is left as it is.
+
+A guardian who deletes their own account does not take a claimed handover
+with them; the new owner can still make their decision. An unused link whose
+creator lost access stops working.
+
+Some limits in this release:
+
+- On an instance that only allows sign-in through single sign-on
+  (`OIDC_ONLY`), the handover is not available.
+- The link only works while signed out. A browser signed in to another
+  account is turned away.
+- Usernames starting with `managed-` are reserved.
+
 ## Delete the profile
 
 Deleting a managed profile takes everything recorded for it: readings,
@@ -215,7 +279,9 @@ neighbour shared with you.
 ## For operators
 
 Nothing to configure. Managed profiles are available on every instance and do
-nothing until somebody creates one.
+nothing until somebody creates one. The handover link is a one-time secret: it
+is stored only as a keyed hash, kept out of the logs, and every unusable link
+gets the same "not found" answer.
 
 Three consequences worth knowing.
 

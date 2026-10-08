@@ -89,10 +89,11 @@ reflects `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY_ID` or the legacy
 One switch per optional tracking domain: cycle, mood, sleep, glucose,
 workouts, recovery, labs, illness, achievements, Coach, AI analysis,
 medications, doctor report, environment, MCP, documents, mental health,
-nutrients, vaccinations. Weight, blood pressure and pulse are core and cannot be
+nutrients, vaccinations, timeline. Weight, blood pressure and pulse are core and cannot be
 turned off. Resting heart rate is not part of pulse here: it belongs to recovery,
 with heart-rate variability and VO₂ max, so its chart, page, trend, correlations
-and its entry in the manual form follow the recovery switch. Most modules are on by default; MCP and nutrients are opt-in. A
+and its entry in the manual form follow the recovery switch. Most modules are on by default; MCP, nutrients and the
+[timeline](/guides/timeline/) are opt-in. A
 switch is greyed out when the admin has disabled that module server-wide, and
 the Coach switch additionally needs the operator's Coach switch to be on. The card
 belongs to the record you are in rather than to your account, so a guardian
@@ -168,13 +169,14 @@ is explained in [Record sharing](/explanation/record-sharing/).
 
 CSV exports for measurements, medications and mood; the full backup either
 as a passphrase-encrypted `.hlx` file or as plain JSON; and the import cards
-for Apple Health, CSV, JSON and dose history. The encrypted export is a
+for Apple Health, Health Connect, CSV, JSON and dose history. The encrypted export is a
 step-up action for accounts with a second factor, and since v1.39.3 both forms
 of the full backup ask you to confirm it is you unless you signed in within the
 last five minutes (see
 [Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you)). See
-[Backups](/guides/backups/), [Import Apple Health](/guides/import-apple-health/)
-and [Import a CSV](/guides/import-csv/).
+[Backups](/guides/backups/), [Import Apple Health](/guides/import-apple-health/),
+[Import Health Connect](/guides/import-health-connect/) and
+[Import a CSV](/guides/import-csv/).
 
 ## Appearance
 
@@ -231,10 +233,13 @@ vault refuses every delegated write. See
 ## Location & weather
 
 Home location (with a place search), travel overrides for periods away, and
-a backfill of weather and daylight over a date range. Needs the environment
-module, which is on by default; no outbound weather request is made until a
-location is set. The data source can be pointed elsewhere with
-`OPENMETEO_BASE_URL` and `OPENMETEO_GEOCODING_URL`. Background in
+a backfill of weather, daylight and air quality over a date range. Since
+v1.42.0 the page has an **Air quality and pollen** switch (on by default), how
+many days carry air values, the newest day's values and the attribution
+lines. Needs the environment module, which is on by default; no outbound
+request is made until a location is set. The data sources can be pointed
+elsewhere with `OPENMETEO_BASE_URL`, `OPENMETEO_AIR_QUALITY_URL` and
+`OPENMETEO_GEOCODING_URL`. Background in
 [Environmental module](/explanation/environmental-module/).
 
 ## AI provider

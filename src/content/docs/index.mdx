@@ -36,7 +36,8 @@ looks like, or jump straight to
   Health (or the [classic Fitbit API](/guides/connect-fitbit/) until its 2026
   retirement), a
   [Nightscout](/guides/connect-nightscout/) instance streams continuous glucose,
-  an [Apple Health `export.zip`](/guides/import-apple-health/) folds your full
+  an [Apple Health `export.zip`](/guides/import-apple-health/) or an Android
+  [Health Connect export](/guides/import-health-connect/) folds your full
   history in, and the native iOS app streams HealthKit live. A per-metric
   [source priority](/guides/source-priority/) decides which reading is canonical
   when wearables overlap.
@@ -59,8 +60,10 @@ looks like, or jump straight to
   when you opt in.
 - **Context that explains the numbers.** An
   [environmental module](/explanation/environmental-module/), on by default,
-  folds weather, daylight, and temperature in as influence signals; the
-  weather fetch itself stays off until you configure a home location.
+  folds weather, daylight, temperature, air quality, pollen and UV in as
+  influence signals; nothing is fetched until you configure a home location.
+  Any date opens [its day](/guides/day-view/), and an opt-in
+  [timeline](/guides/timeline/) lays the years side by side.
 - **Clinician-ready output.** A doctor-report PDF rendered on your server, a
   read-only [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited
   share links you revoke after the visit.
