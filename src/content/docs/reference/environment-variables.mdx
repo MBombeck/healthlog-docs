@@ -203,7 +203,7 @@ user-supplied.
 | --- | --- |
 | `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. Since v1.37.1 the resolver reads them first and goes online only for an address they cannot place. |
 | `MAXMIND_LICENSE_KEY` | A free MaxMind licence key. Set it and the worker downloads the GeoLite2 City + ASN databases into `GEOLITE2_DIR` itself at boot, refreshed monthly. The third way to supply the databases, no rebuild or manual mount; a mounted database still wins. |
-| `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. |
+| `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. Since v1.42.0 setting it counts as an explicit choice, and the admin status shows the geo row green instead of a warning. Without GeoLite2 databases and without this variable the row warns, because every login IP goes to a provider nobody chose. |
 | `IP_GEO_LOOKUP_DISABLED` | Turns third-party IP lookups off entirely (no geo egress): the resolver uses only the GeoLite2 databases, if present, and the monthly MaxMind download is skipped too. Also silences the one-time admin notice about online lookups, since there is nothing to warn about. Before v1.39.3 only `1` worked. |
 | `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
 

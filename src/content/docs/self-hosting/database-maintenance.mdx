@@ -25,6 +25,14 @@ needs anything from you.
 in two runs, and the second run stored the mean of the later part of the day
 only. The repair recomputes those hourly and daily means from all of the day's
 samples, including the deleted ones, and writes a mean only where it differs.
+It does so only where every sample of a day is still stored: the last 75 days
+for daily means, and for hourly means, which are folded after 90 days, the 75
+days before that. Older days stay as they are, because what is left of them
+can be a fragment of the day, and a mean over a fragment would be worse than
+the stored one. The run counts them as `windowsSkippedBeyondHorizon`
+(`fold_repair_skipped_beyond_horizon` on its wide event). The nightly mean and
+dense folds follow the same rule: a day beyond that horizon that already has a
+mean is left untouched.
 It works through an account a day at a time, resumes where it stopped, and
 records each finished account in `measurement_fold_repairs`. You can see how
 many accounts are left:
@@ -137,5 +145,11 @@ refuses that parameter ("unsupported startup parameter: options") unless it is
 listed in its `ignore_startup_parameters`. Behind such a pooler, set
 `DATABASE_SESSION_OPTIONS_DISABLED=1` (or `true`, `yes`) and the app sends no
 session settings at all; the pooler's or the database's own defaults then
-apply. All three variables are on the compose whitelist. See
+apply. Set the timeout and `work_mem` on the database role instead
+(`ALTER ROLE healthlog SET work_mem = '16MB'`) if you still want them.
+
+The measurement maintenance run then applies its own settings with `SET` after
+it connects. Its `REINDEX INDEX CONCURRENTLY` needs a whole session, so run it
+through a session-mode pool or a direct connection to Postgres; a
+transaction-mode pool cannot carry it. All three variables are on the compose whitelist. See
 [Environment variables](/reference/environment-variables/).

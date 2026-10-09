@@ -160,7 +160,7 @@ they run in seconds:
 `pg_stat_statements` through the `command:` of the `db` service, so the first
 `docker compose up` after pulling it recreates the database container. Plan a
 minute without the app. Reading the statistics is optional and needs one
-`CREATE EXTENSION`; see
+`CREATE EXTENSION pg_stat_statements;`; see
 [Query statistics](/self-hosting/database-maintenance/#query-statistics). If
 you keep your own compose file, nothing changes until you add the same lines.
 
@@ -168,27 +168,62 @@ New optional variables, all on the compose whitelist:
 
 | Variable | What it does |
 | --- | --- |
-| `ENVIRONMENT_AIR_QUALITY_DISABLED` | `1` turns air quality and pollen off for the whole instance |
-| `OPENMETEO_AIR_QUALITY_URL` | Points the air-quality requests at a self-hosted Open-Meteo |
 | `DATABASE_WORK_MEM` | Postgres `work_mem` per app session, `16MB` by default |
 | `DATABASE_SESSION_OPTIONS_DISABLED` | `1` behind PgBouncer, which refuses the session settings otherwise |
+| `ENVIRONMENT_AIR_QUALITY_DISABLED` | `1` turns air quality and pollen off for the whole instance |
+| `OPENMETEO_AIR_QUALITY_URL` | Points the air-quality requests at a self-hosted Open-Meteo |
 
 If your database sits behind PgBouncer without `options` in its
 `ignore_startup_parameters`, set `DATABASE_SESSION_OPTIONS_DISABLED=1` before
 updating. Setting the statement timeout to `0` no longer keeps the app from
-sending session settings. See
+sending session settings. With the variable set, the measurement maintenance
+job applies its own settings with `SET` after it connects, and its concurrent
+index rebuild needs a whole session: run it through a session-mode pool or a
+direct connection, not a transaction-mode pool. See
 [Session settings](/self-hosting/database-maintenance/#session-settings-work_mem-and-pgbouncer).
 
-What runs by itself after the update:
+`IP_GEO_LOOKUP_URL` is now read as a decision. With the variable set, the geo
+row under **Admin, System status** shows green for the provider you named.
+Without GeoLite2 databases and without the variable, the default online
+provider still receives every login IP, and the row shows a warning. Mount the
+databases, name a provider, or set `IP_GEO_LOOKUP_DISABLED`; see
+[Offline geolocation](/self-hosting/geolite2/).
 
-- **The fold repair, then the cleanup.** Once per account, a background job
-  corrects hourly and daily means that an earlier fold computed from part of a
-  day, and writes only values that differ. After that, a second job removes
-  the folded Apple Health samples older releases kept as deleted rows. On an
-  instance that has synced Apple Health for a while the measurements table
-  shrinks a lot. When the cleanup has finished, start the table rebuild from
-  the admin area in a quiet hour to give the index space back. See
-  [Database maintenance](/self-hosting/database-maintenance/).
+All requests to Open-Meteo, weather and air quality alike, share one instance
+budget: 500 calls a minute, 4,000 an hour and 8,000 a day, below the free
+limits of the hosted service, and 5 % of the daily budget per account. The
+budget is built in, not a variable, and applies to a self-hosted Open-Meteo as
+well. A refused request ends the night's run, and the next night continues
+where it stopped. See
+[Switches](/explanation/environmental-module/#switches).
+
+### After the update, in this order
+
+1. **The fold repair runs by itself.** Once per account, a background job
+   recomputes hourly and daily means that an earlier fold computed from part
+   of a day, and writes only values that differ. It checks only the window in
+   which every sample of a day is still stored: the last 75 days for daily
+   means, and for hourly means the 75 days before the raw window. Older days
+   stay as they are, and the job counts them as
+   `windowsSkippedBeyondHorizon`. The nightly mean and dense folds follow the
+   same rule and leave a day beyond that horizon that already has a mean
+   untouched.
+2. **The cleanup follows by itself.** The compaction tombstone purge removes
+   the folded Apple Health samples older releases kept as deleted rows. It
+   waits for the repair account by account and starts on an account only once
+   its repair has finished. On an instance that has synced Apple Health for a
+   while the measurements table shrinks a lot.
+3. **The maintenance run is yours to start.** When the cleanup has finished,
+   start the maintenance from **Admin, System status** at a quiet hour. It runs
+   `VACUUM (ANALYZE)` and rebuilds the indexes with `REINDEX INDEX
+   CONCURRENTLY` to give the space back, and refuses to start while the
+   cleanup is still running.
+
+See [Database maintenance](/self-hosting/database-maintenance/) for how to
+follow each step.
+
+Two more things run by themselves:
+
 - **Locations are sealed.** The boot-time encryption pass encrypts the stored
   home, travel and day locations and clears their readable copies.
 - **Air quality fills in.** With a home location set, the nightly environment
@@ -209,6 +244,20 @@ What to know:
   [own vaccines](/guides/vaccinations/#your-own-vaccines), editing a workout
   entered by hand, and a confirmation before every delete in the document
   vault.
+- **The timeline** draws up to six value lines. Each is a series of means per
+  quarter, month or week, depending on the zoom. A gap of up to one quarter,
+  two months or four weeks is bridged with a dashed line; a longer gap leaves
+  the line open. A mean from fewer than three readings is drawn as a hollow
+  point.
+- **The day view** lists under what ran that day only records with a start
+  date of their own. Profile details such as smoking, alcohol and work
+  schedule no longer appear there. On a wide screen the docked day collapses
+  to an edge instead of closing, and the edge reopens the last day. Several
+  readings of one type on a day show in the day's tiles as their mean, marked
+  **Average of n readings**.
+- **Deleting a Coach conversation stays final.** The delete is sent at the
+  latest when the page is left, so a reload or a closed tab inside the undo
+  window no longer brings the conversation back.
 - **For API and MCP clients.** New routes under `/api/day`, `/api/timeline`
   and `/api/life-events`, two new MCP tools (`get_day`, `get_environment`), and
   `HEALTH_CONNECT` as a source value. A client that decodes the source list
@@ -217,6 +266,41 @@ What to know:
 Rolling back to v1.41.x is not a plain image swap once the locations are
 sealed: the older image cannot open them and shows no home or travel places.
 Roll back with the backup you took before updating.
+
+## Upgrading to v1.41.2
+
+There are no migrations and no new settings. Take a backup as usual before
+updating.
+
+- **More room for a Coach answer.** On a person's own provider a turn may use
+  165,000 tokens, 200 seconds and 16 rounds (was 120,000, 150 and 12); on your
+  budget 55,000 tokens, 120 seconds and 8 rounds (was 40,000, 90 and 6). The
+  300-second read timeout in [Reverse proxy](/guides/reverse-proxy/) still
+  covers the longer turn; a proxy set below about 200 seconds may cut an
+  answer off. See [Thinking](/guides/admin-overview/#thinking).
+- **Prompt caching counts.** Codex and `api.openai.com` requests carry a
+  stable cache key per conversation, so later rounds of a turn read the prompt
+  from the provider's cache. Anthropic cache reads and writes, and cached
+  tokens reported by local and OpenAI-compatible servers, now count in the
+  turn's budget. Nothing to configure.
+- **MCP clients with strict validation.** Every tool result now matches the
+  output schema the tool advertises, so a client that validates strictly no
+  longer refuses `list_metrics`, `get_intraday_pulse` or the Coach-backed
+  reads. A measurement type whose readings were all deleted is no longer
+  listed as present. See [Structured output](/reference/mcp/#structured-output).
+
+## Upgrading to v1.41.1
+
+There are no migrations and no new settings.
+
+- **What users see.** While the Coach works, one row shows the current step
+  with animated dots, without a running seconds count, and tables appear only
+  with the answer. Afterwards the row reads **Thought process** with the
+  number of steps and stays closed until opened. See
+  [The status line](/guides/coach-conversations/#the-status-line).
+- **On a demo instance** a refused chat says that the Coach does not answer in
+  the demo, and carries `meta.errorCode: "demo.readOnly"`, instead of
+  reporting an unreachable provider.
 
 ## Upgrading to v1.41.0
 

@@ -34,7 +34,11 @@ reopens it. A malformed or future date is simply dropped from the address.
 ## How it opens
 
 On a wide window (1280 px and up) the day docks beside the page, the way the
-Coach's conversations panel does, and the page reflows next to it. Below that
+Coach's conversations panel does, and the page reflows next to it. The control
+at its top collapses the day to a narrow edge on the right instead of closing
+it. The edge holds the date and a button that opens the last day again, on
+this page or any other. The browser remembers that last day for your account
+and record and forgets it when you sign out. Below that
 it opens as a sheet from the right. On a phone it is a bottom sheet that starts
 at a little over half the height; drag its handle up for the full height. On
 the Coach page the day is always a sheet, so there is never more than one
@@ -48,10 +52,14 @@ right arrow key does the same from the keyboard.
 
 - **The value you opened it from**, with the reading before it for comparison.
 - **What ran through the day**: medications and courses with their dose and
-  day number, pauses, an illness with its day number, a cycle phase.
+  day number, pauses, an illness with its day number, a cycle phase. Only
+  records with a start date of their own appear here. Profile details such as
+  smoking, alcohol or a work schedule describe you rather than the day and are
+  not listed, and a medication saved without a start date shows no day count.
 - **The readings**, each placed on a short line against your own usual range
   over the 30 days before. Eight are shown first; the rest sit behind **All
-  values**.
+  values**. Several readings of one type on the day show as their mean, marked
+  **Average of n readings**.
 - **What happened**, in the order of the clock: intakes, dose changes,
   symptoms, lab results, visits, vaccinations, check-ups, documents, mood
   entries, workouts. Each row links to its record.

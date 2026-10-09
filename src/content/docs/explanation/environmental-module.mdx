@@ -116,8 +116,9 @@ and point `OPENMETEO_BASE_URL`, `OPENMETEO_AIR_QUALITY_URL` and
 `OPENMETEO_GEOCODING_URL` at it. A request carries the rounded coordinates, a
 date range and a time zone, and nothing about the person.
 
-The instance keeps its own count of requests to the hosted service and stays
-below 500 a minute, 4,000 an hour and 8,000 a day. A request over that budget
+The instance keeps its own count of requests to Open-Meteo, weather and air
+quality together, and stays below 500 a minute, 4,000 an hour and 8,000 a day.
+The budget is built in and applies to a self-hosted Open-Meteo as well. A request over that budget
 is not sent; the nightly run stops early and continues the next night. One
 account cannot use up the day for everyone: it gets at most a twentieth of the
 daily budget, at most three backfills a rolling hour (`429`

@@ -143,7 +143,9 @@ holding other people's health data is a reasonable place to make that trade.
 
 `IP_GEO_LOOKUP_URL` moves the online lookup to a different provider; it does
 not stop it. A plain-HTTP provider is refused unless `IP_GEO_ALLOW_INSECURE=true`
-is set as well. All of these variables are listed in
+is set as well. Since v1.42.0 a provider named here counts as your decision:
+the geo row under **Admin, System status** shows green for it. Only the
+unconfigured default, with no databases mounted, still shows a warning. All of these variables are listed in
 [Environment variables](/reference/environment-variables/).
 
 ## Licence and attribution
