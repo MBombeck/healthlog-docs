@@ -161,8 +161,9 @@ keeps a lifetime immunization log: doses grouped under the disease they
 protect against, optional booster reminders, and a doctor-report section you
 can leave out. An
 [environmental module](/explanation/environmental-module/), on by default,
-folds weather, daylight and temperature in as influence signals; the weather
-fetch itself stays off until you configure a home location. **Custom metrics** let you
+folds weather, daylight, temperature and, since v1.42.0, air quality, pollen
+and UV in as influence signals; nothing is fetched until you configure a home
+location. **Custom metrics** let you
 define your own measurement — name, unit, optional target range — and log and
 chart it alongside the built-ins; custom definitions stay private to your
 account and deliberately stay out of device sync and FHIR export, though they
@@ -212,7 +213,8 @@ Google Health, with the [classic Fitbit API](/guides/connect-fitbit/)
 alongside until its September 2026 retirement; a
 [Nightscout](/guides/connect-nightscout/) instance streams
 continuous glucose; an [Apple Health `export.zip`](/guides/import-apple-health/)
-folds your full history in; the native iOS app streams HealthKit live. A
+folds your full history in, and so does an Android
+[Health Connect export](/guides/import-health-connect/); the native iOS app streams HealthKit live. A
 per-metric [source priority](/guides/source-priority/) decides which reading is
 canonical when devices overlap.
 
@@ -312,6 +314,10 @@ delete the profile but may not walk away from it.
 Its reminders reach its guardians rather than the record itself, each in their
 own language and over the channels they already chose, naming whose record it is
 about.
+
+When the person grows up or wants to sign in themselves, a guardian can hand
+the profile over with a one-time link, and it becomes an ordinary account with
+all its history.
 
 See [Give another account access to your record](/guides/shared-access/) and
 [Records with no login of their own](/guides/managed-profiles/) for the steps,

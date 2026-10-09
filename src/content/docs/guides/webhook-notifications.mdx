@@ -1,0 +1,241 @@
+---
+title: Notifications via webhook
+description: Send HealthLog reminders to Discord, Slack, Gotify, Home Assistant or n8n through the generic webhook channel, with the body it sends, a setup per target, and the errors each target answers.
+sidebar:
+  order: 7
+---
+
+The webhook channel posts every notification as one JSON request to a URL you
+choose. One channel covers chat services (Discord, Slack), a push server
+(Gotify) and automation platforms (Home Assistant, n8n). It sits beside APNs,
+Telegram, ntfy, email and Web Push; the [reminder channels](/guides/reminder-channels/)
+page explains the cascade and the per-event preferences.
+
+You configure it under **Settings → Notifications → Webhook**: a URL, an
+optional header (name and value), and a **Payload format**, either
+**Generic JSON** or **Gotify**.
+
+## What the webhook sends
+
+Every event is one `POST` with `Content-Type: application/json`, the header
+you configured if any, to the URL exactly as you saved it. Redirects are not
+followed.
+
+**Generic JSON** is the default. This is what the Test button sends from
+v1.42.0 on:
+
+```json
+{
+  "title": "HealthLog Test",
+  "message": "HealthLog: Connection successful! Webhook notifications are active.",
+  "eventType": "SYSTEM_ALERT",
+  "priority": "default",
+  "content": "HealthLog Test\nHealthLog: Connection successful! Webhook notifications are active.",
+  "text": "HealthLog Test\nHealthLog: Connection successful! Webhook notifications are active.",
+  "allowed_mentions": { "parse": [] }
+}
+```
+
+| Field | Read by | Meaning |
+| --- | --- | --- |
+| `title` | relays, automations | Plain text, no HTML. |
+| `message` | relays, automations | Plain text, no HTML. |
+| `eventType` | relays, automations | The event name, for example `MEDICATION_REMINDER` or `SYSTEM_ALERT`. `reminder` for a cycle event in discreet mode. |
+| `priority` | relays, automations | `urgent`, `high` or `default` (see below). |
+| `content` | Discord | Title and message on two lines, cut to 2000 characters with an ellipsis. |
+| `text` | Slack | Title and message on two lines, not cut. |
+| `allowed_mentions` | Discord | An empty list: Discord resolves no `@everyone`, `@here` or user mention in the text. |
+
+The first four fields have kept their names, values and order since v1.18.4,
+so an existing Home Assistant or n8n rule keeps working. `content`, `text`
+and `allowed_mentions` were added in v1.42.0. Each target ignores the fields
+meant for the others.
+
+**Gotify** sends the body Gotify's `POST /message` endpoint binds, with an
+integer priority:
+
+```json
+{
+  "title": "HealthLog Test",
+  "message": "HealthLog: Connection successful! Webhook notifications are active.",
+  "priority": 5,
+  "extras": {
+    "client::display": { "contentType": "text/plain" },
+    "healthlog::event": { "type": "SYSTEM_ALERT" }
+  }
+}
+```
+
+### Priority
+
+| Event | Generic `priority` | Gotify `priority` |
+| --- | --- | --- |
+| Most events | `default` | `5` |
+| Medication reminders | `high` | `8` |
+| An event flagged urgent | `urgent` | `10` |
+
+Discord and Slack ignore the field. In Home Assistant or n8n you can route on
+it, for example to send `high` and `urgent` as a time-sensitive phone
+notification. The Gotify Android app plays a sound from 4 and shows a
+heads-up banner from 8.
+
+### Discreet mode
+
+With discreet cycle notifications turned on, a cycle reminder reaches every
+channel with a generic title and message that name no cycle event. The
+webhook builds all of its text fields from that masked version: `title`,
+`message`, `content` and `text` carry the same generic wording, and
+`eventType` is `reminder` instead of the cycle event's name. A routing rule
+that matches on `eventType` therefore cannot tell a cycle reminder apart from
+other reminders, which is the point.
+
+## Discord
+
+Works from v1.42.0 on. Earlier versions sent a body without `content`, and
+Discord answered every test and every reminder with
+`400 {"message": "Cannot send an empty message", "code": 50006}`.
+
+1. In Discord, open the channel's settings (the gear next to the channel
+   name), go to **Integrations → Webhooks**, and choose **New Webhook**.
+2. Give it a name and an avatar if you like, then **Copy Webhook URL**. It
+   looks like `https://discord.com/api/webhooks/<id>/<token>`.
+3. In HealthLog, paste the URL into **Webhook URL**. Leave both header
+   fields empty and the format on **Generic JSON**.
+4. Save, then press **Test**. The test message appears in the channel.
+
+The token in the URL is the only credential, so treat the URL like a
+password. Discord renders its own markdown in `content`, so an asterisk or
+underscore in a medication name can show up as emphasis.
+
+If you used a Discord webhook before v1.42.0, the failed deliveries may have
+turned the channel off: five failures in a row disable a webhook channel.
+After the update, switch it back on and press Test.
+
+## Slack
+
+1. At [api.slack.com/apps](https://api.slack.com/apps), create an app for
+   your workspace, open **Incoming Webhooks**, and switch them on.
+2. Choose **Add New Webhook to Workspace**, pick the channel, and copy the
+   URL. It looks like `https://hooks.slack.com/services/T…/B…/…`.
+3. Paste it into **Webhook URL**, leave the header fields empty and the
+   format on **Generic JSON**, save, and press Test.
+
+Slack reads `text` and ignores the other fields. Like Discord, this needs
+v1.42.0; earlier versions sent no `text`, which Slack refuses.
+
+## Gotify
+
+1. In Gotify, create an application and copy its token.
+2. Set **Webhook URL** to your Gotify address ending in `/message`, for
+   example `https://gotify.example.com/message`.
+3. Set **Header name** to `X-Gotify-Key` and **Header value** to the token.
+   Gotify also accepts the token as a query parameter
+   (`https://gotify.example.com/message?token=<token>`), but in a header it
+   stays out of proxy access logs.
+4. Set **Payload format** to **Gotify**, save, and press Test.
+
+The generic format does not work with Gotify: Gotify reads `priority` as a
+number and answers `400` to the word `default`.
+
+## Home Assistant
+
+Home Assistant receives the generic body through a webhook trigger. The
+fields are under `trigger.json`.
+
+```yaml
+alias: HealthLog notification
+triggers:
+  - trigger: webhook
+    webhook_id: healthlog-3f9c2a7d1e
+    allowed_methods:
+      - POST
+    local_only: true
+actions:
+  - action: notify.mobile_app_your_phone
+    data:
+      title: "{{ trigger.json.title }}"
+      message: "{{ trigger.json.message }}"
+      data:
+        push:
+          interruption-level: >-
+            {{ 'time-sensitive' if trigger.json.priority in ['high', 'urgent'] else 'active' }}
+```
+
+The webhook URL is `https://<your-home-assistant>/api/webhook/<webhook_id>`.
+Pick a long, random `webhook_id`: it is the only thing protecting the
+trigger.
+
+- `local_only: true` accepts requests from your local network only. If
+  HealthLog reaches Home Assistant over a public address, set it to `false`.
+- If HealthLog reaches Home Assistant on a private address (a LAN IP, a
+  `.lan` name, a Tailscale address), the operator has to list Home
+  Assistant's origin in `NOTIFICATION_PRIVATE_ORIGINS`. See
+  [targets on a private network](/guides/reminder-channels/#targets-on-a-private-network).
+- Home Assistant answers `200` to a webhook id it does not know, so a
+  successful test only proves that Home Assistant was reached. Check the
+  automation's trace to see that it ran.
+
+## n8n
+
+1. Add a **Webhook** node, set **HTTP Method** to `POST`, and copy the
+   **Production URL**.
+2. Use the fields from the node's output in later nodes, for example
+   `{{ $json.body.title }}`, `{{ $json.body.message }}` and
+   `{{ $json.body.priority }}`.
+3. Activate the workflow. The production URL only answers while the
+   workflow is active.
+4. Paste the URL into HealthLog, keep **Generic JSON**, save, and press Test.
+
+The test URL (`/webhook-test/…`) only listens while the editor waits for a
+test event, so do not save it in HealthLog.
+
+## What the Test button reports
+
+Test uses the saved settings, so save first. It sends the message shown
+above, at most five times in five minutes.
+
+When the target answers with an error, the card shows its HTTP status and,
+when it is short, the start of what the target said, for example
+`400 {"message": "Cannot send an empty message", "code": 50006}`. Anything
+that looks like a token, or contains the saved header value or a part of
+the URL that could be one, is left out. The card also names the kind of
+failure:
+
+| Card says | Cause |
+| --- | --- |
+| The other end refused the message | A 4xx other than the ones below: the target was reached and did not accept the body. |
+| Credentials rejected | `401` or `403`: wrong token or header. |
+| Endpoint not found at the URL | `404` or `410`: the webhook was deleted or the path is wrong. |
+| Rate-limited by the upstream | `429`. |
+| Upstream returned an error | A `5xx` from the target. |
+| Endpoint redirects | A `3xx`. HealthLog does not follow redirects; use the final URL, usually `https://`. |
+| Request timed out | No answer within 5 seconds. |
+| Connection failed | DNS, TLS or the connection itself failed. |
+| Private network target | The address is private and not listed in `NOTIFICATION_PRIVATE_ORIGINS`. |
+
+The detail travels in the server's `502` answer. A reverse proxy that
+replaces 5xx pages (Traefik's `errors` middleware, nginx with
+`proxy_intercept_errors on`) hides it, and the card can then only say
+"Test failed". Exclude `/api/` from that rule.
+
+Scheduled deliveries follow the same classification. A `401`, `403`, `404`
+or `410` turns the channel off at once, since retrying cannot help. Other
+failures are retried with backoff, and five in a row turn the channel off.
+
+## Troubleshooting
+
+| Target answers | Meaning | Fix |
+| --- | --- | --- |
+| Discord `400` `Cannot send an empty message` (code `50006`) | The body has no `content`. | Update to v1.42.0 or later, keep the format on Generic JSON. |
+| Discord `404` `Unknown Webhook` (code `10015`) | The webhook was deleted in Discord. | Create a new one and paste its URL. |
+| Discord `401` `Invalid Webhook Token` (code `50027`) | The token part of the URL is wrong or was regenerated. | Copy the URL again. |
+| Discord `429` | Discord is rate limiting the webhook. | Wait; the scheduled delivery retries. |
+| Slack `400` `no_text` or `invalid_payload` | The body has no `text`. | Update to v1.42.0 or later, keep the format on Generic JSON. |
+| Slack `403` `invalid_token`, `404` `no_service` | The webhook was revoked or the app removed. | Add a new incoming webhook. |
+| Slack `404` `channel_not_found`, `410` `channel_is_archived` | The target channel is gone. | Add a webhook for another channel. |
+| Gotify `401` | The application token is wrong. | Check `X-Gotify-Key` or `?token=`. |
+| Gotify `400` | Gotify could not read the body. | Set the format to **Gotify**. |
+| n8n `404` `The requested webhook … is not registered` | The workflow is inactive, or the test URL was saved. | Activate the workflow and use the production URL. |
+| Home Assistant `200`, nothing happens | Unknown `webhook_id`, or `local_only` refused a remote caller. | Compare the id, check `local_only`, read the automation trace. |
+| `Endpoint redirects` | The URL points at `http://` or an old path. | Use the final `https://` URL. |
+| `Private network target` | The target resolves to a private address. | The operator lists its origin in `NOTIFICATION_PRIVATE_ORIGINS`. |

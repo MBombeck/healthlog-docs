@@ -68,6 +68,8 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | `DATABASE_POOL_MAX` | `20` | Total Postgres connection budget for the process, not the Prisma ceiling: pg-boss takes 2 of it and Prisma gets the rest (18 at the default). Not whitelisted by default, so `DB_CONNECTION_LIMIT` is the knob that reaches the container. |
 | `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | The compose file feeds them into the `connection_limit` and `pool_timeout` query params of the default `DATABASE_URL`, and the app also reads both directly (`src/lib/db.ts`), where they take precedence over `DATABASE_POOL_MAX` and over the URL's query params. Since v1.40.1 a process holds one database client, so in the default `all` mode the web requests and the background worker share this one pool. |
 | `DATABASE_STATEMENT_TIMEOUT_MS` | `60000` | Statement timeout applied to every database session, in milliseconds. `0` disables it and restores the unbounded behaviour. Since v1.39.4 a backup restore and the chart rebuild after it set their own, longer limit for their statements, so this value no longer caps them. |
+| `DATABASE_WORK_MEM` | `16MB` | Since v1.42.0. Postgres `work_mem` for every app session, as a Postgres size string. Sorts and aggregates larger than this spill to disk; each sort step of each pooled connection may use this much, so raise it with the pool size in mind. |
+| `DATABASE_SESSION_OPTIONS_DISABLED` | unset | Since v1.42.0. The two settings above reach Postgres in the libpq `options` startup parameter, which PgBouncer refuses unless it is in its `ignore_startup_parameters`. Behind such a pooler, set this and the app sends no session settings; the pooler's or the database's defaults apply. See [Database maintenance](/self-hosting/database-maintenance/#session-settings-work_mem-and-pgbouncer). |
 | `HEALTHLOG_PROCESS_TYPE` | `all` | `all` / `web` / `worker` process split. |
 | `HEALTHLOG_IMAGE_REF` | `:latest` | **Compose-level substitution only**: the suffix of the `app` image reference. `:v1.38.0` pins a tag, `@sha256:<digest>` pins the immutable digest. See [pin the image by digest](/guides/updates-and-deploy/#pin-the-image-by-digest). |
 | `APP_MEMORY_LIMIT` | `1536m` | **Compose-level substitution only**: the app container's `mem_limit`. Node sizes its heap from it: `1536m` gives about 792 MB, `1g` about 524 MB, which a long-used account fills in normal use. The default was `1g` before v1.40.1. On a host with 2 GB of memory or less set `APP_MEMORY_LIMIT=1g` in `.env`; on a busy instance raise it. A value you set yourself stays. The worker example in the compose file carries `WORKER_MEMORY_LIMIT` with the same default. The Unraid Community Applications template and the TrueNAS app set no memory limit, so it does not apply there. See [Scaling](/self-hosting/scaling/#memory). |
@@ -201,7 +203,7 @@ user-supplied.
 | --- | --- |
 | `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. Since v1.37.1 the resolver reads them first and goes online only for an address they cannot place. |
 | `MAXMIND_LICENSE_KEY` | A free MaxMind licence key. Set it and the worker downloads the GeoLite2 City + ASN databases into `GEOLITE2_DIR` itself at boot, refreshed monthly. The third way to supply the databases, no rebuild or manual mount; a mounted database still wins. |
-| `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. |
+| `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. Since v1.42.0 setting it counts as an explicit choice, and the admin status shows the geo row green instead of a warning. Without GeoLite2 databases and without this variable the row warns, because every login IP goes to a provider nobody chose. |
 | `IP_GEO_LOOKUP_DISABLED` | Turns third-party IP lookups off entirely (no geo egress): the resolver uses only the GeoLite2 databases, if present, and the monthly MaxMind download is skipped too. Also silences the one-time admin notice about online lookups, since there is nothing to warn about. Before v1.39.3 only `1` worked. |
 | `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
 
@@ -328,6 +330,8 @@ not environment variables; see [the document vault](/guides/document-vault/#limi
 | Variable | Purpose |
 | --- | --- |
 | `OPENMETEO_BASE_URL` / `OPENMETEO_GEOCODING_URL` | Override the weather / geocoding endpoints for the [environmental module](/explanation/environmental-module/). |
+| `OPENMETEO_AIR_QUALITY_URL` | Since v1.42.0. Overrides the air-quality and pollen endpoint (default `https://air-quality-api.open-meteo.com`), for example a self-hosted Open-Meteo on the LAN. |
+| `ENVIRONMENT_AIR_QUALITY_DISABLED` | Since v1.42.0. Turns the air-quality part off for every account: no air-quality requests, no air values anywhere, and the per-account switch has no effect. Weather and daylight keep working. |
 
 ## Webhook hardening (optional)
 

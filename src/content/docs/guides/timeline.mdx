@@ -1,0 +1,87 @@
+---
+title: The timeline and life events
+description: Switch on the timeline module, check what your record already carries, read years of conditions, medications and visits beside your values, and add life events that stay yours.
+sidebar:
+  order: 3
+---
+
+The timeline puts the years side by side: conditions, allergies, medications,
+vaccinations, doctor visits and procedures, labs and documents on one time
+axis, with up to six of your values running underneath. It arrived in
+v1.42.0 as a module of its own.
+
+## Switch it on
+
+The timeline is **off by default**. Turn it on under **Settings, Modules**,
+**Timeline**. An operator can make it unavailable for the whole instance like
+any other module.
+
+Switching it on first shows what your timeline already carries. Each lane is
+rated as carrying, thin or empty, with one link per gap that takes you to the
+place where the missing entries go, for example a medication without a start
+date. A short verdict says whether the timeline gives an overview yet or will
+mostly show your values for now. You can open the timeline straight away or
+come back later.
+
+While a gap is open, the same overview sits as a card on the timeline that you
+can hide. It stays reachable under **Layers**, **Data coverage**.
+
+Empty lanes stay hidden until something is in them, and a module you switched
+off never appears.
+
+## Reading it
+
+On a window 768 px and wider the lanes are drawn on one time axis with a
+year, month or week grid. Zoom between **All**, **12 months** and **3 months**.
+An open period ends in an arrow, a dashed lead-in marks a start that is not
+known, and dose changes and pauses sit on the medication they belong to. A
+line marks today.
+
+Below the lanes, a menu lets you add up to six value lines. Each line is a
+series of means, and the zoom decides over what: quarters on **All** when it
+spans more than two years, months on **12 months** and on a shorter **All**,
+weeks on **3 months**. A period without a reading has no point. A short gap,
+up to one quarter, two months or four weeks, is bridged with a dashed line
+between the two real points; a longer gap leaves the line open. A mean from
+fewer than three readings is drawn as a hollow point, so a thin period is easy
+to tell from a well-measured one. Two things drawn at the same time happened at
+the same time, which is not cause and effect.
+
+Select a month and the bar under the chart lists its entries and the means
+of the period, each with the number of readings behind it, with a link that opens a day from it in the
+[day view](/guides/day-view/).
+
+From the keyboard the chart is one tab stop. The arrow keys move the selection
+by a day, a month or a year depending on the zoom, Home and End jump to the
+ends, and Enter opens the day. A screen reader gets a table of every entry.
+
+On a phone the timeline is a chronicle instead: newest first, grouped by month
+or year, with an **Ongoing** block for what has no meaningful start, a rail
+beside the rows an episode or a course spans, and empty stretches named as
+such.
+
+## Life events
+
+A life event is an anchor for the years, not a reading: a move, a birth, a new
+job, a loss. Add one from the timeline, from the add menu on the dashboard or
+from the capture picker. It has:
+
+- a title of up to 120 characters,
+- a kind: family, home, work, loss or other,
+- a date known to the day, the month or only the year,
+- an optional end, when it was a period,
+- an optional note.
+
+Title and note are stored encrypted. Deleting an event asks first.
+
+In this release life events are yours alone. Nobody you share your record
+with sees them, at any level, and a guardian cannot add or change them. They
+are never sent to the Coach, to a connected MCP client or to any other model;
+the Coach's [day reads](/reference/mcp/#read-tools) leave them out as well.
+Whether they should become shareable is a separate question for a later
+release.
+
+## Sharing and the timeline
+
+On a record someone shared with you, the timeline shows only the lanes the
+share covers, and the life lane never.

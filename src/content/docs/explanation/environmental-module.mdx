@@ -1,6 +1,6 @@
 ---
 title: The environmental module
-description: A module that folds weather, daylight, and temperature in as influence signals correlated with your mood, sleep, and vitals. On by default, inert until you set a home location.
+description: A module that folds weather, daylight, temperature, air quality, pollen and UV in as influence signals correlated with your mood, sleep, and vitals. On by default, inert until you set a home location.
 sidebar:
   order: 22
 ---
@@ -27,7 +27,14 @@ rather than health readings in their own right:
 - weather conditions and **temperature**,
 - **daylight hours** and sunshine,
 - **precipitation**,
-- **barometric pressure**.
+- **barometric pressure**,
+- since v1.42.0, the outdoor air: **fine particles** (PM2.5 and PM10),
+  **ozone**, nitrogen dioxide, the European and US air-quality indices,
+  **UV**, Saharan dust and six kinds of **pollen**.
+
+Three of the air values join the correlations: PM2.5, the day's highest
+8-hour ozone and the day's highest pollen count. UV, nitrogen dioxide and dust
+are shown and readable by the Coach, without being correlated.
 
 These join the [correlation engine](/explanation/health-scores/) through the
 signal registry, so the influence relationships
@@ -36,16 +43,31 @@ against blood pressure and pulse — with the usual descriptive, never-causal
 framing. For the physiology behind those links, see
 [environment and your health](/knowledge/environment/).
 
-## How v1 sources the data
+## Correlations look past the season
+
+Temperature and blood pressure both follow the seasons, and so do daylight and
+sleep. Two such series line up strongly without anything connecting them from
+one day to the next. Since v1.42.0 every daily correlation first removes a
+linear trend and the yearly cycle from both series (only the trend when less
+than 120 days are paired) and then compares what is left. The confidence takes
+into account that neighbouring days resemble each other, so a pattern needs
+more evidence than a simple day count would suggest. A weather or air channel
+is compared as the mean of the day before and the day itself against the same
+day's outcome, which pairs a warm night with the sleep it shaped.
+
+Some patterns you saw before the update may no longer appear. Those were
+mostly the season talking.
+
+## How the data is sourced
 
 The first version keeps the moving parts deliberately small:
 
 <CardGrid>
-  <Card title="A fixed public weather source" icon="cloud-download">
-    Conditions come from a single public weather API (Open-Meteo). The call goes
-    out through HealthLog's egress guard — a fixed, known host, not a
-    user-supplied one — so it follows the same outbound rules as every other
-    fetch the app makes.
+  <Card title="Fixed public sources" icon="cloud-download">
+    Weather comes from the Open-Meteo archive (ERA5 reanalysis), air quality
+    and pollen from the Open-Meteo air-quality API, which serves the Copernicus
+    Atmosphere Monitoring Service (CAMS) models. Both are fixed, known hosts and
+    follow the same outbound rules as every other fetch the app makes.
   </Card>
   <Card title="A home location you set" icon="map-pin">
     You set a home location once. The module attaches weather for that place to
@@ -58,6 +80,52 @@ The first version keeps the moving parts deliberately small:
     a trip lines up with how you actually felt.
   </Card>
 </CardGrid>
+
+## What the values are, and what they are not
+
+- The weather settles over a few days, so the newest stored day is usually
+  yesterday or the day before. Nothing here is a forecast.
+- Air quality is modelled hourly on about 11 km in Europe and about 45 km
+  elsewhere. Pollen is only available in Europe. The feed reaches back to 2013;
+  pollen, UV, dust and aerosol values only to about mid 2022.
+- A value the feed did not cover is stored as empty, never as zero. Means and
+  maxima need at least 18 of a day's 24 hours, ozone is the highest 8-hour
+  running mean, and UV needs all of the midday hours.
+- These are modelled outdoor conditions for an area, not anyone's personal
+  exposure. No surface says the weather caused anything.
+
+The values carry their attribution wherever they appear: Open-Meteo data
+under CC BY 4.0, and "Contains modified Copernicus Atmosphere Monitoring
+Service information" for the air values.
+
+On the dashboard a quiet note appears on a day with high pollen, a warm night
+or very poor air. It shows the newest stored day, never a forecast.
+
+## Switches
+
+- **Per account:** Settings, Location & weather, **Air quality and pollen**.
+  On by default. Off stops the air-quality requests for that account and keeps
+  the air values out of every surface; days already stored keep theirs.
+- **For the whole instance:** an operator sets
+  `ENVIRONMENT_AIR_QUALITY_DISABLED=1`. The weather keeps working, and the
+  settings page says the operator turned air quality off.
+- The module as a whole is a normal switch under Settings, Modules.
+
+An operator who wants no outside requests at all can run Open-Meteo themselves
+and point `OPENMETEO_BASE_URL`, `OPENMETEO_AIR_QUALITY_URL` and
+`OPENMETEO_GEOCODING_URL` at it. A request carries the rounded coordinates, a
+date range and a time zone, and nothing about the person.
+
+The instance keeps its own count of requests to Open-Meteo, weather and air
+quality together, and stays below 500 a minute, 4,000 an hour and 8,000 a day.
+The budget is built in and applies to a self-hosted Open-Meteo as well. A request over that budget
+is not sent; the nightly run stops early and continues the next night. One
+account cannot use up the day for everyone: it gets at most a twentieth of the
+daily budget, at most three backfills a rolling hour (`429`
+`environment.backfill_rate_limited`) and one queued backfill per twenty
+minutes (`409` `environment.backfill_pending`). After the update the nightly
+run fills in air quality for up to 90 stored days per account and night,
+newest first, so two years of history catch up within about nine nights.
 
 ## A conservative location posture
 
@@ -75,21 +143,30 @@ is closer to a street; the upgrade rounds what is already stored. The weather
 data comes in grid cells of 9 to 25 km, so the coarser location changes the
 weather attached to your days very little.
 
+Since v1.42.0 the home location, the place of each travel period and the
+location saved with each day are also stored encrypted with the instance's
+key. After the update a background pass seals the rows older releases wrote
+and clears their readable copies. Key rotation covers all three. What you see
+in settings does not change: the server opens the location to show it to you.
+
 Later stages — coarse location from the iOS client, or a bedroom-temperature feed
 from a home-automation setup — are separate, opt-in follow-ups, not part of this
 first version.
 
-## What the AI surfaces can and cannot see
+## What the Coach and MCP clients can see
 
-The raw environmental series (`ENV_*` — temperature, sunshine, daylight,
-precipitation, barometric pressure) stay off the AI metric-read allowlist: no
-Coach or MCP tool can fetch them as a series. The correlation engine both
-surfaces query does include the environmental channels, though, so an
-environment-vs-outcome relationship (barometric pressure against sleep, say)
-can appear as a named driver in an AI-narrated correlation. The raw exclusion
-matches the deliberate exclusions described in the
-[privacy architecture](/explanation/privacy-architecture/): being defined is not
-the same as being streamed to a model.
+Since v1.42.0 the Coach and a connected [MCP client](/reference/mcp/) can read
+your stored days through one tool, `get_environment`: per day the temperature,
+rain, sunshine, pressure and humidity, and while air quality is on, the air
+values, plus a short summary such as hot nights or high pollen days. It
+carries no coordinates and no place name, only how many days were spent away
+from home, and every result lists the attribution lines. With the module off
+it answers that the module is off.
+
+The general metric reads still do not hand out the environmental series, and
+the correlation engine both use includes the environmental channels, so a link
+between pressure and sleep can appear as a named driver in a correlation the
+Coach describes. See the [privacy architecture](/explanation/privacy-architecture/).
 
 ## Related
 

@@ -1,0 +1,126 @@
+---
+title: Import Health Connect
+description: Export your data from Health Connect on Android, take the ZIP through a cloud storage app and upload it to HealthLog. What is imported, what is left out, and why a second import changes nothing.
+sidebar:
+  order: 5
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Since v1.42.0 HealthLog reads the export file of Health Connect, the health
+data store built into Android. There is no Android app and no live sync: you
+export on the phone, upload the file, and a background job imports it. Values
+from this path show **Health Connect** as their source.
+
+## What you need
+
+- An Android phone with Health Connect and its export feature. The export came
+  with Android 15 and reaches Android 14 through a system update; if you do not
+  see it, update Health Connect first.
+- A cloud storage app on the phone, such as Google Drive, Dropbox or Nextcloud,
+  or any other app that offers itself as a storage location. Health Connect does
+  not save its export to the phone's own storage or the Downloads folder, so the
+  file always goes through a cloud first.
+- HealthLog open in a browser. The upload uses your normal sign-in; there is no
+  token to create.
+
+## Export on the phone
+
+<Steps>
+
+1. Open Health Connect, either in the system settings or as its own app.
+
+2. Go to **Manage data**, then **Export and import**, then **Scheduled export**
+   or **Export now**, depending on the Android version.
+
+3. Pick the cloud storage app as the destination. Health Connect can repeat the
+   export on a schedule; HealthLog only ever reads the file you upload.
+
+</Steps>
+
+The result is a ZIP file, usually `Health Connect.zip`, holding one database
+file, `health_connect_export.db`. Health Connect does not encrypt it, so treat
+it like any other export of your health data and delete it from the cloud when
+you no longer need it.
+
+## Upload to HealthLog
+
+<Steps>
+
+1. Download the ZIP from the cloud to the computer or phone you use HealthLog
+   on.
+
+2. Open **Settings, Export & Import** and drop the file onto the **Health
+   Connect export** card, or click to choose it.
+
+3. The card shows the progress (unpacking, reading the records, saving the
+   values) and then how many values arrived.
+
+</Steps>
+
+The server accepts files up to 1 GiB. One import runs per account at a time,
+Apple Health and Health Connect together; a second upload while one runs is
+turned away. The uploaded file and the database inside it are deleted from the
+server as soon as the import ends, whether it worked or not, and the job keeps
+only counts per type and per app.
+
+## What is imported
+
+| Health Connect | HealthLog |
+| --- | --- |
+| Weight, lean body mass, body fat | the matching body values, weight in kg |
+| Blood pressure | one systolic and diastolic pair per reading |
+| Resting heart rate, heart-rate variability (RMSSD) | resting heart rate, HRV RMSSD |
+| Oxygen saturation, respiratory rate, body temperature, VO2 max | the matching types |
+| Blood glucose | blood glucose, with fasting and after-meal context kept |
+| Heart rate | per minute for the last 90 days, older history as hourly means |
+| Steps, active calories, distance | one total per day |
+| Sleep sessions and stages | sleep stages; a session without stages counts as asleep |
+| Exercise sessions | workouts |
+| Menstruation | cycle days (needs cycle tracking switched on) |
+| Hydration, vitamins and minerals | daily nutrient totals (needs the Nutrients module) |
+
+Left out on purpose: food energy and macronutrients, exercise routes, planned
+workouts, the "out of bed" sleep stage, and an "unknown" sleep stage inside a
+session that also has real stages.
+
+## When several apps wrote the same thing
+
+The export holds every app's data side by side, and adding them up would count
+a step the phone and the watch both saw twice. So a day total comes from one
+app per day: the first one your Health Connect priority list names for that
+category, otherwise the app with the largest total. Heart rate comes from one
+app per hour by the same rule, and of two overlapping sleep sessions or
+workouts the one from the higher-ranked app is kept.
+
+## Apps HealthLog already connects to
+
+If your account has Withings, Fitbit, Google Health, Oura, Polar or WHOOP
+connected, that app's records in the export are left out, because HealthLog
+already receives them directly. A reading that matches one already stored
+under another source is left out as well. The result names how many records
+each app contributed and which apps were skipped.
+
+## Importing again
+
+Every record is keyed by its Health Connect ID, so importing the same export
+again writes nothing, and a newer export that overlaps an older one adds only
+what is new. A value you deleted in HealthLog stays deleted.
+
+Heart rate imported per minute ages like Apple Health heart rate: once a
+minute is older than 90 days, the nightly pass folds its hour into one hourly
+mean. A later export that still holds those minutes does not put them back.
+
+## Source priority
+
+Health Connect has its own place in [source priority](/guides/source-priority/).
+By default it ranks after the sources the app knows an order for, so move it
+up if you want its values to win over another source that records the same
+thing.
+
+## For operators
+
+Nothing to configure. The importer reads the database with Node's built-in
+SQLite module, opened read-only, and memory stays bounded however long the
+history is. A web and worker split needs the same shared staging directory as
+the [Apple Health import](/guides/import-apple-health/).
