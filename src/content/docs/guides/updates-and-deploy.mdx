@@ -255,6 +255,11 @@ What to know:
   to an edge instead of closing, and the edge reopens the last day. Several
   readings of one type on a day show in the day's tiles as their mean, marked
   **Average of n readings**.
+- **Discord and Slack webhooks work.** The generic webhook body now carries
+  `content` for Discord and `text` for Slack; before, both refused it. A
+  webhook channel that turned itself off after five failed deliveries stays
+  off until you switch it back on. See
+  [Notifications via webhook](/guides/webhook-notifications/).
 - **Deleting a Coach conversation stays final.** The delete is sent at the
   latest when the page is left, so a reload or a closed tab inside the undo
   window no longer brings the conversation back.

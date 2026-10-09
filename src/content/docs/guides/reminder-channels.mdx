@@ -74,9 +74,11 @@ so treat it like a secret. Urgent events are published at ntfy's top priority
 
 ## Webhook
 
-A generic outbound POST for homelab relays: Gotify, Discord, Slack, a
-Matrix bridge, Home Assistant, n8n. You supply the URL and optionally one
-custom header, such as an auth token. Outbound goes through the SSRF-guarded
+A generic outbound POST for chat services and homelab relays: Discord,
+Slack, Gotify, Home Assistant, n8n. You supply the URL and optionally one
+custom header, such as an auth token. Step-by-step setup for each target and
+the errors they answer are in
+[Notifications via webhook](/guides/webhook-notifications/). Outbound goes through the SSRF-guarded
 fetch path with the DNS-rebinding pin, since the host is user-supplied. A
 relay on your own network needs the operator grant described in the next
 section.
@@ -96,11 +98,17 @@ choice existed keeps sending:
   "title": "HealthLog Test",
   "message": "HealthLog: Connection successful! Webhook notifications are active.",
   "eventType": "SYSTEM_ALERT",
-  "priority": "default"
+  "priority": "default",
+  "content": "HealthLog Test\nHealthLog: Connection successful! Webhook notifications are active.",
+  "text": "HealthLog Test\nHealthLog: Connection successful! Webhook notifications are active.",
+  "allowed_mentions": { "parse": [] }
 }
 ```
 
-`title` and `message` are plain text. `eventType` is the event name for
+`title` and `message` are plain text. `content` (for Discord, cut to 2000
+characters) and `text` (for Slack) repeat both on two lines; they and
+`allowed_mentions`, which stops Discord from resolving mentions, arrived in
+v1.42.0, so a Discord or Slack webhook URL works with the generic format. `eventType` is the event name for
 routing rules; with discreet cycle notifications on, a cycle event arrives
 as `reminder` with its title and message masked. `priority` is a word:
 `urgent` for an event flagged urgent, `high` for medication reminders,
