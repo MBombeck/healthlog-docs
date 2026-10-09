@@ -57,7 +57,9 @@ in a panel on the right.
   closes again when you pick a conversation.
 - **Rename and delete.** Each row has a menu with **Rename** and **Delete**. A
   deleted conversation can be brought back for a few seconds with **Undo** on
-  the **Conversation deleted** notice.
+  the **Conversation deleted** notice. Since v1.42.0 the delete is sent at the
+  latest when you leave the page, so a reload or a closed tab inside that
+  window no longer brings the conversation back.
 - **New chat.** The round button at the bottom of the panel starts a new
   conversation.
 - **Quick settings.** The gear in the panel header opens the Coach's settings
@@ -194,21 +196,21 @@ between 40 and 120 words and end with at most one next step.
 
 ## The status line
 
-While the Coach works, one quiet line at the top of the answer says what it is
-doing right now, with the seconds so far: **Thinking…**, **Fetching blood
-pressure, last 90 days…**, **Summarising 214 readings…**, **Writing the
-answer…**. With a provider that sends summaries of its reasoning, a short
-title from that reasoning takes the place of **Thinking…**. When the answer is
-ready, the line settles into a summary such as **Thought it through, 2
-lookups, 11 s**.
+While the Coach works, one row at the top of the answer shows a brain icon
+and what it is doing right now, with a soft moving highlight and animated
+dots: **Thinking…**, **Fetching blood pressure, last 90 days…**,
+**Summarising 214 readings…**, **Writing the answer…**. Since v1.41.1 there
+is no running seconds count. With a provider that sends summaries of its
+reasoning, a short title from that reasoning takes the place of
+**Thinking…**. When the answer is ready, the row reads **Thought process**
+with the number of steps, and it closes again when a turn finishes.
 
 When the Coach had to stop early, the line says why: **Budget reached,
 answering with what it has**, **Time limit reached, answering with what it
 has**, **Many steps, wrapping up** or **No new data, wrapping up**.
 
-Nothing opens by itself. Tap the line to see one entry per step, each with
-its status. The reasoning behind a round sits in its own entry, closed as
-well, and below the steps come the line on
+Nothing opens by itself. Tap the row to see the steps on a thin line, each
+with its own icon and the reasoning summary under its title. Below the steps come the line on
 [how a figure was worked out](#how-a-figure-was-worked-out) and the tables the
 answer read without pointing at them. Once open, the trail stays open until
 you close it and keeps growing while the Coach works.
@@ -226,11 +228,10 @@ Answers saved before v1.41.0 keep the sources list described below.
 
 ### Tables while the Coach works
 
-As soon as the Coach has read a table, a short line for it appears under the
-status line: its title, window and number of readings, with a small sparkline.
-There are at most three. Tap one to open its chart or table right there.
-When the answer is ready, the lines go: the tables the answer points at become
-its charts, and the rest sit under **Data used** in the trail.
+Since v1.41.1 tables appear only with the answer: the tables the answer
+points at become its charts, and the rest sit under **Data used** in the
+trail. Before that, a short line per table showed under the status line while
+the Coach worked.
 
 ## What the Coach looked at
 

@@ -42,7 +42,9 @@ queue has actually given up. Since v1.39.1 a job that ran out of time says what
 its limit was and that either the run was too slow for it or the app restarted
 while it ran, instead of a bare "job timed out"; a restart shows in the
 container's restart count and log. The geo row reflects `GEOLITE2_DIR`,
-`MAXMIND_LICENSE_KEY` and `IP_GEO_LOOKUP_DISABLED`; see
+`MAXMIND_LICENSE_KEY`, `IP_GEO_LOOKUP_URL` and `IP_GEO_LOOKUP_DISABLED`. Since
+v1.42.0 it warns only when no database is mounted and the default online
+provider is in use; a provider you named in `IP_GEO_LOOKUP_URL` shows green. See
 [Offline geolocation](/self-hosting/geolite2/).
 
 <figure>
@@ -155,9 +157,9 @@ their settings say **(limited by the admin)**.
 
 When the model is yours to pay for, through the server's shared key or the
 shared ChatGPT connection, the Coach thinks at **Medium** at most, whatever
-the two controls allow, and an answer gets a smaller budget: 40,000 tokens, 90
-seconds and six rounds instead of 120,000 tokens, 150 seconds and twelve on a
-person's own provider. The background jobs ask for **Low** on your budget. See
+the two controls allow, and an answer gets a smaller budget: 55,000 tokens, 120
+seconds and eight rounds instead of 165,000 tokens, 200 seconds and sixteen on
+a person's own provider (since v1.41.2). The background jobs ask for **Low** on your budget. See
 [Thinking depth](/guides/coach-conversations/#thinking-depth) and
 [AI providers](/guides/ai-providers/#reasoning).
 

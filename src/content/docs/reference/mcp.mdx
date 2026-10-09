@@ -92,7 +92,9 @@ cursor as a black box — do not construct one.
 the JSON-in-text content), so a host that validates typed output — the ChatGPT
 Apps SDK in particular — gets a conforming shape. Every field except the
 presence anchor (`present` / `written`) is optional, so a `{ present: false }`
-miss and a full hit both validate.
+miss and a full hit both validate. Since v1.41.2 every tool's real output is
+checked against its advertised schema under a strict JSON Schema 2020-12
+validator, so a client that validates strictly accepts every result.
 
 ## Read tools
 
