@@ -142,7 +142,10 @@ plots how a metric moved since a medication started — a data-scaled axis, a
 "% since start" view, and the full intake history. Since v1.40.0 a medication
 can have several [courses](/guides/track-medications/#courses-medications-that-come-and-go),
 each with its own start and end, and you can file medications under
-[categories of your own](/guides/track-medications/#your-own-categories). See
+[categories of your own](/guides/track-medications/#your-own-categories). Since
+v1.42.2 a medication you take reliably can
+[record its doses by itself](/guides/track-medications/#record-doses-automatically),
+without reminders and never over a dose you logged by hand. See
 [Track medications](/guides/track-medications/).
 
 ## Clinical signals and records
@@ -326,8 +329,12 @@ and [What a shared record is](/explanation/record-sharing/) for the reasoning.
 ## Built to be lived in
 
 Installable PWA with offline support and an opaque-cursor sync delta feed;
-medication reminders over [APNs, Telegram, ntfy, and Web Push](/guides/reminder-channels/)
-with late/missed escalation; a sub-second dashboard on years of imported history;
+medication reminders over [APNs, Telegram, ntfy, webhook, email and Web Push](/guides/reminder-channels/)
+with late/missed escalation, each notification opening the page it is about
+and saying no health figure on the lock screen unless you
+[allow it](/guides/reminder-channels/#health-figures-in-notifications);
+a [search](/guides/search/) in the command palette (⌘K or Ctrl K) that reaches
+into your own visits, documents, lab results, medications and notes; a sub-second dashboard on years of imported history;
 gamification achievements; seven display languages (English, German, Spanish,
 French, Italian, Polish, Korean) end to end with a CI-guarded translation integrity
 test — an explicit language choice sticks everywhere, and the automatic setting

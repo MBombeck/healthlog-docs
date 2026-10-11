@@ -48,6 +48,11 @@ ever render inside the app, and nothing a user uploads can execute in the
 app's origin. Stored files are never rewritten or "sanitised" — the
 original is the artefact.
 
+Since v1.42.2 a PDF or image original has an **Open in new tab** action in
+its detail view. The browser's own viewer then takes over, with its zoom,
+search and print, which reads a long PDF more comfortably than the preview
+inside the app.
+
 **HEIC note:** iPhone photos picked through the browser are transcoded to
 JPEG by the picker and preview inline. A raw `.heic` file dropped from a
 computer is stored as-is and is download-only.

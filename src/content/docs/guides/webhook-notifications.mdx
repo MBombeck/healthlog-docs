@@ -45,11 +45,12 @@ v1.42.0 on:
 | `content` | Discord | Title and message on two lines, cut to 2000 characters with an ellipsis. |
 | `text` | Slack | Title and message on two lines, not cut. |
 | `allowed_mentions` | Discord | An empty list: Discord resolves no `@everyone`, `@here` or user mention in the text. |
+| `url` | relays, automations | Since v1.42.2. The page in HealthLog the notification leads to, as an absolute link. Present only when `APP_URL` is set and the event has a target. |
 
 The first four fields have kept their names, values and order since v1.18.4,
 so an existing Home Assistant or n8n rule keeps working. `content`, `text`
-and `allowed_mentions` were added in v1.42.0. Each target ignores the fields
-meant for the others.
+and `allowed_mentions` were added in v1.42.0, `url` in v1.42.2. Each target
+ignores the fields meant for the others.
 
 **Gotify** sends the body Gotify's `POST /message` endpoint binds, with an
 integer priority:
@@ -65,6 +66,11 @@ integer priority:
   }
 }
 ```
+
+Since v1.42.2 a notification with a target also carries
+`extras["client::notification"].click.url`, so tapping it in the Gotify app
+opens the right page in HealthLog. Like the generic `url`, it needs
+`APP_URL`.
 
 ### Priority
 
