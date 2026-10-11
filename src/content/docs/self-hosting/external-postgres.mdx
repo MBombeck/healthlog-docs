@@ -39,6 +39,24 @@ grants are `CREATE` on the database (for the `pgboss` schema) and `ALL` on the
 is the simpler arrangement and the one to prefer for a database that is only
 HealthLog's.
 
+**Any time zone.** HealthLog stores every time as UTC and, since v1.42.2,
+pins each connection it opens to UTC (`TimeZone=UTC`, sent in the libpq
+`options` startup parameter). The server's or the database's own `timezone`
+setting therefore does not matter: a shared instance set to `Europe/Berlin`
+works the same as one set to UTC. Before v1.42.2 such an instance made a fresh
+passkey challenge look hours old, and sign-in with a passkey was refused. The
+app checks the setting at startup and logs a warning naming the zone if a
+connection still reports something else.
+
+Behind PgBouncer with `DATABASE_SESSION_OPTIONS_DISABLED=1` the app pins the
+zone with `SET TIME ZONE 'UTC'` on each new connection instead, which
+PgBouncer keeps per client in transaction pooling too. If the startup warning
+still appears, set the database default as well:
+
+```sql
+ALTER DATABASE healthlog SET timezone TO 'UTC';
+```
+
 **Migrations run on every start.** The container entrypoint waits until the
 host and port in `DATABASE_URL` accept a TCP connection, then runs the pending
 schema migrations, then starts the application. There is no separate migrate

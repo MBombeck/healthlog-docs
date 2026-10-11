@@ -134,9 +134,10 @@ not need it.
 
 ## Session settings: work_mem and PgBouncer
 
-Every app connection sets two things when it opens: the statement timeout
-(`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default) and, since v1.42.0,
-`work_mem` from `DATABASE_WORK_MEM` (16MB by default). Sorts and aggregates
+Every app connection sets three things when it opens: the statement timeout
+(`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default), since v1.42.0
+`work_mem` from `DATABASE_WORK_MEM` (16MB by default), and since v1.42.2 the
+time zone, `TimeZone=UTC`. Sorts and aggregates
 larger than `work_mem` spill to disk; each sort step of each pooled connection
 may use that much memory, so raise it with the pool size in mind.
 
@@ -147,6 +148,10 @@ listed in its `ignore_startup_parameters`. Behind such a pooler, set
 session settings at all; the pooler's or the database's own defaults then
 apply. Set the timeout and `work_mem` on the database role instead
 (`ALTER ROLE healthlog SET work_mem = '16MB'`) if you still want them.
+The time zone is the exception: with the options off the app pins it with
+`SET TIME ZONE 'UTC'` on each new connection, and warns at startup if a
+connection still reports another zone. See
+[External PostgreSQL](/self-hosting/external-postgres/#what-the-database-has-to-provide).
 
 The measurement maintenance run then applies its own settings with `SET` after
 it connects. Its `REINDEX INDEX CONCURRENTLY` needs a whole session, so run it

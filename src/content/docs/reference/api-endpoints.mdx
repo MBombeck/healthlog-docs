@@ -136,6 +136,13 @@ can be `custom:<id>`. An update from a native client that sends `OTHER` over a
 custom category keeps the custom one. Errors are `medications.category.*` and
 `medications.course.*`.
 
+Since v1.42.2 a medication carries `autoMarkTaken` and `autoMarkTakenSince`
+(when the option was last switched on), and list and detail reads carry the
+resolved `remindersActive`, which is false for a medication that records its
+doses automatically and once a course has ended. Intakes, including those in
+the sync feed, carry `autoRecorded`. See
+[Record doses automatically](/guides/track-medications/#record-doses-automatically).
+
 The compliance numbers come from the dose ledger — see
 [Medication compliance](/explanation/medication-compliance/).
 
@@ -696,6 +703,19 @@ Inviting yourself lands on the duplicate `409`, because a guardian grant's
 grantor is the profile and never the caller, so naming yourself names an account
 that already has access.
 :::
+
+## Search and notification actions
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `POST` | `/api/search` | Since v1.42.2. Searches your own record, with the query in the body so it never appears in a URL. Read access, one search at a time per account, 20 a minute. Reports `truncated` when a limit stopped a source. See [Search your record](/guides/search/) |
+| `POST` | `/api/notifications/action/{token}` | Since v1.42.2. The mood quick answers on ntfy. The signed token is the only credential; it names one account and one answer, lasts six hours and works once per reminder. See [Quick answers](/guides/reminder-channels/#quick-answers-on-the-mood-reminder) |
+
+Since v1.42.2 the notification preferences
+(`PATCH /api/auth/me/notification-prefs`) take `content.detail`, `generic` by
+default or `detailed`, and every visible APNs push carries `url`, the path
+the notification opens. See
+[Tap targets, content and quick answers](/guides/reminder-channels/#tap-targets-content-and-quick-answers).
 
 ## Integrations
 

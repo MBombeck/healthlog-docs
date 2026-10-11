@@ -76,6 +76,7 @@ export default defineConfig({
 						{ slug: 'guides', label: 'Overview' },
 						{ slug: 'guides/day-view' },
 						{ slug: 'guides/timeline' },
+						{ slug: 'guides/search' },
 						{ slug: 'guides/connect-withings' },
 						{ slug: 'guides/connect-whoop' },
 						{ slug: 'guides/connect-oura' },

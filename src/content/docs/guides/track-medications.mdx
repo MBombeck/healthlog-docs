@@ -277,6 +277,38 @@ This is the manual counterpart to the automatic window matching: use it when you
 logged a dose generically and want it bound to a specific expected slot after the
 fact.
 
+## Record doses automatically
+
+Some things you take every day without fail, like supplements in the
+evening. Since v1.42.2 such a medication can record its doses by itself.
+Switch on **Record doses automatically** on the reminder card in the
+**Schedule** tab, or in the last step of the wizard when you add the
+medication.
+
+From then on a background job, every 15 minutes, records each scheduled dose
+as taken at its scheduled time once that time has passed. It follows the same
+schedule as everything else, weekdays, intervals, calendar rules, cyclic
+plans, courses and pauses included, and the dose counts toward compliance,
+supply and the history exactly as if you had tapped **Taken**. The history
+marks these doses **Recorded automatically**, and the card carries the same
+hint.
+
+What it never does:
+
+- **No reminders.** A medication that records itself sends no reminder on
+  any channel.
+- **No history before the switch.** It starts at the moment you switch it on
+  and never fills in days before that. After a pause of the server it catches
+  up at most seven days.
+- **No overriding you.** A dose you took, skipped or deleted by hand stays as
+  you left it, and a dose you logged a little early or late on its slot counts
+  as that slot. You can still change or skip any dose afterwards.
+
+It does not apply to an as-needed (PRN) medication, a paused one or one whose
+course has ended. On a rolling interval ("every N days from the last dose")
+the next dose keeps its rhythm, and the card shows the slot that will be
+recorded next.
+
 ## Reminders
 
 Set reminder times and channels on the reminder card inside the **Schedule**
@@ -286,7 +318,12 @@ escalation. See [Reminder channels](/guides/reminder-channels/) for the channel
 cascade and the per-channel setup.
 
 A medication with **Track intake** switched off never reminds. See
-[Keep a medication as a record](#keep-a-medication-as-a-record).
+[Keep a medication as a record](#keep-a-medication-as-a-record). Neither does
+one that [records its doses automatically](#record-doses-automatically), nor
+one whose course has ended.
+
+Tapping a medication reminder on any channel opens **Medications**; see
+[What tapping a notification opens](/guides/reminder-channels/#what-tapping-a-notification-opens).
 
 ## Supply and side effects
 

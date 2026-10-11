@@ -1,0 +1,74 @@
+---
+title: Search your record
+description: Find visits, conditions, documents, vaccinations, lab results, medications, symptoms, workouts and notes from the command palette, how matching works, and what the search keeps private.
+sidebar:
+  order: 4
+---
+
+The command palette finds pages and settings, and since v1.42.2 it also
+searches what you have recorded.
+
+## Open it
+
+Press **⌘K** on a Mac or **Ctrl K** elsewhere, or tap the magnifier at the
+top right, and start typing.
+
+## What it finds
+
+Below the pages and settings, a section **In your records** lists the
+entries that match what you typed:
+
+- visits, procedures included
+- conditions
+- documents, by title, file name and the text read from them
+- vaccinations
+- lab results
+- medications
+- symptoms
+- workouts
+- notes on mood entries, readings and illness days
+
+Each hit opens where the entry lives: a visit on the check-ups page, a lab
+result on its analyte, a note on a mood entry or a reading on its
+[day](/guides/day-view/), a note on an illness day in its illness.
+
+## How matching works
+
+Case and accents do not matter, so "schulter", "Schulter" and "Schülter"
+find the same entries. Umlauts can be typed as `ae`, `oe` and `ue`, and `ß`
+as `ss`, which helps on a keyboard without them. The
+[MCP connector's](/reference/mcp/) `search` tool matches the same way.
+
+Inside a document the search reads the text stored for it, so a document
+that has not been read yet is found by its title and file name only. See
+[Content search](/guides/document-vault/#content-search-search-inside-documents).
+
+## Very large records
+
+The search reads each kind of entry newest first and stops after a fixed
+number of entries and a short time limit, so it stays quick on a record that
+holds years of data. When it stopped before reaching the oldest entries, the
+list says **Only the most recent entries were searched**. A more specific
+search term usually finds an older entry.
+
+## Shared records
+
+When someone has shared their whole record with you, the search works inside
+that record too. An account shared with you section by section cannot be
+searched: the search lays every section side by side, which a partial share
+does not open. See [Shared access](/guides/shared-access/).
+
+## Privacy
+
+What you type is sent to your instance in the body of the request, not in the
+address, so it does not end up in a reverse proxy's access log or in the
+browser history. The server does not log the search text either, only its
+length and how many hits it found. Encrypted fields are decrypted on the
+server for the search and are never stored readable.
+
+## For API clients
+
+The search is `POST /api/search` with the query in the body. It needs
+read access, runs one search at a time per account and allows 20 a minute.
+The answer carries `truncated` when a limit stopped a source before its
+oldest entries. See [API endpoints](/reference/api-endpoints/).

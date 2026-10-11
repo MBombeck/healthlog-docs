@@ -57,6 +57,12 @@ OURA_REDIRECT_URI="https://your-instance.example.com/api/oura/callback"
 2. Click **Connect Oura** and grant the `daily` and `personal` scopes.
 3. Oura redirects back to `/api/oura/callback`; HealthLog exchanges the code, stores the token encrypted, and runs an initial sync.
 
+### Which token endpoint HealthLog uses
+
+Oura moved its sign-in to a new authorization server. Apps created in Oura's current developer portal get their codes from that server, and the older documented token endpoint refuses them. Since v1.42.2 HealthLog exchanges every code at the current endpoint (`moi.ouraring.com/oauth/v2/ext/oauth-token`) and never sends a code from the new server to the old endpoint, since a code works only once. Refreshing a token falls back to the older endpoint (`api.ouraring.com/oauth/token`) once, for apps that still live there. The callback also checks the `iss` parameter Oura sends ([RFC 9207](https://datatracker.ietf.org/doc/html/rfc9207)) and stops the connection when it does not name one of Oura's own servers.
+
+Nothing changes in your setup: the redirect URI, the scopes and the credentials stay the same.
+
 ## Readiness as a recovery source
 
 Oura's daily readiness is read as a recovery source. The resolver ranks recovery **WHOOP ≻ Oura ≻ Polar ≻ computed proxy**, so an Oura reading wins over the server-computed proxy and over a Polar device on the same day, but yields to a WHOOP strap. The eight readiness contributors are the *why* behind the headline number. See [Recovery and readiness](/methodology/recovery/).
@@ -66,6 +72,10 @@ Oura's daily readiness is read as a recovery source. The resolver ranks recovery
 ### Sleep stages do not appear
 
 The hypnogram comes from the `sleep` detail collection. A night that only produced a `daily_sleep` summary has no per-stage timeline — the breakdown shows once the detail record syncs.
+
+### Connecting fails right after you approve access
+
+Before v1.42.2, an app registered in Oura's current developer portal could not finish connecting: Oura answered the code exchange with `400 invalid_request`. Update to v1.42.2 or later and connect again. If the integration card says the sign-in answer did not come from Oura's own authorization server, start the connection again; that message means the callback named an issuer HealthLog does not accept.
 
 ### Callback URI mismatch
 

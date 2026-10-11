@@ -252,6 +252,14 @@ per user per hour. `INSIGHTS_MAX_TOKENS` (default 2500, clamped to 500–8000)
 sets the completion-token budget per generation — raise it when a verbose
 local model truncates its JSON mid-answer.
 
+Each account also has a daily AI budget that the Coach, the briefing, the
+summaries and document reads draw on. Since v1.42.2 it resets at midnight in
+the account's own time zone, the same day boundary the morning briefing uses.
+Before, it reset at midnight UTC, so in a zone east of UTC the first
+generations of a new day could still count against the old day and be
+refused. The spend line on the admin provider health card counts today the same way, on each
+account's own day.
+
 ## Automatic document reading (opt-in)
 
 The [document vault](/guides/document-vault/) is local-first by default: an

@@ -134,6 +134,70 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.42.2
+
+Take a backup as usual. There are two migrations. They add columns and an
+index, rewrite no table and run in seconds:
+
+| Migration | What it does |
+| --- | --- |
+| `0395_medication_auto_mark_taken` | The **Record doses automatically** option on a medication, the moment it was switched on, and the mark on a dose recorded that way |
+| `0397_measurements_noted_live_idx` | A partial index on readings that carry a note, for the record search |
+
+What to know:
+
+- **ntfy behind a reverse proxy.** HealthLog now publishes to ntfy as JSON to
+  the server's root URL, with the topic in the body. A proxy in front of your
+  own ntfy has to let `POST /` through, not only `POST /<topic>`. See
+  [ntfy](/guides/reminder-channels/#ntfy).
+- **`APP_URL` builds the notification links.** Tapping a notification now
+  opens the page it is about, on every channel. ntfy, Telegram, the webhook
+  and email need `APP_URL` for that link, and the ntfy mood quick answers need
+  it to reach the instance from a phone. Without it those channels deliver as
+  before, without a link. See
+  [Tap targets, content and quick answers](/guides/reminder-channels/#tap-targets-content-and-quick-answers).
+- **The ntfy topic carries the quick answers.** For six hours after a mood
+  reminder, anyone who can read your topic can log that one answer. Use a
+  long random topic or your own ntfy with access control. See
+  [Quick answers](/guides/reminder-channels/#quick-answers-on-the-mood-reminder).
+- **A shared Postgres in another time zone works.** Every connection now runs
+  in UTC, whatever the server or database is set to, and the startup log warns
+  if a connection still reports another zone. This fixes passkey sign-in on
+  such an instance. Nothing to configure; see
+  [External PostgreSQL](/self-hosting/external-postgres/#what-the-database-has-to-provide).
+- **Oura connects again** for apps from Oura's current developer portal. No
+  setting changes. See [Connect Oura](/guides/connect-oura/#which-token-endpoint-healthlog-uses).
+- **The daily AI budget turns at local midnight** for each account instead of
+  at midnight UTC. See [Caching and budget](/guides/ai-providers/#caching-and-budget).
+- **What users see.** A [search](/guides/search/) of their own record in the
+  command palette, a setting for
+  [health figures in notifications](/guides/reminder-channels/#health-figures-in-notifications)
+  (off by default, so notifications name the topic and no figure), medications
+  that [record their doses automatically](/guides/track-medications/#record-doses-automatically),
+  **Open in new tab** for PDFs and images in the document vault, and a
+  [timeline](/guides/timeline/) that opens on a window fitted to the record.
+- **For API clients.** New routes `POST /api/search` and
+  `POST /api/notifications/action/{token}`; `autoMarkTaken`,
+  `autoMarkTakenSince` and `remindersActive` on medications, `autoRecorded`
+  on intakes, `content.detail` in the notification preferences, and `url` on
+  every visible APNs push. See
+  [API endpoints](/reference/api-endpoints/#search-and-notification-actions).
+
+## Upgrading to v1.42.1
+
+There are no new settings. One migration, `0393_google_health_backfill_progress`,
+adds a column so an interrupted Google Health backfill resumes where it
+stopped.
+
+- **Google Health stays connected.** A long backfill renews its access token
+  instead of parking the connection after Google's one-hour expiry, and one
+  sync per account runs at a time; a manual sync during another answers `409`
+  with `sync_in_progress`.
+- **The measurement maintenance run works on Docker.** The bundled
+  `docker-compose.yml` gives the database `shm_size: 256mb`, and the
+  maintenance connection no longer needs a shared-memory segment. If you keep
+  your own compose file, nothing else is required.
+
 ## Upgrading to v1.42.0
 
 Take a backup before updating. This release has twelve migrations, `0379` to
