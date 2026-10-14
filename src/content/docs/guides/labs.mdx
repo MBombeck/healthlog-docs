@@ -26,8 +26,9 @@ also offered). A result has:
   pre-fills unit and range.
 - **Value** as a number, or a **text result** such as "negative" for
   qualitative tests. Exactly one of the two.
-- **Unit.** Free text; the app never converts units. Since v1.40.0 a reading
-  must be in its marker's unit; see [One unit per marker](#one-unit-per-marker).
+- **Unit.** A reading in another unit than its marker's is converted where
+  the conversion is well defined and refused otherwise; see
+  [One unit per marker](#one-unit-per-marker).
 - **Sample date and time.**
 - Optionally a **panel** label, the **reference range printed on the report**,
   and a **note**. The note is encrypted at rest.
@@ -88,24 +89,81 @@ pending facts for the same kind of review, never committed on its own.
 
 ## One unit per marker
 
-A marker is tracked in one unit. Before v1.40.0, if a marker was tracked in
-mg/dL and a later report printed it in mmol/L, the number was kept and labelled
-mg/dL, so 5.6 mmol/L of glucose showed up as 5.6 mg/dL and "far below range".
-Now a reading whose unit differs from its marker's is refused with a message,
-on every path that writes a lab value, the form, a scan and the API included. Spelling is
-forgiven (`mmol/l` for `mmol/L`, `ug/L` for `µg/L`); a different unit is
-refused, never relabelled or converted.
+A marker is tracked in one unit, and every reading is stored in that unit.
+Spelling is forgiven (`mmol/l` for `mmol/L`, `ug/L` for `µg/L`). Before
+v1.40.0 a reading printed in another unit was kept under the marker's unit
+without conversion, so 5.6 mmol/L of glucose showed up as 5.6 mg/dL and "far
+below range". Since v1.40.0 such a reading is never relabelled, and since
+v1.42.3 it is converted where the conversion is well defined and refused
+where it is not. That holds on every path that writes a lab value: the form,
+a scan, a document from the vault and the API.
 
-The scan review marks such a row before you save ("Tracked in mg/dL; this
-report says mmol/L"). Change the unit if the report was misread, or deselect
-the row; the other rows are saved.
+### Unit conversion
 
-A marker's unit can no longer be changed while it has readings, because the
-stored values would be shown in the new unit without being converted. Values
+Two kinds of pairs are converted:
+
+- **Pairs that differ only by a power of ten**, for any marker: mass
+  concentrations (`mg/L` and `g/dL`, `µg/L` and `ng/mL`), amount
+  concentrations (`mmol/L` and `µmol/L`), international units (`mIU/L` and
+  `µIU/mL`) and blood counts (`10⁹/L`, `G/L` and `10³/µL`).
+- **Mass to amount**, for the markers HealthLog can identify, with factors
+  derived from the molar mass: glucose (mg/dL and mmol/L), total, LDL and
+  HDL cholesterol (mg/dL and mmol/L), creatinine (mg/dL and µmol/L), urea
+  and blood urea nitrogen (mg/dL and mmol/L, kept apart because they differ
+  by about 2.14), uric acid (mg/dL and µmol/L), total calcium (mg/dL and
+  mmol/L), total bilirubin (mg/dL and µmol/L) and 25-OH vitamin D (ng/mL and
+  nmol/L). HbA1c converts between % and mmol/mol with the published IFCC to
+  NGSP equation.
+
+Some pairs are left out on purpose and stay refused: triglycerides between
+mmol/L and mg/dL (the factor rests on an assumed average molecular weight),
+haemoglobin in mmol/L, ferritin and vitamin B12 in pmol/L, enzymes in
+µkat/L and ionised calcium. A wrong factor would be worse than a refusal.
+
+### What a converted reading keeps
+
+The stored value is the converted one, in the marker's unit, at full
+precision; rounding happens only on display. The value and unit the report
+printed are kept with the reading, and a quiet line beside it says
+"converted from 5.6 mmol/L". The scan review shows the same before you save
+("Saved as 100.9 mg/dL, converted from 5.6 mmol/L"). Editing the reading
+keeps that record unless you change the value.
+
+A range printed on the report is converted with the value, so the verdict
+compares numbers in one unit. The range note then states the window in the
+marker's unit, followed by the text as it was printed and labelled with
+its unit, for example "as printed in mmol/L: 3.9-5.5". The
+doctor report, the Coach, MCP and the FHIR export state the converted range
+in the marker's unit too.
+
+### Which markers HealthLog identifies
+
+A marker is identified from its name and unit. The name has to match, as a
+whole, one of the names of a common marker in any of the app's languages
+(the names offered when you pick a common marker) or one of its known
+aliases, and the marker's unit has to be one that analyte can be converted
+to. A marker HealthLog cannot identify this way is left unconverted: a
+reading in its own unit, or in a power-of-ten variant of it, is stored as
+before, and a reading that would need its molar mass is refused with a
+message.
+
+Renaming a marker, or changing its unit while it has no readings,
+identifies it again. A marker you renamed to "Glucose" is converted from
+then on; a marker renamed to something HealthLog does not know loses its
+conversion.
+
+### When a reading is refused
+
+The scan review marks such a row before you save ("This marker is tracked
+in mg/dL. Change the unit if the report was misread, or deselect this
+reading."); the other rows are saved. The API answers `422`
+`labs.unit.mismatch` with a reason.
+
+A marker's unit cannot be changed while it has readings, because the stored
+values would be shown in the new unit without being converted. Values
 already stored under the wrong unit before v1.40.0 cannot be found
-automatically. If a marker shows a reading far outside its usual range, check
-the report it came from, delete the reading and enter it again under a marker
-in the right unit.
+automatically. If a marker shows a reading far outside its usual range,
+check the report it came from, delete the reading and enter it again.
 
 ## Reference ranges and the range bar
 

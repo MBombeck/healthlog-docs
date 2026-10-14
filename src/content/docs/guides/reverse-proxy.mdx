@@ -179,6 +179,17 @@ and the batch routes the app uses for measurements, workouts, ECG recordings,
 mood entries, medication intakes and cycle day logs. A client that posts a
 larger body anywhere else is refused, whatever the proxy allows.
 
+## A sign-in gateway in front of HealthLog
+
+If Authelia, Authentik, Cloudflare Access or another forward-auth layer
+guards the instance, requests that come from outside a browser cannot pass
+its sign-in page. The ntfy mood quick answers are such requests: the ntfy
+app on the phone sends `POST /api/notifications/action/<token>`, and the
+token in the path is the only credential it needs. Add a bypass rule for
+`POST /api/notifications/action/*`, and make sure `APP_URL` is the exact
+public https address so no redirect turns the `POST` into a `GET`. See
+[When a quick answer does nothing](/guides/reminder-channels/#when-a-quick-answer-does-nothing).
+
 ## Verify the chain
 
 From outside the host, hit `https://your-instance.example.com/api/version` and

@@ -27,7 +27,8 @@ Withings metric types map into `Measurement` rows tagged `source = WITHINGS`:
 
 Plus the body-composition family (fat ratio, muscle mass, bone mass, hydration),
 sleep stages, and heart-rate variability from the nightly sleep summary (the
-SDNN estimate); the heart endpoints power the ECG recording import. Activity
+SDNN estimate); the heart endpoints power the ECG recording import. The
+overnight HRV and the ECG import now need the paid Withings plan. Activity
 data (steps, active energy, distance, floors) arrives through the
 `user.activity` scope.
 
@@ -35,13 +36,82 @@ Daily totals are stored at noon of their day in your own time zone, so they
 land on the right day wherever you live (since v1.39.3; see
 [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
 
+Some of these readings now depend on the Withings API plan of your developer
+app; see the next section.
+
+## Withings API plans (October 2026)
+
+On 12 October 2026 Withings split its public API into plans (see the
+[Withings API plans page](https://static.withings.com/content/api/plans/plans.html)).
+The developer app you register for HealthLog is on the free **Start for Free**
+plan, which covers the core data: activity, sleep, body and heart. A set of
+clinically cleared readings and a few body-composition extras now need the
+paid **Advanced Biomarkers** plan.
+
+Withings refuses a request that names anything outside the plan as a whole,
+with status 277. Before v1.42.3 HealthLog asked for every type in one
+request, so from 12 October no Withings reading arrived at all, and the
+connection could show "Reauthorisation required" although reconnecting did
+not help.
+
+**Still synced on the free plan:** weight, fat mass and fat-free mass,
+muscle mass, bone mass, body water, blood pressure, heart rate, a manual
+SpO₂ reading, body temperature, steps, distance and calories, and the sleep
+stages (duration, deep, light, REM, awake, wake-ups).
+
+**Needs the paid Advanced Biomarkers plan**, per the Withings
+[table of available health data](https://developer.withings.com/developer-guide/v3/data-api/all-available-health-data/):
+
+- pulse wave velocity and vascular age
+- visceral fat
+- VO2 max
+- skin temperature
+- ECG recordings and AFib results
+- from the sleep summary: the sleep score, overnight HRV and overnight
+  breathing rate
+
+HealthLog handles the plan on its own, from v1.42.3 on:
+
+- When Withings refuses a request with 277, HealthLog asks again without the
+  types Withings lists as advanced. If that is refused too, it narrows the
+  remaining types down until it finds the ones the plan refuses. Everything
+  the plan allows imports as before.
+- The refused types are remembered for each account's Withings connection,
+  so later syncs leave them out. Once a week HealthLog asks for the full set
+  again, so a plan upgrade is picked up without anything on your side.
+- ECG recordings and the sleep-summary fields outside the plan are skipped
+  quietly.
+- A plan refusal never counts as a sync failure and never asks you to
+  reconnect. A connection that an earlier version marked for reconnection
+  over it is released on the next hourly sync, and that sync imports
+  everything since the last successful one, so the gap since 12 October
+  fills in by itself.
+- **Settings → Integrations → Withings** shows a short note naming the
+  readings your plan withholds, with a link to the Withings plans page.
+
+Nothing needs to be configured. If you move your developer app to the
+Advanced Biomarkers plan, the extra readings start arriving within a week,
+or right away after you reconnect Withings once.
+
+:::note[New Withings accounts and Withings+]
+Withings states on its plans page that a Withings account created after
+12 October 2026 needs an active **Withings+** membership to share data with
+an app on the free plan. Accounts created before that date keep sharing
+without a membership. If the membership lapses, sharing pauses until it is
+active again; Withings keeps the history and sharing resumes where it left
+off. HealthLog cannot change this: it is a condition of the Withings
+account, not of your instance.
+:::
+
 ## Set it up
 
 <Steps>
 
 1. **Register a Withings developer app.** Sign in at
    [developer.withings.com](https://developer.withings.com/) and create a new
-   **public-API application** (the free Public tier is enough).
+   **public-API application**. The free **Start for Free** plan is enough;
+   see [Withings API plans](#withings-api-plans-october-2026) for what it
+   leaves out.
 
    - **Callback URL:** `https://your-instance.example.com/api/withings/callback`.
      Withings allows multiple callbacks — add one per environment.
@@ -124,6 +194,13 @@ database as an audit trail. Override per user under **Settings → Sources**.
   `curl -I https://your-instance.example.com/api/withings/webhook/<secret>` — a
   `200` means the secret matches, a `401` means the running container's secret
   no longer matches the URL Withings holds.
+- **Withings stopped syncing around 12 October 2026.** That is the Withings
+  API plan change: every request that included an advanced data type was
+  refused, so nothing imported. Update to v1.42.3 or later. The next hourly
+  sync imports the gap, and the Withings card names the readings your plan
+  withholds. Reconnecting is not needed. If the account was created after
+  12 October 2026, check that its Withings+ membership is active (see
+  [Withings API plans](#withings-api-plans-october-2026)).
 - **"Reauthorisation required".** Withings revokes refresh tokens on password
   change or extended inactivity. Click **Connect Withings** again; the next sync
   catches up the last 30 days.
