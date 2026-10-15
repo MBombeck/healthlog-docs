@@ -1,6 +1,6 @@
 ---
 title: Connect Oura
-description: OAuth2 setup for the Oura ring — bring-your-own developer app, the daily/personal scopes, the metrics that sync including readiness, and troubleshooting.
+description: OAuth2 setup for the Oura ring with your own developer app, the requested scopes, the metrics that sync including readiness, and troubleshooting.
 sidebar:
   order: 7
 ---
@@ -30,10 +30,18 @@ Imported rows are tagged `source = OURA` and pass through the [source-priority](
 HealthLog requests:
 
 ```
-daily personal
+daily personal spo2 heart_health
 ```
 
-`daily` covers sleep, readiness and activity; `personal` is the profile information used to anchor the sync. Both are read-only.
+`daily` covers sleep, readiness and activity; `personal` is the profile information used to anchor the sync. `spo2` covers the daily blood-oxygen average, and `heart_health` covers VO2 max, cardiovascular age and resilience. All four are read-only.
+
+Oura's current sign-in enforces these per data type: a grant without `spo2` or `heart_health` is refused on exactly those types while everything else syncs. HealthLog asks for `spo2` and `heart_health` since v1.42.3.
+
+### Existing connections: reconnect once
+
+A connection made before v1.42.3 holds a grant without the two new scopes. HealthLog notices when Oura refuses only those data types, keeps syncing everything else and does not count it as a broken connection. The Oura card in **Settings → Integrations** then shows a short hint naming what is missing (SpO2, VO2 max, cardiovascular age, resilience) with a **Reconnect Oura** button. Reconnect once and approve the new permissions; the hint goes away with the new grant.
+
+If authorization fails after you approve, or Oura's consent screen does not offer the new permissions, open your application in Oura's developer portal and check that the `spo2` and `heart_health` scopes are enabled for it, then connect again.
 
 ## 1. Register an Oura developer app
 
@@ -54,14 +62,14 @@ OURA_REDIRECT_URI="https://your-instance.example.com/api/oura/callback"
 ## 3. Connect from Settings
 
 1. Sign in as the target user and open **Settings → Integrations → Oura**.
-2. Click **Connect Oura** and grant the `daily` and `personal` scopes.
+2. Click **Connect Oura** and grant the requested scopes (`daily`, `personal`, `spo2`, `heart_health`).
 3. Oura redirects back to `/api/oura/callback`; HealthLog exchanges the code, stores the token encrypted, and runs an initial sync.
 
 ### Which token endpoint HealthLog uses
 
 Oura moved its sign-in to a new authorization server. Apps created in Oura's current developer portal get their codes from that server, and the older documented token endpoint refuses them. Since v1.42.2 HealthLog exchanges every code at the current endpoint (`moi.ouraring.com/oauth/v2/ext/oauth-token`) and never sends a code from the new server to the old endpoint, since a code works only once. Refreshing a token falls back to the older endpoint (`api.ouraring.com/oauth/token`) once, for apps that still live there. The callback also checks the `iss` parameter Oura sends ([RFC 9207](https://datatracker.ietf.org/doc/html/rfc9207)) and stops the connection when it does not name one of Oura's own servers.
 
-Nothing changes in your setup: the redirect URI, the scopes and the credentials stay the same.
+Nothing changes in your setup: the redirect URI and the credentials stay the same.
 
 ## Readiness as a recovery source
 
@@ -76,6 +84,10 @@ The hypnogram comes from the `sleep` detail collection. A night that only produc
 ### Connecting fails right after you approve access
 
 Before v1.42.2, an app registered in Oura's current developer portal could not finish connecting: Oura answered the code exchange with `400 invalid_request`. Update to v1.42.2 or later and connect again. If the integration card says the sign-in answer did not come from Oura's own authorization server, start the connection again; that message means the callback named an issuer HealthLog does not accept.
+
+### SpO2, VO2 max, cardiovascular age or resilience are missing
+
+The grant does not cover the `spo2` or `heart_health` scope. Reconnect Oura once from the integration card (see [Existing connections: reconnect once](#existing-connections-reconnect-once)). If the authorization then fails, enable both scopes for your application in Oura's developer portal and try again.
 
 ### Callback URI mismatch
 

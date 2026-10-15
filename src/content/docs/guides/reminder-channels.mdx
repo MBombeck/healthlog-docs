@@ -331,6 +331,30 @@ control, so:
   [Environment variables](/reference/environment-variables/).
 :::
 
+### When a quick answer does nothing
+
+The ntfy app sends the answer from your phone, outside the browser, so it
+carries no session cookie and cannot pass a sign-in page. Two things have to
+hold:
+
+- **`APP_URL` is the exact public https address** of the instance, the one
+  your phone reaches. An `http://` address or an old hostname gets
+  redirected, and an HTTP client follows a redirect with a `GET`, so the
+  `POST` never arrives.
+- **A sign-in gateway lets the route through.** If Authelia, Authentik,
+  Cloudflare Access or any other forward-auth layer sits in front of
+  HealthLog, add a bypass rule for `POST /api/notifications/action/*`. The
+  link carries its own short-lived credential, so the route needs no
+  session. See [Reverse proxy](/guides/reverse-proxy/#a-sign-in-gateway-in-front-of-healthlog).
+
+Since v1.42.3 every refusal on that route writes a log line with the action
+`notification.action.refused` and a `reason`: `method_not_allowed` (a
+request other than `POST` arrived, which almost always means a redirect
+rewrote it; the answer is `405` with `Allow: POST`), `rate_limited`,
+`expired`, `bad_signature`, `malformed`, `already_used`, `module_disabled`
+or `unknown_user`, and `worker_only` or `demo_mode` when the request reached
+a worker-only container or a demo instance. The token itself is never logged.
+
 **Telegram** keeps its own keyboard on the mood reminder: the full 1 to 5
 scale, a note and a "later" button.
 

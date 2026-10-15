@@ -90,10 +90,20 @@ them, and a portable backup carries their names and notes readable.
 
 ## While you are unwell
 
-An active episode puts the account into rest mode. The health score keeps
-its value with a "you were unwell" note instead of dropping, achievement
-streaks freeze rather than break, and cadence nudges pause. Rest mode carries
-only the label, type and onset; the note is never read.
+An active episode puts the account into rest mode when its lifecycle is
+acute, recurring or flare. The health score keeps its value with a "you were
+unwell" note instead of dropping, achievement streaks freeze rather than
+break, cadence nudges pause, and Today counts the days since onset. Rest mode
+carries only the label, type and onset; the note is never read.
+
+A chronic ongoing condition on its own does not start rest mode (since
+v1.42.3). It has no end date, so it would otherwise keep the account in rest
+mode for good: the day counter would run from an onset years back, nudges
+would never resume and streaks could never break. The condition stays
+context. The Coach sees it, and a reading that moves while it is active is
+still framed as possibly explained by it. When a chronic condition gets
+worse, log a flare under it; the flare starts rest mode, and the day count
+runs from the flare's onset.
 
 Sustained low blood oxygen or sustained fever raise a red flag notification.
 The thresholds are the app's fixed clinical floors and are not configurable.

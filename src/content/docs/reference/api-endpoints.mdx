@@ -46,7 +46,7 @@ The core ingest and read surface. Batch endpoints power the native client.
 | `POST` | `/api/mood-entries` · `/bulk` | Mood entries. Since v1.39.7 a write reports `droppedTagKeys` and `droppedFactorKeys`, each present only when non-empty: the submitted tag or factor keys that were not stored (unknown, archived or the wrong kind). The entry itself is stored. `PUT /api/mood-entries/{id}` reports them the same way |
 | `POST` | `/api/insights/ecg` | One ECG recording from the iPhone app. Since v1.39.7 `averageHeartRate` and `samplingFrequency` may carry a fraction; the server rounds both before storing. Since v1.39.8 it allows 600 requests a minute per account (60 before). See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive) |
 | `POST` | `/api/labs/ocr/extract` | Read lab values from a photo or PDF. Since v1.39.7 a PDF longer than the page cap carries `pageCoverage` (`read`, `total`): only the first `read` pages were read. Since v1.40.0 it always answers `202` with a run id; `GET /api/ai-runs/{id}` serves the proposed rows (see [Background document reads](/reference/native-clients/#background-document-reads)) |
-| `POST` | `/api/labs` · `PUT /api/biomarkers/{id}` | Since v1.40.0 a numeric reading in another unit than its marker's is refused with `422` `labs.unit.mismatch` (`meta.markerUnit`, `meta.readingUnit`; spelling is forgiven), and a marker's unit cannot change while it has readings (`422` `biomarkers.unit.locked`). The scan commit skips such a row with `reason: "unit_mismatch"`. See [One unit per marker](/guides/labs/#one-unit-per-marker) |
+| `POST` | `/api/labs` · `PUT /api/biomarkers/{id}` | Since v1.40.0 a numeric reading in another unit than its marker's is never stored under the marker's unit. Since v1.42.3 it is converted when the pair is known and answers `201` with `converted: true`; otherwise it is refused with `422` `labs.unit.mismatch` (`meta.markerUnit`, `meta.readingUnit`, `meta.reason`; spelling is forgiven). A marker's unit cannot change while it has readings (`422` `biomarkers.unit.locked`). The scan commit skips a refused row with `reason: "unit_mismatch"`. See [Lab results in another unit](#lab-results-in-another-unit) |
 | `GET` / `POST` | `/api/symptoms/definitions` · `/events` | Since v1.40.0, your own symptoms and their entries; `PATCH` / `DELETE` on `/{id}`. Gated on the Illness module. See [Your own symptoms](/guides/illness/#your-own-symptoms) |
 
 :::note[Batch overwrite contract]
@@ -112,6 +112,35 @@ is refused with `422` (`workout.batch.source_not_permitted`), and a re-sent
 allowance of their own, 60 a minute shared by all workout tokens of the
 account, so a bridge stuck retrying cannot use up the iPhone app's. See
 [Push workouts](/guides/ingest-token/#push-workouts).
+
+### Lab results in another unit
+
+Since v1.42.3 `POST /api/labs`, the lab scan commit and the document commit
+convert a numeric reading into its marker's unit when the marker's analyte
+is known and the unit pair is in the conversion registry, or when the two
+units differ only by a power of ten. The response is `201` with
+`converted: true`. A pair that cannot be converted still answers `422`
+`labs.unit.mismatch`, now with `meta.reason`: `unknown_analyte` (the marker
+is not identified, or its analyte has no conversion for that pair),
+`unknown_unit` or `not_finite`.
+
+A lab result carries these fields for it:
+
+| Field | Meaning |
+| --- | --- |
+| `converted` | `true` when the stored `value` was converted into the marker's `unit` |
+| `sourceValue`, `sourceUnit` | The value and unit the report printed, full precision. `null` for a reading stored as stated |
+| `sourceReferenceLow`, `sourceReferenceHigh` | The report's own range. For a converted reading, converted with the value and in the marker's `unit` |
+| `sourceReferenceText` | The printed range text, verbatim. `null` for a converted reading, because the text is in another unit |
+| `printedReferenceText` | For a converted reading, the printed range text in `sourceUnit`. `null` otherwise |
+
+A biomarker carries `analyteKey`: the analyte its name and unit were
+recognised as (a catalog slug such as `fasting-glucose`, `ldl` or `hdl`, or
+a registry key such as `urea` or `uric-acid`), or `null`. It is derived,
+never sent: set on create and derived again, or cleared, when an update
+changes the name or the unit. Editing a converted reading keeps its
+conversion record unless the value changes. See
+[Unit conversion](/guides/labs/#unit-conversion).
 
 ## Medications
 
@@ -724,7 +753,14 @@ Google Health/Fitbit over OAuth, plus the inbound webhooks. Nightscout is not an
 OAuth provider: `POST /api/nightscout/connect` takes a URL and a token and
 encrypts both at rest, and `/api/nightscout/{sync,status,test,disconnect}`
 complete the set. All five are in the OpenAPI document, so a client generating
-from the contract finds them. See the integration guides
+from the contract finds them.
+
+Since v1.42.3 the integration status (`GET /api/integrations/status`) carries two lists. `planUnavailable`
+(Withings) names the readings the connection's Withings API plan withholds;
+the sync skips them and the list refreshes with the weekly re-check.
+`scopeReconnect` (Oura) names the data types the stored grant does not cover;
+it is not a failure, and one reconnect asks for the missing scopes. Both are
+empty when nothing is missing. See the integration guides
 ([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Google Health](/guides/connect-google-health/)) and
 [Webhooks](/reference/webhooks/).

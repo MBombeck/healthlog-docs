@@ -134,6 +134,45 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.42.3
+
+Take a backup as usual. There is one migration, and nothing else to do:
+
+| Migration | What it does |
+| --- | --- |
+| `0398_integration_plan_and_scope_state` | Adds two nullable columns: the Withings data types a connection's API plan refuses, and the Oura data types a grant does not cover. Runs in seconds |
+
+What to know:
+
+- **Withings syncs again on its own.** Since 12 October 2026 Withings
+  refused every request that included a data type outside the free API
+  plan, so nothing imported. After the update the next hourly sync leaves
+  those types out, imports everything since the last successful sync and
+  releases connections that were marked for reconnection over it. No
+  reconnect is needed. See
+  [Withings API plans](/guides/connect-withings/#withings-api-plans-october-2026).
+- **Oura asks for two more scopes,** `spo2` and `heart_health`. Existing
+  connections keep syncing everything else and show a hint to reconnect
+  once for SpO2, VO2 max, cardiovascular age and resilience. If the
+  authorization then fails, enable those scopes for your application in
+  Oura's developer portal. See
+  [Connect Oura](/guides/connect-oura/#existing-connections-reconnect-once).
+- **ntfy quick answers behind a sign-in gateway.** Let
+  `POST /api/notifications/action/*` through and keep `APP_URL` on the
+  exact public https address. Refusals are logged as
+  `notification.action.refused` with a reason. See
+  [When a quick answer does nothing](/guides/reminder-channels/#when-a-quick-answer-does-nothing).
+- **What users see.** Lab readings in another unit are
+  [converted](/guides/labs/#unit-conversion) where the conversion is well
+  defined, a chronic condition on its own no longer puts the account into
+  [rest mode](/guides/illness/#while-you-are-unwell), and the Withings card
+  names the readings the Withings plan withholds.
+- **For API clients.** `converted`, `sourceValue`, `sourceUnit` and
+  `printedReferenceText` on lab results, `analyteKey` on biomarkers, and
+  `planUnavailable` (Withings) and `scopeReconnect` (Oura) in the
+  integration status. See
+  [API endpoints](/reference/api-endpoints/#lab-results-in-another-unit).
+
 ## Upgrading to v1.42.2
 
 Take a backup as usual. There are two migrations. They add columns and an
