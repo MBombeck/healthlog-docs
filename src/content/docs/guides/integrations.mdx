@@ -1,0 +1,166 @@
+---
+title: Integration status and problems
+description: How every connection reports its state in Settings, what the four states mean, how to copy the details for a bug report, and how the watchdog tells the instance admin when a source goes quiet or keeps failing.
+sidebar:
+  order: 0
+---
+
+Every connection under **Settings, Integrations** uses the same card since
+v1.42.4: Withings, WHOOP, Oura, Polar, Strava, Google Health, Fitbit,
+Nightscout and Apple Health. The card answers whether the connection works,
+what that means in one sentence, and what you can do about it. The server
+decides the state and the sentence; the web app and the iOS app only show
+it, so both always agree.
+
+The same card appears inside a [managed profile](/guides/managed-profiles/),
+read-only.
+
+## The card
+
+From top to bottom:
+
+1. **Header.** The provider's name and, on the right, a badge with one word
+   for the state.
+2. **One sentence** saying what the state means, and below it the time of
+   the newest data, for example "Last data: today, 07:12".
+3. **Details for a bug report**, collapsed. See
+   [below](#details-for-a-bug-report).
+4. **Action row.** On the left the three-dot menu, on the right at most one
+   button, shown only when the state asks you to do something.
+
+A connection you have not set up shows "Not connected." with a **Connect**
+button and a link to its setup guide. Where you bring your own developer
+credentials, the credentials form comes first, as before.
+
+## The four states
+
+| Badge | What it means | Button |
+| --- | --- | --- |
+| **Working** | Data is arriving. While an older history still loads, the sentence says so. | none |
+| **Limited** | Data is arriving, but some types are missing: your Withings API plan does not include them, or the permission for them was not granted (Withings activity and sleep, Oura SpO2 and heart health). The sentence names up to three, the details list them all. | **Reconnect** when a permission is missing, otherwise none |
+| **Delayed** | Something is late or failing, and HealthLog keeps trying. The provider is not answering reliably, the server has not synced for a while, no new data has come in, or a source that normally delivers every day has gone quiet. | none |
+| **Action needed** | Data will not arrive until you act: the connection has expired or was revoked, or it was paused after failing repeatedly. | exactly one: **Reconnect** or **Resume** |
+
+**Delayed** never needs anything from you. If it is the provider that is
+failing, HealthLog retries on its own; if no new data has arrived from Apple
+Health, the sentence asks you to open HealthLog on the iPhone once, because
+iOS only delivers in the background when it chooses to.
+
+## The three-dot menu
+
+Everything that is rarely needed lives in the menu, so the card never shows a
+row of buttons. What it offers depends on the provider:
+
+- **Sync now**
+- **Sync all data**, the full history, with a confirmation
+- **Test connection**
+- a link to the data, for example **View your measurements**
+- **Change credentials** (bring-your-own providers), or **Change address and
+  token** (Nightscout)
+- **Setup guide**
+- **Disconnect**, with a confirmation. Data already synced stays.
+
+For Apple Health the menu holds **Open one-shot import**, for an `export.zip`
+from the Health app (see [Import Apple Health](/guides/import-apple-health/)).
+The Apple Health card's details also carry the delivery diagnostics and the
+**By data type** list described in [the iOS app](/ios/ios-app/).
+
+## Details for a bug report
+
+The collapsed section at the bottom of the card shows a short monospace
+block, and **Copy** puts exactly that text on the clipboard. It looks like
+this:
+
+```text
+HealthLog 1.42.4  Oura
+State: degraded / provider_errors since 2026-10-14 18:40 UTC
+Last sync: 2026-10-14 18:12 UTC
+Last data: 2026-10-14 07:55 UTC
+Ledger: error_transient, failing parts: sleep
+Recent calls:
+  2026-10-15 09:15  sleep      transient        503
+  2026-10-15 08:15  sleep      transient        503
+  2026-10-15 08:15  readiness  ok
+Not available: spo2 (permission)
+```
+
+It contains:
+
+- the HealthLog version and the provider,
+- the state and its reason code, with the time it started,
+- the last successful sync and the newest data, in UTC,
+- which parts of the sync are failing, if any,
+- the last ten calls to the provider: time, which part, the outcome and a
+  short error code such as an HTTP status,
+- the data types that are not available, and whether the plan or a missing
+  permission is the reason.
+
+It never contains a measured value, a token, an account id, your email
+address, or the error text the provider sent back. That text can carry
+tokens or URLs, so the server keeps only the code. The block is safe to paste
+into a public issue as it is.
+
+## Reporting an integration problem
+
+1. Open **Settings, Integrations** and expand **Details for a bug report** on
+   the affected card.
+2. Press **Copy**.
+3. Open an issue on
+   [GitHub](https://github.com/MBombeck/HealthLog/issues/new/choose), paste
+   the copied text, and add what you expected to see and since when it has
+   been missing.
+
+If you run the instance yourself, the container log around the times in
+**Recent calls** usually says more. For Google Health, the backfill writes
+one line per slice; see
+[Reading the backfill in the logs](/guides/connect-google-health/#reading-the-backfill-in-the-logs).
+
+## The watchdog (for the instance admin)
+
+A connection that fails quietly used to stay unnoticed until somebody looked
+at the card. Since v1.42.4 a watchdog checks every connection on the
+instance once an hour, with a deeper pass once a day, and tells the instance
+admin when something needs attention.
+
+It watches for three things:
+
+- **A source that goes silent.** This applies only to sources that deliver
+  around the clock and have delivered on most days of the last two weeks.
+  Silence counts after 24 hours for Fitbit, Google Health, Polar and
+  Nightscout, and after 48 hours for Apple Health, Oura and WHOOP. Oura and
+  WHOOP upload only when their phone app is opened, and iOS sometimes holds
+  background delivery back for a day, so a single quiet day is ordinary for
+  them. Scales, blood-pressure cuffs and Strava never count as silent: not
+  measuring for a week is not a fault. Withings and Strava are watched for
+  errors only.
+- **Action needed.** A connection that has expired, was revoked or was
+  paused, and has stayed that way for a day.
+- **Provider errors.** A provider that has not answered reliably for a day.
+
+A source whose owner has simply stopped using it (an iPhone app that has not
+run for weeks) drops out of the silence check on its own once its history no
+longer shows daily delivery.
+
+### What the admin receives
+
+Every account with the admin role gets the message on its own
+[notification channels](/guides/reminder-channels/) as a system alert:
+
+- **One message per incident,** naming the provider, the account, the reason
+  and since when. A reason that changes while the incident is open (silence
+  turning into an expired grant) is the same incident and sends nothing new.
+- **One recovery message** when the connection works again.
+- **One message for the provider** when more than three accounts on the
+  instance have the same provider incident in the same pass, for example
+  during an outage at the provider. It names up to ten accounts and counts
+  the rest. The recovery is aggregated the same way.
+
+No message contains a token, a measured value or the provider's error text.
+
+The first watchdog run after the update records every incident that is
+already standing without sending anything, so an update does not page once
+for every connection that has been broken for months. From then on only new
+incidents are sent.
+
+The users themselves see the same state on their card. They get no message
+from the watchdog.
