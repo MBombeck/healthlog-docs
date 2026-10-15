@@ -74,6 +74,15 @@ the app came to the front, or from a manual **Sync all**. A type that only
 ever arrives with a manual sync stands out there, which helps when some values
 only reach the server after you open the app.
 
+Since v1.42.4 that list (**By data type**) sits in the card's collapsed
+[details](/guides/integrations/#details-for-a-bug-report), and it gained two
+things. Medication doses from Apple Health get their own entry, so you can
+see when the last dose came in. And every type remembers when it last
+arrived in the background: when a later arrival came from opening the app or
+a manual sync, the entry adds "Last in background" with its own time, so
+opening the app to look no longer hides whether the phone still delivers by
+itself.
+
 ### How the round-trip stays clean
 
 Live reads use HealthKit's observer and anchored-query APIs, and a background-processing task gives delivery a second chance when the app is not in the foreground. Every iOS-side write carries a stable external identifier so the server and Apple Health do not echo each other's writes back and forth. Day-aggregated cumulative metrics (steps, energy, distance) use the same `stats:<HKType>:<YYYY-MM-DD>` external-ID convention the bulk importer uses, so a phone sync and a later `export.zip` import resolve to the same rows rather than duplicating. See [Source priority](/explanation/source-priority/) for how readings from the phone, a Withings device, and manual entry collapse to one canonical value per day.

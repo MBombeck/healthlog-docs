@@ -67,7 +67,7 @@ See [breadth: full, partial, minimal](/explanation/composite-health-score/#bread
 | --- | --- | --- |
 | Readiness | Recent HRV, RHR, sleep, recent strain | Daily "how ready are you" band |
 | Recovery | HRV + RHR vs personal baseline | Stored 0–100 daily series |
-| Sleep score | Sleep duration + stage distribution | Band |
+| Sleep score | Sleep duration, efficiency, consistency and timing of the sleep midpoint, stage distribution | Band |
 | Strain (early flag) | Coincident deviation across signals | A flag, not a training load |
 | Fitness-age band | VO₂max vs age/sex norms | Re-frame of an existing measurement |
 | Vascular-age delta | Blood-pressure-derived estimate | Delta vs chronological age |
@@ -75,6 +75,13 @@ See [breadth: full, partial, minimal](/explanation/composite-health-score/#bread
 
 Each one re-frames or blends signals you already recorded, cites its inputs, and
 links the method behind it in the app. None of them invent data.
+
+The sleep score's consistency and timing read each night's midpoint from its
+main sleep session only. A nap on the same day does not move the night, and Oura
+periods you dismissed or deleted are not imported at all. Before v1.42.4 an
+afternoon nap could pull a regular night's midpoint to around noon and score
+consistency or timing at zero. Sleep rhythm and the
+[chronotype](/methodology/chronotype/) read the same midpoint.
 
 ## What they are not
 

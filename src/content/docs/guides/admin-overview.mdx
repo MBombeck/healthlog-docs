@@ -96,6 +96,11 @@ tracker script and forwards the events to the configured Umami host. Before,
 those events ended in errors on the HealthLog server. After updating, reload
 open tabs once so they load the new tracker.
 
+The users' own connections (Withings, Oura, Apple Health and the rest) are
+not configured here. Since v1.42.4 a watchdog tells every admin when one of
+them goes quiet or keeps failing; see
+[The watchdog](/guides/integrations/#the-watchdog-for-the-instance-admin).
+
 ## API tokens
 
 A read-only, instance-wide list of every personal API token with owner,

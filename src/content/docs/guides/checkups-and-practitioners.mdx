@@ -123,6 +123,14 @@ and past visits newest-first.
 A visit can link up to 100 documents, lab results and illness episodes each,
 and a vaccination dose can point at the visit it was given at. When a
 document's date is within seven days of a visit, the app suggests the link.
+
+The link pickers reach your whole record. Since v1.42.4 each picker opens on
+the records around the visit's date (or, when you link a visit from a
+document, around the document's date), and you page to older and newer
+entries from there. Typing searches the whole list, not only what is shown
+(lab results by analyte and panel). Records already linked always show, however far back
+they are. Before, the pickers offered only the newest few hundred entries, so
+anything older could not be linked on a long record.
 Filing a visit from a due checkup marks that checkup satisfied.
 
 ### Procedures and surgeries
