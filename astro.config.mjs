@@ -11,6 +11,7 @@ export default defineConfig({
 		'/integrations/oura/': '/guides/connect-oura/',
 		'/integrations/polar/': '/guides/connect-polar/',
 		'/integrations/nightscout/': '/guides/connect-nightscout/',
+		'/integrations/dawarich/': '/guides/connect-dawarich/',
 		'/integrations/apple-health/': '/guides/import-apple-health/',
 		'/integrations/data-import/': '/guides/import-csv/',
 		'/integrations/fitbit/': '/guides/connect-google-health/',
