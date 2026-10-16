@@ -36,7 +36,8 @@ just a surface toggle.
 
 ## Where the data comes from
 
-Dietary intake flows in from your client's health store. Apple Health records
+Dietary intake flows in from your client's health store, and since v1.43.0
+from the supplements you take (see [below](#supplements-as-a-source)). Apple Health records
 water, caffeine, macros, and a full set of vitamins and minerals under its
 dietary identifiers; those flow into the module **once your client sends them**.
 Manual water entry works with no device at all.
@@ -48,11 +49,57 @@ granted and syncing the dietary data types — the module surfaces what arrives,
 does not invent the rest.
 :::
 
+## Supplements as a source
+
+Since v1.43.0 a supplement with a stored composition adds every taken dose to
+the day's micronutrients. Give the medication its composition per tablet or
+capsule, typed in or read from a label photo; see
+[What a supplement contains](/guides/track-medications/#what-a-supplement-contains).
+
+The Nutrients page then shows where each amount comes from: **Synced** (from
+Apple Health), **Entered** (by hand) and **Supplements**. The parts add up to
+the day's total.
+
+## Upper limits
+
+For twelve nutrients the European Food Safety Authority has set a tolerable
+upper intake level for adults: the highest daily intake not expected to cause
+harm. When a day is above it, the Nutrients page says so in one sentence and
+names the source. Most limits apply to everything taken in a day. Two apply
+to the supplement share only, because the limit is set for what supplements
+add:
+
+| Nutrient | Upper limit a day | Applies to | Form the limit covers |
+| --- | --- | --- | --- |
+| Vitamin A | 3000 µg | total | preformed vitamin A (retinol); beta-carotene does not count |
+| Vitamin B6 | 12 mg | total | |
+| Folate | 1000 µg | supplements | folic acid from supplements and fortified foods |
+| Vitamin D | 100 µg | total | |
+| Vitamin E | 300 mg | total | alpha-tocopherol |
+| Calcium | 2500 mg | total | |
+| Magnesium | 250 mg | supplements | readily dissociable magnesium salts |
+| Zinc | 25 mg | total | |
+| Copper | 5 mg | total | |
+| Selenium | 255 µg | total | |
+| Molybdenum | 600 µg | total | |
+| Iodine | 600 µg | total | |
+
+The source of each value is EFSA's overview of the tolerable upper intake
+levels (2024 edition), citing the opinion it rests on. Every other nutrient
+has no limit in this sense: EFSA set none, set a safe level of intake instead
+(iron, manganese), or set one that depends on a chemical form a composition
+cannot state (niacin). EPA and DHA have none either; EFSA found supplemental
+intakes up to 5 g a day of both together raise no concern, which is a
+statement about the pair. A day without a limit to be above is never shown as
+"below the limit".
+
 ## How it's read
 
 Each vitamin or mineral is shown against its reference daily intake where one
-applies, as **context**. HealthLog never flags a value as high, low, or a
-deficiency, and never turns a day of sparse logging into a verdict — the
+applies, as **context**. HealthLog never flags a value as low or as a
+deficiency, and never turns a day of sparse logging into a verdict. The one
+statement about a high value is the upper limit above, worded as a fact with
+its source rather than a warning. The
 [non-diagnostic standard](/explanation/non-diagnostic-standard/) governs this
 surface like every other.
 

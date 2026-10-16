@@ -76,6 +76,17 @@ Self-report is sensitive to time of day, recent events, recall and how a questio
 
 Once you have logged enough days, HealthLog can also place a day against your own history: what the day would have looked like on your past patterns, and how far the day you recorded sits from it. Read it as a correlation, not a cause. It always carries the number of days it rests on and a range rather than a single figure, it names which of the things you recorded moved with it, and it stays silent below a floor of days rather than producing a number to fill the space. Your own rating is the leading reading; the comparison sits beside it and never replaces it.
 
+Since v1.43.0 the mood insights also list **patterns in your mood**: the day
+after a below-usual day, weekends against weekdays, your best weekday, days
+with a note, the day after a tag, and days you log more than once. A pattern
+is shown only when each side of the comparison has at least eight days and
+it holds up under a Welch t-test with a false discovery rate of 10 percent
+across every comparison made. Every comparison uses one mean per day, so a
+day with five entries weighs as much as a day with one, and the wording says
+"tends to", never "because". An empty list means nothing passed, not that
+something failed. The server computes the patterns, so the web and the iOS
+app show the same ones, and they follow the period you pick.
+
 ## When to act
 
 <Aside type="caution">

@@ -242,6 +242,12 @@ is not the boundary. Before turning it on:
   the account the provider's email matched. An account that has only a
   passkey cannot be confirmed while `OIDC_ONLY` is on; turn it off for the
   first sign-in or have an operator link it.
+- Since v1.43.0 a managed profile can still be handed over: the person claims
+  it through the provider, and the password claim is refused. The claim binds
+  only a provider identity that no account on the instance holds yet, and
+  takes the provider's address only when it is verified and not already
+  taken, so it can never attach an existing sign-in to a second record. See
+  [Through single sign-on](/guides/managed-profiles/#through-single-sign-on).
 
 ### Break-glass
 

@@ -64,7 +64,18 @@ discard every row, and flags duplicates, low-confidence fields and analytes
 that would create a new catalog entry. Only the rows you confirm are saved,
 marked with the source "OCR"; a row that duplicates an existing reading is
 skipped. If the document vault is on, the file is also filed there and each
-saved row keeps a link back to it.
+saved row keeps a link back to it. Since v1.43.0 that link shows on both
+ends, in the **Related** section of the result and of the document; see
+[Link related records](/guides/related-records/).
+
+Since v1.43.0 the review also says which of your markers a row will join. A
+printed name is matched by your marker's own name first, then by a name you
+gave that marker before, then by a common abbreviation of the same test when
+the unit fits; the row says **by a name you chose before** or **recognised as
+a common abbreviation**. When a row would create a new marker, **Belongs to**
+lets you pick one you already track instead, and the printed name is
+remembered for the next report. Two spellings of one marker in the same
+report are read as one marker.
 
 If your provider is text-only, enable **local OCR** in the Labs settings. The
 image is then read in your browser (German and English models), and only the
@@ -205,11 +216,37 @@ when you add an entry; you accept or override its unit and range. The
 catalog is managed under Settings, Appearance, Labs, together with view mode,
 sort order and the local-OCR switch.
 
+## Merge markers and other names
+
+The same test can arrive under two names from two labs, and then sits in the
+catalog twice. Since v1.43.0 you can merge them. In the catalog choose
+**Merge**, select at least two markers and pick the one to keep. **Show
+preview** lists, before anything changes, how many readings move, which of
+them are converted to the kept marker's unit and which names will lead to it
+from now on. **Merge now** then moves every reading in one step.
+
+- A reading keeps the name and the value and unit that were printed on the
+  report; a converted reading keeps what the report said beside the
+  converted value.
+- A unit that cannot be converted to the kept marker's unit stops the whole
+  merge, and the preview says which one. Leave that marker out or keep
+  another one.
+- The names of the merged markers become other names of the kept one, so the
+  next scan files them there.
+- At most ten markers merge into one at a time. There is no undo.
+
+Each marker's page lists its other names under **Also written as**. Add the
+names other labs print, or remove one. A name can belong to one marker only;
+a name another marker already holds is refused.
+
+A merge rewrites and deletes markers, so inside a shared record it needs
+manage access, like editing a marker.
+
 ## Where results go
 
 Lab rows appear in the doctor report, in the Coach's data snapshot (latest
 reading per biomarker over the last 12 months, notes excluded), through the
 MCP `get_labs` tool, and as FHIR `Observation` resources with a LOINC code
-where one is confidently known. They can be linked to a visit (see
-[Checkups and practitioners](/guides/checkups-and-practitioners/)) and picked
-as an efficacy target for a medication.
+where one is confidently known. They can be linked to a visit and to a
+document, and picked as an efficacy target for a medication; see
+[Link related records](/guides/related-records/).

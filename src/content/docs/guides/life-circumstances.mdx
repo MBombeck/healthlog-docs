@@ -1,0 +1,132 @@
+---
+title: Life circumstances and AUDIT-C
+description: Record smoking, alcohol, activity, work, sleep and diet habits and your goals with a valid-since date, decide per section what the AI may read, and how the AUDIT-C alcohol screening is worded, scored and cited in each language.
+sidebar:
+  order: 22
+---
+
+Some things shape your health without being a measurement: whether you smoke,
+how much you drink, whether you work nights. Since v1.43.0 the **Life
+circumstances** card under **Settings, Medical history** keeps them in six
+sections. Every answer is optional, and every section can be left empty.
+
+## The six sections
+
+| Section | What it asks |
+| --- | --- |
+| **Smoking and nicotine** | Smoking status, products used, cigarettes per day, the year you started, when you stopped, regular secondhand smoke |
+| **Alcohol** | The three AUDIT-C questions, see [below](#audit-c) |
+| **Activity and sitting** | Days a week with moderate to strenuous activity, minutes on those days, hours sitting on a workday |
+| **Work and rhythm** | Shift work, work situation, kind of work, night work, exposures at work, free days of the week |
+| **Sleep, diet and caffeine** | Regular nap, whether others say you snore, diet and its specifics, late meals, fruit and vegetable portions, caffeinated drinks and the latest one of the day |
+| **Goals** | Up to three things you want to work on |
+
+A few values are worked out from the answers and shown beside them:
+pack-years from cigarettes per day and the start year, minutes of activity a
+week against the WHO recommendation of 150, and your free days. Without an
+answer, Saturday and Sunday count as free days. Measured steps come first; the
+activity answer adds context.
+
+## Valid since, and still true
+
+Each answer can carry a **Valid since** month. Without one it holds from the
+day you save it. A new answer to the same question starts where the previous
+one ended, so the history of an answer stays in order.
+
+Once the newest answer or confirmation of a section is more than a year old,
+the section asks **Is this still true?**. **Still true** records the date and
+changes nothing else.
+
+## What the AI may read
+
+Each section has its own switch, **Share this section with the AI**. Off
+means the Coach and the briefings never see those answers; they are not even
+decrypted for a prompt. Smoking, alcohol and shift work were sections of the
+health profile before and keep their earlier setting, which is on unless you
+turned it off. Activity, work, sleep and diet habits, and goals are new and
+start off.
+
+The free days of the week belong to the work section. They reach a prompt only
+while that section is shared; otherwise the Coach reads nights by the weekend
+default, as for somebody who never answered. Your own sleep page and dashboard
+always use your answer.
+
+## Where the answers go
+
+- **The Coach**, for the sections you shared.
+- **The [doctor report](/guides/checkups-and-practitioners/#report-for-a-visit)
+  and the [FHIR export](/reference/fhir-api/)**: pack-years, the newest
+  AUDIT-C as a screening result, activity minutes a week, hours sitting, and
+  the work situation, kind of work, night work and exposures. Diet, habits
+  and goals stay out: they are context for a conversation, not a clinical
+  finding.
+- **Screening hints**, see [below](#screening-hints).
+
+A [delegate](/guides/shared-access/) with access to the profile section reads
+the card like the rest of the medical history.
+
+## AUDIT-C
+
+AUDIT-C is the three alcohol questions of the WHO AUDIT. Each answer scores 0
+to 4, so the sum runs from 0 to 12. It is a screening, not a diagnosis. The
+card shows the sum and, when your profile states a sex, whether it reaches the
+screening cut-off, with the source of that cut-off. A profile without a sex,
+or with another sex, gets the sum only: the published tables have no third
+row, and picking one of the two would be a guess. The card suggests answering
+again once a year; earlier results stay in a history you can remove entries
+from.
+
+### Wording by language
+
+The questions are shown in a validated translation where one exists, and in
+the WHO English original otherwise. HealthLog never shows a translation of
+its own.
+
+| App language | Questions | Source of the wording |
+| --- | --- | --- |
+| English | WHO original | Babor et al., AUDIT manual, WHO/MSD/MSB/01.6a (2001) |
+| German | AUDIT Lübeck | Rumpf et al., the version attached to the German S3 guideline on alcohol-related disorders (AWMF 076-001) |
+| Korean | AUDIT-KR | Kim CG, Kim JS et al., Korean J Fam Med 2014;35:2-10 |
+| Polish | Polish AUDIT | Klimkiewicz A et al., Drug Alcohol Depend 2021 |
+| Spanish, French, Italian | English original, marked as not validated | none read yet |
+
+The standard drink in the help text follows the language. The Korean version
+asks about soju bottles and standard glasses side by side, as its source does.
+
+### Cut-offs
+
+The cut-off follows the language you answered in, because a national cut-off
+was set against that wording:
+
+| Language | Men | Women | Source |
+| --- | --- | --- | --- |
+| German | 5 | 4 | German S3 guideline on alcohol-related disorders (AWMF 076-001) |
+| Korean | 5 | 4 | AUDIT-C cut-offs from the Korea National Health and Nutrition Examination Survey (KNHANES) |
+| Every other language | 4 | 3 | Bradley KA et al., Alcohol Clin Exp Res 2007;31(7):1208-1217 |
+
+An answer to the short alcohol question asked before this release stays
+visible as an earlier answer. Once a questionnaire result is on file, the
+Coach no longer reads the old answer, and you can remove it.
+
+## Screening hints
+
+From the smoking answers, your age and your sex the card shows two hints:
+low-dose CT for lung cancer and an ultrasound of the abdominal aorta. Each
+says whether it may apply, does not apply, or needs more information, with the
+reason and the rule it comes from. The rule follows the account language:
+German accounts read the G-BA rules, every other language the USPSTF
+recommendations. A hint is never a reminder; nothing is scheduled.
+
+## Taking over older free text
+
+Chronic conditions and allergies written as free text in an older version can
+be taken over into the structured condition journal and allergy list, one
+entry at a time and only when you choose to. The free text stays until you
+clear it yourself.
+
+## Related
+
+- [Record allergies and family history](/guides/structured-records/)
+- [Mood and wellbeing](/knowledge/mood/), for the other validated
+  questionnaires
+- [Non-diagnostic standard](/explanation/non-diagnostic-standard/)

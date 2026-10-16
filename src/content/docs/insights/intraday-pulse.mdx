@@ -55,6 +55,22 @@ as the day's maximum. Resting heart rate, walking heart rate and the
 The update to v1.40.1 recalculates the stored pulse summaries once, in
 migration `0372`.
 
+### Sparse hours
+
+Averaging by the hour has a weak spot of its own: an hour with a single stray
+reading counts as much as an hour of steady sampling. v1.43.0 adds a weighted
+method. An hour with `n` readings weighs `min(1, n/3)`: a lone reading counts
+a third, two readings two thirds, and from three readings on the hour counts
+fully. A dense hour still counts once, so the workout bias stays removed.
+
+The method is one setting for the whole instance and does not change on its
+own. Every instance keeps counting every hour equally after the update until
+the admin switches it under **Admin, System status, Pulse day mean**: a dry
+run first shows how many days would move by more than 1 bpm and by how much,
+and **Apply** then switches the method and recalculates the stored pulse days
+in the background. See
+[Admin overview](/guides/admin-overview/#system-status).
+
 ## The elevated-at-rest note
 
 When heart rate stays lifted while you're at rest and not moving, Today notes it

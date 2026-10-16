@@ -260,6 +260,47 @@ generations of a new day could still count against the old day and be
 refused. The spend line on the admin provider health card counts today the same way, on each
 account's own day.
 
+## AI usage levels
+
+Since v1.43.0 every account runs at one of three AI usage levels, chosen
+under **Settings, AI provider, AI usage**. A level decides how much model work
+runs in the background for you. It never decides what is stored or shown, and
+the Coach is the same at every level.
+
+| | Frugal | Standard | Full |
+| --- | --- | --- | --- |
+| Status cards after a sync | at most once a day | the instance gap, 6 hours by default | hourly |
+| Status cards after a hand entry | every 6 hours | hourly | hourly |
+| Data snapshot in a prompt | 10,000 characters | 14,000 | 14,000 |
+| Background reasoning | off | the job's default | the job's default |
+| Daily briefing | short: the lead, today, one recommendation | full | full |
+| Automatic document reading | on request only | your own switch | your own switch |
+| Reading a supplement label photo | not offered | offered | offered |
+
+A watch or an integration delivers readings all day, and each delivery
+changes the day's figures. Without a gap every touched card was written again
+about once an hour; **Full** keeps that behaviour. A reading you enter by hand
+keeps a one-hour gap on standard, so it is still described the same day.
+
+The short briefing keeps every field a client reads, so the iOS app shows it
+unchanged. Snapshots are sent as compact JSON, and the Coach's prompt starts
+with the same text on every turn of a conversation, which lets a provider
+that caches prompts reuse it.
+
+Settings shows an estimate of tokens per day for each level, scaled from your
+own use over the last seven days, the Coach included. It appears after three
+days of AI use.
+
+The instance admin sets the highest level an account may choose and the level
+an account without a choice runs at, both **standard** on a new or updated
+instance, under **Admin, Coach, AI usage levels**. A choice above the ceiling
+is refused rather than quietly lowered. If the admin lowers the ceiling later,
+an account above it runs at the ceiling and keeps its choice, so raising the
+ceiling again restores it. The same card sets the gap for standard (1 to 48
+whole hours); left empty, `AI_SYNC_REGEN_GAP_HOURS` applies, else 6. A feature
+the level does not offer answers with the reason `usage_level` and the level
+it needs.
+
 ## Automatic document reading (opt-in)
 
 The [document vault](/guides/document-vault/) is local-first by default: an

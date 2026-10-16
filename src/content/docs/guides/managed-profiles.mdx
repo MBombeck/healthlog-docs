@@ -219,9 +219,41 @@ and gains a login.
 
 The person opens the link (`/claim/…`) while signed out. They see the name of
 the record, when the link expires and which guardian keeps which access, by
-display name only, and nothing from the health record. They choose a username,
-an email address (required) and a password under the instance's password
-rules.
+display name only, and nothing from the health record. How they sign in from
+then on depends on the instance, and both the guardian's panel and the claim
+page say which ways are open:
+
+| Instance | Ways in |
+| --- | --- |
+| No single sign-on configured | Password |
+| Single sign-on configured, `OIDC_ONLY` unset | Password or single sign-on |
+| `OIDC_ONLY="true"` | Single sign-on only |
+
+With a password, the person chooses a username, an email address (required)
+and a password under the instance's password rules.
+
+### Through single sign-on
+
+Since v1.43.0 the person can claim the record through the instance's identity
+provider, also on an instance that allows only single sign-on. They pick a
+username and continue to the provider. When they come back, the provider
+identity is bound to the record in the same step as the rest of the claim.
+The address is taken from the provider only when the provider marks it as
+verified; otherwise the account has no address. No password is set.
+
+The claim is refused, and the record stays exactly as it was, when:
+
+- that provider identity already signs in to an account on this instance (one
+  identity, one account);
+- the verified address belongs to another account;
+- the username was taken in the meantime;
+- the link was used, withdrawn, replaced or expired while the person was at
+  the provider;
+- the browser is signed in to another account.
+
+The link never appears in an address the server builds: the claim page sends
+it in the request body, and the trip to the provider carries a sealed cookie
+that lives ten minutes and names the link by its id only.
 
 The claim happens in one step. If any part of it fails, the profile stays
 managed and the link stays unused. When it succeeds:
@@ -244,13 +276,16 @@ A guardian who deletes their own account does not take a claimed handover
 with them; the new owner can still make their decision. An unused link whose
 creator lost access stops working.
 
-Some limits in this release:
+Some limits:
 
-- On an instance that only allows sign-in through single sign-on
-  (`OIDC_ONLY`), the handover is not available.
 - The link only works while signed out. A browser signed in to another
   account is turned away.
 - Usernames starting with `managed-` are reserved.
+- The iOS app does not claim. The person claims in a browser, then signs in
+  to the app as usual, with single sign-on through the app's own SSO sign-in.
+
+Before v1.43.0 the handover was not available on an instance with
+`OIDC_ONLY`.
 
 ## Delete the profile
 
