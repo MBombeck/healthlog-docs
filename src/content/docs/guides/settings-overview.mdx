@@ -137,7 +137,9 @@ dashboard, and the readiness, recovery and sleep score rings. See
 ## Integrations
 
 Connection cards for Withings, WHOOP, Fitbit, Google Health, Apple Health,
-Polar, Oura, Strava and Nightscout, the nutrients intake card (only with the
+Polar, Oura, Strava, Nightscout and, with the environment module on, Dawarich
+(since v1.43.0, see [Connect Dawarich](/guides/connect-dawarich/)), the
+nutrients intake card (only with the
 nutrients module on), the **Document archives** card for Paperless-ngx and
 Papra (when the administrator set `DOCUMENT_SOURCE_ORIGINS` and the Documents
 module is on, or with only **Disconnect** while a saved connection can no
@@ -197,6 +199,20 @@ a loss does, and inside it holding steady does, with a small move either way
 shown neutrally. The daily briefing, the weight status note and the Coach know
 the target and the direction too. Without a stored target the tile reads as
 before; the band worked out from your height does not count as a target.
+
+Since v1.43.0 the same rule covers every metric with a band, and the server
+decides it once for the web and the iOS app, so both colour a change the same
+way. The band is your own target, else a default from your profile (the
+age-based blood pressure target, the age- and sex-based resting pulse band,
+the sex-based body fat band). Below the band a rise counts as progress, above
+it a fall, inside it holding steady. Two exceptions: below a default band,
+blood pressure, resting pulse and body fat read as holding steady, because a
+default's lower edge is a convention and not a goal (a resting pulse of 48 is
+nothing to climb out of); only a target you set yourself turns that into "a
+rise is progress". And steps and blood oxygen above their band are never a
+setback. Weight still counts only a target you set. Without a band a metric
+keeps its usual direction. The targets page places a value against its band
+by the seven-day mean, the same basis the dashboard uses.
 Needs nothing beyond a session. Background in
 [Blood pressure targets](/explanation/blood-pressure-targets/).
 
@@ -230,6 +246,11 @@ readings, medications, lab results, illness, mood and cycle; only the document
 vault refuses every delegated write. See
 [Record allergies and family history](/guides/structured-records/).
 
+Since v1.43.0 the section also holds the **Life circumstances** card:
+smoking, alcohol with AUDIT-C, activity, work, sleep and diet habits, and
+goals, each with its own AI switch. See
+[Life circumstances and AUDIT-C](/guides/life-circumstances/).
+
 ## Location & weather
 
 Home location (with a place search), travel overrides for periods away, and
@@ -251,6 +272,10 @@ key, if one is configured, sits at the end of the chain and never overrides a
 key you set yourself; using it needs your consent. The operator's master
 switch stops every AI feature, and **Test connection** says so instead of
 calling the model while it is off. See [AI providers](/guides/ai-providers/).
+
+Since v1.43.0 the section also sets your **AI usage** level: frugal, standard
+or full, within the bounds the admin sets, with an estimate of tokens per day
+for each. See [AI usage levels](/guides/ai-providers/#ai-usage-levels).
 
 The response timeout applies to every AI call: reading and summarising
 documents, lab scans, filing suggestions, medication extraction, the Coach and
@@ -324,3 +349,8 @@ delete the account. Account deletion is a step-up action. See
 Running version with an update check, and links to the repository, the
 changelog, these docs, and the credits page. The same card is shown to the
 admin under Admin, About.
+
+Since v1.43.0 a **Support** card offers **Copy support info**: a summary for
+a bug report, put together in your browser, without your name, email
+address or health values. See
+[Report a problem with an error id](/self-hosting/troubleshooting/#report-a-problem-with-an-error-id).

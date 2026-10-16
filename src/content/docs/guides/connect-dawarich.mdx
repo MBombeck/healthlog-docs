@@ -1,0 +1,131 @@
+---
+title: Connect Dawarich
+description: Read daily movement from a Dawarich instance (distance, car and train kilometres, places visited, time away from home, travel days) without storing a coordinate or a place, and how an operator allows an instance on a private network.
+sidebar:
+  order: 9
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+[Dawarich](https://dawarich.app) is a self-hosted location history. Since
+v1.43.0 HealthLog can read daily movement context from it: how far you moved,
+how much of that by car or by train, how many places you visited, how long
+you were away from home, and whether a day was spent in another country. The
+connection is part of the
+[Environment module](/explanation/environmental-module/) and only runs while
+that module is on.
+
+## What is stored, and what is not
+
+HealthLog keeps one row of numbers per day:
+
+- total distance, distance by car, distance by train;
+- the number of places visited;
+- minutes away from home;
+- whether the day was a travel day, and the country of the day, sealed at
+  rest.
+
+It never stores a coordinate, a track, a place name or a visit. The list of
+your Dawarich places is read live when you pick your home and is not saved.
+The address of the instance and the API key are stored encrypted.
+
+## What is read
+
+Once a night, at 03:20 Europe/Berlin, HealthLog fetches the last seven days,
+ending yesterday. Connecting fetches the last 30 days, and **Fetch now** on
+the card queues the last seven again. Each request carries your API key as
+`Authorization: Bearer <key>`.
+
+| Dawarich endpoint | What HealthLog keeps |
+| --- | --- |
+| `GET /api/v1/timeline` | total distance, distance by car (`driving`), distance by train, places visited |
+| `GET /api/v1/visits` | the minutes spent at your home place, to work out the time away from home |
+| `GET /api/v1/residency` | the country of each day, sealed, and whether it differs from your home country |
+| `GET /api/v1/places` | nothing; the list is shown once so you can pick your home |
+| `GET /api/v1/users/me` | nothing; used to check the key |
+
+Time away from home is the length of the day minus the time a visit at your
+home place covers. Without a home place, or on a day without a single visit,
+it stays empty instead of reading as zero. Dawarich leaves out a mode that
+moved less than half a kilometre; HealthLog reads that mode as zero for the
+day.
+
+Residency needs API access on a hosted Dawarich plan; a self-hosted instance
+has it. Without it there are no travel days, and everything else works.
+Dawarich keys residency by UTC date, so on a day that crosses a border late
+in the evening the country can be the next morning's.
+
+Responses are read with a size limit, and a fetch whose window ends in the
+middle of a day no longer overwrites a day that was already complete.
+
+## Connect
+
+<Steps>
+
+1. In Dawarich, open your account settings and copy the API key.
+
+2. In HealthLog, turn on the Environment module, then open
+   **Settings, Integrations, Dawarich**.
+
+3. Enter the address of the instance and the key, and connect. The last 30
+   days start loading.
+
+4. Pick your home place from the list, and set your home country if you
+   like (a two-letter code such as `DE`). Without one, the country you spent
+   most days in over the last year counts.
+
+</Steps>
+
+:::caution[Run both in the same time zone]
+Dawarich groups its timeline by its own time zone, HealthLog by yours. If the
+two differ, a day can come back without its distances.
+:::
+
+The card follows the same layout and states as every other connection; see
+[Integration status and problems](/guides/integrations/).
+
+## An instance on your own network
+
+A public instance works without any server setting. An instance on a private
+network (a LAN address, a `.lan` name, a container on the same host) is
+refused until the operator lists its exact origin:
+
+```env
+DAWARICH_PRIVATE_ORIGINS="http://dawarich.lan:3000"
+```
+
+The grammar is the one `NIGHTSCOUT_PRIVATE_ORIGINS` uses: one
+`scheme://host[:port]` per entry, comma separated, no path, no wildcard and
+no range. Listing a host does not open its subdomains or another port. The
+unspecified address, link-local addresses and the cloud metadata range can
+never be listed. Unlike Nightscout, the address you enter in the card may
+carry a path, for an instance served under a sub-path behind a reverse proxy;
+the grant is matched on the origin. The variable is on the compose
+`environment:` whitelist; restart HealthLog after changing it. See
+[Environment variables](/reference/environment-variables/#device-integrations-optional).
+
+## Where the values show up
+
+- The [day view](/guides/day-view/) has an **On the move** section with the
+  day's figures.
+- Time away from home and the distance travelled join the
+  [correlations](/explanation/environmental-module/) as two more factors.
+- Runs of at least two travel days that no trip covers yet are offered as
+  trips under **Settings, Location & weather, Location periods**. Taking one
+  fills in the dates; you pick the place. A suggestion can be dismissed.
+- The Coach and the MCP `get_day` tool see the figures and whether a day was
+  a travel day, never the country.
+
+## Disconnect
+
+**Disconnect** stops the nightly fetch and keeps the stored days.
+**Disconnect and delete days** removes them as well. The days are part of the
+[backup](/guides/backups/); the address and key are not, so a restored
+account connects again.
+
+## Related
+
+- [Environmental module](/explanation/environmental-module/)
+- [Integration status and problems](/guides/integrations/)
+- [Connect Nightscout](/guides/connect-nightscout/), the other source with an
+  operator allowlist for private hosts

@@ -121,7 +121,10 @@ row so the history stays honest. The list shows upcoming visits soonest-first
 and past visits newest-first.
 
 A visit can link up to 100 documents, lab results and illness episodes each,
-and a vaccination dose can point at the visit it was given at. When a
+and a vaccination dose can point at the visit it was given at. Since v1.43.0 a
+visit also links the medications prescribed, changed or reviewed there and the
+vaccinations given there, and its **Related** section lists everything it
+belongs to; see [Link related records](/guides/related-records/). When a
 document's date is within seven days of a visit, the app suggests the link.
 
 The link pickers reach your whole record. Since v1.42.4 each picker opens on
@@ -131,6 +134,9 @@ entries from there. Typing searches the whole list, not only what is shown
 (lab results by analyte and panel). Records already linked always show, however far back
 they are. Before, the pickers offered only the newest few hundred entries, so
 anything older could not be linked on a long record.
+Since v1.43.0 a year or a month typed into a picker (`2019`, `03.2019`,
+`March 2019`) lists every record of that period, also in the visit picker; see
+[Find a year or a month in a picker](/guides/related-records/#find-a-year-or-a-month-in-a-picker).
 Filing a visit from a due checkup marks that checkup satisfied.
 
 ### Procedures and surgeries

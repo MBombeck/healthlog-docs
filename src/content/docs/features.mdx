@@ -91,7 +91,10 @@ the vitamins and minerals your device records — a dashboard water tile with
 quick-add and a Nutrients page charting hydration and micronutrients against
 their reference daily intake as context. Opt-in: the module ships off, and
 ingest refuses while it is off. Once you enable it, device-synced dietary data
-flows as your client sends it.
+flows as your client sends it. Since v1.43.0 a supplement with its composition
+counts every taken dose toward the day's micronutrients, the page shows each
+amount by source, and a day above an EFSA tolerable upper intake level says so
+with its source; see [Upper limits](/guides/nutrients/#upper-limits).
 
 ## Metric catalog
 
@@ -159,7 +162,10 @@ score, waist and body measurements, and a longevity
 signal registry, so a new signal wires into
 charts, correlations, the Coach, the FHIR map and the API at once. Structured
 [allergies and family history](/guides/structured-records/) are encrypted at
-rest and print in the doctor report. A vaccination record (since v1.37.3)
+rest and print in the doctor report. Since v1.43.0
+[life circumstances](/guides/life-circumstances/) (smoking, alcohol with the
+AUDIT-C screening in validated wording, activity, work, sleep and diet habits,
+goals) are dated, each with its own AI switch. A vaccination record (since v1.37.3)
 keeps a lifetime immunization log: doses grouped under the disease they
 protect against, optional booster reminders, and a doctor-report section you
 can leave out. An
@@ -196,6 +202,11 @@ re-anchors when you move the date and clears when the visit happens or is
 cancelled. It fires once, never nags, and carries no "done" button, because an
 appointment is not a task you tick off.
 
+Since v1.43.0 medications, visits, lab results, documents, conditions and
+vaccinations show what they belong to in a **Related** section, from links you
+set and from relations the record already implies; see
+[Link related records](/guides/related-records/).
+
 A procedure is a visit of its own kind, and a visit or an illness episode can
 name a body site and a side. The **Body sites** view gathers the procedures,
 visits and conditions filed at one site, with what is linked to them; see
@@ -215,7 +226,8 @@ appears in the doctor-report PDF as a visit list you can leave out.
 Google Health, with the [classic Fitbit API](/guides/connect-fitbit/)
 alongside until its September 2026 retirement; a
 [Nightscout](/guides/connect-nightscout/) instance streams
-continuous glucose; an [Apple Health `export.zip`](/guides/import-apple-health/)
+continuous glucose; a [Dawarich](/guides/connect-dawarich/) instance adds daily
+movement (distance, time away from home, travel days) without any coordinate; an [Apple Health `export.zip`](/guides/import-apple-health/)
 folds your full history in, and so does an Android
 [Health Connect export](/guides/import-health-connect/); the native iOS app streams HealthKit live. A
 per-metric [source priority](/guides/source-priority/) decides which reading is
@@ -254,6 +266,9 @@ and correlation still loads, and nothing is sent to a model. The operator's
 switches stop the work they cover, including document reading and lab scans,
 not just the text. See
 [When AI is not available](/guides/ai-providers/#when-ai-is-not-available).
+Since v1.43.0 each account picks how much background AI work it wants, frugal,
+standard or full, within the bounds the operator sets; see
+[AI usage levels](/guides/ai-providers/#ai-usage-levels).
 
 ## Derived wellness metrics
 
@@ -320,7 +335,8 @@ about.
 
 When the person grows up or wants to sign in themselves, a guardian can hand
 the profile over with a one-time link, and it becomes an ordinary account with
-all its history.
+all its history. Since v1.43.0 that also works through single sign-on,
+including on instances that allow only single sign-on.
 
 See [Give another account access to your record](/guides/shared-access/) and
 [Records with no login of their own](/guides/managed-profiles/) for the steps,

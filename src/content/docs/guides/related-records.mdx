@@ -1,0 +1,112 @@
+---
+title: Link related records
+description: How medications, visits, lab results, documents, conditions and vaccinations point at each other, which links you set and which follow on their own, what a shared record shows, and how the link pickers find a year or a month.
+sidebar:
+  order: 15
+---
+
+A prescription, the visit it came from, the condition it treats and the
+report that documents it are one story. Since v1.43.0 each of the six kinds of
+record shows the others it belongs to in a **Related** section on its detail
+page: medications, visits, lab results, documents, conditions and
+vaccinations. Open a medication and you see the visit that prescribed it, the
+condition it treats and the report it came from; open a visit and you see the
+medications and doses given there.
+
+The server decides what is related and sends the list with the record, so the
+web app and the iOS app show the same thing.
+
+## Which records link to which
+
+Six kinds make fifteen pairs. Each pair is one of three things.
+
+**A link you set.** These are stored and read from both ends:
+
+| Pair | Where you set it |
+| --- | --- |
+| Lab result and visit | the lab result or the visit |
+| Lab result and document | the lab result; a scan from a document sets it on its own |
+| Visit and document | the visit or the document |
+| Visit and condition | the visit |
+| Visit and medication | the medication or the visit: prescribed, changed or reviewed there |
+| Visit and vaccination | the visit or the vaccination: the dose given there |
+| Document and condition | the document |
+| Document and medication | the medication |
+| Document and vaccination | the vaccination |
+| Condition and medication | the medication: what it is taken for |
+
+**A relation that follows from something else.** Nothing extra is stored:
+
+- A lab result and a condition are related when both are filed against the
+  same visit. The entry says **through a visit**.
+- A lab result and a medication are related when the medication's efficacy
+  target is that marker. The entry says **through the efficacy target**.
+
+**No relation.** Three pairs have none, because nothing the record stores
+connects them: a lab result and a vaccination (an antibody titre is a lab
+result of its own, filed against the visit or the report), a condition and a
+vaccination (a vaccination prevents rather than treats, and the record stores
+no indication for a dose), and a medication and a vaccination (a vaccine is
+kept in the immunization log, not as a medication). The visit or the
+document carries the context for these.
+
+## Set a link
+
+The **Related** section lists what is linked and, in your own record, offers
+a picker for each kind you can file from there. On a medication that is
+conditions, documents and visits; on a lab result, documents and visits; on a
+visit, medications and vaccinations next to the documents, lab results and
+conditions it already linked. A visit links up to 100 records of each kind.
+
+Removing a link removes only the link. Deleting either record removes its
+links with it.
+
+When you scan a lab report from a document in the vault, every result saved
+from that scan is linked to the document, so the result and the report name
+each other.
+
+## Find a year or a month in a picker
+
+The pickers open on the records around the record's own date and page to
+older and newer entries. Typing searches the whole list. Since v1.43.0 a term
+that names a period lists every record of that period, newest first, however
+far back it sits:
+
+- a year: `2019`;
+- a month and a year, numeric, in either order: `03.2019`, `3/2019`,
+  `2019-03`;
+- a month name and a year in the language of the app: `March 2019`,
+  `März 2019`, `Maerz 2019`, or the first three letters of a month when they
+  name only one (`sep 2019`).
+
+The sheet names the period it shows. This also works in the visit picker,
+which has no text search. A term with anything else in it, such as
+`LDL 2019`, stays a text search, and so does a year before 1900 or more than
+a year ahead.
+
+## What shows in a shared record
+
+The list follows the same rules as everything else in a
+[shared record](/guides/shared-access/). A kind appears only while its module
+is on for the record and the grant covers its section, and a relation that
+runs through a visit also needs the visit's section, because it says the
+visit exists. At most 50 entries of one kind are listed.
+
+Setting and removing links is for the record's own account. A delegate sees
+the links and cannot change them.
+
+## Backups
+
+Every link is part of the [backup](/guides/backups/) and comes back with a
+restore, including a restore into another instance.
+
+## For API clients
+
+The six detail reads (`GET /api/medications/{id}`, `/api/encounters/{id}`,
+`/api/labs/{id}`, `/api/documents/inbound/{id}`,
+`/api/illness/episodes/{id}` and `/api/vaccinations/{id}`) carry `related[]`:
+`kind`, `id`, `label`, `date`, `href` and `via` (`direct`, `encounter` or
+`efficacyTarget`). Links are set with `POST` and removed with `DELETE` on the
+`/links` route of the record, with `{ targetKind, targetIds }` in and
+`{ changed, unknown }` out. See
+[API endpoints](/reference/api-endpoints/#changes-in-v1430).

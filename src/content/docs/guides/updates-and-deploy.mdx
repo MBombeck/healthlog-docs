@@ -161,6 +161,127 @@ Re-adding the column does not bring back the deleted status notes or undo the
 AI analysis change; the older image writes the notes again on its next nightly
 run.
 
+## Upgrading to v1.43.0
+
+Take a backup first (step 0 above). The container logs how many migrations
+are pending before it applies them; for this release the line counts nine.
+One of them removes columns, so going back to v1.42.4 afterwards means
+restoring the dump.
+
+| Migration | What it does |
+| --- | --- |
+| `0402_ai_usage_levels` | Adds the per-account AI usage level, the instance ceiling and default (both `standard`), and the optional sync gap for status cards. Additive |
+| `0403_biomarker_aliases_merges` | Adds a table of other names per lab marker and a ledger of merges, so an old marker id can still answer with the marker it went into. Additive |
+| `0404_medication_ingredients` | Adds a supplement's composition per tablet or capsule, and a new kind of background document run for reading a label photo. Additive |
+| `0405_life_circumstances` | Adds six kinds of health-profile facts, four AI sections, AUDIT-C as an instrument, and a column for the yearly "still true" confirmations. Additive |
+| `0406_dawarich_context` | Adds the sealed Dawarich connection to the account and one row of daily figures per day. No coordinate or place name is stored. Additive |
+| `0407_pulse_day_mean_method` | Adds the instance's pulse day-mean method, left on the method every version before used, and the result of the last dry run. Additive |
+| `0408_intraday_hour_buckets` | Adds hourly increments to the intraday profiles of summed types (steps, active energy, distance, flights). Additive |
+| `0409_drop_plaintext_location` | Drops the readable location columns that v1.42 replaced with sealed copies. Stops before dropping anything if a row is not sealed yet; see [below](#migration-0409-stops-the-upgrade) |
+| `0410_relation_links` | Adds five link tables: lab result and document, visit and medication, visit and vaccination, medication and document, medication and condition. Additive |
+
+### Migration 0409 stops the upgrade
+
+v1.42 seals home locations, location periods and daily locations, and its
+encryption backfill clears the readable copies account by account. Migration
+`0409_drop_plaintext_location` first counts the rows that still hold a
+readable location. If any count is above zero it stops, and the container
+exits during the migration step with:
+
+```text
+Migration name: 0409_drop_plaintext_location
+Database error code: P0001
+ERROR: HealthLog migration 0409 stopped: 3 home location(s), 0 location period(s) and 12 daily location(s) are still stored in plaintext. ...
+```
+
+Every later start refuses with `P3009` until the failed attempt is cleared.
+Nothing was dropped: the check runs before any other statement of the
+migration. The migrations before it did apply; they only add tables, columns
+and enum values, and v1.42.4 runs on top of them unchanged.
+
+This happens on a host that went from v1.41 straight to v1.43, or that was
+stopped soon after updating to v1.42, so the backfill never reached every
+account. To recover, clear the failed attempt first, because v1.42.4 also
+runs the migrations on start and refuses to boot while one is recorded as
+failed:
+
+```bash
+# 1. Mark the failed attempt as rolled back. The entrypoint is replaced so
+#    the container does not try to migrate first.
+docker compose run --rm --entrypoint sh app -c \
+  'NODE_PATH=/opt/prisma-cli/node_modules node /opt/prisma-cli/node_modules/prisma/build/index.js migrate resolve --rolled-back 0409_drop_plaintext_location'
+
+# 2. Start the previous release: set HEALTHLOG_IMAGE_REF=:v1.42.4 in the
+#    compose .env (or your platform's environment), then recreate.
+docker compose up -d app
+```
+
+v1.42.4 starts the encryption backfill about three minutes after boot and
+again once a day, one account at a time. Watch the three counts the
+migration checks until all three are 0:
+
+```bash
+docker compose exec -T db psql -U healthlog healthlog -c "
+  SELECT
+    (SELECT count(*) FROM users WHERE home_lat IS NOT NULL) AS home,
+    (SELECT count(*) FROM environment_travel_locations WHERE lat IS NOT NULL) AS periods,
+    (SELECT count(*) FROM environment_contexts WHERE lat IS NOT NULL) AS days;"
+```
+
+Each pass logs `[free-text-encryption-backfill] user=...` lines. If the counts
+stop going down, look for a line ending in `failed`; the error on the line
+after it names the cause. Once all three are 0, dump the database again,
+remove the pin (or set it to the new version), pull and recreate. Migration
+0409 then runs through.
+
+:::danger[Two shortcuts that lose data]
+Do not set the readable columns to `NULL` by hand to get past the check:
+those values have no sealed copy yet, so the location is gone for good. Do
+not run `migrate resolve --applied 0409_drop_plaintext_location` either; it
+records the migration as done while the columns are still there, and the
+v1.43 schema no longer matches the database.
+:::
+
+The same steps are in the app repository as
+[`docs/ops/migration-0409-plaintext-location.md`](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/migration-0409-plaintext-location.md).
+
+### What else to know
+
+- **One new optional variable.** `DAWARICH_PRIVATE_ORIGINS` lists Dawarich
+  instances on your own network; a public instance needs nothing. A second
+  optional variable, `AI_SYNC_REGEN_GAP_HOURS`, sets the gap between status
+  card refreshes after a sync at the standard AI usage level (default 6
+  hours); the value under Admin, Coach wins over it. Both are on the compose
+  whitelist. See [Environment variables](/reference/environment-variables/).
+- **AI usage levels.** Every account runs at `standard` until somebody
+  changes it. Standard refreshes status cards after a sync at most every six
+  hours instead of every hour, so expect fewer model calls. Set the ceiling
+  and the default under Admin, Coach. See
+  [AI usage levels](/guides/ai-providers/#ai-usage-levels).
+- **Pulse day mean.** Nothing changes until an admin runs the dry run and
+  applies the weighted method under Admin, System status. See
+  [Sparse hours](/insights/intraday-pulse/#sparse-hours).
+- **Support.** Every server error now shows an error id, and Admin, System
+  status creates a redacted support report. See
+  [Report a problem](/support/#report-an-app-or-server-bug).
+- **What users see.** Records link to each other
+  ([Related records](/guides/related-records/)), supplements count toward the
+  nutrients with their upper limits ([Nutrients](/guides/nutrients/#supplements-as-a-source)),
+  a new [life circumstances](/guides/life-circumstances/) card with AUDIT-C,
+  lab markers can be merged ([Labs](/guides/labs/#merge-markers-and-other-names)),
+  [Dawarich](/guides/connect-dawarich/) as a movement source, managed profiles
+  can be handed over through single sign-on
+  ([Managed profiles](/guides/managed-profiles/#hand-the-profile-over)), and
+  trend colours follow the server's verdict
+  ([Targets](/guides/settings-overview/#targets)).
+- **Notification taps.** A notification about a profile you look after, and a
+  discreet one, now open the dashboard. See
+  [What tapping a notification opens](/guides/reminder-channels/#what-tapping-a-notification-opens).
+- **For API clients.** Request timestamps need seconds, the legacy integration
+  status fields are deprecated and go in v1.44, and OpenAPI writes nullable
+  fields as type arrays. See
+  [Changes in v1.43.0](/reference/api-endpoints/#changes-in-v1430).
+
 ## Upgrading to v1.42.4
 
 Take a backup as usual (step 0 above). There are two migrations, and nothing

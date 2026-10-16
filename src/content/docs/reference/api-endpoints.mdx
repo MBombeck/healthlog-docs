@@ -25,6 +25,122 @@ treating every operation as public.
 All mutations require [authentication](/reference/api-overview/); responses use
 the `{ data, error }` envelope.
 
+## Changes in v1.43.0
+
+What a client written against v1.42 has to know. New routes are in the
+OpenAPI document and in the tables further down.
+
+### Request timestamps need seconds
+
+Every instant a request sends must carry seconds:
+`2026-10-16T06:15:00Z`, `2026-10-16T06:15:00.000Z` and
+`2026-10-16T06:15:00+02:00` pass, `2026-10-16T06:15Z` is refused with `422`.
+The issue message says what is missing:
+`Invalid ISO datetime: seconds are required (YYYY-MM-DDTHH:mm:ssZ)`. Each
+such refusal is counted on the request's wide event as
+`validation.datetime.no_seconds`, so an operator sees a client that still
+sends minute precision. Fields that always required `Z` still do. Responses
+are unchanged.
+
+### Legacy integration status fields
+
+The fields that `health` replaced in v1.42.4 are deprecated and are removed
+in v1.44: `state`, `lastError`, `consecutiveFailuresByKind`, `syncHealth`,
+`tokenExpired`, `needsReauth`, `hasActivityScope`, `planUnavailable` and
+`scopeReconnect`. They are marked `deprecated: true` in the OpenAPI document
+and still served in v1.43. Read `health` on every integration status
+response. See [Integration status and problems](/guides/integrations/).
+
+### Nullable fields in OpenAPI
+
+The OpenAPI 3.1 document now writes a nullable field as a type array
+(`type: [string, "null"]`) instead of the older form. The wire is unchanged;
+a client generator that read the old form may produce different optional
+types after regenerating.
+
+### Error ids
+
+Every error envelope carries `meta.requestId`, the same value as the
+`x-request-id` response header. Show it to the person, or log it; the operator
+finds the event behind it under Admin, App logs. See
+[Report a problem with an error id](/self-hosting/troubleshooting/#report-a-problem-with-an-error-id).
+
+### Feature flags
+
+`GET /api/auth/me` reports four new entries under `features`, each true on a
+v1.43 server. Send the matching request form only when it is true; an older
+server refuses it.
+
+| Flag | Means |
+| --- | --- |
+| `cumulativeHourBuckets` | `POST /api/measurements/batch` takes hourly `stats:<HK>:<YYYY-MM-DD>T<HH>` rows for steps, active energy, walking and running distance and flights climbed |
+| `syncTriggerBackfill` | `syncTrigger: "backfill"` on the batch routes |
+| `biomarkerMerge` | `POST /api/biomarkers/{id}/merge` and aliases on the marker routes |
+| `lifeCircumstances` | the life-circumstance routes |
+
+An hourly `stats:` row carries the sum of one local hour in the account's
+zone, with `startDate` at the start of that hour. It never becomes a
+measurement and never changes the day total; it feeds the intraday profile
+behind the same-time baseline, and a day with at least four posted hours is
+built from them. A re-post overwrites it (`updated`). A refused row comes
+back `skipped` with `hour_bucket_misaligned`, `hour_bucket_unsupported_type`
+or `hour_bucket_too_old` (more than 400 days back). A batch with
+`syncTrigger: "backfill"` moves only `syncProgress` and the per-type
+`lastBackfillAt` in `GET /api/integrations/healthkit`, never the fields that
+say when data last arrived.
+
+### Values the server resolves
+
+Clients render these and never compute them themselves:
+
+- **Direction verdicts.** The dashboard snapshot and summary, the targets and
+  the measurement series carry a `TrendVerdict`: `direction` (`up-good`,
+  `up-bad`, `hold`, `neutral`), `targetPosition` (`below`, `inside`,
+  `above` or null) and `basis` (`personal_target`, `profile_default`,
+  `metric_default`). A delivered change carries a `TrendSentiment`
+  (`positive`, `negative`, `neutral`), the colour to paint. The rule is in
+  [Settings overview](/guides/settings-overview/#targets).
+- **Chart reference lines** on the series: `value`, `kind` (`lower` or
+  `upper`), `source` (`personal` or `clinical`) and `appliesTo` (`value`, or
+  `secondary` for the diastolic value).
+- **Personal records** carry `benchmark`, the cited age- and sex-aware band
+  for the age the record was set at, or null.
+- **Mood patterns.** `GET /api/mood/insights` carries `patterns`, cut to the
+  same `?days` window as `stability`; see
+  [Mood and wellbeing](/knowledge/mood/#what-changes-it).
+- **Cycle.** A period start answers `absorbed`: a later start within the
+  period length that this one folded in, or null. A day-log edit that clears
+  the flow on a start day answers `restored`: the starts it gave back.
+- **Related records.** Six detail reads carry `related[]`; see
+  [Link related records](/guides/related-records/#for-api-clients).
+
+### New routes
+
+| Method | Endpoint | Notes |
+| --- | --- | --- |
+| `POST` / `DELETE` | `/api/medications/{id}/links` | Link or unlink conditions (`conditionEpisode`), documents and visits (`encounter`). `{ targetKind, targetIds }`, at most 100 ids; answers `{ changed, unknown }`. Own account only |
+| `POST` / `DELETE` | `/api/labs/{id}/links` | The same for a lab result, with `document` and `encounter` |
+| `POST` / `DELETE` | `/api/encounters/{id}/links` | Takes `medication` and `vaccination` as new target kinds |
+| `PUT` | `/api/medications/{id}/ingredients` | Replace a supplement's composition per unit (`{ ingredients: [{ nutrient, amount, unit }], source }`). Converts to the catalogue unit and keeps the entered pair. Needs the nutrients module; delegable with manage access; honours `Idempotency-Key` |
+| `POST` | `/api/medications/{id}/ingredients/extract` | Read a label photo (multipart `file`: JPEG, PNG, WebP or PDF, up to 10 MB). Answers `202` with an AI run of kind `SUPPLEMENT_LABEL_EXTRACT`; the result is a proposal, nothing is stored. Own account only, six an hour, not offered at the frugal usage level. HEIC is refused |
+| `GET` | `/api/nutrients/catalog` | Every nutrient with its canonical unit, label, whether HealthKit may send it, input units with their factor, and the upper limit with its `scope`, `form` and `source`, or null |
+| `GET` | `/api/nutrients` · `/api/nutrients/daily` | Each day now carries `bySource` and `aboveUpperLimit` (`null` where the nutrient has no limit); the overview carries `latestBySource` and `upperLimit` |
+| `GET` | `/api/anamnesis/life-circumstances` | The six sections with their answers, AI switches, review state, derived values, screening hints and AUDIT-C with its wording in the account language (`validatedLocale: false` where the English original is shown) |
+| `PATCH` | `/api/anamnesis/life-circumstances/ai-sections` | Switch life-circumstance sections in or out of what the AI may read |
+| `POST` | `/api/anamnesis/life-circumstances/confirm` | Mark a section "still true" |
+| `POST` | `/api/anamnesis/audit-c` · `DELETE /{id}` | Save or remove an AUDIT-C entry |
+| `PUT` | `/api/auth/me/ai-usage` | `{ level: "frugal" \| "standard" \| "full" \| null }`, `null` follows the instance default. Above the ceiling `422` `ai.usage.aboveCeiling`. 30 an hour. `GET /api/auth/me` publishes the resolved state as `ai.usage` |
+| `POST` | `/api/biomarkers/{id}/merge` | Fold up to ten `sourceIds` into the marker in the path. `dryRun: true` answers the same result and writes nothing. A unit without a known conversion refuses the whole merge (`422` `labs.biomarker.merge.unitMismatch`). No undo. Manage access; honours `Idempotency-Key` |
+| `PUT` | `/api/biomarkers/{id}` | Takes `aliases`, the marker's whole set of other names. A name another marker holds is refused with `labs.biomarker.alias.taken` |
+| `POST` | `/api/dawarich/connect` · `/test` · `/sync` · `/disconnect` | Connect, check, fetch the last seven days, disconnect; `deleteData: true` on the disconnect removes the stored days as well |
+| `GET` | `/api/dawarich/status` · `/places` | State and stored day count; the live place list for picking home |
+| `PATCH` | `/api/dawarich/settings` | Home place (an id on the Dawarich instance) and home country (ISO 3166-1 alpha-2). A new home country re-judges the stored travel days; a new home place fetches the stored days again in the background, up to a year |
+| `GET` / `POST` | `/api/environment/travel/suggestions` · `/{id}/dismiss` | Runs of travel days no location period covers yet; dismiss one |
+| `POST` | `/api/auth/claim/sso` | Start claiming a managed profile through single sign-on; see [Managed profiles](/guides/managed-profiles/#through-single-sign-on) |
+| `GET` | `/api/admin/support-report` | The redacted support report. Cookie only |
+| `GET` | `/api/admin/app-logs` | Takes `requestId` (8 to 64 characters, matched by prefix) and `ring=problems` for the buffer of the last 1,000 warnings and errors |
+| `GET` / `POST` | `/api/admin/maintenance/pulse-day-mean` | Read the method and last dry run, or start `dry_run`, `apply` (needs a dry run from the last seven days, else `409` `maintenance.pulseDayMean.dryRunRequired`) or `rebuild`. Answers `202`; `409` `maintenance.pulseDayMean.busy` while a run is active. Cookie only |
+
 ## Measurements & health data
 
 The core ingest and read surface. Batch endpoints power the native client.

@@ -342,6 +342,46 @@ for either. They matter for pens: the companion app's pen list uses the two as
 its headline and subhead, so a container entered on the web could not be shown
 there until the server held them.
 
+## What a supplement contains
+
+Since v1.43.0 a medication can carry its **composition**: what one tablet or
+capsule contains, per nutrient, as the label states it. With the
+[nutrients module](/guides/nutrients/) on, every dose you take then counts
+toward the day's micronutrients, next to what Apple Health sends.
+
+Open the medication, find **Composition** on its overview and choose
+**Add**. Pick a nutrient for each line of the label and enter the amount per
+unit in a unit the nutrient offers; vitamin D, for example, takes µg or IU.
+HealthLog converts to the nutrient's own unit and keeps what you typed beside
+it. DHA and EPA are in the list since this release.
+
+With an AI provider that can read images, **Read from a label photo** fills
+the form from a JPEG, PNG, WebP or PDF of up to 10 MB. Nothing is saved until
+you check each line and save: a line that was hard to read is marked, lines
+without a matching nutrient are listed for you to enter by hand, and a note on
+the label such as "per two capsules" is shown while the amounts stay per
+single unit. The photo counts as a document, so it follows the consent and the
+operator switch for [reading documents](/guides/document-vault/#ai-assist-and-content-search),
+allows six reads an hour, and is not offered on the
+[frugal AI usage level](/guides/ai-providers/#ai-usage-levels). Inside
+somebody else's record the photo is not offered; the composition itself can
+be edited with manage access.
+
+How a dose counts:
+
+- A dose counts when it is marked taken, also when it was
+  [recorded automatically](#record-doses-automatically). Skipped and missed
+  doses do not.
+- A dose belongs to the local day it was scheduled for, the same day the dose
+  list shows it on, and counts with its units per dose: half a tablet at noon
+  is half.
+- The day's supplement amounts are recalculated, not added up, so a
+  correction, an undo, a deleted dose or a changed composition all lead to the
+  same numbers.
+- Changing the composition recalculates every past taken dose of that
+  medication. So does turning the nutrients module back on or changing your
+  time zone. While the module is off nothing is written.
+
 ## See a medication's effect on a metric
 
 The **efficacy chart** plots how a metric moved since a medication started — for

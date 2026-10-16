@@ -47,6 +47,27 @@ v1.42.0 it warns only when no database is mounted and the default online
 provider is in use; a provider you named in `IP_GEO_LOOKUP_URL` shows green. See
 [Offline geolocation](/self-hosting/geolite2/).
 
+Since v1.43.0 two more cards sit on this page.
+
+**Support report** creates a text summary of the instance for a bug report,
+with **Copy** and **Download**. It is built when you press the button and
+shown first, so you can read it before you share it. Accounts appear as
+"Account 1", "Account 2" in the order they were created; the report holds no
+email address, username, account id, recorded value or token. See
+[Report a problem](/self-hosting/troubleshooting/#report-a-problem-with-an-error-id)
+for what it contains.
+
+**Pulse day mean** decides how hours with only a few heart-rate readings count
+toward a day's pulse. **Dry run** compares the current method with the
+weighted one for every account and day and writes nothing but its result: how
+many days were compared, how many would move by more than 1 bpm, the largest
+change and how the changes spread, per account by number only. **Apply**
+needs a dry run that finished in the last seven days; it switches the method
+and recalculates the stored pulse days in the background.
+**Recalculate again** repeats that recalculation, for example when another
+run was still busy at the time. See
+[Sparse hours](/insights/intraday-pulse/#sparse-hours).
+
 <figure>
   <img src={adminSystemStatus.src} alt="Admin System Status page: a two-hour host-load chart plotting load average against memory, then a status card with database connected, the process start time, one user, 4,141 measurements, no active API tokens, one active session, the job worker running, and a geo-data row advising that GeoLite2 databases be mounted" />
   <figcaption>The runtime card an operator checks first. The geo-data row is amber here because no offline database was mounted on the captured instance.</figcaption>
@@ -145,6 +166,13 @@ called **Status cards**, and the card itself was called **Assistant Surfaces**.
 With the master switch off, **Test connection** in a user's AI settings says
 AI is off on this server instead of calling the model.
 
+Since v1.43.0 the **AI usage levels** card sets the highest level an account
+may choose and the level accounts without a choice run at (both standard by
+default), and the hours between status card refreshes after a sync at
+standard (1 to 48; empty uses `AI_SYNC_REGEN_GAP_HOURS`, else 6). The default
+cannot be above the highest level. The provider health card counts accounts
+per level. See [AI usage levels](/guides/ai-providers/#ai-usage-levels).
+
 ### Thinking
 
 Since v1.41.0 the Assistant card also decides whether models may think before
@@ -238,6 +266,14 @@ queue when it ends, and `job.progress` every two minutes while it runs, with
 how far it has got and how much memory the app is using. A job that passes its
 time limit writes a `job.expired` warning. After a restart, the worker writes
 `worker.boot.jobs_cut_off`, naming every job the restart cut off.
+
+Since v1.43.0 the page has an **Error ID** filter. Type the id a person read
+off an error message, or its first eight characters, and the page finds the
+event behind it. That search reads a second buffer that keeps the last 1,000
+warnings and errors of the process, so ordinary traffic cannot push them out
+the way it turns over the main buffer of 500 events. Both buffers live in memory: a restart empties them, and a split
+web and worker deployment has one per process. See
+[Report a problem](/self-hosting/troubleshooting/#report-a-problem-with-an-error-id).
 
 ## Backups
 

@@ -364,10 +364,76 @@ high-frequency types into daily values.
 **Fix.** Nothing. See
 [why the reading count drops](/guides/import-apple-health/#why-the-reading-count-drops-after-an-import).
 
+## An update stops at migration 0409
+
+**Symptom.** The update to v1.43 exits during the migration step with
+`HealthLog migration 0409 stopped: … still stored in plaintext`, and every
+later start refuses with `P3009`.
+
+**Cause.** The v1.42 encryption backfill has not sealed every stored location
+yet, usually because the host skipped v1.42 or stopped soon after updating to
+it. Nothing was dropped.
+
+**Fix.** Mark the failed attempt as rolled back, run v1.42.4 until the
+backfill reports zero rows, then upgrade again. The commands are in
+[Migration 0409 stops the upgrade](/guides/updates-and-deploy/#migration-0409-stops-the-upgrade).
+
+## Report a problem with an error id
+
+HealthLog sends nothing home, and only the operator can read an instance's
+logs. Three things make a bug report findable without exposing anything
+personal.
+
+**The error id.** Since v1.43.0, when the server fails (a 5xx answer), the
+message shows **Error ID** with eight characters, for example `3f9a2c1b`, and
+a button that copies the full id. A page that fails to render shows one when
+the server has one to give. The id is the request id of the failing call;
+every error answer of the API carries it as `meta.requestId` and in the
+`x-request-id` header. A 4xx answer, such as a refused input or a missing
+permission, shows no id: its message says what to change. An incoming
+`x-request-id` is only adopted when it is 8 to 64 letters, digits and
+hyphens; anything else is replaced with a fresh id.
+
+**Support info, for everyone.** **Settings, About this app, Copy support
+info** puts together in the browser the server version and build, the
+browser, language, time zone and switched-on modules, the AI state (whether a
+provider is set up, the usage level, which AI features are available and why
+not), each connected source's health state, reason, last success, newest data
+and recent sync attempts, and the last five error ids of this browser session.
+It never contains a username, email address, name, server address, token,
+recorded value or record id. Nothing is sent; the text goes to the clipboard.
+
+**Support report, for the operator.** **Admin, System status, Support report**
+summarises the instance: build and runtime, the database version, size and
+last migration, which features are configured (as yes or no only), job
+failures of the last 72 hours by queue and error class, connections per health
+state, AI usage levels and provider state, notification delivery over 7 days,
+backup freshness, and the 20 most frequent warning and error actions of the
+process. Accounts appear as `Account 1`, `Account 2`. As a second layer the
+finished text is scrubbed for the instance's own usernames, emails, names and
+ids, and for tokens, URLs, IP addresses and host names, before it is shown.
+
+To find the event behind an error id, type the id into **Error ID** under
+**Admin, App logs**; see [App logs](/guides/admin-overview/#app-logs). The
+same search works on the API:
+
+```
+GET /api/admin/app-logs?requestId=3f9a2c1b&ring=problems
+```
+
+`ring=problems` reads the buffer of the last 1,000 warnings and errors.
+`docker compose logs app` and Loki carry the same events as JSON lines with
+`request_id`, so an error id finds its line there too.
+
+Read both texts before you post them, add the error id, and attach them to the
+[bug report](https://github.com/MBombeck/HealthLog/issues/new?template=bug_report.yml).
+They are built to contain nothing personal, but you are the one publishing
+them.
+
 ## Where to look when something else breaks
 
 - `docker compose logs -f app` — the app logs structured wide events; errors
-  carry a request id.
+  carry a request id, the same id the web shows as **Error ID**.
 - `/api/version` — confirms exactly which build is serving.
 - The **admin panel** — worker status shows whether the pg-boss job worker is
   alive; the audit log shows sensitive operations.
