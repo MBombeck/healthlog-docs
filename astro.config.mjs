@@ -12,6 +12,8 @@ export default defineConfig({
 		'/integrations/polar/': '/guides/connect-polar/',
 		'/integrations/nightscout/': '/guides/connect-nightscout/',
 		'/integrations/dawarich/': '/guides/connect-dawarich/',
+		'/integrations/strava/': '/guides/connect-strava/',
+		'/integrations/google-health/': '/guides/connect-google-health/',
 		'/integrations/apple-health/': '/guides/import-apple-health/',
 		'/integrations/data-import/': '/guides/import-csv/',
 		'/integrations/fitbit/': '/guides/connect-google-health/',
