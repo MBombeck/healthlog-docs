@@ -54,6 +54,8 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
 				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://docs.healthlog.dev/og-image.png' } },
+				// Self-hosted, cookieless analytics (Rybbit).
+				{ tag: 'script', attrs: { src: 'https://rybbit.bombeck.io/api/script.js', 'data-site-id': '23', defer: true } },
 			],
 			customCss: ['./src/styles/custom.css'],
 			expressiveCode: {
