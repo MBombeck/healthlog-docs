@@ -89,7 +89,7 @@ the bundled compose file substitutes it into `DATABASE_URL` as
 `connection_limit`, so setting it in `.env` reaches the container.
 (`DATABASE_POOL_MAX` still works as a legacy explicit override, but it is not
 on the compose environment whitelist.) Plan total Postgres slots as
-**container count × connection limit** — a stock Postgres ships with
+**container count × connection limit**; a stock Postgres ships with
 `max_connections = 100`, so four web replicas plus one worker at the default
 ceiling consume all 100 slots and starve every other client (`psql`, backups,
 the Prisma CLI during a migration deploy).

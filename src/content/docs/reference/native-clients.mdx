@@ -117,7 +117,7 @@ If the same APNs / FCM token is already registered to a **different** account, t
 Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [ingest token](/guides/ingest-token/) verification. Web session cookies use the same storage shape: a random secret in the cookie, only its HMAC in the database.
 
 :::tip[Long-lived tokens are minted per medication]
-For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens — same auth header, no refresh dance. The token is scoped to intake for that medication, and every route that does not declare that scope refuses it.
+For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens: same auth header, no refresh dance. The token is scoped to intake for that medication, and every route that does not declare that scope refuses it.
 
 **Settings → API & tokens** has no generic token button; it lists and revokes the tokens the account holds and mints the narrow [measurement, document and workout tokens](/guides/ingest-token/).
 :::

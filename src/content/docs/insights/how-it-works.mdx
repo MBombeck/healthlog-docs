@@ -106,7 +106,7 @@ every assessment sentence.
 
 ## How the multi-provider fallback chain works
 
-Most users configure one provider — that's fine, the chain just has one entry. When you configure two or more under **Settings → AI provider**, the wrapper tries them in order. A provider is considered **hard-failed** if it returns:
+Most users configure one provider, which is fine: the chain just has one entry. When you configure two or more under **Settings → AI provider**, the wrapper tries them in order. A provider is considered **hard-failed** if it returns:
 
 - `401` / `403` — auth or scope problem.
 - `429` — rate limit.
@@ -119,7 +119,7 @@ On hard fail the wrapper cascades to the next provider in your chain.
 
 A provider that keeps failing is skipped for a while and then paused, up to a day, so background work stops hammering it; see [When a provider keeps failing](/guides/ai-providers/#when-a-provider-keeps-failing). Each call waits as long as your [response timeout](/guides/ai-providers/#response-timeout) allows.
 
-The **last provider that successfully answered** is cached for an hour per user. So after a vendor outage, the cascade only runs once — the next generation goes straight to the working provider. The "active provider" badge in **Settings → AI provider** shows which entry actually served the most recent generation, so you can see at a glance whether the fallback kicked in.
+The **last provider that successfully answered** is cached for an hour per user. So after a vendor outage, the cascade only runs once; the next generation goes straight to the working provider. The "active provider" badge in **Settings → AI provider** shows which entry actually served the most recent generation, so you can see at a glance whether the fallback kicked in.
 
 ## Feedback
 

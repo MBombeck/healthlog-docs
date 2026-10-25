@@ -17,7 +17,7 @@ The daily briefing and the comprehensive insight are warmed **overnight** by a b
 
 The dashboard hero can carry up to **three score rings**, picked from a closed
 set of four: **readiness**, **recovery**, **sleep score**, and **today's
-doses**. Select and reorder them under **Settings → Arrangement → Dashboard** — changes
+doses**. Select and reorder them under **Settings → Arrangement → Dashboard**. Changes
 apply instantly, and the order you set is the order the hero renders.
 
 Rings are honest about their inputs:
@@ -96,7 +96,7 @@ same [7-day trend chip](#7-day-trend-on-every-tile) and per-metric colour as the
 rest.
 
 Like every other widget, the new tiles are **toggleable and reorderable** under
-**Settings → Arrangement → Dashboard** — hide the ones you don't follow, drag the ones you do
+**Settings → Arrangement → Dashboard**: hide the ones you don't follow, drag the ones you do
 to the top. The [tile / chart split](#tile-and-chart-toggles-separately) applies
 here too, so you can keep a metric's tile without its chart.
 
@@ -118,7 +118,7 @@ The dashboard's measurement-tile strip uses a true CSS Grid track with a 9 rem f
 
 ### 7-day trend on every tile
 
-Every metric tile in the top strip shows a coloured `(±N.N)` next to the value. That delta is the 7-day trend: the slope of a straight line fitted through the last 7 days of readings, projected over 7 days, in the metric's own units. When the last 7 days do not carry a trend, the 30-day slope is projected over 7 days instead. A window carries a trend only when its readings fall on at least 3 different days that lie at least half the window apart; otherwise the tile shows no delta rather than a number fitted to two readings. The label below the value reads "7-day trend" (EN) / "7-Tage-Trend" (DE) instead of the previous "7d average". The colour follows what's good for that metric — green for "up is good" (steps, sleep), orange for "up is concerning" (BP, BMI), muted for "neutral" (weight). One glance tells you which way the metric is moving.
+Every metric tile in the top strip shows a coloured `(±N.N)` next to the value. That delta is the 7-day trend: the slope of a straight line fitted through the last 7 days of readings, projected over 7 days, in the metric's own units. When the last 7 days do not carry a trend, the 30-day slope is projected over 7 days instead. A window carries a trend only when its readings fall on at least 3 different days that lie at least half the window apart; otherwise the tile shows no delta rather than a number fitted to two readings. The label below the value reads "7-day trend" (EN) / "7-Tage-Trend" (DE) instead of the previous "7d average". The colour follows what's good for that metric: green for "up is good" (steps, sleep), orange for "up is concerning" (BP, BMI), muted for "neutral" (weight). One glance tells you which way the metric is moving.
 
 The trend label is consistent across **every** chart, tile, and subtitle — there is no mix of "7d average" and "7d trend" depending on which surface you're on, and the indicator appears for mood and medication-compliance just like it does for the vitals charts. Long ranges fall back to a split-half mean delta when the per-week rate would round to zero, so the ±N never reads `0.0` when there's a real movement underneath.
 
@@ -144,11 +144,11 @@ Every chart card has a small cog button next to its header. Tap it for a popover
 - **Trend arrow** — adds the small ↑ / ↓ direction-arrow chip to the headline. Off by default.
 - **Target range** — shades the metric's healthy band across the chart background (sys 120–139, weight ±5% of personal target, etc.). Off by default.
 
-Defaults are all off, so the default look is a clean line. Each switch is **per chart, per user** — the BP chart can have target-range on while the weight chart stays off. State is saved in your account, so it survives reload and follows you across devices. The personal-baseline reference line only renders when the Trend switch on that specific chart is enabled.
+Defaults are all off, so the default look is a clean line. Each switch is **per chart, per user**: the BP chart can have target-range on while the weight chart stays off. State is saved in your account, so it survives reload and follows you across devices. The personal-baseline reference line only renders when the Trend switch on that specific chart is enabled.
 
 ### Comparison overlays
 
-The **comparison** choice (*Off*, *vs. last month*, *vs. last year*) sits in the same cog menu on each chart card, but it is one preference for the whole dashboard: setting it on one chart sets it on every chart, tile and Insights metric page. With a comparison on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis — the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
+The **comparison** choice (*Off*, *vs. last month*, *vs. last year*) sits in the same cog menu on each chart card, but it is one preference for the whole dashboard: setting it on one chart sets it on every chart, tile and Insights metric page. With a comparison on, the prior period renders as a dimmed line beneath the current line, and a delta callout (Δ ±N) appears next to the headline value. The two periods share the same x-axis; the prior-period series is forward-shifted so each point sits directly under its current-period sibling, so any difference is a vertical offset you can spot at a glance.
 
 AI Insights narrates the comparison ("your average BP improved by 4 mmHg vs. last month") when the toggle is active. See [Comparison views](/dashboard/comparison/) for the full walk-through.
 

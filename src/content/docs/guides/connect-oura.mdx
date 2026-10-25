@@ -7,23 +7,23 @@ sidebar:
 
 HealthLog connects to an Oura account over [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) against the Oura API v2. You bring your own developer app: the Oura **Client ID** and **Client Secret** are pasted into Settings (or set as server env vars) and stored AES-256-GCM-encrypted at rest. HealthLog never ships a shared credential.
 
-Once linked, the ring's sleep (with stage hypnogram), heart rate through the day, respiratory rate, activity, workouts, blood-oxygen and **daily readiness** flow in. Oura readiness ranks below WHOOP but above Polar and the computed proxy as a recovery source — see [Recovery and readiness](/methodology/recovery/).
+Once linked, the ring's sleep (with stage hypnogram), heart rate through the day, respiratory rate, activity, workouts, blood-oxygen and **daily readiness** flow in. Oura readiness ranks below WHOOP but above Polar and the computed proxy as a recovery source; see [Recovery and readiness](/methodology/recovery/).
 
 ## What gets synced
 
 HealthLog reads the Oura v2 user collections and maps:
 
-- **Sleep** — the `sleep` detail records carry a 5-minute hypnogram; light maps to HealthLog's CORE stage, plus efficiency, HRV and resting (lowest) heart rate.
-- **Daily readiness** — the headline readiness score with its temperature-deviation and balance contributors.
-- **Daily activity** — steps, energy, distance.
-- **Daily SpO₂** — average overnight blood-oxygen saturation.
-- **Daily sleep** — the headline Sleep Score (distinct from the `sleep` detail).
-- **VO₂ max** — the dedicated `vO2_max` collection.
-- **Cardiovascular age** — Oura's daily estimate, stored as vascular age.
-- **Daily resilience** — the resilience level, encoded on a 1 to 5 scale.
-- **Workouts** — each Oura workout, recorded or auto-detected, becomes a workout. The same walk from another source is shown once, by your [source priority](/guides/source-priority/).
-- **Heart rate through the day** — the ring's readings every few minutes, stored as pulse readings.
-- **Cycle phases** — a best-effort import of `daily_cycle_phases` for Cycle Insights, where the ring provides it.
+- **Sleep**: the `sleep` detail records carry a 5-minute hypnogram; light maps to HealthLog's CORE stage, plus efficiency, HRV and resting (lowest) heart rate.
+- **Daily readiness**: the headline readiness score with its temperature-deviation and balance contributors.
+- **Daily activity**: steps, energy, distance.
+- **Daily SpO₂**: average overnight blood-oxygen saturation.
+- **Daily sleep**: the headline Sleep Score (distinct from the `sleep` detail).
+- **VO₂ max**: the dedicated `vO2_max` collection.
+- **Cardiovascular age**: Oura's daily estimate, stored as vascular age.
+- **Daily resilience**: the resilience level, encoded on a 1 to 5 scale.
+- **Workouts**: each Oura workout, recorded or auto-detected, becomes a workout. The same walk from another source is shown once, by your [source priority](/guides/source-priority/).
+- **Heart rate through the day**: the ring's readings every few minutes, stored as pulse readings.
+- **Cycle phases**: a best-effort import of `daily_cycle_phases` for Cycle Insights, where the ring provides it.
 
 Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's. Periods you dismissed in the Oura app (Oura marks them as `rest`) and periods you deleted are not imported: they are not sleep. Daily totals are stored at noon of their day in your own time zone, so they land on the right day wherever you live (see [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
 

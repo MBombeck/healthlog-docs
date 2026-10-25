@@ -46,10 +46,10 @@ process the file.
 
 Two key-provisioning modes coexist:
 
-- **BYOK (bring your own key)** — each user pastes a personal API key into
+- **BYOK (bring your own key)**: each user pastes a personal API key into
   `/settings/ai`. It is AES-256-GCM-encrypted at rest and only decrypted
   in-process. Cost falls to the user.
-- **Admin-shared** — the operator sets one server key under **Admin → Coach**.
+- **Admin-shared**: the operator sets one server key under **Admin → Coach**.
   It drives OpenAI by default (`gpt-4o`), or Anthropic when its base URL is
   Anthropic's (`claude-sonnet-4-6`). Users without their own key fall back to
   it. It is the last entry in the chain, so it acts as a safety net rather
