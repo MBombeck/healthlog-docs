@@ -67,10 +67,37 @@ POST /api/internal/deploy-webhook
 ```
 
 For a CI/CD dashboard (e.g. Coolify) to report deploy success or failure back to
-the instance. Authenticated by the `X-Deploy-Webhook-Secret` header, compared
-timing-safe against `DEPLOY_WEBHOOK_SECRET`. `DEPLOY_LOGS_URL` is linked in the
-resulting failure notification. See
-[Updates and deploy](/guides/updates-and-deploy/).
+the instance. `DEPLOY_LOGS_URL` is linked in the resulting failure
+notification. It accepts two kinds of request:
+
+- **Secret header.** `X-Deploy-Webhook-Secret` carries `DEPLOY_WEBHOOK_SECRET`,
+  compared timing-safe. This is all Coolify's stock sender can do, and it does
+  not stop a replay: whoever captures one request holds the secret. An
+  `X-Deploy-Webhook-Timestamp` beside it is still checked (a stale one gets
+  `401 {"status":"stale"}`), but nothing covers it.
+- **Signature.** `X-Deploy-Webhook-Signature: sha256=<hex>` is the HMAC-SHA256,
+  under `DEPLOY_WEBHOOK_SECRET`, of the `X-Deploy-Webhook-Timestamp` value, a
+  dot and the exact request body. The timestamp (unix seconds, milliseconds or
+  ISO-8601) must lie within five minutes of server time. The secret is never
+  sent, and a captured request is useless once the window has passed.
+
+`DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP=true` accepts signed requests only. Use it
+when the sender, or a small relay in front of the app, can sign:
+
+```bash
+TS=$(date +%s)
+BODY='{"status":"success"}'
+SIG=$(printf '%s.%s' "$TS" "$BODY" \
+  | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.*= //')
+curl -X POST https://<host>/api/internal/deploy-webhook \
+  -H "X-Deploy-Webhook-Timestamp: $TS" \
+  -H "X-Deploy-Webhook-Signature: sha256=$SIG" \
+  -H "Content-Type: application/json" \
+  -d "$BODY"
+```
+
+Before 1.46 the strict setting accepted the secret header with a fresh
+timestamp; such a sender now gets `401` and has to sign.
 
 ## What does not exist
 
