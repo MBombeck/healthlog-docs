@@ -1,6 +1,6 @@
 ---
 title: The document vault
-description: Store the medical paper trail — doctor letters, reports, scans — encrypted at rest in one searchable timeline. Opt-in, byte-classified, with tunable per-file and per-account limits.
+description: Store the medical paper trail (doctor letters, reports, scans) encrypted at rest in one searchable timeline. Covers formats, limits, Recently deleted, linking, AI reading, content search, clinician share links and chatting about a document.
 sidebar:
   order: 25
 ---
@@ -10,19 +10,18 @@ import documentsEmpty from '../../../assets/screenshots/documents-empty.png';
 The Documents module is a flat, encrypted, searchable store for the paper
 trail a household accumulates: doctor letters, discharge summaries, lab
 reports, imaging findings, prescriptions, referrals, insurance letters,
-vaccination records, and since v1.40.0 sick notes as a type of their own, which
-the type filter and filing suggestions know as well. One timeline, filtered by type, condition, procedure, year, and
-text search — no folders to maintain.
+vaccination records and sick notes. One timeline, filtered by type, condition,
+procedure, year, and text search. No folders to maintain.
 
 It is **available by default**. Each user can turn it off under Settings →
 Modules ("Documents"), and an operator can withhold it instance-wide through
 the module availability settings. AI reading of stored documents remains a
 separate opt-in.
 
-Documents can also come in from another document system. Since v1.39.3 the
-**Import from Paperless-ngx** or **Import from Papra** button beside **Upload**
-searches your archive by name and copies the documents you tick; since v1.39.2
-a Paperless-ngx workflow or the import script can send them too. See
+Documents can also come in from another document system: the **Import from
+Paperless-ngx** or **Import from Papra** button beside **Upload** searches your
+archive by name and copies the documents you tick, and a Paperless-ngx
+workflow or the import script can send them too. See
 [Import documents from Paperless-ngx or Papra](/guides/import-documents/).
 An imported document's detail sheet names where it came from, for example
 **Imported from Paperless-ngx · ID 412**.
@@ -48,10 +47,9 @@ ever render inside the app, and nothing a user uploads can execute in the
 app's origin. Stored files are never rewritten or "sanitised" — the
 original is the artefact.
 
-Since v1.42.2 a PDF or image original has an **Open in new tab** action in
-its detail view. The browser's own viewer then takes over, with its zoom,
-search and print, which reads a long PDF more comfortably than the preview
-inside the app.
+A PDF or image original has an **Open in new tab** action in its detail view.
+The browser's own viewer then takes over, with its zoom, search and print,
+which reads a long PDF more comfortably than the preview inside the app.
 
 **HEIC note:** iPhone photos picked through the browser are transcoded to
 JPEG by the picker and preview inline. A raw `.heic` file dropped from a
@@ -68,7 +66,7 @@ Two knobs, both on the admin settings page:
   uploads).
 - **Per-account quota** — default 1 GB, plus an optional per-user override
   on the admin user page. Deleted documents keep counting against the
-  quota until their 30-day undo window ends (see below), so "deleted"
+  quota until they are removed for good (see below), so "deleted"
   bytes are never invisible weight.
 
 An upload over the cap or quota fails instantly with a message naming the
@@ -80,31 +78,44 @@ have an hourly allowance of their own, 120 per token by default
 up the allowance your own uploads from the web app or the phone draw on. The
 per-file cap and the quota apply to them as to any upload.
 
-## Deleting, undo, and backups
+## Deleting and restoring
 
-Since v1.42.0 every delete in the vault asks first: the Delete button in the
-selection bar, the Delete key on a focused card and Delete in a document's
-sheet. Before, all three deleted at once with only an Undo toast behind them.
-Delete is still a soft delete with an Undo toast. A deleted document stays
-restorable — via undo or the API — for **30 days**; a nightly job then
-removes it permanently and returns the space.
+Every delete in the vault asks first: the Delete button in the selection bar,
+the Delete key on a focused card and Delete in a document's sheet. A deleted
+document moves to **Recently deleted** and stays there for **30 days**; a
+nightly job then removes it for good and returns the space.
 
-Deleting an imported document is permanent for the importer too: a later run
+While Recently deleted holds anything, the Documents page shows a link to it
+with the count. It lists each deleted document with its type, its date, where
+it came from (Paperless-ngx, for example) and how many days are left.
+**Restore** brings a document back with its links and what was read from it;
+**Restore all** does that for the whole list. **Delete now** removes one for
+good straight away, after a confirmation. A document whose identical file has
+been stored again in the meantime cannot be restored; the page says so.
+
+Recently deleted is yours alone: someone you share your record with does not
+see it, even at the manage level. A document in it cannot be opened,
+previewed, read with AI or shared until it is restored.
+
+Deleting an imported document also holds against the importer: a later run
 of the import script or a re-sent Paperless webhook does not bring it back,
-also after the 30 days. See
+also after the 30 days. Only ticking it in the document picker does. See
 [running it again](/guides/import-documents/#running-it-again-duplicates-and-deletions).
 
-Documents live in PostgreSQL alongside everything else, so a normal
-`pg_dump` backup includes them and restore needs no extra steps. Plan for
-backup growth roughly linear in stored document bytes. The off-host S3
-JSON backup carries the encrypted document bytes too, so its size grows
-with the vault as well; budget the off-host storage accordingly.
+## Backups
+
+Documents live in PostgreSQL alongside everything else, so a database dump
+includes them and a restore needs no extra steps. The app's own backup
+carries the encrypted document bytes too, so both grow roughly linearly with
+the vault; budget the off-host storage accordingly. A document waiting in
+Recently deleted is not in the app's backup, so restore it first if it
+should travel. See [which backup covers what](/guides/backups/#which-backup-covers-what).
 
 ## How the vault is laid out
 
 The archive shows each month as a grid of preview tiles, two across on a phone
 and three or four on a wider screen. The wrench beside Upload opens
-**Settings, Appearance, Documents**, where you choose preview cards or a
+**Settings → Arrangement → Documents**, where you choose preview cards or a
 compact list, and months stacked as blocks or flowing across the full width.
 The choice is saved per account and travels in the account-settings backup.
 
@@ -127,22 +138,16 @@ from either side; both are the same link.
   A childhood vaccination record can be linked to every dose it lists in one
   place, instead of opening each dose.
 
-Before v1.39.0 the picker on a visit or a vaccination could say "No documents
-yet." with a full vault, and a document showed its visits read-only and its
-vaccinations not at all.
-
-Each link shows as a chip. Since v1.39.1 a chip carries its record's date, so
-three COVID-19 doses on one document read as three different doses rather than
-three identical chips. Clicking a chip opens that dose, visit, condition or
-document. Only the small **×** beside it removes the link, and right after you
-remove one, a line under the chips offers to undo it. This works the same from
-both sides, and on visits too. Before, a chip was one button, so opening the
-linked record removed the link.
+Each link shows as a chip with its record's date, so three COVID-19 doses on
+one document read as three different doses. Clicking a chip opens that dose,
+visit, condition or document. Only the small **×** beside it removes the link,
+and right after you remove one, a line under the chips offers to undo it. This
+works the same from both sides.
 
 ### Filter by procedure or surgery
 
-Since v1.40.2 the archive has a filter for **Procedures and surgeries** next to
-the **Condition** filter. It lists the procedures you have linked at least one
+The archive has a filter for **Procedures and surgeries** next to the
+**Condition** filter. It lists the procedures you have linked at least one
 document to, newest first; the button reads **All procedures** until you pick
 one. Picking one shows the documents linked to that procedure. A procedure without a linked document
 does not appear, and the filter is absent until there is one. On a phone the
@@ -158,57 +163,80 @@ different storage economics. If a file you consider a document is
 refused, check the format table above; re-exporting to PDF is usually the
 answer.
 
-## AI assist and content search
+## Reading documents with AI
 
-The vault works fully without any AI. Filing and finding get an *optional*
-layer that only runs when you have configured an AI provider (bring-your-own-key
-or a local model) and consented to it. Nothing runs automatically, nothing is
-interpreted, and nothing is saved without your explicit action.
+The vault works fully without any AI. Uploading, storing, opening and
+searching work the same with no model set up. On top of that, an optional
+layer reads documents through your configured provider (bring-your-own-key or
+a local model). It never interprets a document: no diagnosis, and no value
+flagged as high, low or abnormal. The document is treated as untrusted data,
+so an instruction printed inside it is ignored, never followed.
 
-Since v1.39.0 reading documents has a consent of its own. Before a document goes
-to an AI service outside your server, your own key included, you are asked once
-for consent to reading documents; a local model on your server needs none. That
-consent covers documents, lab report scans and medication text, and nothing
-else, and your consent for the Coach or AI analysis does not stand in for it.
+Reading documents has a consent of its own. Before a document goes to an AI
+service outside your server, your own key included, you are asked once; a
+local model on your server needs none. That consent covers documents, lab
+report scans and medication text, and nothing else. The operator can switch
+reading off for the whole server with **Reading documents** under Admin,
+Coach, or with the master switch. Then every action below is refused, and a
+background read that was queued earlier stops when it runs.
 
-The operator can switch reading off for the whole server with **Reading
-documents** under Admin, Coach, or with the master switch. Then suggesting
-details, summaries, extracted text, indexing through a provider, chatting about
-a document and lab scans are all refused, and a background read that was queued
-earlier stops when it runs. Uploading, storing, opening and searching work the
-same with reading off or no model set up. Search still finds words in a PDF
-that has its own text layer; only the model-read version of a scanned page waits
-until reading is back on.
+### What happens on upload
 
-### Suggest details (review-first)
+Every upload is made searchable in the background, so the upload finishes at
+once and never fails because of it. The job picks the best reader it is
+allowed to use:
 
-Open a stored document and choose **Suggest details**. HealthLog sends the
-document to your configured provider once and proposes a filing **title**, a
-**type**, and the document's printed **date**. These are drafts:
+- **A local vision model on your server** reads the document, scans and
+  photos included. Nothing leaves your machine.
+- **An external provider** reads it only when you have turned on **Read
+  documents automatically with AI** in your AI settings. The switch is off by
+  default and rests on the Frugal [AI usage level](/guides/ai-providers/#ai-usage-levels).
+  With it on, each new document also gets a short stored summary, and turning
+  it on works through the documents already in your vault, within your daily
+  AI budget.
+- **Otherwise** HealthLog extracts a PDF's own text layer on the server, with
+  no AI and nothing leaving your machine. Digitally generated PDFs (lab
+  reports, letters) become searchable this way; a scan or a photo waits until
+  something reads it.
 
-- The title lands in the editable title field — you still press save.
-- Type and date apply only when you tap **Apply** on that row.
-- Nothing is written until you act. Suggestions can be wrong — check them.
+Documents brought in by the import script are held back from AI reading by
+default, and the switch does not reach them later. How to read them is in
+[AI reading of imported documents](/guides/import-documents/#ai-reading-of-imported-documents).
 
-With no provider configured, the action is absent and the manual form is
-unchanged. The document is treated as untrusted data: any instruction printed
-inside it is ignored, never followed.
+### Actions on a document
 
-### Summary / extracted text (session-only)
+Open a document to find these. With no provider configured the block points
+to your AI settings instead.
 
-**Summarise** returns a short, plain-language description of *what* the document
-is. **Show extracted text** returns its raw transcribed text. Both are shown
-once, for that view only — they are never saved into the coach, snapshots, the
-structured records, or the search index. The summary is descriptive and is not a
-diagnosis; it never flags a value as high, low, or abnormal.
+- **Read with AI** reads the document with your provider, makes a scan or
+  photo searchable and, with Labs on, offers any lab values for review (see
+  [Labs](/guides/labs/)). **Read again** repeats it.
+- **Suggest details** proposes a title, a type and the printed date. The title
+  lands in the editable field and still needs a save; type and date apply only
+  when you tap **Apply** on their row.
+- **Summarise** and **Show extracted text** show a short description or the raw
+  text once, for that view only. Neither is saved anywhere.
+- **Generate summary** writes the stored summary, kept with the document and
+  encrypted at rest. The summary block says when one is being prepared, was
+  held back by the safety check, or could not be made, and offers to try again.
+
+With on-device text recognition turned on (Settings → Modules → Labs), an
+image can be read in your browser and only the text goes to the server. PDFs
+cannot be read that way.
+
+The document AI picks a **local** reader first, then a **no-training API**
+provider, and a subscription provider last. These actions share a per-person
+limit, six an hour by default (`DOCUMENT_AI_LIMIT_PER_HOUR`), and use your
+daily AI budget; once the budget is spent, upload indexing falls back to the
+local text-layer reader.
 
 ### Long reads run in the background
 
-Since v1.40.0 reading a document with AI, its summary, filing suggestions,
-extracting values and scanning a lab report run as a job on the server while
-the page waits, instead of inside one long request. A reverse proxy that ends
-long requests (Cloudflare does at 100 seconds) can therefore no longer cut a
-slow model off. The page says "Reading in the background" while it waits.
+Reading a document with AI, its summary, filing suggestions, extracting values
+and scanning a lab report run as a job on the server while the page waits,
+instead of inside one long request. A reverse proxy that ends long requests
+(Cloudflare does at 100 seconds) therefore cannot cut a slow model off. The
+page says "Reading in the background" while it waits.
 
 Whether you can leave the page depends on where the result goes:
 
@@ -223,64 +251,52 @@ default. If a read sits in the queue for more than 30 seconds, the page shows
 "Waiting for the background worker"; a run that no worker picks up within 15
 minutes fails and its AI budget is handed back. See
 [Scaling](/self-hosting/scaling/#document-and-lab-scan-reads-run-on-the-worker)
-for a separate worker container. The iPhone app works as before.
+for a separate worker container.
 
 ### Content search (search inside documents)
 
-By default search matches a document's title and filename. When indexing is
-available, search also matches whole words *inside* the document body.
+By default search matches a document's title and filename. Once a document is
+indexed, search also matches whole words *inside* the document body.
 
 How it stays private:
 
-- Indexing extracts the document text, stores it **encrypted at rest**
-  (AES-256-GCM, the same posture as every other health note), and derives a
-  **blind token index** — each word is turned into a one-way keyed hash. No
-  readable document text and no readable word is ever stored.
+- Indexing stores the document text **encrypted at rest** (AES-256-GCM, the
+  same posture as every other health note) and derives a **blind token
+  index**: each word is turned into a one-way keyed hash. No readable document
+  text and no readable word is ever stored.
 - A search hashes your query the same way and matches the hashes in the
   database. Without the server's key the tokens are meaningless.
 
-Honest limits:
+Limits:
 
 - Content search is **whole-word**: it matches complete words, not substrings,
   prefixes, or typos. Substring matching on the short fields (title, filename)
   still works and is unioned with content matches.
-- Indexing needs a provider: a vision-capable provider (the
+- Scans and photos need a reader that can see them: a local model, a
+  vision-capable provider (the
   [AI providers guide](/guides/ai-providers/#provider-matrix) lists which
-  models qualify) reads images and (on the Claude path) PDFs; with local OCR enabled, images are read on your device and
-  only the text is sent to the server to index. PDFs cannot be read by local
-  OCR.
-- Per-document **Index for search** indexes one document; **Index all for
-  search** runs a bounded, resumable background backfill over your not-yet-
-  indexed documents, stopping at your daily AI budget. It skips imported
-  documents whose AI reading was
-  [held back](#imported-documents-reading-held-back).
-
-### What this does not change
-
-- Uploads remain store-first and provider-free — a document is always filable,
-  even with no AI configured.
-- The stored original is never modified.
-- Sending a document to a provider means your data leaves the network under your
-  own key. That egress is opt-in, consent-gated, and rate- and budget-limited.
-
-### Key rotation
+  models qualify), or on-device text recognition for images.
+- **Index all for search** on the Documents page runs a bounded, resumable
+  background pass over your not-yet-indexed documents. It stops at your daily
+  AI budget or after three failed calls in a row, and it skips imported
+  documents whose AI reading was held back.
 
 The encrypted index text and its blind tokens both follow your active
 encryption key. A key rotation (**Admin → Encryption → Rotate now**, or
 `scripts/rotate-encryption-key.ts` from a source checkout) re-encrypts the text
-and re-derives the tokens from it in the same pass, so content search keeps
-matching. Keep the old key in `ENCRYPTION_KEYS` until the rotation reports zero
+and re-derives the tokens in the same pass, so content search keeps matching.
+Keep the old key in `ENCRYPTION_KEYS` until the rotation reports zero
 remaining rows on it.
 
-## Sharing documents with a clinician
+## Clinician share links
 
-A share link exposes a read-only, time-boxed view of your record at a public
-`/c/<token>` URL. A link can also carry a hand-picked set of your stored
-documents, so a clinician can open your MRI report or discharge letter on the
-spot without an account.
+A share link exposes a read-only, time-boxed view of your whole record at a
+public `/c/<token>` URL, for somebody with no account on your instance. A link
+can also carry a hand-picked set of your stored documents, so a clinician can
+open your MRI report or discharge letter on the spot.
 
 :::note[Two settings pages, two different things]
-**Settings → Health record → Sharing** is this page's subject: a public link for somebody with no
+**Settings → Health record → Sharing** is this section's subject: a public link for somebody with no
 account on your instance. **Settings → Shared access** is
 [a grant to another account](/guides/shared-access/) on the same instance. A
 delegate whose grant covers the vault can read it along with the rest of the
@@ -353,129 +369,6 @@ at rest and decrypted only at the moment they are served through this one
 token-scoped route; the passphrase, token, and any served bytes are never
 written to logs.
 
-## Reading documents with AI + automatic search
-
-Every document you upload is made searchable automatically — you never have to
-press an "index" button. The moment a file is stored, HealthLog reads its text
-in the background and adds it to a private, encrypted search index, so a later
-search can match words inside the document, not just its title or filename.
-
-### How auto-indexing decides what to do
-
-Indexing runs as a background job, so your upload finishes instantly and never
-fails because of it. The job picks the best available reader:
-
-- **AI provider (opt-in).** If you have a vision-capable AI provider
-  configured, consented to AI features, **and turned on "Read documents
-  automatically with AI" in AI settings** (off by default), HealthLog asks the
-  provider to transcribe the document — including scanned pages and photos.
-  This is the richest read and is bounded by your daily AI budget. With the
-  switch off, a provider read happens only when you tap a per-document AI
-  action.
-- **Local text layer (fallback).** With no provider — or once the AI budget for
-  the day is used up — HealthLog extracts a PDF's embedded text layer on the
-  server with no AI and nothing leaving your machine, in milliseconds. Digitally
-  generated PDFs (lab reports, letters) become searchable even with no AI.
-
-Either way, only encrypted text and one-way search tokens are stored — the
-readable body is never kept in the clear.
-
-### Imported documents: reading held back
-
-A document brought in by the [import script](/guides/import-documents/) is by
-default stored with automatic AI reading held back, so importing an archive
-does not send every file to your provider at once. It still gets its preview,
-and a PDF with a text layer is still searchable through the local reader. The
-provider read, the stored summary and the lab staging wait until you ask for
-them.
-
-The hold stays with the document. Turning on "Read documents automatically
-with AI" later does not reach it, and neither the catch-up pass below nor
-**Index all for search** picks it up. Open the document and choose **Read with
-AI** or **Generate summary**; either ends the hold for that document. To have
-an import read as it arrives, run the script with `--ai-read`. Documents from
-a Paperless workflow are read like any other upload unless the workflow sends
-`aiRead=defer`.
-
-### The stored summary (opt-in)
-
-Separately from the one-time **Summarise** button above, a document can get a
-short plain-language summary generated once and kept with it. It is generated
-only when the external-AI document reading you already opted into ("Read
-documents automatically with AI", off by default) is on, so it rides the exact
-consent and budget you set for auto-reading — nothing new to enable.
-
-Since v1.30.32, turning the switch on also **works through the documents already
-in your vault**. Before that, reading was only ever started at upload, so a
-vault filled before the flip stayed unread no matter what the setting said and
-the switch read as broken. The catch-up pass runs in batches, walks only
-documents with no summary yet, and grants nothing on its own: the opt-in is
-re-read, the egress consent is re-asserted per document, and the daily token
-budget is reserved exactly as on the upload path. Retroactive work is not a
-reason to skip a consent receipt. Imported documents whose reading was held
-back are left out of it (see above).
-
-The summary is **stored encrypted at rest** (AES-256-GCM, the same posture as
-every other health note). It describes *what* the document is; it is not a
-diagnosis and never flags a value as high, low, or abnormal.
-
-#### What the summary state means
-
-A document records what actually happened to its summary rather than leaving you
-to guess from its absence (v1.30.31):
-
-| State | What it means |
-| --- | --- |
-| **Not attempted** | Nobody ever enqueued a summary — auto-reading was off when the document arrived, and no catch-up has reached it. |
-| **Generating** | A summary job is in flight. |
-| **Ready** | The summary is stored and shown. |
-| **Withheld** | The safety screen held the generated text back. |
-| **Unavailable** | The read could not complete — no usable provider, or the budget was exhausted. |
-
-Before v1.30.31 all five outcomes looked identical, and the detail view read
-that as "still generating" forever while hiding the button that would have made
-one. Every state now offers to generate a summary, and one you generate that way
-is kept.
-
-### The "Read with AI" action
-
-Open a document and you'll see a **Read with AI** block offering **Suggest
-details** (a reviewable draft title, type and date) and **Summarise / Show
-text** (a one-time, session-only read-out that is never saved). With no provider
-configured it shows a calm pointer to your AI settings; with auto-reading on and
-nothing waiting for review, the block collapses entirely.
-
-The detail view no longer prints a line saying *how* the text was extracted —
-which reader got the words off the page is plumbing, not something you can act
-on. What the vault card's meta row shows is whether the document is searchable
-at all.
-
-### Which reader, and where your data goes
-
-Document AI prefers a **local** reader that keeps the file on your machine, then
-a **no-training API** provider, and only a subscription/OAuth provider last.
-Before a document leaves your machine to a third-party AI service, HealthLog
-shows a notice — and any external read requires your explicit AI consent.
-
-### Previews and scanned PDFs
-
-For a while before v1.40.0 no document got a preview, PDF or photo, because the
-server image shipped a graphics library that did not match its own loader, and
-scanned PDFs could come out of the reader nearly blank because the server had
-no fonts to draw their text with. Both are fixed in v1.40.0. Missing previews
-fill in by themselves after the update, and a page that still renders empty is
-reported as such instead of being passed to the AI as an empty image. A
-document that was read nearly empty before can be read again from its page.
-
-### Honest limits
-
-- Scanned PDFs and photos need a provider (the provider-free local reader only
-  extracts an existing text layer, not OCR).
-- Content search is whole-word; title and filename search still match partial
-  text.
-- Provider reads use your AI budget; once it's reached, HealthLog falls back to
-  the free local reader.
-
 ## Chatting about a document
 
 Open a document and choose **Ask the Coach** to talk about it in plain language —
@@ -484,11 +377,10 @@ Impression say?", "Which medications are listed?", "Is there a follow-up date?")
 The reply answers only from that one document, cites where each statement comes
 from, and says plainly when the document doesn't contain the answer.
 
-Since v1.28.51 the conversation runs in the real Coach rather than a separate
-in-sheet panel. It opens the Coach with the document already in context, and the
-thread lands in your normal Coach history — tagged with a document badge and a
-**Chatting about: &lt;title&gt;** subtitle so you can tell a document conversation
-apart from an ordinary Coach chat at a glance, and pick it back up later.
+The conversation opens the Coach with the document already in context, and the
+thread lands in your normal Coach history, tagged with a document badge and a
+**Chatting about: &lt;title&gt;** subtitle so you can tell it apart from an
+ordinary Coach chat and pick it back up later.
 
 ### The security and privacy model
 
@@ -512,11 +404,6 @@ harmless:
   document appear.
 - **Plain text.** Replies render as plain text — no markup a reply could contain
   is ever executed.
-
-In short: the conversation gains the Coach's history and familiar surface, but a
-document turn stays sealed to that one document — grounded only in its text, with
-no access to your health data and no tools — so untrusted text in an uploaded
-file can never reach anything it shouldn't.
 
 ### Availability
 
