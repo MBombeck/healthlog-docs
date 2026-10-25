@@ -19,23 +19,20 @@ ledger, so the percentage can never disagree with the timeline beneath it.
 Open `/medications` and start the wizard. You set the name, an optional dosage
 and unit, a route of administration (oral / injection / other — injection adds a
 site picker), an optional supply count for the runway estimate, and a schedule.
+A medication list kept in a spreadsheet can come in through the
+[CSV import](/guides/import-csv/#lab-results-and-medications).
 
 The wizard also asks what kind of medication it is: blood pressure, diabetes,
 hormones, GLP-1 injection, pain, allergy, vitamins, supplement, antibiotic,
 mental health, thyroid, gastrointestinal, skincare, sleep aid or other. The
-card shows the category. **Mental health** (antidepressants, anxiety and ADHD
-medication, mood stabilisers) is new in v1.39.4; such medications used to go
-under **Other**. From the same release, editing a medication keeps its category
-unless you pick another one. Before, a thyroid, gastrointestinal, skincare or
-sleep-aid medication opened in the edit wizard as **Other** and was saved back
-as **Other** with any unrelated change. Backups carry the category too since
-v1.39.4; before, no backup did, and after a restore every medication read as
-**Other**. A backup written by an earlier version carries no category, so its
-medications still restore as **Other**.
+card shows the category; **Mental health** covers antidepressants, anxiety and
+ADHD medication and mood stabilisers. Backups carry the category. A backup
+written by a version before 1.39.4 carries none, so its medications restore as
+**Other**.
 
 ### Your own categories
 
-Since v1.40.0 you can add categories of your own next to the built-in ones:
+You can add categories of your own next to the built-in ones:
 choose **New category** in the category picker, give it a name (for example
 "Travel kit") and **Add**. Up to 20 per account, hidden ones included. The
 medication list gains a **Category** filter (**All categories** by default) and
@@ -50,7 +47,7 @@ The names are encrypted at rest.
 
 Units per dose says how many units one dose uses, for example one tablet or
 half a tablet. The wizard offers buttons for ¼, ⅓, ½, ⅔, ¾ and 1 to 4, and
-since v1.39.1 an **Other** field for anything else: type 1.5, 1,5, 1 1/2 or
+an **Other** field for anything else: type 1.5, 1,5, 1 1/2 or
 1½, and the field shows what will be saved. Any value above 0 and up to 100
 with up to four decimal places works, so a measured dose such as 0.8 mL is
 fine too. The same applies to the units at a single dose time and to the
@@ -70,26 +67,16 @@ load on demand.
   <figcaption>The History tab of one medication: the adherence figure over the chosen window, and the dose ledger it is read from, one row per expected dose.</figcaption>
 </figure>
 
-The history switches between **Last 90 days** and **Full history**. Since
-v1.39.0 a recent dose shows in both straight away. Before, three kinds of dose
-could be missing from the 90-day view: a dose logged for a time before you added
-the medication (adding it in the afternoon and recording the morning dose), a
-dose taken shortly before its scheduled time, which stayed hidden until that
-time had passed, and a dose added while the tab was open, until a reload. For
-API clients, `GET /api/medications/{id}/dose-history` now reports the window it
-read: `from` is the requested start rather than the moment the medication was
-created, and `to` reaches the slot of a dose recorded ahead of it, at most one
-day past the requested end.
+The history switches between **Last 90 days** and **Full history**, and a
+recent dose shows in both straight away.
 
-Since v1.39.1 a dose you record for earlier on the day you added the
+A dose you record for earlier on the day you added the
 medication counts for its own slot. Add a medication at 4 pm, log the 2 pm dose,
 and the history shows the 2 pm slot taken on time rather than an off-schedule
 dose with the evening slot still due. Slots from before you added the
 medication appear only when you logged something for them, so they are never
 counted as missed and never break a miss-free streak. The adherence rate, the
-calendar, the doctor report and the Coach follow the same rule. The adherence
-calendar also no longer counts a skipped or missed entry that belongs to no
-scheduled time as a dose taken.
+calendar, the doctor report and the Coach follow the same rule.
 
 ## Pick a cadence
 
@@ -113,7 +100,7 @@ score against their **real** cadence rather than a daily denominator — see
 
 Start and end dates are days on your calendar, and each dose time is placed on
 them in your profile time zone. A plan for Mondays is a Monday plan wherever
-you live. Before v1.39.3, users west of UTC saw such doses a day early.
+you live.
 
 :::note[GLP-1 example]
 Once-weekly GLP-1 receptor agonists are a common reason to need weekly cadence.
@@ -126,7 +113,7 @@ HealthLog only tracks the dose schedule and intake; it gives no dosing advice.
 ## Courses: medications that come and go
 
 Some medications are taken in spells: an antiviral for a week now and then, an
-antibiotic each winter. Since v1.40.0 a medication can have several
+antibiotic each winter. A medication can have several
 **courses**, each with its own first day, optional last day and an optional
 note. They are under **Advanced**, **Lifecycle**, **Courses** on the
 medication's page. Once every course has ended, **Start a new course** adds the
@@ -138,19 +125,30 @@ Doses are expected only inside a course. Adherence, the streak and the dose
 history count every course and never the weeks between them, so the rate and
 the history agree. Reminders follow the current course. Deleting a course keeps
 the doses you logged in the history; deleting the only one makes the medication
-count as taken continuously since you added it, and the app asks first.
-
-The update to v1.40.0 turns every existing medication that has a start or end
-date into one course with the same dates. Nothing about the dates changes. The
+count as taken continuously since you added it, and the app asks first. The
 doctor report and the clinician share page list the courses as well.
+
+### End a medication now
+
+**End** under **Advanced**, **Lifecycle** stops the running course at the moment
+you press it, after a confirmation. A dose taken earlier today still counts;
+a later dose today and every dose after it are no longer due, reminded or
+counted as missed, and the medication shows as ended at once. History stays
+visible. End is offered only while a course is running, and someone who
+manages your record can use it too. To take it back, move or remove the
+course's last day in **Courses**, or delete the ended course; the later doses
+come back. A new course can start from the next day.
+
+An end date you set yourself in the course editor means the whole of that
+day; End is the way to stop part-way through today.
 
 ## Keep a medication as a record
 
 Not every medication needs a daily check-in. If you want HealthLog to hold what
 you take, since when, at which dose and on which schedule, without logging each
 dose, switch off **Track intake**. The switch sits at the top of the
-**Schedule** tab and on the summary page of the medication wizard. It exists
-since v1.39.1 and is on for every medication until you change it.
+**Schedule** tab and on the summary page of the medication wizard. It is on
+for every medication until you change it.
 
 With tracking off:
 
@@ -173,25 +171,9 @@ This differs from **as-needed (PRN)**: an as-needed medication has no schedule
 at all and you log each dose when you take it. A record-only medication keeps
 its schedule as information and you log nothing.
 
-For API clients, a medication carries `trackIntake`, and `POST` and
-`PUT /api/medications` accept it. A medication with `trackIntake: false` is
-served with an empty `schedules` array and `nextDueAt: null`, and its stored
-schedule is in `recordedSchedules`, a field present only in that case. An
-update to such a medication that does not name `trackIntake` keeps the stored
-schedule and applies everything else. `GET /api/medications/{id}/compliance`
-answers `applicable: false` with `notApplicableReason: "INTAKE_NOT_TRACKED"`,
-and the MCP `get_medication_schedule` tool reports `intakeTracked` for each
-medication.
-
-:::note[iPhone app]
-The iPhone app released before v1.39.1 stops reminding for a record-only
-medication without an update and leaves it out of the today list, the badge
-and the widget. Until the app knows the switch, its card for that medication
-still shows Taken and Skip and adherence bars at 0 %, and its edit screen shows
-a default schedule instead of the stored one. A schedule change made there is
-not applied; renaming or changing the dose works. Change the schedule of such a
-medication in the web app.
-:::
+For API clients, a medication carries `trackIntake`; the
+[API spec](https://github.com/MBombeck/HealthLog/blob/v1.46.0/docs/api/openapi.yaml)
+has the details.
 
 ## Set a dose window
 
@@ -209,15 +191,14 @@ inside its multi-day catch-up window reads as late, not missed.
 Mark a dose taken, skipped, or snoozed from the card, the detail page, or a
 reminder action button. A snooze holds the doses whose reminder had already
 come due when you snoozed, not the medication's later doses that day: those are
-still reminded. Before v1.39.3, skipping from a Telegram reminder silenced the
-rest of the day. The write path attributes the intake to the slot whose
+still reminded. The write path attributes the intake to the slot whose
 window it falls in. A take outside every window records as **ad-hoc** rather than
 snapping to a far-off slot. A taken, skipped or auto-missed row resolves
 exactly one occurrence, the one nearest its anchor, so on a schedule whose
 doses sit closer than twelve hours (19:49 and 23:59, say, or 08:00 and 12:00)
 logging the first dose leaves the second one due on the card rather than
 skipping to tomorrow; the compliance cycle on the card follows the same rule.
-That holds since v1.38.17. Marking taken or skipped recomputes the history and
+Marking taken or skipped recomputes the history and
 rate immediately. A skip is a pause and not a miss: it leaves the denominator on
 every surface that shows a rate, the dashboard tile included, so deciding
 against a dose does not read as forgetting one.
@@ -248,30 +229,24 @@ counted in calendar days on your clock, and both ends count: a course that
 starts today offers them from midnight, and one that ends today keeps them for
 the whole of today. Before the start date nothing is offered yet. After the
 end date the medication shows an **Ended** badge, the table shows **Ended**
-where the next dose would be, and nothing is due. Reminders and the doses card
-on the start page already stopped at the end date; up to v1.39.3 the card and
-the table still offered a dose, and the detail page called the last day of a
-course ended before that day was over. You can still add a missed dose
-afterwards from the **History** tab. Since v1.39.6 the quick dose entry on the
-dashboard offers the same medications, so an ended course no longer appears
-there, and when none can be taken today it says nothing is due instead of
-saying you have no medications.
+where the next dose would be, and nothing is due. You can still add a missed
+dose afterwards from the **History** tab. The quick dose entry on the
+dashboard offers the same medications, and when none can be taken today it
+says nothing is due.
 
 For API clients, the medication list and detail reads carry `courseStatus`
-(`UPCOMING`, `CURRENT` or `ENDED`) and `intakeActionable` since v1.39.4. Show
-Taken and Skip when `intakeActionable` is true rather than working it out
-from `active` and the dates.
+(`UPCOMING`, `CURRENT` or `ENDED`) and `intakeActionable`. Show Taken and Skip
+when `intakeActionable` is true rather than working it out from `active` and
+the dates.
 
 ## Attribute an off-schedule dose to its slot
 
 When an intake lands off schedule, the **History** row shows when the
 dose had been due and offers to **attribute** the intake to that slot. The
-attributed dose is visibly badged and reversible at any time. Since v1.39.1 it
-counts exactly as if it had been logged for that slot: on time when it was
-taken inside the slot's on-time window, including the grace before the window
-that automatic matching allows, and late otherwise. Before, a dose taken
-shortly before the window read as on time on its own and as late once
-attributed.
+attributed dose is visibly badged and reversible at any time. It counts
+exactly as if it had been logged for that slot: on time when it was taken
+inside the slot's on-time window, including the grace before the window that
+automatic matching allows, and late otherwise.
 
 This is the manual counterpart to the automatic window matching: use it when you
 logged a dose generically and want it bound to a specific expected slot after the
@@ -280,7 +255,7 @@ fact.
 ## Record doses automatically
 
 Some things you take every day without fail, like supplements in the
-evening. Since v1.42.2 such a medication can record its doses by itself.
+evening. Such a medication can record its doses by itself.
 Switch on **Record doses automatically** on the reminder card in the
 **Schedule** tab, or in the last step of the wizard when you add the
 medication.
@@ -336,15 +311,12 @@ For injections, a site-rotation picker and structured side-effect tracking live
 under the advanced sections.
 
 A container in that tab can also carry the **manufacturer** and the **strength
-printed on the carton** (v1.30.34). Both are optional and both are blank on
-containers created before that release — a blister pack or a bottle has no use
-for either. They matter for pens: the companion app's pen list uses the two as
-its headline and subhead, so a container entered on the web could not be shown
-there until the server held them.
+printed on the carton**. Both are optional; they matter for pens, where the
+iPhone app's pen list uses them as headline and subhead.
 
 ## What a supplement contains
 
-Since v1.43.0 a medication can carry its **composition**: what one tablet or
+A medication can carry its **composition**: what one tablet or
 capsule contains, per nutrient, as the label states it. With the
 [nutrients module](/guides/nutrients/) on, every dose you take then counts
 toward the day's micronutrients, next to what Apple Health sends.
@@ -353,7 +325,7 @@ Open the medication, find **Composition** on its overview and choose
 **Add**. Pick a nutrient for each line of the label and enter the amount per
 unit in a unit the nutrient offers; vitamin D, for example, takes µg or IU.
 HealthLog converts to the nutrient's own unit and keeps what you typed beside
-it. DHA and EPA are in the list since this release.
+it.
 
 With an AI provider that can read images, **Read from a label photo** fills
 the form from a JPEG, PNG, WebP or PDF of up to 10 MB. Nothing is saved until
@@ -361,7 +333,7 @@ you check each line and save: a line that was hard to read is marked, lines
 without a matching nutrient are listed for you to enter by hand, and a note on
 the label such as "per two capsules" is shown while the amounts stay per
 single unit. The photo counts as a document, so it follows the consent and the
-operator switch for [reading documents](/guides/document-vault/#ai-assist-and-content-search),
+operator switch for [reading documents](/guides/document-vault/#reading-documents-with-ai),
 allows six reads an hour, and is not offered on the
 [frugal AI usage level](/guides/ai-providers/#ai-usage-levels). Inside
 somebody else's record the photo is not offered; the composition itself can
