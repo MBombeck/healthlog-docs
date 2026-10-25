@@ -202,18 +202,6 @@ Tailscale network, set `SESSION_COOKIE_SECURE=false`. Never do this on a
 host that serves plain HTTP to the open internet.
 :::
 
-## Build-time feature toggles
-
-A few toggles are `NEXT_PUBLIC_*` variables: the framework inlines them into the
-client bundle at **build time**, so the pre-built GHCR image cannot read them at
-runtime. Setting them in `.env` or the compose `environment:` block has no
-effect — they only take hold when you build your own image, which is why they
-are intentionally absent from the compose whitelist.
-
-| Variable | Default | Effect when set |
-| --- | --- | --- |
-| `NEXT_PUBLIC_DASHBOARD_SNAPSHOT` | on | Hydrates every above-the-fold tile from one `GET /api/dashboard/snapshot` cell so the whole strip shares one completion moment. Build with `=false` to fall back to the legacy four-cell path. |
-
 ## Next
 
 <Steps>
