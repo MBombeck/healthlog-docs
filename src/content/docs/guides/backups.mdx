@@ -76,11 +76,11 @@ often), the start stops before anything is migrated; free the space, or set
 Mount a volume at `DB_BACKUP_DIR`; the bundled compose file does. The
 directory also exists inside the image, so without a volume the dumps are
 written into the container and are gone the next time it is recreated, which
-every update does. The Unraid container template carries no such volume;
-add a path there, or set up the bucket. When the
-directory is not writable at all, the nightly dump goes to the bucket only, no
-dump is taken before migrations, and with no bucket either no dump is taken;
-the start log and the admin page say so.
+every update does. The Unraid container template carries no such volume: add
+a path for it there, or set up the bucket. When the directory is not writable
+at all, the nightly dump goes to the bucket only, no dump is taken before
+migrations, and with no bucket either no dump is taken; the start log and the
+admin page say so.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
@@ -190,9 +190,9 @@ it.
 ## Dumps taken by hand
 
 The nightly dump needs nothing from you. A dump by hand is still useful as an
-extra copy, and it is the way for a database the app does not dump, such as a
-snapshot of the volume or dataset (ZFS, TrueNAS, Unraid) taken with the app
-stopped:
+extra copy, or right before a move. A snapshot of the database volume or
+dataset (ZFS, TrueNAS, Unraid), taken with the app stopped, works as well.
+The dump:
 
 ```bash
 docker compose exec -T db pg_dump -U healthlog healthlog \
