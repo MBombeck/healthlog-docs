@@ -1,62 +1,23 @@
 ---
 title: Database maintenance
-description: The one-time fold repair and cleanup after v1.42.0, the measurement table rebuild you start yourself, query statistics with pg_stat_statements, and the session settings for work_mem and PgBouncer.
+description: The measurement table rebuild you start yourself, query statistics with pg_stat_statements, and the session settings for work_mem and PgBouncer.
 sidebar:
   order: 30
 ---
 
-This page is for operators. It covers what happens to the measurements table
-after the update to v1.42.0, the maintenance run you start yourself once that
-is done, how to see which queries take the time, and two database settings.
+This page is for operators: the maintenance run you start yourself, how to
+see which queries take the time, and two database settings.
 
-## After the update: repair, then cleanup
+## After passing through v1.42
 
-Up to v1.42.0 the nightly folds of Apple Health data turned raw samples into
-hourly or daily rows and kept each folded sample as a deleted row for 75 days.
-Nothing ever read those rows, and on an instance that has synced Apple Health
-for a while they were most of the measurements table and of its indexes. From
-v1.42.0 the folds delete what they fold, and a re-sent sample whose hour or
-day is already folded is answered as a duplicate.
-
-Two background jobs deal with what is already stored, in this order. Neither
-needs anything from you.
-
-**The fold repair** runs once per account. Earlier releases could fold a day
-in two runs, and the second run stored the mean of the later part of the day
-only. The repair recomputes those hourly and daily means from all of the day's
-samples, including the deleted ones, and writes a mean only where it differs.
-It does so only where every sample of a day is still stored: the last 75 days
-for daily means, and for hourly means, which are folded after 90 days, the 75
-days before that. Older days stay as they are, because what is left of them
-can be a fragment of the day, and a mean over a fragment would be worse than
-the stored one. The run counts them as `windowsSkippedBeyondHorizon`
-(`fold_repair_skipped_beyond_horizon` on its wide event). The nightly mean and
-dense folds follow the same rule: a day beyond that horizon that already has a
-mean is left untouched.
-It works through an account a day at a time, resumes where it stopped, and
-records each finished account in `measurement_fold_repairs`. You can see how
-many accounts are left:
-
-```sql
-SELECT count(*) AS accounts_left
-FROM users u
-LEFT JOIN measurement_fold_repairs r ON r.user_id = u.id
-WHERE r.user_id IS NULL;
-```
-
-**The cleanup** removes the folded leftovers, 5,000 rows at a time and one
-account at a time, with a short pause between batches. It is queued at every
-boot and continues by itself while there is work. It leaves an account alone
-until the repair has finished it, because it deletes what the repair reads.
-Rows a person deleted themselves are never part of it; they keep their 75
-days.
-
-Do not delete the leftovers by hand, and do not add rows to
-`measurement_fold_repairs` to hurry things along: a mean the repair has not
-seen keeps its wrong value for good once its samples are gone.
-
-Restoring a backup made before an account's repair finished puts the
-leftovers back and queues the repair for that account again.
+An install that updates through v1.42 runs two background jobs by itself,
+once per account: a repair of hourly and daily means that an older fold
+computed from part of a day, then a cleanup of the folded Apple Health samples
+older releases kept as deleted rows. Neither needs anything from you, and
+neither should be hurried by hand: a mean the repair has not seen keeps its
+wrong value once its samples are gone. On an instance that synced Apple Health
+for a while the measurements table shrinks a lot, and the rebuild below gives
+the space back.
 
 ## Rebuild the table afterwards
 
@@ -104,11 +65,10 @@ new rows reuse the space inside it.
 
 ## Query statistics
 
-From v1.42.0 the bundled database loads the `pg_stat_statements` library
-through the `command:` of the `db` service in `docker-compose.yml`. Loading it
-only collects statistics in the database's shared memory; nothing is sent
-anywhere. Because the command changed, the first `docker compose up` after the
-update restarts the database container once.
+The bundled database loads the `pg_stat_statements` library through the
+`command:` of the `db` service in `docker-compose.yml`. Loading it only
+collects statistics in the database's shared memory; nothing is sent
+anywhere.
 
 To read the statistics, create the extension once:
 
@@ -135,9 +95,8 @@ not need it.
 ## Session settings: work_mem and PgBouncer
 
 Every app connection sets three things when it opens: the statement timeout
-(`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default), since v1.42.0
-`work_mem` from `DATABASE_WORK_MEM` (16MB by default), and since v1.42.2 the
-time zone, `TimeZone=UTC`. Sorts and aggregates
+(`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default), `work_mem` from
+`DATABASE_WORK_MEM` (16MB by default), and the time zone, `TimeZone=UTC`. Sorts and aggregates
 larger than `work_mem` spill to disk; each sort step of each pooled connection
 may use that much memory, so raise it with the pool size in mind.
 

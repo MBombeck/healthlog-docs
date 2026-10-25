@@ -1,11 +1,11 @@
 ---
 title: Coolify deployment
-description: Run HealthLog on Coolify — the pull_policy gotcha, host-side retag fallback, deploy-webhook secret, and the recurring stale-digest pattern.
+description: Run HealthLog on Coolify, avoid the stale-digest pull, pin a release, and what the Postgres 18 move means there.
 sidebar:
   order: 5
 ---
 
-[Coolify](https://coolify.io/) is the deploy stack HealthLog itself ships on, so the moving parts are well-trodden. This runbook covers the three things that bite first-time operators: the stale-digest pull gotcha, the host-side retag fallback when autodeploy refuses to pull, and the deploy-webhook secret you should set per environment.
+[Coolify](https://coolify.io/) is the deploy stack HealthLog itself ships on, so the moving parts are well-trodden. This page covers what bites first-time operators: the stale-digest pull, the host-side retag fallback when a deploy refuses to pull, and pinning a release.
 
 import topology from "../../../assets/diagrams/03-self-hosting-topology.svg";
 
@@ -18,10 +18,10 @@ Coolify gives you Docker-Compose-shaped self-hosting with a UI in front. For Hea
 ## Initial setup
 
 1. **Create the application** in Coolify as a Docker Compose app. Point it at the public repo (`MBombeck/HealthLog`) or a clone you maintain.
-2. **Pick the branch** — `main` is the single release trunk and is always deployable. Production should track `main` (or, more conservatively, a pinned release tag).
-3. **Compose file** — use the repo's `docker-compose.yml` unchanged. The entrypoint already waits for Postgres, runs migrations, and starts the server.
-4. **Environment variables** — paste the required three secrets (`POSTGRES_PASSWORD`, `ENCRYPTION_KEY`, `API_TOKEN_HMAC_KEY`) plus any integrations you plan to enable. `DATABASE_URL` is derived from `POSTGRES_PASSWORD` inside the compose file's `environment:` block, so there is no connection string to manage. The `.env.example` in the repo is the canonical list.
-5. **Domain + TLS** — Coolify ships [Traefik](https://doc.traefik.io/traefik/) by default; set your domain and toggle the auto-TLS switch.
+2. **Pick the branch.** `main` is the single release trunk and is always deployable. Production should track `main`, or a pinned release tag to be more conservative.
+3. **Compose file.** Use the repo's `docker-compose.yml` unchanged. The entrypoint already waits for Postgres, runs migrations, and starts the server.
+4. **Environment variables.** Paste the required three secrets (`POSTGRES_PASSWORD`, `ENCRYPTION_KEY`, `API_TOKEN_HMAC_KEY`) plus any integrations you plan to enable. `DATABASE_URL` is derived from `POSTGRES_PASSWORD` inside the compose file's `environment:` block, so there is no connection string to manage. Every variable is described in the repo's `.env.production.example` and in the [environment reference](/reference/environment-variables/).
+5. **Domain and TLS.** Coolify ships [Traefik](https://doc.traefik.io/traefik/) by default; set your domain and toggle the auto-TLS switch.
 
 ## The `pull_policy: always` requirement
 
@@ -36,17 +36,7 @@ services:
 
 This is **load-bearing** for Coolify deploys. Without `pull_policy: always`, Coolify will happily restart the same image [digest](https://docs.docker.com/dhi/core-concepts/digests/) it had last time even after you've published a fresh tag. The explicit `always` policy ships in the repo's compose file; confirm the line is present after every compose-file edit.
 
-## The deploy webhook
-
-Each Coolify application has a unique deploy URL, and the main repo's `docker-publish.yml` workflow already contains a complete deploy hook. If you run your own fork, you only supply the credentials:
-
-1. In Coolify, open the application → **Webhooks** → copy the **Deploy Webhook URL** (looks like `https://your-coolify.example.com/api/v1/deploy?uuid=...`).
-2. Store it as the GitHub Actions secret `COOLIFY_WEBHOOK`, and a Coolify API token as `COOLIFY_TOKEN`.
-3. Set the repository variable `COOLIFY_AUTO_DEPLOY=on` (`off` skips the hook explicitly).
-
-After the multi-arch image is published, the workflow waits 90 seconds for registry propagation, then calls the webhook with an `Authorization: Bearer` header, appending `force=true` if the URL does not carry it. No workflow step needs adding; the webhook URL and token stay out of version control as secrets.
-
-## When autodeploy refuses to pull — the host-side retag fallback
+## When a deploy refuses to pull: the host-side retag fallback
 
 Coolify can hit a cache bug where a new image is published to GHCR but the deploy webhook fires against a stale manifest. The reproducible workaround is a host-side retag:
 
@@ -63,28 +53,11 @@ The cleaner long-term fix needs no compose-file edit: the shipped image line rea
 
 ## Worker-process split
 
-HealthLog's worker can run in the same container as the web process (the default), or split off into its own service. The split is controlled by `HEALTHLOG_PROCESS_TYPE`:
+To run the job worker in its own container, follow [Scaling](/self-hosting/scaling/) and uncomment the `app-worker` service in the shipped compose file rather than writing a new one: it merges the same environment block as `app` (`<<: *healthlog_env`), and a worker that misses part of that environment cannot send notifications or run the AI jobs.
 
-- `HEALTHLOG_PROCESS_TYPE=all` — single container hosts both. Default. Use for a single-host setup with up to a few hundred users.
-- `HEALTHLOG_PROCESS_TYPE=web` — HTTP only; pg-boss reminders, insight generation, and import jobs **will not run**.
-- `HEALTHLOG_PROCESS_TYPE=worker` — pg-boss workers only; HTTP requests **will not be served**.
+## Postgres 18
 
-For a Coolify deployment with web/worker split, add a second compose service that shares the same image and environment but overrides the process type:
-
-```yaml
-services:
-  app:
-    environment:
-      - HEALTHLOG_PROCESS_TYPE=web
-  app-worker:
-    image: ghcr.io/mbombeck/healthlog:latest
-    pull_policy: always
-    environment:
-      - HEALTHLOG_PROCESS_TYPE=worker
-    # share env, depends_on, etc.
-```
-
-Both services pick up the same database, the same encryption keys, and the same registered pg-boss queues. Scaling them independently is then a Coolify replica-count toggle.
+From v1.46 the compose file runs Postgres 18 and moves an older Postgres 16 database across on the first deploy with the new compose file, through a short-lived `db-upgrade` service. It has `restart: "no"`, so Coolify shows it as exited, not failed. The deploy needs free disk about the size of the database; see [Moving to Postgres 18](/self-hosting/postgres-upgrade/).
 
 ## Resource sizing
 
@@ -92,21 +65,16 @@ Both services pick up the same database, the same encryption keys, and the same 
 
 ## Backups
 
-Two layers:
-
-- **Coolify-native daily snapshot** of the `postgres` volume. Set the retention policy in the Coolify UI; this covers the local disaster recovery case.
-- **HealthLog-native off-host backup**, nightly at 02:30, to an [S3](https://docs.aws.amazon.com/s3/)-compatible bucket (R2, B2, MinIO, AWS). Configure via the `BACKUP_*` environment variables — see [Backups](/guides/backups/); the admin panel offers a connectivity probe. [AES-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode)-encrypted on the way out; the encryption key never leaves the host.
-
-Restore drills are part of the operator manual — see [Ops → Backup & Restore](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/backup-restore.md) in the main repo.
+Take regular dumps or snapshots of the database volume and keep them off the host, and add the optional nightly off-host copy if you want per-account copies in a bucket. [Which backup covers what](/guides/backups/#which-backup-covers-what) says what each one protects against.
 
 ## Logs and observability
 
-Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth) — the wide-event log lines are pre-formatted for Loki's structured-log path. The endpoint can be the base URL or the full push URL, and a Loki on the same Docker network or your LAN works. If a push fails, the container log gets one line with the Loki address and the reason, at most every five minutes. All three `LOKI_*` variables are on the shipped compose whitelist, so a value in `.env` or in Coolify's per-service environment UI reaches the container.
+Coolify proxies container logs through its UI. For longer-term retention, point the app at a Loki endpoint via `LOKI_ENDPOINT` (with `LOKI_USERNAME` / `LOKI_PASSWORD` for basic auth). The structured log lines are pre-formatted for Loki's structured-log path. The endpoint can be the base URL or the full push URL, and a Loki on the same Docker network or your LAN works. If a push fails, the container log gets one line with the Loki address and the reason, at most every five minutes. All three `LOKI_*` variables are on the shipped compose whitelist, so a value in `.env` or in Coolify's per-service environment UI reaches the container.
 
 Glitchtip and Umami land in the admin-panel monitoring section; both honour the SSRF guard and only emit when explicitly configured.
 
 ## Common Coolify gotchas
 
-- **`/tmp` wiped between deploys** — the worker writes Apple Health import temp files to `/tmp`. Coolify wipes the host's `/tmp` between deploys, so an import in flight during a deploy will fail mid-stream. Acceptable; the user can re-upload (and the SHA-256 dedup short-circuits) the same archive. If you want it bulletproof, mount a named volume at `/tmp/healthlog-imports`.
-- **Coolify webhook secret in the URL** — Coolify's deploy URL includes the application UUID as a query param. Treat it as a secret; do not commit it.
-- **No source clone needed** — the published image is self-contained; the compose file pulls it from GHCR and never references a source directory, so a wiped checkout on the host cannot break a deploy.
+- **An import in flight during a deploy fails.** An Apple Health import streams through `/tmp` inside the container, and a redeploy replaces the container. Start the import again after the deploy.
+- **The deploy URL is a secret.** Coolify's deploy URL carries the application UUID as a query parameter. Do not commit it.
+- **No source clone needed.** The published image is self-contained; the compose file pulls it from GHCR and never references a source directory, so a wiped checkout on the host cannot break a deploy.
