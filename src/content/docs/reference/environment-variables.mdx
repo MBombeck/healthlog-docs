@@ -62,8 +62,8 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_COOKIE_SECURE` | tracks `NODE_ENV=production` | Force or disable the cookie `Secure` flag. Set `false` for trusted plain-HTTP LANs. |
-| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. `0` trusts neither `X-Forwarded-For` nor `X-Real-IP`. See [reverse proxy](/guides/reverse-proxy/#trust_proxy_hops). |
-| `TRUST_CF_CONNECTING_IP` | unset | Set `1` **only** behind Cloudflare to trust the `cf-connecting-ip` header. |
+| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. `0` trusts neither `X-Forwarded-For` nor `X-Real-IP` and uses the connection's own address. Forwarding headers are read only from a connection on loopback or a private network. See [reverse proxy](/guides/reverse-proxy/#trust_proxy_hops). |
+| `TRUST_CF_CONNECTING_IP` | unset | Set `1` **only** behind Cloudflare to trust the `cf-connecting-ip` header. It skips the private-network check, so the origin must accept connections from Cloudflare alone. See [reverse proxy](/guides/reverse-proxy/#only-a-proxy-on-a-private-network-is-believed). |
 | `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | Connection budget per container and the wait for a free connection, in seconds. The compose file feeds them into the `connection_limit` and `pool_timeout` parameters of `DATABASE_URL`; that is how they reach the app. The budget is shared: a container that runs the job worker (the default `all` mode, or `worker`) gives the job queue 4 connections and the rest of the app 16; a `web` container gives the queue 2. |
 | `DATABASE_POOL_MAX` | unset | Older name for the same budget. Not on the compose whitelist; use `DB_CONNECTION_LIMIT`. |
 | `DATABASE_STATEMENT_TIMEOUT_MS` | `60000` | Statement timeout applied to every database session, in milliseconds. `0` disables it. A backup restore and the chart rebuild after it set their own, longer limit. |
@@ -235,6 +235,20 @@ See [Backups](/guides/backups/).
 | `BACKUP_ENCRYPTION_PREVIOUS_KEYS` | Retired off-host keys, comma-separated, kept so older objects stay readable during a rotation of `BACKUP_ENCRYPTION_KEY`. Read only, never written with. Optional and not part of the all-or-none set. See [Rotating the off-host key](/guides/backups/#rotating-the-off-host-key). |
 | `BACKUP_RETENTION_DAYS` | Not read by the app. The number for your bucket's lifecycle rule, kept here so the two agree. |
 
+## Database dumps (optional)
+
+Each has a default; the bundled compose file mounts the `backups` volume at
+the default directory. See
+[The nightly database dump](/guides/backups/#the-nightly-database-dump).
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DB_BACKUP_ENABLED` | on | `false` stops the nightly dump. |
+| `DB_BACKUP_DIR` | `/var/lib/healthlog/backups` | Where dumps are written and read. Change it only together with the volume mount. |
+| `DB_BACKUP_SCHEDULE` | `30 1 * * *` | Five-field cron for the nightly dump, in Europe/Berlin time. |
+| `DB_BACKUP_KEEP` | `7` | Nightly dumps kept, at least 1. The two newest pre-migration dumps are kept besides. |
+| `DB_BACKUP_BEFORE_MIGRATE` | on | `false` starts without the dump taken before migrations. A failed dump on a writable directory stops the start until it works or this is `false`. |
+
 ## Stored backups in the database
 
 | Variable | Default | Purpose |
@@ -270,6 +284,7 @@ to it lives only in the audit trail. See
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `COACH_MESSAGE_RETENTION_DAYS` | `365` | How long Coach conversations survive, in days. Floor 30. Like the audit window, this number is stated back to the user under Settings → Data & privacy. |
+| `ACCOUNT_DELETION_GRACE_DAYS` | `14` | How long deleting an account, a managed profile or all data stays undoable, in days. At most 30; `0` erases immediately. The account is locked at once. Stated back to the user in the deletion dialogs and on the Data & Privacy page. See [The grace window](/account/data-deletion/#the-grace-window). |
 | `HOST_METRIC_RETENTION_DAYS` | `7` | How long the host CPU / memory samples behind the admin monitoring charts are kept, in days. |
 | `DENSE_INTRADAY_RETENTION_ENABLED` | on | Thinning of dense intraday samples (heart rate, glucose) once they age out of the detail window. `false` keeps every raw sample forever, at the cost of unbounded table growth. |
 
@@ -278,7 +293,7 @@ to it lives only in the audit trail. See
 | Variable | Purpose |
 | --- | --- |
 | `DEPLOY_WEBHOOK_SECRET` | Authenticates `POST /api/internal/deploy-webhook`. |
-| `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | Replay hardening: require a fresh `X-Deploy-Webhook-Timestamp` (±5 min). |
+| `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | `true` accepts only signed calls (`X-Deploy-Webhook-Signature`, see [Deploy-result webhook](/reference/webhooks/#deploy-result-webhook)). Before 1.46 it accepted the secret header with a fresh timestamp; such a sender now gets `401`. |
 | `DEPLOY_LOGS_URL` | Deployment-dashboard URL linked in failure notifications. |
 | `TLS_LEAF_SPKI_PINS` | Known-good served-leaf SPKI pins for the [server-side pin monitor](/security/certificate-pinning/#the-server-side-leaf-alarm); unset, the monitor logs the served pin but cannot alarm. |
 
