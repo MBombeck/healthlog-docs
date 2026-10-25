@@ -72,13 +72,23 @@ Two knobs, both on the admin settings page:
 An upload over the cap or quota fails instantly with a message naming the
 configured limit — files already in flight in the same batch continue.
 
-Reading a stored PDF for its preview, its text or a scan runs in a separate
-process, one at a time, held to 640 MB of memory. An image inside a PDF may
-have up to 20 million pixels, an uploaded image 60 million for its preview. A
-text read stops after 60 seconds, and a rendered read takes up to 20 pages. A
-document past these limits keeps its file but gets no preview or is left out
-of content search; it is marked as such and not tried again, so one
-oversized file cannot hold up the rest. Open it in a new tab to read it.
+Reading a stored PDF for its preview, its text or a scan, and making an
+image's thumbnail, runs in a separate process, one at a time, held to 640 MB
+of memory and started without any key or database address. An image inside a
+PDF may have up to 20 million pixels, an uploaded image 60 million for its
+preview. A text read stops after 60 seconds, and a rendered read takes up to
+20 pages. A document past these limits keeps its file but gets no preview or
+is left out of content search; it is marked "too large or complex to read
+here" and not tried again, so one oversized file cannot hold up the rest. Open
+it in a new tab to read it.
+
+Accounts take turns at that process, and a read a person is waiting on (a lab
+scan, a medication label, a document read) goes before background work such
+as thumbnails and indexing. When the reader stays busy for about a minute, or
+an account already has four items waiting, an interactive read answers `503`
+with `aiRuns.readerBusy` ("The document reader is busy with other work. Try
+again in a minute."). Nothing was read and nothing is charged; try again.
+Background work waits longer and is retried on its own.
 
 Uploads through a document token (a Paperless workflow or the import script)
 have an hourly allowance of their own, 120 per token by default
