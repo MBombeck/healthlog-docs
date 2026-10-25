@@ -9,14 +9,14 @@ The [document vault](/guides/document-vault/) can take documents from another
 document system without you uploading them one by one. There are three ways
 in:
 
-- **The document picker** (since v1.39.3) searches your Paperless-ngx or Papra
+- **The document picker** searches your Paperless-ngx or Papra
   from inside HealthLog. You look a document up by name, narrow by tag or
   date, tick what you want, and HealthLog copies it. Use it for the letter you
   need now, from the visit or vaccination it belongs to.
-- **A Paperless-ngx workflow** (since v1.39.2) sends each newly tagged
+- **A Paperless-ngx workflow** sends each newly tagged
   document to HealthLog by itself. Use it for documents that arrive from now
   on.
-- **The import script** (since v1.39.2) copies documents from Paperless-ngx or
+- **The import script** copies documents from Paperless-ngx or
   Papra in one go. Use it for the archive you already have, and, run on a
   schedule, to keep Papra in step.
 
@@ -34,8 +34,6 @@ edits or deletions in the source.
 
 ## Before you start
 
-- HealthLog v1.39.2 or later for the workflow and the script, v1.39.3 or later
-  for the picker.
 - For the picker: the server's administrator has listed your archive's
   address in `DOCUMENT_SOURCE_ORIGINS` (see
   [environment variables](/reference/environment-variables/#documents-optional)).
@@ -49,7 +47,7 @@ edits or deletions in the source.
 
 ## Pick documents inside HealthLog
 
-Since v1.39.3. Needs Paperless-ngx 2.16 or later, or a current Papra.
+Needs Paperless-ngx 2.16 or later, or a current Papra.
 
 ### Connect your archive
 
@@ -95,7 +93,14 @@ document's date, size (Papra), tags, and whether HealthLog already has it:
 - **In HealthLog**: imported earlier. From the Documents page it cannot be
   picked again; from a visit, vaccination or condition it can, and picking it
   links the copy you already have.
-- **Deleted in HealthLog**: you deleted it here, so it is not offered again.
+- **In Recently deleted**: you deleted it here and it is still within its 30
+  days. Ticking it restores the copy you had, with everything that belonged
+  to it.
+- **Deleted in HealthLog**: you deleted it and HealthLog has removed it for
+  good. Ticking it imports it again as a new document.
+
+Only a document you tick comes back this way. The workflow and the script
+never bring back a document you deleted.
 
 Tick up to 25 documents and select **Import** (the button shows how many).
 They are copied one at a time; each row says whether it was imported, was
@@ -121,7 +126,7 @@ Paperless-ngx's own search.
   up to 10 seconds for the archive, a file up to 60.
 - Imports use the same rules as the script and the workflow: a document
   already in HealthLog is not stored twice, a document you deleted stays
-  deleted, and the upload limit (60 an hour, shared with your own uploads) and
+  deleted unless you tick it, and the upload limit (60 an hour, shared with your own uploads) and
   your storage quota apply. Searches, tag lists, tests and imports together
   are limited to 60 requests a minute.
 - A picked document follows your **Read documents automatically with AI**
@@ -140,7 +145,7 @@ Paperless-ngx's own search.
 
 ## Create a document token
 
-Open **Settings → API & Tokens → Document tokens**, name the token after
+Open **Settings → API & tokens → Document tokens**, name the token after
 where it will live (for example "Paperless workflow" or "Import script") and
 select **Create**. Copy the token straight away: it starts with `hlk_`, is shown
 **once**, and is stored only as a hash, so no page can show it again. If you
@@ -156,7 +161,7 @@ the type or anything else about your vault.
 - **Lifetime.** A year. The token then stops working; create a new one and
   paste it where the old one was.
 - **Revoking.** Every token, document tokens included, is listed under
-  **API Tokens** further down the same page, with `documents:write` in the
+  **API tokens** further down the same page, with `documents:write` in the
   permissions column. Revoking takes effect at once.
 - **Limits.** Ten live document tokens per account; the eleventh is refused
   until you revoke one. Creating a token needs a browser session, and it is
@@ -193,11 +198,10 @@ document is sent when it arrives already tagged and when you tag it later.
 | `sourceId`     | `{{doc_id}}`                                         |
 | `sourceInstance` | `https://paperless.example.com` (the address of your Paperless-ngx) |
 
-Since v1.39.3 `sourceInstance` tells HealthLog which Paperless-ngx the id
-belongs to, so document 12 on one instance and document 12 on another stay
-apart. Only its origin counts (a path is dropped), and it is accepted only
-together with `sourceId`. Leave it out and the id matches any Paperless-ngx,
-which is how everything imported with v1.39.2 is treated.
+`sourceInstance` tells HealthLog which Paperless-ngx the id belongs to, so
+document 12 on one instance and document 12 on another stay apart. Only its
+origin counts (a path is dropped), and it is accepted only together with
+`sourceId`. Leave it out and the id matches any Paperless-ngx.
 
 Paperless then posts the original file together with these fields as a form,
 which is what HealthLog expects. Use the address HealthLog is actually served
@@ -208,7 +212,7 @@ Two optional parameters:
 
 - `kind`: one of `DOCTOR_REPORT`, `DISCHARGE_LETTER`, `LAB_RESULT`,
   `IMAGING`, `PRESCRIPTION`, `REFERRAL`, `INSURANCE`, `VACCINATION`,
-  `SICK_NOTE` (since v1.40.0) or `OTHER`,
+  `SICK_NOTE` or `OTHER`,
   if this workflow only ever sends one type of document. Without it a document
   is filed as **Other** and you can change the type in HealthLog.
 - `aiRead` with the value `defer`, if you do not want new documents read by
@@ -389,23 +393,22 @@ picks up where it stopped.
   refused and listed as skipped (`409`, see [Troubleshooting](#troubleshooting)).
 - **Deleted documents stay deleted.** If you delete an imported document in
   HealthLog, neither the script nor the Paperless workflow brings it back,
-  also after the 30-day undo window when HealthLog removes it for good. The
-  same holds for a hand-uploaded document the import had matched by content.
-  If you undo the delete within the 30 days, the document counts as present
-  again. During those 30 days a deleted document is also recognised by its
+  also after the 30 days in [Recently deleted](/guides/document-vault/#deleting-and-restoring),
+  when HealthLog removes it for good. The same holds for a hand-uploaded
+  document the import had matched by content. If you restore it, or tick it
+  in the picker, the document counts as present again. During those 30 days a deleted document is also recognised by its
   content, so the same file from another archive or under a new id is not
   stored again. After the purge HealthLog remembers the ids, not the content.
-- **Which instance.** From v1.39.3 the script also sends the address of the
-  Paperless-ngx or Papra it reads from, and the picker records it. Documents
-  imported before that carry no address and still count as already there, or
-  as deleted, whichever instance you import from.
+- **Which instance.** The script sends the address of the Paperless-ngx or
+  Papra it reads from, and the picker records it. Documents that carry no
+  address (an early import, or a workflow without `sourceInstance`) count as
+  already there, or as deleted, whichever instance you import from.
 
-Two things reset that memory, because both start the record over. **Delete
-all data** under Data & Privacy forgets which imported documents you had
-deleted, and a restore from a backup does not carry it either (a backup
-carries only live documents). A later import can then bring such a document
-back, and you delete it again. A file you uploaded by hand and deleted before
-any import met it has no source id to remember, so an import stores it again.
+A backup taken on 1.46 or later carries which imports you deleted, so a
+restore keeps them deleted. **Delete all data** under **Settings → Data →
+Advanced** starts the record over and
+forgets them. A file you uploaded by hand and deleted before any import met it
+has no source id to remember, so an import stores it again.
 
 ## AI reading of imported documents
 
@@ -513,7 +516,7 @@ but does not look up or download anything older.
 | What the script prints                                                                  | What to do                                                                                                                                                                              |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `The document vault is switched off in HealthLog.`                                      | Turn on **Documents** under **Settings → Modules** and run it again.                                                                                                                    |
-| `HealthLog refused the request (403). Use a document token …`                           | The token is not a document token (a measurement token, for instance), or HealthLog is older than v1.39.2. Create a document token.                                                     |
+| `HealthLog refused the request (403). Use a document token …`                           | The token is not a document token (a measurement token, for instance). Create a document token.                                                                                          |
 | `HealthLog refused the token (401).`                                                    | The token is mistyped, revoked or expired. Create a new one.                                                                                                                            |
 | `Your HealthLog storage is full.`                                                       | HealthLog answered `413`: the storage limit is reached. Delete documents (the space returns after the 30-day undo window) or have an admin raise the limit, then run again.              |
 | `… HealthLog asked to slow down, waiting … s`                                           | Not an error: the token's hourly upload limit is reached (`429`). Let it run; the operator can raise `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`.                                                   |
