@@ -142,10 +142,6 @@ few megabytes at a time, and keeps its date. Each conversion is one
 transaction, so a copy that fails its check is left exactly as it was and
 counted as an error.
 
-Up to v1.39.1 the script counted every stored backup written by v1.38.6 to
-v1.39.1 as an error and never reported clean. After updating to v1.39.2, run
-the rotation again before retiring the old key.
-
 ## Troubleshooting
 
 - `Encryption key id 'v1' is not configured` — the DB still has `v1.`-prefixed

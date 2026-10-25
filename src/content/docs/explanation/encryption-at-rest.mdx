@@ -42,8 +42,7 @@ the model; the operator procedure is in
   encrypted for anything else does not open as a track.
 - **Questionnaire answers.** The item-by-item answers of PHQ-9, GAD-7, WHO-5 and
   the other check-ins.
-- **AI-written text and the Coach.** Coach messages, conversation titles (since
-  v1.39.3), the tables of values an answer read (since v1.39.4; see
+- **AI-written text and the Coach.** Coach messages, conversation titles, the tables of values an answer read (see
   [Coach conversations](/guides/coach-conversations/#what-the-model-sees-and-what-you-see)),
   summaries, remembered facts and plans; the daily briefing,
   status notes, reaction lines and workout notes.
@@ -65,14 +64,10 @@ travel locations, stored rounded to about 11 km; usernames, display names and
 email addresses. These live on a database you control, so protect the database
 volume and its backups like the host itself.
 
-Two columns moved in v1.39.3: the Coach conversation title and the note on a
-custom-metric reading. Three moved in v1.39.4: the workout GPS track and a
-practitioner's phone number and address. Each upgrade encrypts the existing
-rows in a background job a few minutes after boot, one row at a time, and the
-same job looks again every night at 04:07 Europe/Berlin for rows an older server wrote during
-the upgrade. Until it has reached a row, that row is still readable in the old
-column, and the app reads it from there. The old columns are dropped in a later
-release.
+When a release moves a column under encryption, a background job encrypts the
+existing rows a few minutes after boot, one row at a time, and looks again
+every night at 04:07 Europe/Berlin for rows an older server wrote meanwhile.
+Until it has reached a row, the app reads it from the old column.
 
 v1.39.4 also removes two readable copies of practitioner contact details: an
 appointment reminder no longer copies the practice address onto itself (it
@@ -123,8 +118,7 @@ rows become undecryptable — and the app tells you so rather than papering over
 
 The key is not stored in the database. Without it, the encrypted parts of the
 database and every in-database backup cannot be read, so a reinstall or a move
-to a new server with a fresh key leaves them unreadable. Since v1.40.0 the
-admin sees a **Back up your encryption key** step under Admin, Encryption. It
+to a new server with a fresh key leaves them unreadable. The admin sees a **Back up your encryption key** step under Admin, Encryption. It
 shows the active key id, a fingerprint (the first 12 hex characters of SHA-256
 over the key) and where the key lives on your platform:
 
@@ -154,10 +148,7 @@ comes back when the key changes, after a rotation for example.
 
 ## The start-up key check
 
-Before v1.40.0 a server started with a different key than the one its data was
-written with let people sign in and then failed wherever something had to be
-decrypted. Now the app checks at every start that its key opens the stored
-data.
+The app checks at every start that its key opens the stored data.
 
 If it proves that the key cannot open the data, it refuses to serve:
 

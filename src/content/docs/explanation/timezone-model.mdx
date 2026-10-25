@@ -39,28 +39,16 @@ total.
 Daily totals synced from Withings, Fitbit, Google Health, Polar and Oura (steps,
 distance, energy, overnight oxygen, resting pulse and similar) are stored at
 noon of their day in your own time zone, so they appear on the day they belong
-to wherever you live. Before v1.39.3 they were stored at noon UTC, which from
-UTC+12 on (New Zealand, Fiji, Tonga, Samoa) is already the next day. The next
-sync moves the days inside each integration's re-read window; reconnecting
-Fitbit or Google Health rereads the whole history.
+to wherever you live.
 
 ### Chart ranges
 
 Every chart range up to a year cuts days at midnight in the timezone of your
 profile. Ranges longer than a year still group readings by weeks and months cut
 at UTC midnight, where a few hours at the edge of a month make no visible
-difference. Before v1.39.4 such a week or month was also labelled by that UTC
-midnight, which west of UTC is the evening before, so every month of the
-**All** range sat one month early; it now falls in its own week or month in
-every timezone. Before
-v1.39.0 the 7-day chart counted readings on your calendar day while the longer
-ranges read totals cut at midnight UTC and labelled them in your timezone, so
-steps, active energy, flights climbed and walking and running distance could
-move to the neighbouring day when you switched from 7 to 30 days. A day's total
-is now the same on every range. The 7-day range also reads one value per day,
-so a watch that streams heart rate every minute shows the whole week instead of
-the first half. The medication, Coach and recovery charts used Berlin whatever
-your profile said; they follow your profile too. If the timezone stored in a
+difference; each still falls in its own week or month in every timezone. A
+day's total is the same on every range, and the medication, Coach and recovery
+charts follow your profile's timezone too. If the timezone stored in a
 profile is one the server cannot use, the server falls back to the instance's
 default timezone, and the app uses that same zone. Only named zones such as
 `Europe/Berlin` or `Asia/Kolkata` are accepted; a bare offset like `+05:30` is

@@ -13,7 +13,7 @@ When a pattern in your own data has no obvious cause, the cause is sometimes
 outside the window.
 
 The environmental module gives those patterns somewhere to point. It is **on by
-default since v1.29.1, but inert**: nothing about the weather is recorded, and
+default, but inert**: nothing about the weather is recorded, and
 no outbound fetch happens, until you set a home location on the Environment
 settings surface.
 
@@ -28,7 +28,7 @@ rather than health readings in their own right:
 - **daylight hours** and sunshine,
 - **precipitation**,
 - **barometric pressure**,
-- since v1.42.0, the outdoor air: **fine particles** (PM2.5 and PM10),
+- the outdoor air: **fine particles** (PM2.5 and PM10),
   **ozone**, nitrogen dioxide, the European and US air-quality indices,
   **UV**, Saharan dust and six kinds of **pollen**.
 
@@ -43,7 +43,7 @@ against blood pressure and pulse — with the usual descriptive, never-causal
 framing. For the physiology behind those links, see
 [environment and your health](/knowledge/environment/).
 
-Since v1.43.0 the module can also read daily movement from a
+The module can also read daily movement from a
 [Dawarich](/guides/connect-dawarich/) instance: distance, car and train
 kilometres, places visited, time away from home and travel days. Only those
 daily numbers are stored, never a coordinate or a place. Time away from home
@@ -54,7 +54,7 @@ of travel days that no location period covers are offered as trips.
 
 Temperature and blood pressure both follow the seasons, and so do daylight and
 sleep. Two such series line up strongly without anything connecting them from
-one day to the next. Since v1.42.0 every daily correlation first removes a
+one day to the next. Every daily correlation therefore first removes a
 linear trend and the yearly cycle from both series (only the trend when less
 than 120 days are paired) and then compares what is left. The confidence takes
 into account that neighbouring days resemble each other, so a pattern needs
@@ -142,27 +142,20 @@ silent tracking, no coarse-location guess from your network, no continuous
 position feed. The override is something you reach for deliberately, not a sensor
 running in the background.
 
-Whatever place you set is stored coarse. Since v1.39.4 the home location, the
-places of travel periods and the location saved with each day's weather are
-rounded to one decimal of a degree, about 11 km north to south, the size of a
-town or a city district. Before, they were rounded to about a kilometre, which
-is closer to a street; the upgrade rounds what is already stored. The weather
+Whatever place you set is stored coarse. The home location, the places of
+travel periods and the location saved with each day's weather are rounded to
+one decimal of a degree, about 11 km north to south, the size of a town or a
+city district. The weather
 data comes in grid cells of 9 to 25 km, so the coarser location changes the
 weather attached to your days very little.
 
-Since v1.42.0 the home location, the place of each travel period and the
-location saved with each day are also stored encrypted with the instance's
-key. After the update a background pass seals the rows older releases wrote
-and clears their readable copies. Key rotation covers all three. What you see
+These locations are also stored encrypted with the instance's key, and key
+rotation covers them. What you see
 in settings does not change: the server opens the location to show it to you.
-
-Later stages — coarse location from the iOS client, or a bedroom-temperature feed
-from a home-automation setup — are separate, opt-in follow-ups, not part of this
-first version.
 
 ## What the Coach and MCP clients can see
 
-Since v1.42.0 the Coach and a connected [MCP client](/reference/mcp/) can read
+The Coach and a connected [MCP client](/reference/mcp/) can read
 your stored days through one tool, `get_environment`: per day the temperature,
 rain, sunshine, pressure and humidity, and while air quality is on, the air
 values, plus a short summary such as hot nights or high pollen days. It

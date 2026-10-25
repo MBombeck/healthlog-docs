@@ -31,21 +31,10 @@ Recordings list newest first, so the most recent strip is the one you open.
 
 ## How recordings arrive
 
-The iPhone app sends each recording from Apple Health to the server. Apple
-Health hands over the average heart rate and the sampling frequency as
-decimal numbers, and the heart rate often carries a fraction, such as 64.7
-beats per minute. Up to v1.39.6 the server
-expected whole numbers and refused those recordings, so many newer ones never
-arrived while older ones whose values happened to be whole did. Since v1.39.7
-the server accepts both values with a fraction and rounds them to whole
-numbers before storing them.
-
-The iPhone app sends every recording it has not delivered yet in one go, and
-when one is turned away for the rate limit it starts the same batch again on
-the next sync. Up to v1.39.7 the server took 60 recordings a minute per
-account, so with more than 60 waiting the last one, which is the newest, was
-turned away on every sync. Since v1.39.8 it takes 600 a minute, enough for a
-long history to come through in one sync.
+The iPhone app sends each recording from Apple Health to the server, every
+recording it has not delivered yet in one go. The server takes up to 600 a
+minute per account and rounds the average heart rate and sampling frequency,
+which Apple Health hands over as decimals, to whole numbers.
 
 A recording the server refused before stays missing until it is sent again.
 That needs an iPhone app update that sends it once more. Until then, you can
