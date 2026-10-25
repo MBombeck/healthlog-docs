@@ -1,6 +1,6 @@
 ---
 title: Settings overview
-description: Every section of the Settings area in navigation order, what each one does, what it needs, and which module, admin toggle, or environment variable governs it.
+description: A map of the Settings area. Nine groups, the sections in each, one line on what each section holds, and the page that explains it.
 sidebar:
   order: 28
 ---
@@ -8,125 +8,53 @@ sidebar:
 import settingsModules from '../../../assets/screenshots/settings-modules.png';
 import settingsHealthScore from '../../../assets/screenshots/settings-health-score.png';
 
-You are looking for the place in Settings where a particular thing is
-configured. This page walks the left-hand navigation top to bottom. Each entry
-says what the section does, what it needs before it is useful, and which
-switch outside the section (a module, an admin toggle, an environment
-variable) can hide or disable it. Where a longer guide exists, it is linked.
+Settings is split into nine groups. This page lists them in the order the
+navigation shows them, says in a line what each section holds, and links to
+the page that explains it. On a phone the same list opens from the section
+sheet at the top of Settings.
 
-Two rules apply throughout. Sections that depend on a tracking module only
-appear in the navigation while that module is on, and a module can be
-switched off for the whole instance by the admin under
-[Module availability](/guides/admin-overview/#module-availability). A few
-actions ask for a fresh second factor (confirmed within the last five
-minutes) when the account has one enrolled; those are marked "step-up".
+A section that belongs to a tracking module is only listed while that module
+is on, and the operator can switch a module off for the whole instance under
+[Module availability](/guides/admin-overview/#module-availability). Some
+actions ask you to confirm it is you (a second factor or passkey within the
+last five minutes); see
+[Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you).
 
 ## Account
 
-Profile fields: username, gender, height, date of birth, display language,
-avatar. A field the server refuses, a height outside the accepted range or a
-date it will not take, is reported underneath the input that holds it, in the
-interface language, and the save waits instead of moving on with the value
-dropped. The baseline fields on the setup flow's confirm screen behave the
-same way and will not mark setup finished over a refused field. A separate
-block holds the identity details that end up on the doctor report (full name,
-insurer, insurance number). Needs nothing beyond a signed-in session. Cycle
-tracking is not switched on here; that lives under Modules.
+### Account
 
-This section also holds the time zone, the date and time format, metric or
-imperial units, and the glucose unit (mg/dL or mmol/L). Since v1.39.7 every
-surface follows the two unit choices: charts and lists, the metric status
-notes, the period review, the health score's glucose labels, the glucose
-thresholds under Targets, workouts (distance, pace, elevation), the trends row,
-fever entries, basal temperature, the Coach and the daily briefing. The texts
-the AI writes are handed their figures in your units, and changing a unit
-rewrites the stored status notes, period reviews and briefing in the new one.
-The clinician share view and the doctor report show glucose in your glucose
-unit, but keep weight, length and temperature in metric units whatever you
-chose, because they are written for a doctor. Storage stays in SI units, and the
-[FHIR export](/features/fhir-export/) keeps its standard UCUM units. The time
-zone decides where your days begin and end; see
-[the time zone model](/explanation/timezone-model/).
+Profile (username, display name, email, avatar, height, date of birth,
+language), the identity block for the doctor report (full name, insurer,
+insurance number), time zone, date and time format, metric or imperial units
+and the glucose unit. The **Setup** card brings the first-run questions and the
+checklist back. See [First steps](/getting-started/first-steps/#coming-back-to-it)
+and [the time zone model](/explanation/timezone-model/).
 
-A **Setup** card, since v1.38.18, is the way back into the first run.
-**Set up again** asks the questions once more with the old answers prefilled;
-it resets the steps and the first result and writes no module state, so a
-module switched on by hand is never switched off by a re-run. **Show the
-checklist again** brings back the rows this browser hid. See
-[First steps](/getting-started/first-steps/#coming-back-to-it).
+### Security
 
-## Security
+Authenticator app, security keys, recovery codes, passkeys and the password,
+followed by your active sessions, trusted devices and recent security
+activity. See [Sign-in and security](/guides/sign-in-and-security/).
 
-Second-factor setup (authenticator app and security keys), recovery codes,
-the list of passkeys, and the password change. Cookie session only; a Bearer
-token cannot manage these. Disabling the second factor, removing a security
-key or passkey, and changing the password are all step-up actions. The admin
-can require a second factor instance-wide, in which case a web sign-in without
-one is sent to enrolment first. Details in
-[Sign-in and security](/guides/sign-in-and-security/).
+### Shared access
 
-## Shared access
-
-Who else on this instance may open your record, which records you may open,
-managed profiles for people without a login of their own, and the activity
-log of who opened what. Reachable only while you are in your own record, not
-while acting on someone else's. Creating an access invite and adding or
-removing a guardian are step-up actions. Guides:
+Who may open your record, which records you may open, managed profiles and the
+log of who opened what. Only reachable while you are in your own record. See
 [Give another account access](/guides/shared-access/) and
-[Records with no login of their own](/guides/managed-profiles/).
+[Managed profiles](/guides/managed-profiles/).
 
-## Data & Privacy
+## Tracking
 
-A read-only summary of encryption state, what is stored, retention, export
-and deletion paths, and the AI posture, followed by the live cards for
-sessions, trusted devices and recent security activity. The encryption line
-reflects `ENCRYPTION_KEYS`, `ENCRYPTION_ACTIVE_KEY_ID` or the legacy
-`ENCRYPTION_KEY`. Background in
-[Privacy architecture](/explanation/privacy-architecture/).
+### Modules
 
-## Modules
-
-One switch per optional tracking domain: cycle, mood, sleep, glucose,
-workouts, recovery, labs, illness, achievements, Coach, AI analysis,
-medications, doctor report, environment, MCP, documents, mental health,
-nutrients, vaccinations, timeline. Weight, blood pressure and pulse are core and cannot be
-turned off. Resting heart rate is not part of pulse here: it belongs to recovery,
-with heart-rate variability and VO₂ max, so its chart, page, trend, correlations
-and its entry in the manual form follow the recovery switch. Most modules are on by default; MCP, nutrients and the
-[timeline](/guides/timeline/) are opt-in. A
-switch is greyed out when the admin has disabled that module server-wide, and
-the Coach switch additionally needs the operator's Coach switch to be on. The card
-belongs to the record you are in rather than to your account, so a guardian
-switched into a record they look after reads and writes that record's map and
-leaves their own alone. Where a module is off, the page says which of the three
-reasons it is: the record turned it off, the access you were given does not open
-it, or the operator switched it off for the instance. Only the first offers you
-the switch. Since v1.38.18 the page of a module that is off says the same
-instead of an empty state that reads as "nothing here yet", and offers the
-switch only when the record's own setting is what is off.
-
-Since v1.39.0 a module you switch off is gone everywhere, not just from the
-menu: the Insights tabs, the trends row on the Insights overview, the add menu
-behind the plus button, the dashboard tiles, the overview layout settings and
-the score rings. The trends row moves on to the next chart, so it still shows
-three. Correlations stop pairing your readings with a module you switched off,
-and so do the patterns the Coach, the status notes and the weekly and monthly
-review look at. Turn the module back on and those patterns return; any you had
-dismissed stay dismissed. Because fewer pairs are checked when fewer things are
-tracked, a weak pattern between two things you still track can appear after you
-switch a module off, or disappear after you switch one back on.
-
-A bookmark or link to a page whose module is off opens a short notice on that
-page instead of an error or a redirect. When the switch is yours, the notice
-has an **Open Settings, Modules** button. When the page is outside what someone
-shared with you, or the operator turned the module off for everyone, the notice
-says so and leaves the button out. The Nutrients page uses the same notice; it
-is switched on here like every other module.
-
-**AI analysis**, called Insights before v1.39.0, is the switch for text a model
-writes for you: the daily briefing, status notes and workout notes. It never
-hides your data. With it off you keep the Insights tab, the Today summary on the
-dashboard, and the readiness, recovery and sleep score rings. See
+One switch per optional area (cycle, mood, sleep, glucose, labs, medications,
+Coach, AI analysis, documents and more). Weight, blood pressure and pulse are
+always on. A module switched off disappears from every page and keeps its data.
+The module rows for medications, mood and labs open their own settings page:
+injection sites, mood tags, and the biomarker catalog with on-device text
+recognition for lab reports. **AI analysis** decides only whether a model
+writes text for you; see
 [When AI is not available](/guides/ai-providers/#when-ai-is-not-available).
 
 <figure>
@@ -134,101 +62,32 @@ dashboard, and the readiness, recovery and sleep score rings. See
   <figcaption>The module switches. Turning one off removes it from the navigation, the tiles and the insights, and leaves the data it holds untouched.</figcaption>
 </figure>
 
-## Integrations
+## Arrangement
 
-Connection cards for Withings, WHOOP, Fitbit, Google Health, Apple Health,
-Polar, Oura, Strava, Nightscout and, with the environment module on, Dawarich
-(since v1.43.0, see [Connect Dawarich](/guides/connect-dawarich/)), the
-nutrients intake card (only with the
-nutrients module on), the **Document archives** card for Paperless-ngx and
-Papra (when the administrator set `DOCUMENT_SOURCE_ORIGINS` and the Documents
-module is on, or with only **Disconnect** while a saved connection can no
-longer be used; see
-[Import documents](/guides/import-documents/#pick-documents-inside-healthlog)),
-and the delivery channels group (Telegram, ntfy, Web
-Push, webhook, email) at the `#channels` anchor. Each OAuth provider needs
-its client id, secret and redirect URI in the environment before the card can
-connect; each channel needs the matching admin toggle under Services, and Web
-Push needs VAPID keys. The connect guides are listed on the
-[guides index](/guides/).
+### Arrangement
 
-## Source priority
-
-The source-priority ladder, global and per metric: when two connected
-sources report the same metric, which one wins. Move entries up or down, or
-reset to the defaults. Only meaningful once more than one source is
-connected. See [Source priority](/guides/source-priority/).
-
-## Health record
-
-The full health-record export (format, reporting window, practice line,
-scope picker) and, below it, clinician share links: time-boxed read-only
-links whose token is shown exactly once, with active and revoked lists.
-Always listed; the doctor-report module still governs the data layer. Sharing
-is explained in [Record sharing](/explanation/record-sharing/).
-
-## Export & Import
-
-CSV exports for measurements, medications and mood; the full backup either
-as a passphrase-encrypted `.hlx` file or as plain JSON; and the import cards
-for Apple Health, Health Connect, CSV, JSON and dose history. The encrypted export is a
-step-up action for accounts with a second factor, and since v1.39.3 both forms
-of the full backup ask you to confirm it is you unless you signed in within the
-last five minutes (see
-[Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you)). See
-[Backups](/guides/backups/), [Import Apple Health](/guides/import-apple-health/),
-[Import Health Connect](/guides/import-health-connect/) and
-[Import a CSV](/guides/import-csv/).
-
-## Appearance
-
-A hub of sub-pages for arranging each surface: dashboard, insights,
-medications, mood, labs, illness, and preventive care. The medications, mood,
-labs and illness sub-pages only appear while their module is on; preventive
-care is not a module and is always listed. The older `/settings/<module>`
-addresses redirect here. Dashboard layout is described in
+Order and view, nothing else. One sub-page each for the dashboard, Insights,
+medications, labs, the illness journal, documents and checkups; a module's
+sub-page is listed while the module is on. Dashboard tiles are described in
 [Dashboard customization](/features/dashboard-customization/).
-
-## Targets
-
-Personal thresholds per metric, with per-metric and reset-all resets, plus the
-glucose reference card that chooses which reference band the app applies.
-Since v1.39.0 a weight target you set here also decides which way the weight
-tile counts as progress. Below your target a gain shows as progress, above it
-a loss does, and inside it holding steady does, with a small move either way
-shown neutrally. The daily briefing, the weight status note and the Coach know
-the target and the direction too. Without a stored target the tile reads as
-before; the band worked out from your height does not count as a target.
-
-Since v1.43.0 the same rule covers every metric with a band, and the server
-decides it once for the web and the iOS app, so both colour a change the same
-way. The band is your own target, else a default from your profile (the
-age-based blood pressure target, the age- and sex-based resting pulse band,
-the sex-based body fat band). Below the band a rise counts as progress, above
-it a fall, inside it holding steady. Two exceptions: below a default band,
-blood pressure, resting pulse and body fat read as holding steady, because a
-default's lower edge is a convention and not a goal (a resting pulse of 48 is
-nothing to climb out of); only a target you set yourself turns that into "a
-rise is progress". And steps and blood oxygen above their band are never a
-setback. Weight still counts only a target you set. Without a band a metric
-keeps its usual direction. The targets page places a value against its band
-by the seven-day mean, the same basis the dashboard uses.
-Needs nothing beyond a session. Background in
-[Blood pressure targets](/explanation/blood-pressure-targets/).
 
 ## Notifications
 
-The reminder types that are not tied to a specific integration: the mood
-reminder (needs the mood module) and the low-stock warning for medications
-(needs the medications module). Links onward to the notification matrix and
-to the channels group under Integrations. Channel setup itself is covered in
+### Notifications
+
+Reminders that are not tied to one item: the mood reminder, the low-stock
+warning for medications, Coach nudges and the checkup reminder switches. A
+card names the reminders set elsewhere (doses on each medication, cycle
+reminders on the Notifications page), and **Health figures in notifications**
+decides whether a lock screen may show values such as the morning score. Where reminders are delivered is set
+under [Connections, Integrations](#integrations). See
 [Reminder channels](/guides/reminder-channels/).
 
-## Health Score
+## Health profile
 
-Which pillars count toward the composite score, with a notice when the
-composition changed. Pillar availability follows the enabled modules. The
-method is explained in
+### Health score
+
+Which pillars count toward the composite score. See
 [Composite health score](/explanation/composite-health-score/).
 
 <figure>
@@ -236,121 +95,102 @@ method is explained in
   <figcaption>Choosing which pillars move the number. A pillar switched off here is still recorded and still shown everywhere else in the app.</figcaption>
 </figure>
 
-## Medical history
+### Targets
 
-Conditions, an "about me" note, health-profile facts, allergies, family
-history, the emergency profile, and the switch that decides whether this
-profile is included in what the AI features see. Always shown; not a module.
-A guardian, or a delegate with manage rights, can edit this section along with
-readings, medications, lab results, illness, mood and cycle; only the document
-vault refuses every delegated write. See
-[Record allergies and family history](/guides/structured-records/).
+Your own target band per metric, with resets, and the glucose reference card.
+A target decides which way a change counts as progress on the dashboard. See
+[Blood pressure targets](/explanation/blood-pressure-targets/).
 
-Since v1.43.0 the section also holds the **Life circumstances** card:
-smoking, alcohol with AUDIT-C, activity, work, sleep and diet habits, and
-goals, each with its own AI switch. See
-[Life circumstances and AUDIT-C](/guides/life-circumstances/).
+### Medical history
 
-## Location & weather
+Conditions, allergies, family history, the emergency profile, an "about me"
+note, the **Life circumstances** card, and whether this profile is shown to
+the AI features. See [Record allergies and family history](/guides/structured-records/)
+and [Life circumstances and AUDIT-C](/guides/life-circumstances/).
 
-Home location (with a place search), travel overrides for periods away, and
-a backfill of weather, daylight and air quality over a date range. Since
-v1.42.0 the page has an **Air quality and pollen** switch (on by default), how
-many days carry air values, the newest day's values and the attribution
-lines. Needs the environment module, which is on by default; no outbound
-request is made until a location is set. The data sources can be pointed
-elsewhere with `OPENMETEO_BASE_URL`, `OPENMETEO_AIR_QUALITY_URL` and
-`OPENMETEO_GEOCODING_URL`. Background in
+### Location & weather
+
+Home location, travel periods, the air quality and pollen switch, and a
+weather backfill. Listed while the environment module is on. See
 [Environmental module](/explanation/environmental-module/).
 
-## AI provider
+## AI
 
-Provider, model and your own API key for AI Insights: Anthropic, OpenAI,
-an OpenAI-compatible endpoint, Codex, or a local model, plus the fallback
-chain, auto-read, response timeout and the consent card. The admin's server
-key, if one is configured, sits at the end of the chain and never overrides a
-key you set yourself; using it needs your consent. The operator's master
-switch stops every AI feature, and **Test connection** says so instead of
-calling the model while it is off. See [AI providers](/guides/ai-providers/).
+### AI provider
 
-Since v1.43.0 the section also sets your **AI usage** level: frugal, standard
-or full, within the bounds the admin sets, with an estimate of tokens per day
-for each. See [AI usage levels](/guides/ai-providers/#ai-usage-levels).
+Provider, model and key, the fallback chain, the response timeout, the AI
+usage level and the consent card. See [AI providers](/guides/ai-providers/);
+the timeout is explained under
+[Response timeout](/guides/ai-providers/#response-timeout).
 
-The response timeout applies to every AI call: reading and summarising
-documents, lab scans, filing suggestions, medication extraction, the Coach and
-the briefing (since v1.39.9; before, several of these stopped after 60 seconds
-whatever was set). Left empty it is 60 seconds, and the briefing allows 180.
-Two short notes keep their own quick limit, the Coach's nudge and the reaction
-line under a new reading, because each has a plain text to fall back on. A
-reverse proxy in front can still end a long request earlier; see
-[Reverse proxy](/guides/reverse-proxy/).
+### Coach
 
-## Coach
-
-The Coach on/off switch, then (only while it is on) preferences, the nudge
-card, remembered facts with per-fact deletion, and Coach reminders. Needs the
-coach module and the operator's Coach switch. Hiding the Coach hides the Coach
-and nothing else; since v1.39.0 it no longer also stops the daily briefing and
-status notes, which follow **AI analysis** under Modules. Hiding it deletes
-none of your conversations or remembered facts. What the Coach kept stays on
-this page while the Coach is hidden or switched off: remembered facts,
-conversations, plans and reminders, each readable and deletable, without the
-controls that need the Coach. Reminders wait while the Coach is unavailable and
-come back when it is on again. See
+The Coach switch, then its preferences (tone, reply length, thinking depth,
+follow-up suggestions, excluded metrics), what the Coach remembers, and its
+conversations, plans and reminders. Coach nudges moved to Notifications. See
+[Coach conversations](/guides/coach-conversations/) and
 [Coach plans](/guides/coach-plans/).
 
-**Coach settings** also hold **Suggest follow-up questions** (since v1.39.4, on
-by default), which controls the suggestions under the Coach's latest answer,
-and **Exclude metrics**, which keeps the selected metrics out of every Coach
-turn. See [Coach conversations](/guides/coach-conversations/).
+## Connections
 
-Since v1.40.2 the card sums up what the Coach sees in one line, such as "The
-Coach sees 8 of 10 data areas and looks back 90 days", and **Open Coach
-settings** opens the Coach page with its quick settings open on that section.
-The data areas and how far back the Coach looks are set there, not on this
-page; see [Quick settings](/guides/coach-conversations/#quick-settings).
+### Integrations
 
-Since v1.41.0 **Coach settings** also hold **Thinking depth** (**Off**,
-**Low**, **Medium** or **High**, **Medium** by default), beside Tone and Reply
-length; the same field is in the Coach's quick settings. See
-[Thinking depth](/guides/coach-conversations/#thinking-depth). **What the
-Coach remembers** says for each entry whether it came **from you** or **from
-the Coach**, and an entry can be edited as well as forgotten; see
-[The memory list](/guides/coach-conversations/#the-memory-list).
+The **Connections** list (Withings, WHOOP, Fitbit, Google Health, Apple
+Health, Polar, Oura, Strava, Nightscout, Dawarich), the nutrients intake card,
+the **Document archives** card for Paperless-ngx and Papra, and **Delivery
+channels** (Telegram, ntfy, Web Push, webhook, email) at
+`/settings/integrations#channels`. See [Integrations](/guides/integrations/)
+and [Reminder channels](/guides/reminder-channels/).
 
-## API & Tokens
+### Source priority
 
-The list of endpoints a personal token can reach, the **Measurement tokens**,
-**Workout tokens** and **Document tokens** cards (mint a token that can only add
-readings, only add workouts, or only add documents), and the table of personal API tokens with their permissions
-and revoke. Governed by the admin's API toggle under Services; token hashing
-needs `API_TOKEN_HMAC_KEY` in the environment. How-to:
-[Push readings from your own hardware](/guides/ingest-token/) and
-[Import documents from Paperless-ngx or Papra](/guides/import-documents/).
+Which source wins when two report the same metric, globally and per metric.
+See [Source priority](/guides/source-priority/).
 
-## MCP Connector
+### API & tokens
 
-The switch for the opt-in MCP module, connected external assistants with
-revoke, and the `health:read` tokens used to connect one. The entry is always
-listed so the switch stays reachable. Serving `/mcp` needs the module on, the
-admin's API toggle on, and a public origin in `APP_URL` or
-`NEXT_PUBLIC_APP_URL`; there is no separate MCP environment flag. See
+Measurement, workout and document tokens, and the list of personal API tokens
+with revoke. See [Push readings from your own hardware](/guides/ingest-token/)
+and [Import documents](/guides/import-documents/).
+
+### MCP connector
+
+The state of the MCP connector, connected assistants with revoke, and the
+tokens used to connect one. The switch itself is under Modules. See
 [Enable the MCP connector](/guides/mcp-server/).
 
-## Advanced
+## Data
 
-Two destructive actions behind confirmation dialogs: reset all data, and
-delete the account. Account deletion is a step-up action. See
+### Export & import
+
+CSV exports, the full backup (encrypted `.hlx` or plain JSON), and imports
+from Apple Health, Health Connect, JSON, measurement CSV, dose history, and
+lab results and medications from a spreadsheet. See [Backups](/guides/backups/),
+[Import Apple Health](/guides/import-apple-health/),
+[Import Health Connect](/guides/import-health-connect/) and
+[Import a CSV](/guides/import-csv/).
+
+### Health record
+
+The health-record export and, below it, clinician share links
+(`/settings/sharing` opens here). See
+[Sharing documents with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
+
+### Data & privacy
+
+A read-only summary of encryption, what is stored, retention and the AI
+posture, plus the **Workout routes** switch (keep GPS tracks of new workouts).
+See [Privacy architecture](/explanation/privacy-architecture/).
+
+### Advanced
+
+**Delete all data** and **Delete account**, each behind a confirmation. See
 [Data deletion](/account/data-deletion/).
 
-## About this app
+## System
 
-Running version with an update check, and links to the repository, the
-changelog, these docs, and the credits page. The same card is shown to the
-admin under Admin, About.
+### About this app
 
-Since v1.43.0 a **Support** card offers **Copy support info**: a summary for
-a bug report, put together in your browser, without your name, email
-address or health values. See
+Running version with an update check, links to the repository, changelog,
+docs and credits, and **Copy support info** for a bug report. See
 [Report a problem with an error id](/self-hosting/troubleshooting/#report-a-problem-with-an-error-id).
