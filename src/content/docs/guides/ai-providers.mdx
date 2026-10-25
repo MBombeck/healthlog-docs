@@ -24,7 +24,7 @@ there. See [When AI is not available](#when-ai-is-not-available).
 | OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `gpt-4o` | `api.openai.com/v1` | Context sent to OpenAI |
 | Anthropic | [console.anthropic.com](https://console.anthropic.com/settings/keys) | `claude-sonnet-4-6` | Anthropic default | Context sent to Anthropic |
 | Local | none (your endpoint) | your model | OpenAI-compatible URL you control | Stays on your network |
-| ChatGPT OAuth | sign in with your ChatGPT account | Codex-routed | Codex-routed | Via your ChatGPT subscription |
+| ChatGPT OAuth | sign in with your ChatGPT account | `gpt-5.6-terra`, then a built-in fallback list | `chatgpt.com` Codex backend | Via your ChatGPT subscription |
 | OpenAI-compatible gateway | the credential your gateway issues, if it wants one | your model | the gateway URL you configure | Context sent to your gateway |
 
 The model is overridable per provider in `/settings/ai` — e.g. a lighter
@@ -35,13 +35,12 @@ weekly report typically spends a few dollars per month on a full-size hosted
 model.
 
 Reading a lab-report photo or a document image needs a vision-capable model.
-On OpenAI that is `gpt-5*`, `gpt-4o*`, `gpt-4.1*`, `gpt-4-turbo*` and the full
-`o1` / `o3` / `o4` reasoning models (their `-mini` and `-preview` variants take
-no image input); on Anthropic, the Claude 3, 3.5, 3.7 and 4 families. Since
-v1.38.1 a report the provider could not process is answered with `502` and a
-message saying the configured provider could not process it, instead of a hint
-to retake the photo, and the upstream status and model land in the request's
-wide event so the operator can see which step failed.
+On OpenAI and ChatGPT that is every GPT from 5 on (the gpt-6 line included),
+`gpt-4o`, `gpt-4.1`, `gpt-4-turbo` and the full `o1` / `o3` / `o4` models; their
+`-mini` and `-preview` variants take no images. On Anthropic it is the Claude 3
+family and every Claude from 4 on. A Local or gateway model is assumed to read
+images; one that cannot fails with a message saying the provider could not
+process the file.
 
 ## BYOK vs admin-shared
 
@@ -50,22 +49,24 @@ Two key-provisioning modes coexist:
 - **BYOK (bring your own key)** — each user pastes a personal API key into
   `/settings/ai`. It is AES-256-GCM-encrypted at rest and only decrypted
   in-process. Cost falls to the user.
-- **Admin-shared** — the admin panel accepts a single OpenAI key. Users without
-  their own key fall back to it. It is the last entry in the chain, so it acts
-  as a safety net rather than the default route. The operator can additionally
+- **Admin-shared** — the operator sets one server key under **Admin → Coach**.
+  It drives OpenAI by default (`gpt-4o`), or Anthropic when its base URL is
+  Anthropic's (`claude-sonnet-4-6`). Users without their own key fall back to
+  it. It is the last entry in the chain, so it acts as a safety net rather
+  than the default route. The operator can additionally
   share a subscription-based account — see
   [Operator-shared subscription access](#operator-shared-subscription-access).
 
 ## The fallback chain
 
-`User.aiProviderChain` is a priority-ordered list, tried top to bottom. The
-default:
+Each account has a priority-ordered list of providers, tried top to bottom.
+The default:
 
 1. **ChatGPT OAuth** (covered by a ChatGPT subscription; no per-token cost)
 2. **OpenAI** (the user's own key)
 3. **Anthropic** (the user's own key)
 4. **Local** (self-hosted Ollama / LM Studio / vLLM)
-5. **admin-shared OpenAI** (last-ditch)
+5. **the server key** (last-ditch)
 
 Entries the user has no credential for are silently skipped. The first to return
 a non-error completion wins; a 422 fires only when every entry errored. Edit the
@@ -76,36 +77,73 @@ order — or disable an entry without removing it — in `/settings/ai`.
 Any OpenAI-compatible local endpoint plugs in as the **Local** provider. Data
 stays on your network end to end.
 
-- **Ollama** — `ollama pull qwen2.5:14b-instruct && ollama serve`, base URL
-  `http://localhost:11434/v1`. If HealthLog runs in Docker and Ollama on the
-  host, swap `localhost` for `host.docker.internal` (Mac/Windows) or the LAN IP
-  (Linux).
-- **LM Studio** — start the Local Server (usually `http://localhost:1234/v1`).
-- **vLLM** — `vllm serve ... --api-key your-shared-secret`, base URL
+- **Ollama**: base URL `http://<host>:11434/v1`.
+- **LM Studio**: start the Local Server (usually port `1234`), base URL
+  `http://<host>:1234/v1`.
+- **vLLM**: `vllm serve ... --api-key your-shared-secret`, base URL
   `http://<host>:8000/v1`.
 
 :::caution[SSRF guard for local endpoints]
 Any user of the instance can type a base URL, so a base URL on a private
 address is refused unless the operator has listed it. List the endpoint's exact
 origin in `AI_PRIVATE_ORIGINS` in the container environment, comma-separated:
-`AI_PRIVATE_ORIGINS="http://ollama.lan:11434"`. An origin is
-`scheme://host[:port]` and nothing else. A listed endpoint is called over a
-pinned connection that does not follow redirects, and the cloud metadata
-address, link-local addresses and the unspecified address stay unreachable even
-when listed.
+`AI_PRIVATE_ORIGINS="http://ollama.lan:11434,http://10.0.0.5:4000"`. An origin
+is `scheme://host[:port]` and nothing else, never a wildcard or a range. A
+listed endpoint is called over a pinned connection that does not follow
+redirects, and the cloud metadata address, link-local addresses and the
+unspecified address stay unreachable even when listed.
 
 The older `ALLOW_LOCAL_AI_PRIVATE_HOSTS` still works as a host list
-(`ollama.lan, 10.0.0.5`), which grants those hosts on any port. Its `true` form
-is deprecated since v1.39.3 and will be removed in a later release: until then
-it covers only the server key in the admin panel and AI settings saved on an
-admin account, over the same pinned connection, and no longer any other
-account's endpoint. While `true` is set, the admin AI settings page shows the
-exact `AI_PRIVATE_ORIGINS` line for the private endpoints saved on the
-instance, or says the old variable can be removed when there are none.
+(`ollama.lan, 10.0.0.5`), which grants those hosts on any port. Its `true`
+form is deprecated: it covers only the server key and AI settings saved on an
+admin account. While it is set, the admin AI settings page shows the exact
+`AI_PRIVATE_ORIGINS` line to use instead.
 :::
+
+### Example: Ollama on the same host as Docker
+
+HealthLog runs in the compose stack and Ollama runs on the host itself. Inside
+the container, `localhost` is the container, not the host.
+
+1. Make Ollama listen beyond loopback (`OLLAMA_HOST=0.0.0.0` in its service
+   environment), then pull a model, for example `ollama pull qwen2.5:14b-instruct`.
+2. Pick the address the container reaches the host on. On Docker Desktop (Mac,
+   Windows) that is `host.docker.internal`. On Linux the bundled compose file
+   does not map that name, so use the host's LAN IP, for example
+   `192.168.1.20`. (Adding `extra_hosts: ["host.docker.internal:host-gateway"]`
+   to the `app` service in a `docker-compose.override.yml` makes the name work
+   on Linux too.)
+3. Allow that origin in `.env` and recreate the app container
+   (`docker compose up -d`):
+
+   ```env
+   AI_PRIVATE_ORIGINS="http://192.168.1.20:11434"
+   ```
+
+   With `host.docker.internal`, list `http://host.docker.internal:11434`
+   instead; that name resolves to a private address too.
+4. Under **Settings → AI provider**, choose **Local**, set the base URL to
+   `http://192.168.1.20:11434/v1` (or `http://host.docker.internal:11434/v1`),
+   the model name exactly as `ollama list` shows it, and leave the key empty.
+5. For a thinking model, set **Reasoning** to **Off** so the answer budget goes
+   to the answer. If the model is slow to load, raise the
+   [response timeout](#response-timeout). If a verbose model cuts its JSON off
+   mid-answer, raise `INSIGHTS_MAX_TOKENS` (default 2500, up to 8000).
+6. Press **Test connection**.
 
 Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
 16-24 GB (the BYOK sweet spot), 70B+ for 48 GB+.
+
+### Response timeout
+
+**Settings → AI provider → Response timeout** sets how long each AI call waits
+for an answer, 10 to 600 seconds. Left empty, a call waits 60 seconds; the
+daily briefing and the Coach wait 180. The setting applies to every AI job:
+each call of the daily briefing, status cards, document and lab reading,
+medication extraction, the Coach and background jobs. Only the line under a
+new reading and Coach nudges keep their own short limit, because each has a
+plain text to fall back on. A reverse proxy in front can still end a long
+request earlier; see [Reverse proxy](/guides/reverse-proxy/).
 
 Reasoning models served this way can think before they answer; see
 [Reasoning](#reasoning).
@@ -116,18 +154,16 @@ The **Local** provider speaks the plain OpenAI chat-completions dialect, so it
 also covers gateways and routers, not just single-model servers: LiteLLM,
 OpenRouter, vLLM, LM Studio, or any proxy that exposes an OpenAI-compatible
 `/v1` endpoint. A gateway also has its own provider entry, **OpenAI-compatible
-gateway**, with its own base URL, model and optional key, held in three
-dedicated columns so neither the OpenAI base URL nor the OpenAI key can leak
-into it; the OpenAI provider deliberately pins `api.openai.com`, so an OpenAI
-API key is never forwarded to a custom host. Point the base URL at the gateway (it ends with `/v1` — e.g.
+gateway**, with its own base URL, model and optional key, kept apart from the
+OpenAI entry; the OpenAI provider pins `api.openai.com`, so an OpenAI API key
+is never forwarded to a custom host. Point the base URL at the gateway (it ends with `/v1` — e.g.
 `https://openrouter.ai/api/v1`), pick the model name the gateway routes, and
 set the API key field if the gateway expects one — the Bearer header is
 optional and simply omitted when no key is configured.
 
 Structured generations send `response_format: { type: "json_object" }` by
-default. Since v1.28.28 the flag falls back **per endpoint**: a gateway that
-rejects the parameter with a 400 flips that base URL to a no-flag dialect and
-the request is retried, so strict gateways work without configuration.
+default. A gateway that rejects the parameter with a 400 is remembered per
+base URL and asked without it, so strict gateways work without configuration.
 Hosted gateways on public hosts need no entry; a gateway on your LAN needs its
 origin in `AI_PRIVATE_ORIGINS`.
 
@@ -146,13 +182,22 @@ enter the short code). Tokens land AES-256-GCM-encrypted; refresh runs
 automatically. The wire protocol is documented in the repo's
 `docs/codex-protocol-spec.md`.
 
+The ChatGPT backend accepts only some model names, and it changes them without
+notice. HealthLog tries a built-in list in order, starting at `gpt-5.6-terra`,
+then the gpt-6 models, and remembers the first one that answers. An operator
+can steer this in the container environment: `CODEX_MODEL` puts one model
+ahead of the list, and `CODEX_MODEL_FALLBACK_CHAIN` (comma-separated) replaces
+the list. Use them when every model is rejected after the backend changed
+again. An override set only to get past the models rejected in October 2026
+can be removed; the built-in list covers that.
+
 ## Operator-shared subscription access
 
 Besides the shared API key, the operator can connect a single
 subscription-based AI account for the whole instance and let users opt into
 it:
 
-- **Admin side.** Under **Admin → AI** the operator runs the same device-code
+- **Admin side.** Under **Admin → Coach** the operator runs the same device-code
   OAuth flow as the per-user ChatGPT connection. The tokens are stored
   AES-256-GCM-encrypted in the instance settings and are never returned by
   any endpoint; the admin routes sit behind the cookie-only admin boundary.
@@ -173,8 +218,7 @@ contract should configure a personal provider instead.
 
 ## Reasoning
 
-Since v1.41.0 HealthLog asks a model to think before it answers wherever that
-helps: in the Coach, at the depth each person picks under **Thinking depth**
+HealthLog asks a model to think before it answers wherever that helps: in the Coach, at the depth each person picks under **Thinking depth**
 (see [Coach conversations](/guides/coach-conversations/#thinking-depth)), and
 in a few background jobs, namely the daily briefing (scheduled and on request),
 the weekly and monthly summaries and the upkeep of the Coach's memory. Status
@@ -214,20 +258,19 @@ about the reasoning handed back between rounds.
 
 ### The Reasoning setting on Local and gateway providers
 
-Since v1.40.0 the **Local** and **OpenAI-compatible gateway** settings have a
-**Reasoning** choice: **Default**, **Off**, **Low**, **Medium** or **High**.
-**Off** leaves the whole answer budget for the answer itself, which helps a
-thinking model that spends a minute deliberating over a short summary.
-**Default** sends nothing, so existing setups behave exactly as before; the
-other choices send `reasoning_effort` (`none` for Off). An endpoint that
-rejects the field no longer has its JSON mode switched off because of it. The
-setting is stored per provider in the fallback chain. OpenAI, Anthropic and
-Codex pin their own models and parameters, so the setting is not offered for
-them.
+The **Local** and **OpenAI-compatible gateway** settings have a **Reasoning**
+choice: **Default**, **Off**, **Low**, **Medium** or **High**. **Off** leaves
+the whole answer budget for the answer itself, which helps a thinking model
+that spends a minute deliberating over a short summary. **Default** sends
+nothing; the other choices send `reasoning_effort` (`none` for Off). The
+setting is stored per provider in the fallback chain and applies to everything
+that provider does except the Coach, which uses the person's **Thinking
+depth**. OpenAI, Anthropic and Codex pin their own models and parameters, so
+the setting is not offered for them.
 
-Since v1.41.0 this choice applies to everything that provider does except the
-Coach, which uses the person's **Thinking depth**; a line under the field says
-so.
+A reply that holds reasoning and no answer is asked once more without
+reasoning. If that does not help either, the model is not asked that way again
+for an hour. One AI call makes at most two requests.
 
 ### What the operator controls
 
@@ -253,16 +296,12 @@ sets the completion-token budget per generation — raise it when a verbose
 local model truncates its JSON mid-answer.
 
 Each account also has a daily AI budget that the Coach, the briefing, the
-summaries and document reads draw on. Since v1.42.2 it resets at midnight in
-the account's own time zone, the same day boundary the morning briefing uses.
-Before, it reset at midnight UTC, so in a zone east of UTC the first
-generations of a new day could still count against the old day and be
-refused. The spend line on the admin provider health card counts today the same way, on each
-account's own day.
+summaries and document reads draw on. It resets at midnight in the account's
+own time zone. Tokens spent on replies without an answer count toward it.
 
 ## AI usage levels
 
-Since v1.43.0 every account runs at one of three AI usage levels, chosen
+Every account runs at one of three AI usage levels, chosen
 under **Settings, AI provider, AI usage**. A level decides how much model work
 runs in the background for you. It never decides what is stored or shown, and
 the Coach is the same at every level.
@@ -316,20 +355,14 @@ switch off, or pair it with a no-training BYOK key or a local model. See the
 [vault guide](/guides/document-vault/#reading-documents-with-ai--automatic-search)
 for how the readers are chosen.
 
-Since v1.30.32, switching it on also catches up on documents already in your
-vault instead of only applying to new uploads. The catch-up re-asserts the
-consent and the daily budget per document; it grants nothing extra.
-
-Since v1.39.0 that consent covers document reading, lab report scans and
-turning typed medication text into a schedule, and nothing else. Before, the
-switch recorded full AI consent, which also opened the Coach and AI analysis
-without saying so. If you turned it on in an earlier version, that earlier
-consent stays until you withdraw it. The other way round, your consent for the
-Coach or AI analysis no longer counts for documents: the first time a document
-or a lab scan would go to an AI service outside your server, you are asked
-once. A self-hosted local model on your own server needs no consent for
-documents. If you withdraw the document consent, reading stops at once, even
-while the switch is still on.
+Switching it on also catches up on documents already in your vault. That
+consent covers document reading, lab report scans and turning typed medication
+text into a schedule, and nothing else. Your consent for the Coach or AI
+analysis does not count for documents: the first time a document or a lab scan
+would go to an AI service outside your server, you are asked once. A
+self-hosted local model on your own server needs no consent for documents.
+Withdrawing the document consent stops reading at once, even while the switch
+is still on.
 
 The operator can stop all of this for the server with the **Reading documents**
 switch under Admin, Coach. With it off, or with the master switch off, asking
@@ -344,25 +377,14 @@ AI settings show the standing consent decision in plain words and carry the
 control that changes it. Withdrawing takes effect immediately: without an active
 consent, every AI feature that needs it stops on the next call.
 
-Since v1.39.0, withdrawing also deletes the notes the app can write again once
-no consent for AI analysis is left: the per-metric status notes, the daily
-briefing, model-written period summaries, the lines written after a new reading,
-and workout notes. Your Coach conversations, what the Coach remembers, and the
+Withdrawing also deletes the notes the app can write again once no consent
+for AI analysis is left: the per-metric status notes, the daily briefing,
+model-written period summaries, the lines written after a new reading, and
+workout notes. Your Coach conversations, what the Coach remembers, and the
 summaries of your documents are your records and stay; you can read and delete
 them yourself. Nothing you recorded is deleted by a withdrawal; that is the
-export and erase path under **Settings → Advanced**.
-
-Two things changed in v1.30.32 that are worth knowing if you used an earlier
-release:
-
-- **A withdrawn consent stays withdrawn.** Opening the AI settings used to grant
-  consent again if you had taken it back, and recorded it as though you had done
-  it yourself. A withdrawal is now a standing decision that only an explicit act
-  lifts.
-- **The web can withdraw at all.** The revoke endpoint has existed since
-  v1.4.40, but only the native client ever called it; on the web, consent could
-  be given and never taken back. Withdrawal now sits on the same surface as the
-  grant.
+erase path under **Settings → Advanced**. A withdrawn consent stays withdrawn
+until you give it again.
 
 ## Connection test
 
@@ -376,8 +398,8 @@ answers with `assistant.disabled.enabled` instead.
 
 ## When AI is not available
 
-Since v1.39.0 the server decides in one place whether each AI feature can run
-for you, and tells the app why when it cannot. The possible reasons, from the
+The server decides in one place whether each AI feature can run for you, and
+tells the app why when it cannot. The possible reasons, from the
 outside in:
 
 1. The operator switched it off for the server, with the master switch or the
@@ -399,15 +421,13 @@ unavailable. Turn it back on and the stored text returns. Only a consent
 withdrawal deletes anything, as described above.
 
 **AI analysis** is the module that covers text a model writes for you: the daily
-briefing, status notes, workout notes and the line after a new reading. It used
-to be called Insights. Switching it off keeps the Insights page, your scores and
+briefing, status notes, workout notes and the line after a new reading.
+Switching it off keeps the Insights page, your scores and
 your data; the morning briefing notification still arrives, with your health
 score or the day's reminders instead of the written first sentence.
 
-Hiding the Coach hides the Coach and nothing else. Until v1.39.0 it also stopped
-the nightly briefing and status notes. The upgrade switched AI analysis off for
-everyone who had the Coach hidden, so nothing changed for them; switch it back
-on under Settings, Modules if you want the notes.
+Hiding the Coach hides the Coach and nothing else; the briefing and status
+notes follow **AI analysis**.
 
 Whatever the reason the Coach is unavailable, what it kept stays yours: its
 conversations, remembered facts, plans and reminders can be read and deleted
@@ -431,14 +451,23 @@ you would see, but opening your record never starts AI work on it.
   refresh tokens lapse after extended idle periods. Reconnect via **Connect
   ChatGPT** — the device-code flow re-runs and the new tokens land in the same
   encrypted columns.
-- **A shared provider is failing for everyone.** Since v1.37.31 the admin AI
-  section shows a provider-health card: one row per provider type with how many
-  users' chains have recorded an outcome for it, how many are currently
-  failing, the longest uninterrupted failure run, and the last success and
-  failure times. Operator-managed providers sort first, since their failure
-  takes the shared fallback down for everyone relying on it. The card reports
-  counts and timestamps, never which user a row belongs to.
+- **A shared provider is failing for everyone.** **Admin → Coach** has a
+  provider-health card: one row per provider type with how many users' chains
+  recorded an outcome for it, how many are failing, the longest failure run,
+  the last success and failure, and whether it is paused and until when. It
+  never says which user a row belongs to.
 - **Chain falls through every entry.** Run the per-provider connection test
   from `/settings/ai` to identify the failing step. The most common cause is a
   stale or revoked BYOK key earlier in the chain; remove or disable that entry
   to skip ahead.
+
+### When a provider keeps failing
+
+A provider that fails three times in a row (rate limit, server error, network
+error) is skipped for five minutes. From five failures in a row it is paused
+for half an hour, and the pause doubles with each further failure, up to a
+day. A rejected key or sign-in is skipped for six hours. Background work
+(status cards, the briefing, document indexing) leaves a skipped provider
+alone; the Coach and **Re-run analysis** still try it last and show its error.
+One success clears the count. Saving your AI settings, the admin AI settings
+or a fresh ChatGPT sign-in ends the pause at once.

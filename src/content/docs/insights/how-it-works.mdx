@@ -28,13 +28,13 @@ The generated pieces are warmed **overnight** by a budget-gated background job, 
 
 ## With AI off
 
-Since v1.39.0 the Insights page works the same with AI switched off, never set up, or opted out of. Before, several plain data reads sat behind the same switches as the model text, so turning off status notes or the Coach, or having no provider, could leave the overview failing with "Failed to load insights", scores and vitals empty, and the ECG page gone. Now the overview, the scores, correlations, ECG recordings, rhythm events, the breathing and lab-change cards, the intraday pulse and the baseline strip on each metric page load whatever the AI settings say. Breathing screening follows the Sleep module and the "Since your last panel" card follows the Labs module, like the rest of their pages.
+The Insights page works the same with AI switched off, never set up, or opted out of. The overview, the scores, correlations, ECG recordings, rhythm events, the breathing and lab-change cards, the intraday pulse and the baseline strip on each metric page load whatever the AI settings say. Breathing screening follows the Sleep module and the "Since your last panel" card follows the Labs module, like the rest of their pages.
 
 What AI settings do change is the model text. While a feature is unavailable for you, for whatever reason, its stored text is not shown and nothing new is written: the briefing on the dashboard and on Today, the period summary, the note on a workout, the line after a new reading, and the status note on each metric card, which stays without a note. A summary the app composed from your numbers without a model is not AI text and stays. Turn the feature back on and the stored text returns. The reasons and the switches behind them are listed in [When AI is not available](/guides/ai-providers/#when-ai-is-not-available).
 
 The nightly jobs ask the same question before they write anything. The briefing, status notes, week and month summaries, reaction lines, workout notes and the Coach's memory are written only for people for whom that feature is available, taking in the operator's switches, your **AI analysis** switch, whether a provider is set up, and your consent. The week and month summaries still appear, written from your numbers.
 
-Per-metric status notes are stored encrypted in their own table, one row per metric and language. Up to v1.38 they sat as plain text in the audit log; the upgrade deleted those rows, so every note is written again during the first night after it.
+Per-metric status notes are stored encrypted, one per metric and language.
 
 <figure>
   <img src={insightsOverview.src} alt="Top of the Insights page: a greeting and a briefing paragraph on the left, a health-score card reading 88 out of 100 with seven pillar bars for blood pressure, glycaemia, activity, sleep, adiposity, wellbeing and lipids on the right, and a row of readiness, recovery, sleep and cycle rings below" />
@@ -45,7 +45,7 @@ Per-metric status notes are stored encrypted in their own table, one row per met
 
 The briefing is a short narrative paragraph plus up to five **key findings**: one-liners that each summarise a single trend with a tone (good / watch / info), an optional delta string ("↓ 4 mmHg"), and the metric and time window the finding was drawn from. The findings list is hard-capped at five so a runaway model cannot pad the surface with filler, and the prompt instructs the model to derive every finding from a number visible in the snapshot.
 
-Since v1.41.0 the briefing, scheduled or on request, and the weekly and monthly
+The briefing, scheduled or on request, and the weekly and monthly
 summaries ask the model to think first when it can. On your own provider the
 briefing and the monthly summary think at **Medium** and the weekly one at
 **Low**; on the operator's, all of them at **Low**. When you have an active
@@ -84,7 +84,7 @@ Two of those optional fields are still bounded when present:
 
 ## Per-metric assessments interpret, they don't enumerate
 
-Since v1.27.13 the per-metric assessment answers "where does this sit?" rather
+The per-metric assessment answers "where does this sit?" rather
 than listing numbers back at you. For metrics with an established general
 reference — resting heart rate, SpO₂, respiratory rate, body temperature,
 sleep duration, waist, pulse-wave velocity, BMI, visceral-fat rating — the
@@ -117,22 +117,24 @@ On hard fail the wrapper cascades to the next provider in your chain.
 
 **A malformed body does not cascade.** If a provider answered but the body failed the contract, retrying against another provider just wastes another paid request, so the corrective retry runs against the same provider instead.
 
+A provider that keeps failing is skipped for a while and then paused, up to a day, so background work stops hammering it; see [When a provider keeps failing](/guides/ai-providers/#when-a-provider-keeps-failing). Each call waits as long as your [response timeout](/guides/ai-providers/#response-timeout) allows.
+
 The **last provider that successfully answered** is cached for an hour per user. So after a vendor outage, the cascade only runs once — the next generation goes straight to the working provider. The "active provider" badge in **Settings → AI provider** shows which entry actually served the most recent generation, so you can see at a glance whether the fallback kicked in.
 
 ## Feedback
 
-Feedback lives on the **Coach**: a settled Coach reply can carry a per-message helpful / not-helpful verdict, stored against the message. Since v1.40.2 the web no longer shows the thumbs; the route stays for the iPhone app. A separate recommendation-feedback endpoint (`/api/insights/feedback`) stores a helpful / not-helpful verdict per user and recommendation; rating the same recommendation twice is refused rather than double-counted.
+Feedback lives on the **Coach**: the iPhone app can mark a settled Coach reply helpful or not helpful, stored against the message. A separate recommendation-feedback endpoint (`/api/insights/feedback`) stores a helpful / not-helpful verdict per user and recommendation; rating the same recommendation twice is refused rather than double-counted.
 
 Today, feedback affects two things:
 
-1. **Admin observability.** A daily aggregator (`feedback-aggregator`, runs at 04:00 Europe/Berlin) writes a per-(severity × provider × prompt-version) helpful-rate summary into `AppSettings.adminAiInsightsFeedbackSummary`. The admin can see at `/admin/ai-quality` whether one provider is producing output users find useful and another isn't, or whether a new prompt version is regressing.
+1. **Admin observability.** A daily job writes a helpful-rate summary per severity, provider and prompt version. The admin can see under **Admin → Coach** whether one provider is producing output users find useful and another isn't, or whether a new prompt version is regressing.
 2. **Per-user learning** *(not yet enabled)*. The cross-user prompt ratchet — feeding aggregate helpful-rate data back into the system prompt — is intentionally deferred until enough feedback has been collected to be statistically meaningful.
 
 Feedback is **not** used as a soft-block filter. Output isn't hidden because previous similar output got down-voted; that would create a feedback loop where the model only ever surfaces what's already popular and never tells you the thing you need to hear.
 
 ## Privacy: feedback is per-user only
 
-Your individual thumbs-up / thumbs-down votes are stored against your user id and **never leave your instance** in any form an admin can read back. The `/admin/ai-quality` aggregate is only counts, grouped by severity and provider. The per-user feedback rows are admin-invisible: there is no admin route that returns them, and the daily aggregator is the only consumer of the table.
+Your individual thumbs-up / thumbs-down votes are stored against your user id and **never leave your instance** in any form an admin can read back. The admin aggregate is only counts, grouped by severity and provider. The per-user feedback rows are admin-invisible: there is no admin route that returns them, and the daily aggregator is the only consumer of the table.
 
 The aggregator runs **on the same Postgres** that holds the rest of your data. Cross-user feedback data is never exfiltrated to the cloud, and the daily summary only writes counts (number of up-votes / down-votes per group), not text.
 
