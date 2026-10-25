@@ -5,21 +5,11 @@ sidebar:
   order: 4
 ---
 
-The native SwiftUI client is on the
+The native iPhone app is on the
 [App Store](https://apps.apple.com/app/id6769501341), and a free beta with the
 newest builds runs on [TestFlight](https://testflight.apple.com/join/bucuTBpa).
-It is built on the
-same API as the web client and speaks against the OpenAPI contract locked in
-[`docs/api/openapi.yaml`](/reference/api-overview/). The code lives in a separate
-repository, [MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
-
-## What the phone unlocks
-
-- **Live HealthKit two-way sync.** Weight, blood pressure, pulse, sleep, steps,
-  and the rest stream from HealthKit into HealthLog as they are recorded —
-  no `export.zip` round-trip.
-- **Reminders with action buttons.** Medication reminders arrive over APNs with
-  taken / skip / snooze buttons that work without opening the app.
+It speaks the same API as the web client. What it does once connected is
+described on the [iOS app](/ios/ios-app/) page.
 
 ## Connect
 
@@ -27,61 +17,20 @@ repository, [MBombeck/healthlog-iOS](https://github.com/MBombeck/healthlog-iOS).
    (or the beta from [TestFlight](https://testflight.apple.com/join/bucuTBpa)).
 2. On first launch, enter your instance's public URL
    (`https://your-instance.example.com`). The app needs a reachable HTTPS origin
-   — set the [public hostname](/getting-started/first-steps/#point-the-instance-at-a-public-hostname)
+   with a valid certificate: set the
+   [public hostname](/getting-started/first-steps/#point-the-instance-at-a-public-hostname)
    and a [reverse proxy](/guides/reverse-proxy/) first.
-3. Sign in with your existing account. The app obtains a short-lived access
-   token plus a refresh token; refresh-token rotation is per-device, and
-   reuse-detection revokes the family scoped to that device if a stolen token is
-   replayed.
-4. Grant HealthKit read/write access for the metric types you want synced.
+3. Sign in with a passkey, with your username or e-mail and password, or
+   through your instance's single-sign-on provider, which opens in a system
+   browser sheet and returns to the app. An instance running `OIDC_ONLY=true`
+   offers only single sign-on. The app keeps its tokens in the iOS Keychain and
+   renews them by itself; signing out revokes them on the server.
+4. Grant HealthKit read and write access for the metric types you want synced.
 
 ## Push notifications (APNs)
 
-:::note[The App Store app schedules its reminders on the iPhone]
-If you use HealthLog from the App Store, you don't need anything in this section.
-The app plans medication reminders as local notifications on the phone and tells
-your server so (`clientManaged`, see below), so they arrive even without APNs.
-Sending pushes to the App Store build would need the publisher's own APNs key,
-which a self-hosted server does not have. The variables below are for people who
-build and sign the iOS app themselves.
-:::
-
-For medication reminders to arrive on the phone, the instance needs APNs
-configured. This is an all-or-none set of environment variables:
-
-| Variable | Notes |
-| --- | --- |
-| `APNS_KEY_ID` | 10-char Key ID from Apple Developer |
-| `APNS_TEAM_ID` | 10-char Team ID |
-| `APNS_BUNDLE_ID` | iOS app bundle id |
-| `APNS_KEY_B64` | The `.p8` auth key contents, base64-encoded |
-
-:::caution[`.p8` key gotchas]
-The code accepts three key sources — `APNS_KEY_B64` (base64), `APNS_KEY` (raw
-contents) and `APNS_KEY_FILE` (a path) — all three on the compose whitelist;
-precedence is `APNS_KEY_B64` > `APNS_KEY` > `APNS_KEY_FILE`. Prefer the base64
-form, because
-`env_file` mangling of the `.p8` body's literal newlines is the most common
-failure. The
-key must be scoped **Sandbox & Production** in the Apple Developer Portal; a
-Sandbox-only key fails with `BadEnvironmentKeyInToken` on production builds.
-:::
-
-If a client manages its own local reminders, it can set `clientManaged: true` on
-`PATCH /api/auth/me/notification-prefs` to suppress server-side
-`MEDICATION_REMINDER` APNs. Only the APNs leg is skipped; Telegram, ntfy, and
-Web Push still deliver. Each skip emits a
-`medication_reminder_suppressed_client_managed` annotation.
-`GET /api/auth/me` reports the resolved value back as
-`notificationPrefs.medication.clientManaged`, so the web settings page can tell
-the person that their phone owns those reminders instead of leaving a switch
-that decides nothing.
-
-## Diagnostics
-
-The admin diagnostic endpoint at `/api/admin/notifications/diagnostic` surfaces
-masked device tokens, per-channel state, and the last 20 delivery attempts for
-the calling user — the quickest way to confirm a token registered and a push
-left the building. The `push_attempts` table holds the last 90 days of APNs /
-Web-Push / Telegram / ntfy attempts (channel, event type, result, reason,
-timestamp).
+The App Store and TestFlight app schedules medication reminders on the phone
+itself, so you need nothing on the server for them. A self-hosted server
+cannot send APNs push to that build; for reminders from the server, use Web
+Push, ntfy or Telegram. Why, and what a self-built copy of the app needs, is
+under [Reminders and push](/ios/ios-app/#reminders-and-push).
