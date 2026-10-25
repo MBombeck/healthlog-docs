@@ -146,6 +146,9 @@ destination the operator chooses:
 - **Error reporting.** With GlitchTip configured under Admin, Integrations,
   server errors are sent to that GlitchTip, with secrets and sensitive fields
   redacted first (see [Redaction at the boundary](#redaction-at-the-boundary)).
+  Errors in the browser go through the server's relay, which accepts them only
+  from a signed-in caller, 20 a minute per account, so an error on a page
+  before sign-in is not reported.
 - **Page analytics.** With Umami configured under Admin, Integrations, page
   views are sent to that Umami through the server. Off by default.
 - **Log shipping.** With `LOKI_ENDPOINT` set, the server's structured logs go to

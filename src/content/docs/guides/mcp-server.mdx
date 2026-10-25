@@ -111,8 +111,13 @@ DNS-rebinding defence.
    (S256) is mandatory; the built-in bridge accepts client-id-metadata-document
    clients with dynamic registration as a fallback.
 
-3. Approve the consent screen. The connection then appears under **Settings →
-   MCP connector**, in Connected assistants, where you can revoke it.
+3. Approve the consent screen. It names where the access goes: the host the
+   client asked to be sent back to (also on the **Allow** button), or "an
+   application running on this device" for a local address. A client that
+   registered itself on the spot also gets a warning to allow only if you
+   started the connection from that host yourself, because the name it shows
+   is its own claim. The connection then appears under **Settings → MCP
+   connector**, in Connected assistants, where you can revoke it.
 
 </Steps>
 

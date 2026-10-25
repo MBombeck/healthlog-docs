@@ -131,8 +131,10 @@ endpoint is contacted at all.
 compelled, the data is on it, and encryption at rest does nothing for a live
 host whose key is loaded. A hosting provider can snapshot a VPS disk and can be
 served process, so renting infrastructure narrows the set of parties who hold
-your data without emptying it. Your own `pg_dump` and off-host exports carry the
-same data and belong to the same surface. A phone or laptop with a live session
+your data without emptying it. The nightly database dumps, the off-host copies
+and any dump you take yourself carry the same data and belong to the same
+surface; a local dump is encrypted only in the fields HealthLog encrypts, like
+the database beside it. A phone or laptop with a live session
 holds data locally, and no server-side control reaches it. And on the instance
 itself, an administrator can read the database directly, which is why
 [what a shared record is](/explanation/record-sharing/) treats "who can read it
