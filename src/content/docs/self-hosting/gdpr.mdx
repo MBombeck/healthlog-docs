@@ -208,8 +208,10 @@ operator's own recovery path.
 
 The nightly database dumps are not purged per account. A deleted account
 stays in them until they age out: `DB_BACKUP_KEEP` nights on the server (7 by
-default), and your lifecycle rule for `database/` in the bucket. The grace
-window plus that retention is the period to state where you tell people that
+default), and your lifecycle rule for `database/` in the bucket. The one
+exception is the dump taken before the latest update, which stays until the
+next update; delete it by hand on an install that rarely updates, or name the
+exception. The grace window plus that retention is the period to state where you tell people that
 deleting their account deletes their data. See
 [Deleted accounts in the dumps](/guides/backups/#deleted-accounts-in-the-dumps).
 

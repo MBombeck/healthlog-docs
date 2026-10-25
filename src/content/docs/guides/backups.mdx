@@ -31,15 +31,16 @@ The **Recovery readiness** card on the admin overview and at the top of
 
 | Signal | Needs attention | At risk |
 | --- | --- | --- |
-| Database dump | The last run failed, or dumps are switched off | No good dump for 36 hours, none ever, or nowhere to write one |
+| Database dump | The last run failed, its upload to the bucket failed, or dumps are switched off | No good dump for 36 hours, none ever, or nowhere to write one; no dump in the bucket for 36 hours, or ever |
 | Weekly account copies | An account's newest copy is more than 9 days old | More than 14 days old |
 | Off-host copies | An account has had no off-host copy for two nights | |
-| Restore drill | | The last monthly drill failed |
+| Restore drill | The last drill stopped before it read back a single copy, so it checked nothing | The last monthly drill failed |
 | Off-host backup | No bucket set up, 7 days after the first admin was created | |
+| Dumps in the bucket | No lifecycle rule in the bucket covers `database/`, so the dumps there are never removed | |
 | Recovery kit | Not confirmed (after the same 7 days), or a key it now lists was not covered by the last confirmation | |
 
-The off-host copy and drill rows stay out of the verdict while no bucket is
-set up. A row that is not ready links to the page that fixes it.
+The off-host copy, drill and dumps-in-the-bucket rows stay out of the
+verdict while no bucket is set up. A row that is not ready links to the page that fixes it.
 
 An hourly check sends every admin a **Backup health** notification when a
 signal turns to "needs attention" or "at risk", once a day while one stays at
@@ -51,8 +52,8 @@ under **Notifications**; only admins see the row.
 | Dump | When | Where | Kept |
 | --- | --- | --- | --- |
 | Nightly | 01:30 Europe/Berlin (`DB_BACKUP_SCHEDULE`) | `DB_BACKUP_DIR`, the `backups` volume of the bundled compose file | the newest 7 (`DB_BACKUP_KEEP`) |
-| Before migrations | On start, when the new image brings migrations, before it applies them | the same directory | the newest 2 |
-| Off-host | Right after each nightly dump, when the [bucket](#off-host-copies) is set up | the bucket, under `database/`, sealed with `BACKUP_ENCRYPTION_KEY` | your bucket's lifecycle rule |
+| Before migrations | On start, when the new image brings migrations, before it applies them | the same directory | the newest 2, while not older than the oldest nightly dump kept; the newest always stays |
+| Off-host | Right after each nightly dump, when the [bucket](#off-host-copies) is set up | the bucket, under `database/<host of APP_URL>/`, sealed with `BACKUP_ENCRYPTION_KEY` | your bucket's lifecycle rule |
 
 A dump is `pg_dump --format=custom` of the whole database, written as two
 files: `healthlog-<UTC time>-<daily|pre-migration>.dump`, and a
@@ -87,7 +88,7 @@ admin page say so.
 | `DB_BACKUP_ENABLED` | on | `false` stops the nightly dump. |
 | `DB_BACKUP_DIR` | `/var/lib/healthlog/backups` | Where dumps are written and read. Change it only together with the volume mount. |
 | `DB_BACKUP_SCHEDULE` | `30 1 * * *` | Five-field cron, in Europe/Berlin time like every HealthLog schedule. |
-| `DB_BACKUP_KEEP` | `7` | Nightly dumps kept, at least 1. The two newest pre-migration dumps are kept besides. |
+| `DB_BACKUP_KEEP` | `7` | Nightly dumps kept, at least 1. Up to two pre-migration dumps are kept besides, none older than the oldest nightly dump kept except the newest. |
 | `DB_BACKUP_BEFORE_MIGRATE` | on | `false` starts an update without the dump before its migrations. |
 
 ### Deleted accounts in the dumps
@@ -95,7 +96,10 @@ admin page say so.
 A dump holds every account that existed when it was taken, including one
 deleted since. Dumps are not purged per account; a deleted account leaves them
 as they age out: after `DB_BACKUP_KEEP` nights on the server, and after your
-lifecycle rule in the bucket. Give that rule a prefix that covers `database/`
+lifecycle rule in the bucket. A pre-migration dump goes once it is older than
+every nightly dump kept, except the one taken before the latest update, which
+stays as the way back until the next update replaces it; on an install that
+rarely updates, delete it by hand once you no longer need it. Give that rule a prefix that covers `database/`
 too, or the dumps there, and the deleted accounts inside them, are kept
 forever; **Admin → Backups** says when no rule covers it. The deletion dialogs
 name this, and it is the retention period to state wherever you tell people
@@ -126,6 +130,13 @@ that deleting their account deletes their data (see
    docker compose run --rm db-restore list --from-bucket
    docker compose run --rm db-restore latest --from-bucket
    ```
+
+   Each instance uploads under its own folder, `database/<host of APP_URL>/`,
+   so set `APP_URL` as on the old server. `latest --from-bucket` takes only
+   this instance's dumps and refuses another instance's in a shared bucket;
+   `list --from-bucket` marks those. To restore one on purpose (after moving
+   to a new domain, the old one), add `--instance=<old host>` or name the dump
+   by its full key, `database/<host>/healthlog-….dump.enc`.
 
    When the dumps survived in the `backups` volume (the database volume was
    lost, the backups volume was not), run
@@ -421,7 +432,8 @@ S3-compatible bucket (Cloudflare R2, AWS S3, Backblaze B2, MinIO). It runs at
 wrote it and is bound to its own object key, so a copy moved under another
 account's name or date does not decrypt. Accounts pending deletion are not
 uploaded. The [nightly database dump](#the-nightly-database-dump) goes into
-the same bucket under `database/`, sealed the same way.
+the same bucket under `database/<host of APP_URL>/`, sealed the same way; the
+folder keeps the dumps of instances that share a bucket apart.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
