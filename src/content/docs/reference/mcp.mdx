@@ -243,10 +243,9 @@ The PHQ-9 / GAD-7 / WHO-5 / SCI mental-health screeners (item content and totals
 and the environmental-context signals (`ENV_*`) as metric series remain excluded
 from the MCP surface by construction. The stored environment days are readable
 only through `get_environment`, without location. The
-structured records (allergies, family history) and the inbound-document store are
-not exposed either — the document pipeline extracts facts for the user to confirm
-in-app rather than streaming them to a model. A metric is only readable once it
-has been named for the surface; none of these are on the exposure allowlist.
+structured records (allergies, family history) are not exposed either. A metric
+is only readable once it has been named for the surface; none of these are on
+the exposure allowlist.
 :::
 
 ## Resources

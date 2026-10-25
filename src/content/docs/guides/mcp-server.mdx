@@ -47,13 +47,13 @@ Desktop over stdio.
 
 ## Enable the module
 
-In the app, open **Settings → MCP**. The card has three parts:
+In the app, open **Settings → MCP connector**. The card has three parts:
 
 - **Enable** — the opt-in switch. Toggle it on; `/mcp` goes live for your
   account and the card shows your endpoint URL (`<origin>/mcp`).
-- **Connections** — cloud clients that completed the OAuth flow appear here; you
-  can revoke any of them.
-- **Tokens** — manual connector tokens (next section).
+- **Connected assistants**: cloud clients that completed the OAuth flow appear
+  here; you can revoke any of them.
+- **Connector tokens**: manual connector tokens (next section).
 
 <figure>
   <img src={settingsMcp.src} alt="MCP settings page in dark theme: an enable switch for the MCP endpoint, a read-only connector URL field, an empty 'Connected assistants' panel, and a 'Connector tokens' card explaining that new tokens are read-only, with an allow-logging toggle and a token-name field" />
@@ -62,7 +62,7 @@ In the app, open **Settings → MCP**. The card has three parts:
 
 ## Mint a connector token
 
-Still under **Settings → MCP → Tokens**:
+Still under **Settings → MCP connector**, in **Connector tokens**:
 
 <Steps>
 
@@ -112,7 +112,7 @@ DNS-rebinding defence.
    clients with dynamic registration as a fallback.
 
 3. Approve the consent screen. The connection then appears under **Settings →
-   MCP → Connections**, where you can revoke it.
+   MCP connector**, in Connected assistants, where you can revoke it.
 
 </Steps>
 
@@ -180,7 +180,7 @@ several structural limits, but the operator's choices still matter:
 
 - **Only enable the connector for clients you trust.** Anything holding a valid
   token or a live OAuth connection reads your health record. Revoke connections
-  and tokens you no longer use under **Settings → MCP**. A connector reads the
+  and tokens you no longer use under **Settings → MCP connector**. A connector reads the
   record of the account that minted it and nothing else: it does not follow a
   [shared-access grant](/guides/shared-access/) into another account's record,
   even one you can open in the browser.

@@ -17,11 +17,11 @@ The export is [scoped by selection](/reference/fhir-api/#health-record-export): 
 
 ## The read-only FHIR API
 
-A clinical system, or a script of your own, can pull your record as FHIR resources from `GET /api/fhir/*` with a Bearer token minted under **Settings → API & Tokens**. It is read-only; nothing can be written through it. Start at `/api/fhir/metadata`, which describes what this server supports. The full list is under [Endpoints](/reference/fhir-api/#endpoints).
+A clinical system, or a script of your own, can pull your record as FHIR resources from `GET /api/fhir/*`. It answers a signed-in session or a full-access token, such as the one the iPhone app holds; no FHIR-only token can be minted yet. It is read-only; nothing can be written through it. Start at `/api/fhir/metadata`, which describes what this server supports. The full list is under [Endpoints](/reference/fhir-api/#endpoints).
 
 ## The clinician share link
 
-For a person with no account and no software, the **Sharing** card under **Settings → Health record** mints a time-limited, passphrase-protected link to a read-only view of a frozen selection of your record. The same link offers the PDF and the FHIR Bundle of that selection for download, and you revoke it when the visit is over. A share link never opens the FHIR API. See [Sharing documents with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
+For a person with no account and no software, the **Sharing** card under **Settings → Health record** mints a time-limited, passphrase-protected link to a read-only view of a frozen selection of your record. The same link offers the PDF and the FHIR Bundle of that selection for download, and you revoke it when the visit is over. A share link never opens the FHIR API. The steps are in [Share your record with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
 
 Every statistic in the shared view carries its unit, so a doctor reads "latest 5.8 mmol/L" rather than a bare number. Glucose is shown in the unit you chose under **Settings → Account** (mg/dL or mmol/L), in the view and in the PDF alike. Weight, length and temperature stay in metric units even when you use imperial ones, because the view is written for a clinician. The FHIR Bundle keeps its standard UCUM units either way.
 

@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-The schema is defined in `prisma/schema.prisma` (about 140 models). It uses `cuid()`
+The schema is defined in `prisma/schema.prisma`. It uses `cuid()`
 primary keys, `snake_case` columns via `@map`, and keeps encrypted columns under
 `*Encrypted` suffixes (plus a few exceptions noted below). This page sketches the
 models you are most likely to touch; the schema file is the full reference.
@@ -27,7 +27,16 @@ The single table every vital flows into, regardless of source.
   [source priority](/guides/source-priority/).
 - **`externalId`** carries the upstream identity. A `stats:<HKType>:<date>`
   prefix marks a cumulative daily aggregate that re-imports overwrite; other
-  prefixes are first-write-wins. Tombstones support offline sync.
+  prefixes are first-write-wins.
+- **`ingestTokenId`** names the [measurement token](/guides/ingest-token/)
+  that pushed an `EXTERNAL` reading. The token's `mirrorToAppleHealth` setting
+  decides whether the iPhone app writes that reading into Apple Health.
+- **`deletedAt`** marks a soft-deleted row (a tombstone) so the
+  [sync feed](/reference/sync/) can carry the deletion and a restore can bring
+  the row back.
+
+Every model that soft-deletes keeps its tombstones for 75 days and then purges
+them; stored documents go after their 30-day undo window.
 
 ## Rollup tier
 
@@ -40,8 +49,8 @@ main repo's `src/lib/rollups/` for the read-swap pattern.
 ## Medication and the dose ledger
 
 - **`Medication`** holds the drug itself: name, route, supply. The schedule
-  lives on the separate **`MedicationSchedule`** model (one per drug since the
-  per-drug schedule migration in v1.37.10): `scheduleType` (`SCHEDULED` / `PRN` /
+  lives on the separate **`MedicationSchedule`** model (one per drug):
+  `scheduleType` (`SCHEDULED` / `PRN` /
   `CYCLIC`), an `rrule` string, `intervalWeeks`, cyclic on/off counts, dose
   times and windows.
 - The **dose ledger** is the per-slot intake record. Every expected dose becomes
@@ -55,7 +64,8 @@ main repo's `src/lib/rollups/` for the read-swap pattern.
 - **Refresh tokens** — per-device, one-time-use rotation with reuse-detection
   that revokes the device's token family.
 - **API tokens** — Bearer tokens stored as HMAC-SHA256 hashes (never plaintext),
-  scoped (e.g. `fhir:read`). The mint endpoint hardcodes a narrow scope.
+  scoped (e.g. `measurements:write`). Each mint endpoint hardcodes its narrow
+  scope.
 
 ## Cycle
 

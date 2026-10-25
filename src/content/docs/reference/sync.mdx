@@ -19,19 +19,33 @@ server. The wire shapes here are served by `/api/sync/state` and
 
 ## The sync domains
 
-The delta feed serves five independent domains. Each carries the user-owned
-rows for one part of the record:
+The delta feed serves six independent domains. Five carry the user-owned rows
+for one part of the record; the sixth, `measurementMirror`, carries no rows of
+its own:
 
 | Domain | Backs | Carries on the wire |
 |---|---|---|
-| `measurements` | Every health metric (weight, blood pressure, glucose, HealthKit metrics, …) | `type`, `value`, `unit`, `measuredAt`, `source`, `notes` |
+| `measurements` | Every health metric (weight, blood pressure, glucose, HealthKit metrics, …) | `type`, `value`, `unit`, `measuredAt`, `source`, `notes`, `appleHealthMirror` |
 | `mood` | Mood entries | `date`, `mood`, `score`, `tags`, `note`, `moodLoggedAt`, `source` |
 | `intakes` | Medication intake events (a dose taken or skipped) | `medicationId`, `scheduledFor`, `takenAt`, `skipped`, `source` |
-| `cycleDays` | Per-day cycle logs (added v1.15.0) | Day-level cycle fields |
-| `cycles` | Cycle records (added v1.15.0) | Cycle-level fields |
+| `cycleDays` | Per-day cycle logs | Day-level cycle fields |
+| `cycles` | Cycle records | Cycle-level fields |
+| `measurementMirror` | Readings whose Apple Health write-back changed | `id`, `appleHealthMirror`; never tombstones |
 
 The `cycleDays` / `cycles` blocks are **module-gated**: an account with cycle
 tracking off gets both blocks empty on every page — never a `403`.
+
+`appleHealthMirror` on a measurement row says whether the HealthLog app writes
+that reading into Apple Health. The server decides it: true for Withings,
+imported and hand-entered readings, false for Apple Health's own and for the
+other provider syncs, and for a reading pushed with a
+[measurement token](/guides/ingest-token/) whatever that token's
+**Write readings to Apple Health** switch says. When the switch changes, the
+token's earlier readings come through `measurementMirror` as `{ id,
+appleHealthMirror }` pairs keyed on the server `id`; the reading itself did
+not change and is not sent again. A client mirrors exactly the rows that say
+true. The iPhone app acts on this from the build that reads the field; an older
+build keeps mirroring Withings, imported and hand-entered readings as before.
 
 The domains are walked independently — each has its own watermark in the cursor
 (see below), because each table changes at its own rate and a client may adopt
@@ -49,6 +63,7 @@ key is **not** the same across domains, and the difference is deliberate:
 | `intakes` | The server `id` (a cuid) | Same as mood: an intake event is server-minted. The bulk-insert dedup hint (`idempotencyKey`) prevents a double-POST but is **not** an identity — it is not stable across devices, so tombstones and reconciliation key on the server `id`. |
 | `cycleDays` | `externalId` when present, else the server `id` | A day log imported from a device carries a stable external identity like a measurement; a day log created in the app does not, so the server `id` is the fallback handle. |
 | `cycles` | The server `id` (a cuid) | Cycle records are server-minted. |
+| `measurementMirror` | The measurement's server `id` | It updates a reading the client already holds, which the client knows by `id` from the `measurements` upsert. |
 
 For measurements the client mirrors rows by `externalId`; for mood, intakes and
 cycles it mirrors by server `id`; for `cycleDays` by `externalId` when present,
@@ -119,7 +134,8 @@ curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limi
       "mood": { "upserts": [], "tombstones": [] },
       "intakes": { "upserts": [], "tombstones": [] },
       "cycleDays": { "upserts": [], "tombstones": [] },
-      "cycles": { "upserts": [], "tombstones": [] }
+      "cycles": { "upserts": [], "tombstones": [] },
+      "measurementMirror": { "upserts": [], "tombstones": [] }
     }
   },
   "error": null
@@ -287,4 +303,4 @@ lands. Adoption pacing is an iOS-side roadmap decision, not a server gap.
 
 - [Native API clients](/reference/native-clients/) — bearer issuance, refresh rotation, idempotency, device registration.
 - [iOS app](/ios/ios-app/) — the native client that speaks this contract.
-- [Measurements](/reference/api-endpoints/), [Mood](/reference/api-endpoints/), [Medications](/reference/api-endpoints/) — the per-domain read/write endpoints used for backfill and push.
+- [API endpoints](/reference/api-endpoints/): the per-domain read and write endpoints used for backfill and push, in the OpenAPI spec.

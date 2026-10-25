@@ -22,9 +22,9 @@ Two families a token cannot reach at all, both structurally rather than by polic
 A request opts in by sending **either**:
 
 - `X-Client-Type: native` header, **or**
-- a `User-Agent` starting with `HealthLog-iOS`, `HealthLog-iPad`, `HealthLog-Watch`, `n8n`, or `Health-Connect`
+- a `User-Agent` starting with `HealthLog-iOS`
 
-The browser flow is unchanged: without one of those signals you get only the session cookie.
+Automation (n8n, a Health Connect bridge, a shortcut) sends the `X-Client-Type: native` header; no other `User-Agent` counts. Without one of those signals you get only the session cookie, as a browser does.
 
 ### Single sign-on
 
@@ -88,7 +88,7 @@ curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limi
   -H "Authorization: Bearer hlk_..."
 ```
 
-The measurement delete routes **soft-delete** (write a tombstone) rather than hard-deleting, so a deletion on one device propagates to the others as a tombstone instead of silently re-syncing. Tombstones are pruned past a retention window keyed to the refresh-token lifetime. A single-resource GET or PUT against a tombstoned row returns as deleted. The full response envelopes are in the [OpenAPI spec](/reference/api-overview/).
+The measurement delete routes **soft-delete** (write a tombstone) rather than hard-deleting, so a deletion on one device propagates to the others as a tombstone instead of silently re-syncing. Tombstones are pruned past a retention window keyed to the refresh-token lifetime. A single-resource GET or PUT against a tombstoned row returns as deleted. The full response envelopes are in the [OpenAPI spec](/reference/api-endpoints/).
 
 ## Idempotency-Key Header
 
@@ -104,7 +104,7 @@ curl -X POST https://your-instance.example.com/api/measurements \
   -d '{"type": "WEIGHT", "value": 78.4, "takenAt": "2026-05-09T07:15:00Z"}'
 ```
 
-**Not cached**: 401, 403, 408, 429, any 5xx, and any response body containing a token prefix (`hlk_`, `hlr_`, `sk-`, `sk-ant-`). Validation 4xx (e.g. 422) **is** cached, so a broken retry doesn't re-hit the database. A `429` from the rate limiter carries `Retry-After` in whole seconds plus the `X-RateLimit-Limit`, `-Remaining` and `-Reset` triple, so an offline queue holds the request for that long instead of re-sending it into the same wall. A `429` without them came from a budget or from an upstream provider and has no window to wait out. A `429` carrying `meta.errorCode: record_write.rate_limited` is the shared per-account bucket the single-record creates use (300 a minute, keyed on the token's owner), not a route of its own: an offline queue that replays one row at a time should drain slower rather than retry the one request.
+**Not cached**: 401, 403, 408, 429, any 5xx, and any response body containing a token prefix (`hlk_`, `hlr_`, `sk-`, `sk-ant-`). Validation 4xx (e.g. 422) **is** cached, so a broken retry doesn't re-hit the database. A `429` from the rate limiter carries `Retry-After` in whole seconds plus the `X-RateLimit-Limit`, `-Remaining` and `-Reset` triple, so an offline queue holds the request for that long instead of re-sending it into the same wall. A `429` without them came from a budget or from an upstream provider and has no window to wait out. A `429` carrying `meta.errorCode: record_write.rate_limited` is the shared per-account bucket every authenticated write draws on (300 a minute, keyed on the acting account), not a route of its own: an offline queue that replays one row at a time should drain slower rather than retry the one request.
 
 ## Background document reads
 
@@ -196,10 +196,10 @@ If the same APNs / FCM token is already registered to a **different** account, t
 
 ## Token Storage (Server-Side)
 
-Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [external-ingest](/reference/api-endpoints/) token verification. Since v1.30.33 web session cookies use the same storage shape — a random secret in the cookie, only its HMAC in the database.
+Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [ingest token](/guides/ingest-token/) verification. Since v1.30.33 web session cookies use the same storage shape — a random secret in the cookie, only its HMAC in the database.
 
 :::tip[Long-lived tokens are minted per medication]
 For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens — same auth header, no refresh dance. The token is scoped to intake for that medication, and since v1.30.17 every route that does not declare that scope refuses it.
 
-The generic **create API token** button under **Settings → API & Tokens** is gone as of v1.30.17: the token it produced never worked for the medication intake it advertised, while reaching everything else. That page still lists and revokes existing tokens.
+The generic **create API token** button under **Settings → API & tokens** is gone as of v1.30.17: the token it produced never worked for the medication intake it advertised, while reaching everything else. That page still lists and revokes existing tokens.
 :::
