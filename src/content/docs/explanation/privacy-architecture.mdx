@@ -72,7 +72,7 @@ only take away:
 
 - **The operator's switches.** Under Admin, Coach, a master switch and four
   switches (Coach, daily briefing, status notes, reading documents) stop the AI
-  work they cover. Since v1.39.0 that means nothing covered is sent to a model,
+  work they cover. That means nothing covered is sent to a model,
   including background work queued before the switch was flipped, not just that
   the text is hidden. If the server cannot read the switches, AI stays off for
   that request.
@@ -90,9 +90,8 @@ only take away:
 Your data does not depend on any of this. Readings, charts, scores and
 statistics are served the same with AI on, off or never set up.
 
-The text a model writes about you is stored encrypted. Since v1.39.0 that
-includes the per-metric status notes, which were kept as plain text in the
-audit log before. Withdrawing your AI consent deletes the notes the app can
+The text a model writes about you is stored encrypted, the per-metric status
+notes included. Withdrawing your AI consent deletes the notes the app can
 write again (status notes, the daily briefing, model-written period summaries,
 reaction lines and workout notes); your Coach conversations and document
 summaries stay until you delete them.
@@ -113,7 +112,7 @@ entered. Each delivery is logged in `push_attempts` for 90 days.
 
 ### Document archives (only while you search or import)
 
-With the document picker (since v1.39.3), HealthLog contacts your own
+With the document picker, HealthLog contacts your own
 Paperless-ngx or Papra with the API token you stored for it, and only while you
 search, filter, test the connection or import. Nothing polls in the background.
 The operator decides which archives can be contacted at all with
@@ -126,10 +125,8 @@ The [environmental module](/explanation/environmental-module/) fetches weather
 from Open-Meteo once you set a home location, sending coordinates rounded to
 one decimal of a degree, about 11 km, the size of a town or a city district.
 The same rounded values are all that is stored, for home, travel periods and
-each day's weather. Before v1.39.4 they were rounded to about a kilometre,
-which is closer to a street; the upgrade rounds what is already stored. The
-weather data comes in cells of 9 to 25 km, so the coarser value changes the
-weather very little. Without a home location it makes no request. The operator
+each day's weather. The weather data comes in cells of 9 to 25 km, so the
+coarse value changes the weather very little. Without a home location it makes no request. The operator
 can point it at a self-hosted Open-Meteo with `OPENMETEO_BASE_URL` and
 `OPENMETEO_GEOCODING_URL`.
 
@@ -143,7 +140,7 @@ destination the operator chooses:
   on the server with AES-256-GCM under `BACKUP_ENCRYPTION_KEY`, a key separate
   from the database key, before upload. The bucket and its provider are the
   operator's choice. How long copies survive is the bucket's lifecycle rule, and
-  since v1.39.3 deleting an account, deleting a managed profile or **Delete all
+  deleting an account, deleting a managed profile or **Delete all
   data** also deletes that account's copies from the bucket. See
   [Backups](/guides/backups/).
 - **Error reporting.** With GlitchTip configured under Admin, Integrations,
@@ -159,7 +156,7 @@ destination the operator chooses:
 ### Requests the server makes on its own
 
 Three requests happen without anyone configuring anything. None carries health
-data, and since v1.39.3 each has an off-switch (`1`, `true`, `yes` or `on`):
+data, and each has an off-switch (`1`, `true`, `yes` or `on`):
 
 | Request | What is sent | Off-switch |
 | --- | --- | --- |
@@ -203,14 +200,14 @@ IPv4-mapped IPv6, ULA, CGNAT, link-local, loopback, metadata addresses).
 The floor has exceptions only the operator can make, never the user: an exact
 origin listed in the server environment
 (`NIGHTSCOUT_PRIVATE_ORIGINS` for a Nightscout instance,
-`NOTIFICATION_PRIVATE_ORIGINS` since v1.38.17 for a webhook or ntfy relay, and
-`AI_PRIVATE_ORIGINS` since v1.39.3 for a self-hosted AI endpoint on the same
+`NOTIFICATION_PRIVATE_ORIGINS` for a webhook or ntfy relay, and
+`AI_PRIVATE_ORIGINS` for a self-hosted AI endpoint on the same
 network; the older `ALLOW_LOCAL_AI_PRIVATE_HOSTS` host list, kept for existing
 installs, grants a host on any port). A listed origin is still dialled through the pinned resolver with
 redirects forbidden, and link-local and the metadata range stay refused even
 when listed. A granted notification send is marked in the wide event as
 `notification.egress.private_origin` with the channel and origin.
-`DOCUMENT_SOURCE_ORIGINS` (since v1.39.3) goes one step further:
+`DOCUMENT_SOURCE_ORIGINS` goes one step further:
 it is the whole decision for the document picker, so an archive that is not
 listed is refused even on a public address. Grammar and refusal codes are on
 the
@@ -238,10 +235,10 @@ a security decision, not a UX one.
 
 ## Another account you granted access to
 
-Since v1.36.0 you can give another account on the same instance access to your
+You can give another account on the same instance access to your
 record. That access carries a level: read, read plus a short closed list of
 entries they may add, or manage, which can also change and remove what is
-already there. Since v1.37.0 an invitation can name the parts of the record it
+already there. An invitation can name the parts of the record it
 opens as well, so a grant can be narrower than the whole of you. Nothing crosses
 the network because of any of it: two accounts on one server read one Postgres,
 and no new outbound path exists.

@@ -52,6 +52,8 @@ HRV on its own is not a red-flag metric — its day-to-day swing is too large an
 
 HRV is the parasympathetic counterpart to [resting heart rate](/knowledge/resting-heart-rate/): as recovery degrades, variability falls while the resting rate climbs, and the two together drive the [recovery methodology](/methodology/recovery/). HealthLog prefers a connected device's native recovery score when one exists and computes a baseline-relative readiness proxy otherwise — the [recovery page](/methodology/recovery/) explains why the native measurement wins and how the proxy is built. A one-night HRV dip after logged alcohol or a high-stress day is expected and benign-recoverable; the signal worth watching is the *sustained* multi-day decline that, alongside a rising resting heart rate and respiratory rate, points toward illness or overreach. Lead with your personal baseline; the population orientation values are only a secondary sanity band, and HealthLog waits for several valid readings before showing a "your baseline" figure at all.
 
+HealthLog keeps the two time-domain measures apart and never averages them. Apple Health's classic HRV is SDNN and is stored as heart-rate variability; WHOOP, Oura, Polar, Fitbit, Google Health, Health Connect and the newer Apple RMSSD reading are stored as HRV RMSSD. The HRV page charts each on its own.
+
 ## References
 
 [^escnaspe1996]: ESC / NASPE Task Force — Heart Rate Variability: Standards of Measurement, Physiological Interpretation, and Clinical Use, *Circulation / European Heart Journal*, 1996. https://doi.org/10.1161/01.CIR.93.5.1043

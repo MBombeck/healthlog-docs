@@ -35,8 +35,7 @@ itself a clinical standard. See the
 | Wellbeing | Wellbeing | The latest completed screener from the last 90 days | PHQ-9 0–4; GAD-7 0–4; WHO-5 52–100 | Kroenke 2001; Spitzer 2006; WHO 1998 |
 
 Today is left out of the activity pillar because its steps are still coming
-in, so the day's walking does not move the score while it happens (since
-v1.39.3).
+in, so the day's walking does not move the score while it happens.
 
 Three of the seven pillars (blood pressure, glycaemia, lipids) share the
 cardiometabolic area. That matters for the breadth rule below: blood pressure,
@@ -65,10 +64,6 @@ Your own yardstick is not excluded from the app, only from the scored band. A
 blood-pressure target your clinician set is shown beside the ESH band and
 labelled as a personal target; it never replaces the band the pillar is graded
 against. The weight goal stays unscored context next to the score.
-
-Earlier versions graded weight against a target computed from height (22 times
-height squared, widened by 2 kg either side). That band was removed in v1.34, and since v1.38 every pillar follows the rule
-above.
 
 ## How the number is formed
 
@@ -128,18 +123,6 @@ least one pillar saves, and the page still recommends three.
 - **The composition list.** The pillars behind the number are one tap away,
   each with its observed value, its reference band, and the source of that
   band.
-
-## What changed in v1.38
-
-Until v1.38 the score existed only when the pillars behind it spanned at least
-three distinct areas of health and at least one of them was a physiological
-measurement; anything narrower showed "not enough data". Since v1.38 that
-floor is a recommendation: one or two areas produce a score by the same
-arithmetic, labelled by the basis line, and only an account with nothing
-readable is refused. The method version moved from 3 to 4; days stored under
-the old version keep it, and the weekly comparison is suppressed across the
-change. Older notes that describe the three-area floor describe the earlier
-rule.
 
 :::caution[Not medical advice]
 The Health Score summarises your own record against published bands. It is
