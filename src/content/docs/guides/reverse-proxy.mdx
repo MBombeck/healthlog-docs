@@ -283,6 +283,8 @@ not come through a proxy HealthLog may believe; see
 If you deliberately serve over HTTP on a trusted network (NAS, homelab,
 Tailscale-only), set `SESSION_COOKIE_SECURE=false` so the session, onboarding,
 and OAuth-state cookies stop emitting `Secure` and login works over HTTP. The
+session cookie is then named `healthlog_session`; with `Secure` it is
+`__Host-healthlog_session`, which only this exact host can set. The
 trade-off is explicit: the session cookie crosses the wire unencrypted. **Never
 set this on a host that serves plain HTTP to the open internet.**
 

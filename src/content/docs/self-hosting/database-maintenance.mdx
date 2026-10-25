@@ -28,7 +28,7 @@ in the admin area under **System Status**, or with a signed-in admin session:
 ```sh
 curl -X POST https://<your-instance>/api/admin/maintenance/measurements \
   -H 'content-type: application/json' \
-  --cookie 'healthlog_session=<session>' \
+  --cookie '__Host-healthlog_session=<session>' \
   -d '{"vacuum": true, "reindex": true}'
 ```
 

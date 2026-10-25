@@ -23,7 +23,7 @@ Two methods, with a hard structural boundary between them:
 
 | Method | Used by | Carried as |
 | --- | --- | --- |
-| **Session cookie** | Browser clients | `healthlog_session` cookie (automatic) |
+| **Session cookie** | Browser clients | `__Host-healthlog_session` cookie over HTTPS, `healthlog_session` on plain HTTP (automatic) |
 | **Bearer token** | External / native API clients | `Authorization: Bearer hlk_...` |
 
 - **Session cookies** are Postgres-backed with a sliding 30-day expiry,
