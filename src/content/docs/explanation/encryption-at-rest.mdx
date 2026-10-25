@@ -114,15 +114,28 @@ rotation reports zero remaining rows on it and no backup you may still restore
 needs it.** Drop it too early and those
 rows become undecryptable — and the app tells you so rather than papering over it.
 
-## Keep a copy of the key
+## The recovery kit
 
-The key is not stored in the database. Without it, the encrypted parts of the
-database and every in-database backup cannot be read, so a reinstall or a move
-to a new server with a fresh key leaves them unreadable. The admin sees a **Back up your encryption key** step under Admin, Encryption. It
-shows the active key id, a fingerprint (the first 12 hex characters of SHA-256
-over the key) and where the key lives on your platform:
+No key HealthLog encrypts with is stored in the database. Without them the
+encrypted parts of the database, a database dump and every backup copy cannot
+be read, so a reinstall or a move to a new server with fresh keys leaves them
+unreadable. The **Recovery kit** under **Admin → Encryption** lists every key a
+restore of this server needs:
 
-| Platform | Where the key is set |
+- each id in `ENCRYPTION_KEYS` (or the legacy `ENCRYPTION_KEY`, shown as `v1`),
+  marked when it is the active one, and a retired id for as long as a stored
+  copy or an off-host copy inside the bucket's lifecycle still needs it;
+- `BACKUP_ENCRYPTION_KEY` and each `BACKUP_ENCRYPTION_PREVIOUS_KEYS` entry,
+  when off-host copies are set up;
+- `API_TOKEN_HMAC_KEY`, without which every session, token and share link ends
+  (no data is lost).
+
+Each key is shown by id and a fingerprint, the first 12 hex characters of
+SHA-256 over the key, never the key itself. A key the kit needs that this
+server does not hold shows "Not on this server". The kit also says where the
+keys are set on your platform:
+
+| Platform | Where the keys are set |
 | --- | --- |
 | Compose | `.env` next to `docker-compose.yml` |
 | TrueNAS | Apps, HealthLog, Edit, Environment |
@@ -131,20 +144,24 @@ over the key) and where the key lives on your platform:
 | Portainer | the stack's Environment variables |
 
 `HEALTHLOG_PLATFORM` (`compose`, `truenas`, `coolify`, `unraid` or
-`portainer`) opens the step on the matching instructions; unset or any other
-value means Compose. The Unraid and Portainer templates set it for you.
+`portainer`) opens it on the matching instructions; unset or any other value
+means Compose. The Unraid and Portainer templates set it for you.
 
-**Check my copy** compares a pasted key with the active one and discards it;
-it is never stored or logged. Without pasting anything, you can compute the
-fingerprint of your copy yourself:
+**Check my copy** compares a pasted key with the one the server holds and
+discards it; it is never stored or logged. Without pasting anything, you can
+compute the fingerprint of a hex key yourself:
 
 ```bash
 echo -n "<your key>" | xxd -r -p | sha256sum | cut -c1-12
 ```
 
-Pressing **I have backed up this key** records the confirmation for that key
-id and fingerprint. Until then admins see a reminder on the dashboard, and it
-comes back when the key changes, after a rotation for example.
+Keep a copy of every key outside the server, then press **I have a copy of
+every key**. Until then admins see a reminder on the dashboard, and the
+[Recovery readiness](/guides/backups/#recovery-readiness) card counts the kit
+as needing attention. The kit is due again when it lists a key the last
+confirmation did not cover: a rotation, a new off-host key, a re-keyed install
+under the same id, or a retired key that a copy still needs. It is not due
+again on a timer.
 
 ## The start-up key check
 

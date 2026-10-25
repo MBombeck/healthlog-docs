@@ -36,7 +36,7 @@ deployment but have compose defaults.
 | `POSTGRES_PASSWORD` | Password for the bundled `db` service. `openssl rand -hex 32`. |
 | `NEXT_PUBLIC_APP_URL` | Public URL embedded in OAuth redirects, webhook callbacks, deep links. |
 | `APP_URL` | Server-side mirror of the above, used by background workers. Must match. It also builds the links that ntfy, Telegram, webhook and email notifications open; without it those channels deliver without a link. |
-| `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets. 64 hex chars. Required unless `ENCRYPTION_KEYS` is set. Keep a copy outside the server; see [Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key). |
+| `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets. 64 hex chars. Required unless `ENCRYPTION_KEYS` is set. Keep a copy outside the server; see [The recovery kit](/explanation/encryption-at-rest/#the-recovery-kit). |
 | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer tokens, refresh tokens and web session cookies. 64 hex chars. |
 
 :::caution[Rotating `API_TOKEN_HMAC_KEY` signs everyone out]

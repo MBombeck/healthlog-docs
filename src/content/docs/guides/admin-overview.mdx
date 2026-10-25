@@ -242,6 +242,11 @@ links in one transaction, and writes an audit row. None of these actions is
 step-up gated; the password reset asks the admin to confirm it is them. See
 [Sign-in and security](/guides/sign-in-and-security/#password-reset).
 
+An account or managed profile whose deletion is pending shows its erasure
+date and **Undo deletion**. Undoing keeps the account and everything in it as
+it was; API tokens, share links and trusted devices stay revoked. See
+[The grace window](/account/data-deletion/#the-grace-window).
+
 ## Invites
 
 Mint invite links with a maximum number of uses, reveal the link and a QR
@@ -283,8 +288,12 @@ web and worker deployment has one per process. See
 
 ## Backups
 
-Two cards. The backup table with run now, upload, download, a summary, and
-restore. A
+The page opens with the
+[Recovery readiness](/guides/backups/#recovery-readiness) card, which also sits
+on the admin overview, and the **Database dump** card: the newest good dump,
+whether it is kept on this server, off-host or both, the newest failed run,
+and how long deleted accounts stay in the dumps. Then the backup table with
+run now, upload, download, a summary, and restore. A
 backup is a database row, not a file on disk, and the payload never reaches
 the browser except through the download action. Restore asks you to type
 `RESTORE` and replaces rather than merges: every row the account gained after
@@ -302,8 +311,9 @@ availability, the notification and AI configuration and the document caps
 exactly as they are. Tick it only when you are rebuilding a host from a
 snapshot, because those settings apply to every account on the installation.
 The restore is credential-free by design: API tokens, trusted devices, step-up
-elevations, known devices and clinician share links are excluded, so sharing is
-off after a restore until re-enabled. Optional off-site copies use
+elevations, known devices and clinician share links are excluded. A restore on
+the same server leaves them as they are; onto another server none of them
+comes along. Optional off-site copies use
 `BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY`,
 `BACKUP_S3_SECRET_KEY` and `BACKUP_ENCRYPTION_KEY`. Full procedure in
 [Backups](/guides/backups/).
@@ -336,13 +346,12 @@ legacy `ENCRYPTION_KEY`; a key is 64 hex characters or 32 bytes of base64, and
 anything else stops the container at startup. Procedure in
 [Encryption key rotation](/guides/encryption-key-rotation/).
 
-The section opens with **Back up your encryption key**: the
-active key id, its fingerprint, where the key is set on your platform, an
-optional **Check my copy** that compares a pasted key and discards it, and
-**I have backed up this key**. The status card at the top of the admin page
-shows **Encryption key backup** as **Not confirmed** or **Confirmed**, and
-admins see a dashboard reminder until the active key is confirmed. See
-[Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key).
+The section opens with the **Recovery kit**: every key a restore of this
+server needs, by id and fingerprint, where the keys are set on your platform,
+an optional **Check my copy** that compares a pasted key and discards it, and
+**I have a copy of every key**. Admins see a dashboard reminder until the kit
+is confirmed, and again when it lists a key the confirmation did not cover.
+See [The recovery kit](/explanation/encryption-at-rest/#the-recovery-kit).
 
 ## Danger zone
 
