@@ -1,6 +1,6 @@
 ---
 title: Feature catalogue
-description: The capability tour for HealthLog — metrics, clinical signals, integrations, medications, AI insights, clinician output, privacy — plus how it compares to closed ecosystems.
+description: What HealthLog does, from metrics and medications to integrations, AI insights and clinician output, and how it compares to closed ecosystems.
 sidebar:
   order: 1
 ---
@@ -9,7 +9,7 @@ A capability tour of what HealthLog does. For exactly what shipped in a given
 release, read the
 [changelog](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md); for
 the reasoning behind specific designs, follow the links into the
-[explanation](/explanation/medication-compliance/) pages.
+[explanation](/explanation/) pages.
 
 ## Health metrics
 
@@ -33,13 +33,10 @@ saturation, body temperature, waist, waist-to-height ratio, grip strength and pa
 body-composition set a scale reports: body fat, body water, bone mass, fat mass,
 fat-free mass, lean body mass, muscle mass and visceral fat. The masses follow
 your kilogram or pound setting; visceral fat is entered as the scale's own
-rating, not a percentage. The last five arrived in the form in v1.39.0; the
-server had accepted them from connected scales long before. Resting heart rate
-joined in v1.39.8, so a value read off a watch or taken on waking lands in the
-resting heart rate chart rather than among your pulse readings. It belongs to the
-Recovery module and is offered while that module is on.
+rating, not a percentage. Resting heart rate, part of the Recovery module, lands
+in its own chart rather than among your pulse readings.
 
-Since v1.40.0 the sleep field takes a duration the way you say it: `7.5`,
+The sleep field takes a duration the way you say it: `7.5`,
 `7,5`, `7:30`, `7h30m`, `7 h 30 min` or `45 min`, and shows how it read your
 entry ("Read as 7 h 30 min") before you save. One entry is at most 24 hours.
 
@@ -91,7 +88,7 @@ the vitamins and minerals your device records — a dashboard water tile with
 quick-add and a Nutrients page charting hydration and micronutrients against
 their reference daily intake as context. Opt-in: the module ships off, and
 ingest refuses while it is off. Once you enable it, device-synced dietary data
-flows as your client sends it. Since v1.43.0 a supplement with its composition
+flows as your client sends it. A supplement with its composition
 counts every taken dose toward the day's micronutrients, the page shows each
 amount by source, and a day above an EFSA tolerable upper intake level says so
 with its source; see [Upper limits](/guides/nutrients/#upper-limits).
@@ -104,32 +101,13 @@ data for stays out of your daily views but is discoverable in one place.
 
 ## Mood logging
 
-A five-face quick capture backed by a structured tag catalogue. Since v1.37.1
-an entry records five separate values rather than one: pleasantness, strain,
-energy, connectedness, and agency, each an optional 0 to 10 slider with wording
-at both ends. The quick check-in is unchanged, a face and a save, and its
-answer maps onto the pleasantness scale; a slider you leave alone stays empty
-rather than landing in the middle, and each of the five trends over seven,
-thirty or ninety days. Pick binary tags across feelings, sleep, health, social,
-work, and hobbies, add a free-text note, then read it back through trend
-analytics and a mood-relations surface that associates tags and factors with
-your other metrics. Rated daily-life factors are no longer offered on a new
-entry, because a stress rating and the strain scale were two answers to the
-same question; ratings already logged still show, still edit, and still feed
-the breakdowns that read them.
-
-Since v1.37.2 the mood record can also show what a day would have looked like on
-your own past patterns, and how far the day you recorded sits from it. This is a
-second, separate reading. Your own rating stays the leading one, it is stored
-exactly as you gave it, and the prognosis never overwrites it. The comparison
-appears only once there are enough days to say something honest: it carries the
-number of days it was built from and a range rather than a single figure, and it
-names which of the things you recorded weighed most that day. It describes a
-connection, never a cause. Below fifteen days it shows nothing at all; between
-fifteen and thirty it says how far along it is instead of guessing; between
-thirty and sixty it is there and labelled provisional. It is rebuilt overnight
-from your entries, and if you delete enough of them it goes away again rather
-than standing there with a fresh date on nothing.
+A five-face quick capture backed by a structured tag catalogue. An entry can
+also record five separate 0 to 10 values (pleasantness, strain, energy,
+connectedness and agency), binary tags across feelings, sleep, health, social,
+work and hobbies, and a note. Trends and a mood-relations view associate tags
+and factors with your other metrics, and once there are enough days the record
+shows how far a day sits from your own past pattern, as a connection and never
+a cause. See [Mood](/knowledge/mood/).
 
 ## Medication compliance
 
@@ -142,11 +120,12 @@ picker. Take / skip / snooze logging, a traceable dose history, supply runway,
 and structured side-effect tracking. An
 [efficacy chart](/guides/track-medications/#see-a-medications-effect-on-a-metric)
 plots how a metric moved since a medication started — a data-scaled axis, a
-"% since start" view, and the full intake history. Since v1.40.0 a medication
-can have several [courses](/guides/track-medications/#courses-medications-that-come-and-go),
-each with its own start and end, and you can file medications under
-[categories of your own](/guides/track-medications/#your-own-categories). Since
-v1.42.2 a medication you take reliably can
+"% since start" view, and the full intake history. A medication can have
+several [courses](/guides/track-medications/#courses-medications-that-come-and-go),
+each with its own start and end, and **End** finishes the running one at once;
+you can file medications under
+[categories of your own](/guides/track-medications/#your-own-categories). A
+medication you take reliably can
 [record its doses by itself](/guides/track-medications/#record-doses-automatically),
 without reminders and never over a dose you logged by hand. See
 [Track medications](/guides/track-medications/).
@@ -155,40 +134,39 @@ without reminders and never over a dose you logged by hand. See
 
 Additive to the everyday metrics, on by default and inert until data arrives:
 [validated mental-wellbeing self-checks](/guides/clinical-signals/) (PHQ-9,
-GAD-7, WHO-5, and the Sleep Condition Indicator — official wording, published
-severity bands, calm crisis-resource handling), grip strength, a 0–10 pain
+GAD-7, WHO-5 and the Sleep Condition Indicator, in every app language: the
+validated translation where one exists, otherwise a faithful one marked as
+such, with published severity bands and calm crisis-resource handling), grip strength, a 0–10 pain
 score, waist and body measurements, and a longevity
 [lab panel](/knowledge/longevity-labs/). Each is added through one
 signal registry, so a new signal wires into
 charts, correlations, the Coach, the FHIR map and the API at once. Structured
 [allergies and family history](/guides/structured-records/) are encrypted at
-rest and print in the doctor report. Since v1.43.0
-[life circumstances](/guides/life-circumstances/) (smoking, alcohol with the
+rest and print in the doctor report.
+[Life circumstances](/guides/life-circumstances/) (smoking, alcohol with the
 AUDIT-C screening in validated wording, activity, work, sleep and diet habits,
-goals) are dated, each with its own AI switch. A vaccination record (since v1.37.3)
-keeps a lifetime immunization log: doses grouped under the disease they
+goals) are dated, each with its own AI switch. A vaccination record keeps a lifetime immunization log: doses grouped under the disease they
 protect against, optional booster reminders, and a doctor-report section you
 can leave out. An
 [environmental module](/explanation/environmental-module/), on by default,
-folds weather, daylight, temperature and, since v1.42.0, air quality, pollen
-and UV in as influence signals; nothing is fetched until you configure a home
+folds weather, daylight, temperature, air quality, pollen and UV in as influence signals; nothing is fetched until you configure a home
 location. **Custom metrics** let you
 define your own measurement — name, unit, optional target range — and log and
 chart it alongside the built-ins; custom definitions stay private to your
 account and deliberately stay out of device sync and FHIR export, though they
 do feed the correlation discovery that the Coach and the insights surfaces
-read. Since v1.40.0 you can also define up to eight
+read. You can also define up to eight
 [symptoms of your own](/guides/illness/#your-own-symptoms), such as aura or
 headache, and log one in a single step with an intensity from 0 to 10. Single-lead [ECG recordings](/insights/ecg-recordings/) synced from a
 compatible watch are shown on a calibration grid with date, duration and average
-heart rate — the device's own result attributed to the device, and no
+heart rate: the device's own result attributed to the device, and no
 interpretation of the trace by HealthLog. Each carries a plain-language, strictly
 non-diagnostic descriptor that restates the recording's device-reported facts in
 words.
 
 ## Doctor visits
 
-Since v1.37.2 appointments and the practices behind them have their own section.
+Appointments and the practices behind them have their own section.
 A visit records what kind it was, when it happened, its status, an optional
 practice drawn from a contact list you keep, and an encrypted note. It links to
 the lab results, documents and illness episodes it concerned, and those links
@@ -202,7 +180,7 @@ re-anchors when you move the date and clears when the visit happens or is
 cancelled. It fires once, never nags, and carries no "done" button, because an
 appointment is not a task you tick off.
 
-Since v1.43.0 medications, visits, lab results, documents, conditions and
+Medications, visits, lab results, documents, conditions and
 vaccinations show what they belong to in a **Related** section, from links you
 set and from relations the record already implies; see
 [Link related records](/guides/related-records/).
@@ -223,15 +201,24 @@ appears in the doctor-report PDF as a visit list you can leave out.
 [Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Oura](/guides/connect-oura/), [Polar](/guides/connect-polar/) and
 [Strava](/guides/connect-strava/) sync over OAuth2; [Fitbit and Pixel](/guides/connect-google-health/) connect through
-Google Health, with the [classic Fitbit API](/guides/connect-fitbit/)
-alongside until its September 2026 retirement; a
+Google Health (the [classic Fitbit API](/guides/connect-fitbit/) ends on
+30 October 2026); a
 [Nightscout](/guides/connect-nightscout/) instance streams
 continuous glucose; a [Dawarich](/guides/connect-dawarich/) instance adds daily
 movement (distance, time away from home, travel days) without any coordinate; an [Apple Health `export.zip`](/guides/import-apple-health/)
 folds your full history in, and so does an Android
-[Health Connect export](/guides/import-health-connect/); the native iOS app streams HealthKit live. A
-per-metric [source priority](/guides/source-priority/) decides which reading is
-canonical when devices overlap.
+[Health Connect export](/guides/import-health-connect/); the native iOS app streams HealthKit live.
+Lab results and medications come in from a
+[spreadsheet](/guides/import-csv/), and a scale, a Home Assistant sensor or
+an indoor-climate sensor writes readings through a
+[measurement token](/guides/ingest-token/), which can also pass them on to
+Apple Health through a current build of the iPhone app. A per-metric
+[source priority](/guides/source-priority/) decides which reading is canonical
+when devices overlap, and each metric page shows where a value comes from.
+
+The workouts page has an activity calendar and fitness, fatigue and form from
+the training load. Lab markers with enough readings show their trend, and a
+lasting change of level in thirteen vitals over the last 180 days is marked.
 
 ## AI coach + insights
 
@@ -239,7 +226,7 @@ Multi-provider, evidence-grounded insights: per-metric assessments, correlations
 a daily briefing, a weekly report, a
 [Health Score](/explanation/composite-health-score/) tile that grades each
 pillar against a published band and labels how many areas of health it rests
-on, and a conversational coach grounded in your own data — now reading your history longitudinally and able to
+on, and a conversational coach grounded in your own data, reading your history longitudinally and able to
 ask up to three follow-up questions from an encrypted self-context. An answer
 shows which parts of your record the Coach read and, with a provider that can
 call tools, the values it read as tables and charts you can copy, plus
@@ -257,7 +244,7 @@ say. Pick
 [OpenAI, Anthropic, ChatGPT via Codex, a local endpoint, or an OpenAI-compatible gateway](/guides/ai-providers/);
 BYOK or admin-shared. Local endpoints keep all data on your network. An
 off-by-default [MCP connector](/guides/mcp-server/) can open your own record to
-an external assistant over OAuth — read-only unless you opt into narrow,
+an external assistant over OAuth, read-only unless you opt into narrow,
 confirmed writes.
 
 AI is optional all the way through. With no provider, AI switched off by the
@@ -266,7 +253,7 @@ and correlation still loads, and nothing is sent to a model. The operator's
 switches stop the work they cover, including document reading and lab scans,
 not just the text. See
 [When AI is not available](/guides/ai-providers/#when-ai-is-not-available).
-Since v1.43.0 each account picks how much background AI work it wants, frugal,
+Each account picks how much background AI work it wants, frugal,
 standard or full, within the bounds the operator sets; see
 [AI usage levels](/guides/ai-providers/#ai-usage-levels).
 
@@ -287,60 +274,19 @@ revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
 ## Shared access between accounts
 
 One account can give another account on the same instance access to its health
-record, which is how a household looks after each other without anybody sharing
-a password. Both people keep their own account, their own credentials and their
-own second factor.
+record at a read, write or manage level, for all of it or for named parts, so a
+household looks after each other without anybody sharing a password. A grant
+never carries the account around the record: credentials, integrations,
+notification channels, exports and grant management stay with the owner.
 
-An invitation confers nothing until the person named on it accepts, and it names
-its level. Read lets somebody open the record and change nothing in it. Write
-adds a short, closed list: a reading, a lab result, a biomarker, an illness
-entry, a side effect against a drug, a medication, and marking a dose taken or
-skipped. Every one of those is a new entry. Manage adds the other half, so a
-manager can change and remove entries including the owner's own, record the
-health background, and read the insights the record generated. Deferring one of
-the owner's reminders, and overturning a dose decision already recorded, stay
-with the owner at every level.
+A health record can also exist for somebody who does not sign in at all, a
+child or a person you care for. Its guardians look after it, can connect its
+integrations, receive its reminders, and can hand it over as an ordinary
+account later.
 
-An invitation can also name the parts of the record it opens: readings,
-medications, lab results, health background (which includes doctor visits and
-the immunization history), illness, mood and mind, cycle, and documents.
-Everything not picked stays closed and is refused the same way a
-record nobody shared is. Manage always covers the entire record, because a note
-in one section can be about any other. Every grant written before v1.37.0 opens
-the entire record and is untouched.
-
-An entry a delegate makes is stored as the owner's, because it is a fact about
-their body. Who wrote it is in the audit trail rather than on the row, and the
-activity view names each act with a verb that says what it was.
-
-A grant never carries the account around the record with it, so credentials,
-integrations, notification channels, module and threshold configuration,
-exports, clinician links and grant management are refused rather than merely
-hidden from the screen, and a control the record will not accept is not drawn at
-all. An invitation can name the day the access lapses, and either side can end
-it before then, with effect on the delegate's next request rather than at their
-next login.
-
-## Managed profiles
-
-A health record can also exist for somebody who does not sign in at all: a
-child, or a person you care for. A managed profile has no login and no e-mail
-address, and it never gains one. Its guardians look after it at the manage
-level, and the record can never be left with nobody, so the last guardian may
-delete the profile but may not walk away from it.
-
-Its reminders reach its guardians rather than the record itself, each in their
-own language and over the channels they already chose, naming whose record it is
-about.
-
-When the person grows up or wants to sign in themselves, a guardian can hand
-the profile over with a one-time link, and it becomes an ordinary account with
-all its history. Since v1.43.0 that also works through single sign-on,
-including on instances that allow only single sign-on.
-
-See [Give another account access to your record](/guides/shared-access/) and
-[Records with no login of their own](/guides/managed-profiles/) for the steps,
-and [What a shared record is](/explanation/record-sharing/) for the reasoning.
+See [Give another account access to your record](/guides/shared-access/),
+[Records with no login of their own](/guides/managed-profiles/) and
+[What a shared record is](/explanation/record-sharing/).
 
 ## Built to be lived in
 
@@ -351,10 +297,10 @@ and saying no health figure on the lock screen unless you
 [allow it](/guides/reminder-channels/#health-figures-in-notifications);
 a [search](/guides/search/) in the command palette (⌘K or Ctrl K) that reaches
 into your own visits, documents, lab results, medications and notes; a sub-second dashboard on years of imported history;
-gamification achievements; seven display languages (English, German, Spanish,
-French, Italian, Polish, Korean) end to end with a CI-guarded translation integrity
-test — an explicit language choice sticks everywhere, and the automatic setting
-follows your system language. Invite links with QR codes for closed
+gamification achievements; nine display languages (English, German, Spanish,
+French, Italian, Polish, Korean, Dutch and Brazilian Portuguese) end to end; an
+explicit language choice sticks everywhere, and the automatic setting follows
+your system language. Invite links with QR codes for closed
 registration. Light and dark themes share one token system, so both stay
 readable without a separate design.
 
@@ -368,8 +314,8 @@ server-side sessions, strict CSP, HMAC-hashed Bearer tokens, and
 ## How it compares
 
 HealthLog does not ship a sensor and does not try to be a ring or a strap. It
-takes the readings your devices already collect — plus the ones they do not hold,
-like cuff blood pressure, finger-stick or CGM glucose, and medication intake — and
+takes the readings your devices already collect, plus the ones they do not hold
+(cuff blood pressure, finger-stick or CGM glucose, medication intake), and
 keeps them on a server you run.
 
 | | HealthLog | Withings web | Apple Health | Oura web | WHOOP web | Fitbit web |
@@ -393,5 +339,5 @@ keeps them on a server you run.
 | Health data leaves your server | Only to services you connect | Withings cloud | Apple cloud | Oura cloud | WHOOP cloud | Fitbit cloud |
 
 HealthLog is the right fit when you want your wearable and clinical numbers in one
-place that you control, with explainable analytics on top — not when you want a
+place that you control, with explainable analytics on top, not when you want a
 closed device that scores you and keeps the data.
