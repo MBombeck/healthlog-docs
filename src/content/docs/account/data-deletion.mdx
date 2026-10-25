@@ -1,31 +1,31 @@
 ---
-title: Data deletion — what gets removed
+title: Data deletion: what gets removed
 description: Exactly which models each of the three deletion paths removes, and what survives them.
 sidebar:
   order: 1
 ---
 
-HealthLog has three distinct deletion paths, and they affect different sets of data. This page enumerates every model touched by each path so you can pick the right one with confidence — and so you know what you've still got after.
+HealthLog has three distinct deletion paths, and they affect different sets of data. This page says what each path removes and what survives it, so you can pick the right one.
 
 ## Three deletion paths
 
 | Path | Scope | Triggered by | Confirm string | What stays |
 |------|-------|--------------|----------------|------------|
-| **Delete all data** | Every row one account owns, across 101 user-scoped models | `/settings/advanced` → "Delete all data" | `DELETE` | The account and the credentials that sign into it |
-| **Delete account** | One user, including the account itself | `/settings/account` → "Delete account" | `DELETE_ACCOUNT` | Audit-log entries that reference other users still survive (the row's `userId` is purged but the audit row itself remains for the rest of the audit trail) |
-| **Wipe all data** (admin only) | Every account's health data, instance-wide: 100 tables (the per-account plan minus one exemption), derived from the wipe plan since v1.37.1 | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | Accounts and their sign-in credentials, instance configuration, and shared-access grants |
+| **Delete all data** | Every row one account owns, across every user-scoped model | Settings → Data → Advanced → "Delete all data" | `DELETE` | The account and the credentials that sign into it |
+| **Delete account** | One user, including the account itself | Settings → Data → Advanced → "Delete account" | `DELETE_ACCOUNT` | Audit-log entries that reference other users still survive (the row's `userId` is purged but the audit row itself remains for the rest of the audit trail) |
+| **Wipe all data** (admin only) | Every account's health data, instance-wide: the per-account plan minus one exemption | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | Accounts and their sign-in credentials, instance configuration, and shared-access grants |
 
-The two per-account paths are the ones a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure), and they are the ones held against `prisma/schema.prisma` by a test. The instance-wide wipe was meant for refurbishing a self-hosted box; since v1.37.1 it derives from the same plan and is held by the same test.
+The two per-account paths are the ones a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure), and they are the ones held against `prisma/schema.prisma` by a test. The instance-wide wipe is meant for refurbishing a self-hosted box; it derives from the same plan and is held by the same test.
 
 ## What "Delete all data" deletes
 
 `DELETE /api/settings/data` with body `{ "confirm": "DELETE" }` removes every row the calling account owns, keeping only what the account needs to sign in again. An account with a second factor enrolled has to pass a fresh step-up first. Both per-account paths refuse with `403 sharing.not_permitted` while the browser is switched into somebody else's record, so a guardian or a delegate cannot erase a record by mistake from inside it; switch back first.
 
-The list of models is not written in the route. It is declared once in `src/lib/data-wipe/wipe-plan.ts`, and `src/__tests__/data-wipe-completeness.test.ts` enumerates the Prisma schema and fails when a model belongs to neither the wipe list nor one of the two exemption lists. That test is why the number is 101 rather than the thirteen the route deleted while telling people it had deleted everything.
+The list of models is not written in the route. It is declared once in `src/lib/data-wipe/wipe-plan.ts`, and `src/__tests__/data-wipe-completeness.test.ts` enumerates the Prisma schema and fails when a model belongs to neither the wipe list nor one of the two exemption lists. A model added to the schema therefore cannot ship without being classified.
 
 Covered, in the order the plan declares (children before parents, so the per-model counts in the audit row are truthful): measurements and every derived tier built from them, medications and their schedules and intake history, mood, the clinical record, activity, context and engagement, documents, the AI surfaces including Coach messages, sharing grants, integrations, notification transports, and the API surface with its operational trails.
 
-Everything runs in one transaction with a 120-second budget, because a half-applied wipe is worse than none: the person is told it succeeded either way. Soft-deleted rows go too — the delete carries no `deletedAt` filter, so the tombstone goes with the record. The personal columns carried on the account row itself are reset in the same transaction, and the reset is held to the `User` model's columns by the same test.
+Everything runs in one transaction with a 120-second budget, because a half-applied wipe is worse than none: the person is told it succeeded either way. Soft-deleted rows go too: the delete carries no `deletedAt` filter, so the tombstone goes with the record. The personal columns carried on the account row itself are reset in the same transaction, and the reset is held to the `User` model's columns by the same test.
 
 ### What "Delete all data" preserves
 
@@ -35,13 +35,9 @@ A single `user.data.clear` audit row is written **after** the transaction commit
 
 ## What "Wipe all data" deletes
 
-The admin "Wipe all data" action at `/admin/danger-zone` runs `DELETE /api/admin/data` with body `{ "confirm": "DELETE ALL" }`. It's rate-limited (5/min/IP and 5/min/admin), requires the admin role, and audit-logs the intent **before** the transaction starts — so the trail describing "an admin is about to wipe data" survives even if the operation crashes mid-way.
+The admin "Wipe all data" action at `/admin/danger-zone` runs `DELETE /api/admin/data` with body `{ "confirm": "DELETE ALL" }`. It's rate-limited (5/min/IP and 5/min/admin), requires the admin role, and audit-logs the intent **before** the transaction starts, so the trail describing "an admin is about to wipe data" survives even if the operation crashes mid-way.
 
-:::note[Derived from the wipe plan since v1.37.1]
-The route no longer carries its own list. It clears the models the per-account wipe plan declares, minus one deliberate exemption, and a build-time rule fails if the route ever names a table inline again. On builds before v1.37.1 the route held an inline list written years earlier and cleared nine tables of the 122 in the schema, reporting the same success line however much was cleared; labs, documents, cycle and journal entries, mood, workouts, sleep, Coach conversations and achievements all survived that wipe. On those builds, run the per-account "Delete all data" on each account instead, or clear the database.
-:::
-
-Inside a single Postgres transaction, for every account at once: 98 tables, the per-account plan minus the single `AccountGrant` exemption. That is the per-account "Delete all data" scope applied instance-wide, so the enumeration above applies here too: measurements and every derived tier, medications with their schedules and intake history, mood, the clinical record, activity, context and engagement, documents, the AI surfaces including Coach messages, integrations, notification transports, and the API surface with its operational trails. The per-user columns on each `User` row are reset in the same transaction, held to the model's columns by the same completeness test.
+Inside a single Postgres transaction, for every account at once: the per-account plan minus the single `AccountGrant` exemption. A build-time rule fails if the route ever names a table inline. That is the per-account "Delete all data" scope applied instance-wide, so the enumeration above applies here too: measurements and every derived tier, medications with their schedules and intake history, mood, the clinical record, activity, context and engagement, documents, the AI surfaces including Coach messages, integrations, notification transports, and the API surface with its operational trails. The per-user columns on each `User` row are reset in the same transaction, held to the model's columns by the same completeness test.
 
 Two consequences of the wider scope are worth knowing before pressing the button:
 
@@ -65,7 +61,7 @@ The handler:
 
 1. **Refuses last-admin deletion.** If the user is the only admin on the instance, the request fails with `400 The last admin account cannot be deleted` so you can never lock the instance out of its own admin panel.
 2. **Audit-logs the intent** as `user.account.delete` before doing anything destructive, so the trail predates the deletion.
-3. **Destroys every active session** for the user — the device that initiated the delete is signed out; every other browser, tab, and native client is signed out on the next request.
+3. **Destroys every active session** for the user. The device that initiated the delete is signed out; every other browser, tab, and native client is signed out on the next request.
 4. **Explicitly purges the user's `AuditLog` rows** (IP addresses, login geo), which schema-level `onDelete: SetNull` would otherwise keep with a nulled `userId`.
 5. **Deletes the `User` row.** Postgres `ON DELETE CASCADE` then takes care of every model that holds a foreign key back to the user:
    - Passkeys, sessions, auth challenges
@@ -81,20 +77,20 @@ The handler:
 
 ### Why GDPR-clean and what it means
 
-`AuditLog` uses `onDelete: SetNull` rather than `Cascade` because the rows themselves are operationally useful even after the user is gone — admin tooling, security forensics. Without an extra purge step, the row would survive with `userId = null` but still carry the user's IP address and login city. An explicit `deleteMany({ where: { userId } })` runs on account deletion so it is genuinely complete erasure (right to erasure) and not just disconnection.
+`AuditLog` uses `onDelete: SetNull` rather than `Cascade` because the rows themselves are operationally useful even after the user is gone, for admin tooling and security forensics. Without an extra purge step, the row would survive with `userId = null` but still carry the user's IP address and login city. An explicit `deleteMany({ where: { userId } })` runs on account deletion so it is genuinely complete erasure (right to erasure) and not just disconnection.
 
 After the transaction commits, the deleting request's own wide event is annotated `settings.account.delete`, so the operational telemetry records that the deletion happened. The audit log itself keeps nothing for the deleted account.
 
 ### What "Delete account" preserves
 
-- **App settings** — never user-bound to begin with.
-- **Other users' audit-log entries** — the deleted user's `AuditLog` rows are purged, but rows that mention them as a *target* (e.g. "Admin X force-logged-out user Y") stay because they belong to the actor's audit trail, not the deleted user's.
-- **The instance itself** — deleting the last non-admin doesn't tear anything down; the app keeps running.
+- **App settings**, never user-bound to begin with.
+- **Other users' audit-log entries.** The deleted user's `AuditLog` rows are purged, but rows that mention them as a *target* (e.g. "Admin X force-logged-out user Y") stay because they belong to the actor's audit trail, not the deleted user's.
+- **The instance itself.** Deleting the last non-admin doesn't tear anything down; the app keeps running.
 - **Audit rows recording that this account opened somebody else's record.** They belong to the *other* person's record, and they render as "a deleted account" rather than being nulled. Turning "your daughter opened your record" into "you opened your record" would be worse than an unresolvable id.
 
 ## Backups and the right to be forgotten
 
-In-database `DataBackup` rows are deleted with the account. If the instance has [off-host backups](/guides/backups/) configured, since v1.39.3 deleting an account, deleting a managed profile or **Delete all data** also deletes every copy of that account from the bucket, right after the deletion and again at the next nightly pass if the bucket was unreachable. The admin "Wipe all data" does not; see above.
+In-database `DataBackup` rows are deleted with the account. If the instance has [off-host backups](/guides/backups/) configured, deleting an account, deleting a managed profile or **Delete all data** also deletes every copy of that account from the bucket, right after the deletion and again at the next nightly pass if the bucket was unreachable. The admin "Wipe all data" does not; see above.
 
 What is left for the operator when someone invokes Art. 17:
 
@@ -102,20 +98,27 @@ What is left for the operator when someone invokes Art. 17:
 2. Delete any backup file you downloaded or copied elsewhere yourself; the app cannot reach it.
 3. Note in your records that the deletion happened. Once the bucket holds nothing for the account, the server writes an `offhost.backup.purged` audit row with the reason and the number of copies deleted; for a deleted account the row does not name the account, because the account's audit history goes with it.
 
+## Deleted entries and Recently deleted
+
+A single deleted entry (a reading, a lab result, a visit and the other records
+with an undo) stays restorable for 75 days and is then purged for good.
+Deleted documents sit in **Recently deleted** under Documents for 30 days,
+where they can be restored or deleted for good at once; after that they are
+purged.
+
 ## Public Privacy Policy page
 
-Every HealthLog instance serves a public Privacy Policy at `/privacy` — reachable without an account so app-store reviewers, prospective users, and self-hosted-instance visitors can read it before signing up. The page was added so the iOS build could clear App Store Connect submission, but it doubles as the canonical DSGVO / GDPR transparency surface for every deployment:
-
-- **EU GDPR / DSGVO data-subject rights** are enumerated explicitly — right of access (Art. 15), rectification (Art. 16), erasure / "right to be forgotten" (Art. 17), restriction (Art. 18), data portability (Art. 20), and objection (Art. 21) — each cross-linked to the in-app surface that fulfils it.
-- **Apple HealthKit quantity-type list** is disclosed in full so reviewers and users see exactly which HealthKit categories the upcoming iOS app reads — body mass, blood pressure systolic + diastolic, blood glucose, heart rate, oxygen saturation, body fat percentage, lean body mass, BMI, HRV SDNN, sleep analysis, resting heart rate, step count, active energy burned, flights climbed, walking + running distance, VO₂ max, and body temperature.
-- The page renders from `/privacy` on every instance (self-hosted + demo), is public, and contains zero per-user data.
+Every HealthLog instance serves a public Privacy Policy at `/privacy`,
+reachable without an account. It lists the GDPR data-subject rights (Art. 15,
+16, 17, 18, 20 and 21), each linked to the in-app surface that fulfils it, and
+the Apple Health data types the iOS app reads. It contains no per-user data.
 
 ## Related pages
 
-- [Backup structure and restore](/guides/backups/) — what's in a snapshot, [what a snapshot deliberately leaves out](/guides/backups/#what-a-backup-does-not-carry), how restore works, security considerations
+- [Backup structure and restore](/guides/backups/): what's in a snapshot, [what a snapshot deliberately leaves out](/guides/backups/#what-a-backup-does-not-carry), how restore works, security considerations
 - [What a shared record is](/explanation/record-sharing/): what a grant survives, and what it does not
-- [Self-Hosting → Scaling](/self-hosting/scaling/) — off-host S3 backups, encryption-key rotation
-- [Privacy architecture](/explanation/privacy-architecture/) — what leaves your instance, audit trail
-- [Encryption at rest](/explanation/encryption-at-rest/) — how stored data is encrypted
-- [Security and privacy](/security/overview/) — the consolidated security statement, including image verification
-- [GDPR for operators](/self-hosting/gdpr/) — which deletion path answers a request for erasure, and what backups do to it
+- [Encryption key rotation](/guides/encryption-key-rotation/)
+- [Privacy architecture](/explanation/privacy-architecture/): what leaves your instance, audit trail
+- [Encryption at rest](/explanation/encryption-at-rest/): how stored data is encrypted
+- [Security and privacy](/security/overview/): the consolidated security statement, including image verification
+- [GDPR for operators](/self-hosting/gdpr/): which deletion path answers a request for erasure, and what backups do to it

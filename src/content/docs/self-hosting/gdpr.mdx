@@ -52,7 +52,7 @@ to reach for when you are processing somebody else's health data.
 [Configure AI providers](/guides/ai-providers/) covers the choice.
 
 If you would rather no health data reach a model at all, the switches under
-Admin, Coach do that for the whole instance. Since v1.39.0 they stop the work,
+Admin, Coach do that for the whole instance. They stop the work,
 not only the text: with the master switch off nothing is sent to a model, and
 **Reading documents** alone stops the vault, lab report scans and medication
 text, which carry the most data out. Everything else in the app keeps working.
@@ -111,7 +111,7 @@ Inside the app, AI processing has consents of its own, which each person gives
 and withdraws in their AI settings. Reading documents asks separately from the
 Coach and AI analysis, and a document or lab scan does not leave the server for
 an outside AI service without it. Withdrawing AI consent takes effect at once
-and, since v1.39.0, also deletes the notes that were written under it and can
+and also deletes the notes that were written under it and can
 be written again: status notes, the daily briefing, model-written period
 summaries, reaction lines and workout notes. Coach conversations and document
 summaries are the person's records and stay until they delete them. See
@@ -122,7 +122,7 @@ summaries are the person's records and stay until they delete them. See
 [Art. 15](https://gdpr-info.eu/art-15-gdpr/) gives a person a copy of their data
 and [Art. 20](https://gdpr-info.eu/art-20-gdpr/) gives them a machine-readable,
 portable version of what they provided. Both are answered by the export surface
-at **Settings, then Export**, which runs under the person's own session. You do
+at **Settings → Data → Export & import**, which runs under the person's own session. You do
 not have to assemble anything on their behalf; they hold the account, so they
 run it themselves.
 
@@ -152,9 +152,9 @@ are erasure.
 
 | Path | Where | Scope |
 | --- | --- | --- |
-| Delete all data | Settings, then Advanced | Every row the account owns, across every user-scoped table (currently around a hundred), keeping only what the account needs to sign in again |
-| Delete account | Settings, then Account | The account itself and everything the schema cascades from it |
-| Wipe all data | Admin, then Danger zone | Instance-wide: every account's health data, derived from the same wipe plan since v1.37.1. See the note below. |
+| Delete all data | Settings → Data → Advanced | Every row the account owns, across every user-scoped table, keeping only what the account needs to sign in again |
+| Delete account | Settings → Data → Advanced | The account itself and everything the schema cascades from it |
+| Wipe all data | Admin, then Danger zone | Instance-wide: every account's health data, derived from the same wipe plan. See the note below. |
 
 **Delete all data** runs as one transaction. The list of tables is declared in
 one place in the source and held against the Prisma schema by a completeness
@@ -176,24 +176,18 @@ reports. Then it deletes the account row and the schema's cascades take
 everything attached to it, including sharing grants in both directions. A record
 that would be left with no guardian at all is refused rather than orphaned.
 
-**The admin wipe clears health data, not identity.** Since v1.37.1 it derives
-from the same wipe plan as the per-account path and runs in one transaction:
-every wipe-plan table is cleared, and every survivor is either a sign-in
-credential, instance configuration, or the single deliberate exemption of
-shared-access grants. A
-build-time rule fails if the route ever names a table inline again. On builds
-before v1.37.1 the route carried its own inline list, a snapshot of the schema
-from the day it was written, and cleared nine tables of the 122 in the schema
-while reporting the same success line however much was cleared; labs,
-documents, cycle and journal entries, mood, workouts, sleep and Coach
-conversations all survived that wipe.
+**The admin wipe clears health data, not identity.** It derives from the same
+wipe plan as the per-account path and runs in one transaction: every
+wipe-plan table is cleared, and every survivor is either a sign-in credential,
+instance configuration, or the single deliberate exemption of shared-access
+grants.
 
 It is still not the way to answer a request for erasure: it keeps every
 account, and it wipes every account at once, which is the wrong scope for one
 person invoking Art. 17. Use the per-account paths above.
 
 Backups go with the account too. In-database backup rows are deleted with the
-account, and since v1.39.3 deleting an account, deleting a managed profile or
+account, and deleting an account, deleting a managed profile or
 **Delete all data** also deletes every copy of that account from the off-host
 bucket, right after and again on the next nightly pass if the bucket was
 unreachable. The worker's credential needs `DeleteObject` for that; without it
@@ -219,13 +213,12 @@ their own:
 | Notification delivery attempts | 90 days | fixed |
 | Host metrics | 7 days | `HOST_METRIC_RETENTION_DAYS` |
 | Off-host backup objects | as configured, and deleted with the account | Your bucket's lifecycle rule (`BACKUP_RETENTION_DAYS` records the number) |
+| Deleted entries (readings, lab results, visits and the other records with an undo) | 75 days, then purged | fixed |
+| Deleted documents | 30 days in Recently deleted, then purged | fixed |
 
-The per-metric status notes are not in that list: since v1.39.0 they live
-encrypted in their own table, one row per metric and language, overwritten each
-night rather than accumulated, and left out of backups because they can be
-written again. Up to v1.38 they were kept as plain text in the audit log, one
-row per metric per day, for the audit window; the v1.39.0 upgrade deleted those
-rows.
+The per-metric status notes are not in that list: they are kept encrypted, one
+row per metric and language, overwritten each night rather than accumulated,
+and left out of backups because they can be written again.
 
 Shorten the audit window if you would rather hold fewer login IP addresses.
 Lengthening it means holding more, so pick the number you can justify rather
