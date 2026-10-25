@@ -6,85 +6,41 @@ sidebar:
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
-import coachSteps from '../../../assets/screenshots/coach-steps.png';
 
-Since v1.39.4 a Coach answer shows more than its text. You see which parts of
-your record the Coach read while it works, the values it read as a table or a
-chart, how a figure was worked out, and up to three suggestions for what to ask
-next. When a question could mean several things, the Coach asks back with a
-few choices instead of guessing.
-
-Since v1.41.0 the Coach can think before it answers, with a model that
-supports it. A single line above the answer says what it is doing while it
-works, comparisons of two periods or two metrics share one chart, a question
-that could mean two things gets suggested replies, and the Coach remembers
-what you tell it, with an undo right where it says so. See
-[Thinking depth](#thinking-depth), [The status line](#the-status-line) and
-[What the Coach remembers](#what-the-coach-remembers).
+A Coach answer shows more than its text. A status line above it says what the
+Coach is reading while it works, the values it read appear as tables or charts,
+a line says how a figure was worked out, and up to three suggestions offer what
+to ask next. The Coach can think before it answers with a model that supports
+it, asks back when a question could mean several things, and remembers what
+you tell it.
 
 All of this is built by the server from what the Coach actually read. The AI
 model writes the answer text; it never writes a step label, a table, a chart,
 the method line or the wording of a suggestion.
 
 :::note[Which setups show it]
-The sources list, tables, charts, method line and suggestions come from the
+The status line, tables, charts, method line and suggestions come from the
 Coach reading your record piece by piece, which needs a provider that can call
 tools: OpenAI, Anthropic, ChatGPT (Codex) and the OpenAI-compatible gateway
 entry can. The [**Local** provider](/guides/ai-providers/#local-endpoints)
 cannot, and neither can a provider chain that includes it. With such a chain
-the Coach reads a summary of your whole record at once, as before: the sources list shows one line, **Reading
-your record summary**, and there are no tables, charts or suggestions.
-
-Since v1.41.0 the Coach still thinks on such a chain when the local model can
-reason, and it still knows what it remembered about you. Saving something new
-to memory during an answer, suggesting a plan and comparison charts need a
-provider that can call tools.
-
-An iPhone app from before v1.39.4 shows the answer as before, without these
-parts.
+the Coach reads a summary of your whole record at once, and there are no
+tables, charts or suggestions. It still thinks when the local model can reason
+and still knows what it remembered about you. Saving something new to memory,
+suggesting a plan and comparison charts need a provider that can call tools.
 :::
 
 ## The Coach page
 
-Since v1.40.2 the Coach page has the chat in the middle and your conversations
-in a panel on the right.
+The chat sits in the middle and your conversations in a panel on the right
+(a sheet on a phone). Each conversation can be renamed or deleted; a delete can
+be undone for a few seconds. The gear in the panel header opens the
+[quick settings](#quick-settings).
 
-- **The conversations panel.** Conversations are grouped as Today, Yesterday,
-  This week and Earlier, newest first. The toggle at the
-  right of the top bar (**Show conversations** / **Hide conversations**) folds
-  the panel away, and the page remembers your choice on that device. On a
-  narrower window or a phone the panel opens as a sheet from the right and
-  closes again when you pick a conversation.
-- **Rename and delete.** Each row has a menu with **Rename** and **Delete**. A
-  deleted conversation can be brought back for a few seconds with **Undo** on
-  the **Conversation deleted** notice. Since v1.42.0 the delete is sent at the
-  latest when you leave the page, so a reload or a closed tab inside that
-  window no longer brings the conversation back.
-- **New chat.** The round button at the bottom of the panel starts a new
-  conversation.
-- **Quick settings.** The gear in the panel header opens the Coach's settings
-  in place: a popover on a wide screen, a sheet on a phone. See
-  [Quick settings](#quick-settings).
-
-### Under each answer
-
-One row sits under every answer: copy, **Read aloud**, **Try again** and the
-time on the left, the tokens and the model the answer used on the right. On a
-computer the row appears when you point at the message; on a touch screen it is
-always there. The copy button needs the browser's clipboard, so a server
-reached over plain HTTP shows none.
-
-Under your own message the row holds copy, the time and **Remember**, a
-bookmark icon. It saves what you said to your self-context, so the Coach knows
-it in later conversations; the icon confirms in place.
-
-The thumbs up and down and the **What I'm looking at** box are gone from the
-web. What the Coach read is in the list above the answer (see
-[What the Coach looked at](#what-the-coach-looked-at)), which now also holds the
-tables the answer did not point at and the line on how a figure was worked out.
-Follow-up suggestions sit right under the answer, in the size of its text. When
-you scroll up in a long conversation, a round button (**Jump to the latest
-message**) brings you back down.
+Under every answer you can copy it, have it read aloud, try again, and see the
+tokens and model it used. Under your own message, **Remember** saves what you
+said so the Coach knows it in later conversations. The copy buttons need the
+browser's clipboard, so a server reached over plain HTTP shows none.
 
 ### Quick settings
 
@@ -115,9 +71,7 @@ that opens the Coach page with these settings open (`/coach?settings=data`).
 Under **How far back the Coach can look** you choose **7 days**, **30 days**,
 **90 days**, **12 months** or **All**. **All** is the default.
 
-Since v1.40.2 this is a real limit. Before, it only set where the Coach started
-reading, and a tool could still reach further. Now it holds for everything the
-Coach reads in any answer: the summary of your record it starts from, every
+The limit holds for everything the Coach reads in any answer: the summary of your record it starts from, every
 reading tool, and the overviews such as correlations, lab results and glucose.
 An overview that needs more history than the limit allows is shortened or left
 out rather than computed over a shorter window that would disagree with its
@@ -127,8 +81,8 @@ The line under the choice says what that means:
 
 - With a limit: "The Coach reads nothing older than 90 days, in any answer."
 - With **All**: everything you recorded, the last 12 months in daily detail,
-  older readings as monthly values up to 10 years back, and lab results from
-  the last 12 months.
+  older readings as monthly values up to 10 years back, and your whole lab
+  history (older lab results summarised per year).
 
 Some things are not history and stay visible under any limit: your profile
 (age, sex, height), your current medications, an illness that is still open,
@@ -172,8 +126,7 @@ thinking depth applies. Which providers reason and how is on
 
 ### How long the Coach keeps looking
 
-Until v1.41.0 the Coach read your record in at most three rounds per answer.
-Now a question gets a budget of time and tokens instead, so a "why" question
+Each question gets a budget of tokens, time and rounds, so a "why" question
 can look at several series, compare them and come back with an answer:
 
 | Who pays for the model | Tokens per answer | Time | Rounds |
@@ -196,70 +149,27 @@ between 40 and 120 words and end with at most one next step.
 
 ## The status line
 
-While the Coach works, one row at the top of the answer shows a brain icon
-and what it is doing right now, with a soft moving highlight and animated
-dots: **Thinking…**, **Fetching blood pressure, last 90 days…**,
-**Summarising 214 readings…**, **Writing the answer…**. Since v1.41.1 there
-is no running seconds count. With a provider that sends summaries of its
-reasoning, a short title from that reasoning takes the place of
-**Thinking…**. When the answer is ready, the row reads **Thought process**
-with the number of steps, and it closes again when a turn finishes.
+While the Coach works, one row at the top of the answer says what it is doing
+(**Thinking…**, **Fetching blood pressure, last 90 days…**, **Writing the
+answer…**). With a provider that sends summaries of its reasoning, a short
+title from that reasoning replaces **Thinking…**. When the answer is ready the
+row reads **Thought process** with the number of steps. When the Coach had to
+stop early, the row says why (budget, time, many steps, or no new data).
 
-When the Coach had to stop early, the line says why: **Budget reached,
-answering with what it has**, **Time limit reached, answering with what it
-has**, **Many steps, wrapping up** or **No new data, wrapping up**.
-
-Nothing opens by itself. Tap the row to see the steps on a thin line, each
-with its own icon and the reasoning summary under its title. Below the steps come the line on
+Tap the row to see the steps, the line on
 [how a figure was worked out](#how-a-figure-was-worked-out) and the tables the
-answer read without pointing at them. Once open, the trail stays open until
-you close it and keeps growing while the Coach works.
-
-Reasoning text is model text, so it is checked like an answer before you see
-it. A title or summary that names a dose change, a diagnosis or a figure the
-Coach did not read is dropped, and the step keeps its plain label. Titles are
-cut at 80 characters and summaries at 400. The text is stored encrypted with
-the answer and only loaded when you open the trail. The labels themselves
-("Fetching", "Summarising" and so on) are written by the server, never by the
-model. A screen reader hears the line through a polite status region, at most
-once every one and a half seconds, and the summary once at the end.
-
-Answers saved before v1.41.0 keep the sources list described below.
-
-### Tables while the Coach works
-
-Since v1.41.1 tables appear only with the answer: the tables the answer
-points at become its charts, and the rest sit under **Data used** in the
-trail. Before that, a short line per table showed under the status line while
-the Coach worked.
-
-## What the Coach looked at
-
-Before v1.41.0, while the Coach worked, a line above its answer names the source it is reading,
-for example **Checking: Blood pressure, last 90 days…**. Once the answer is
-complete, the line reads **Looked at 3 sources**. Tap it to open the list: one
-row per source, with the time window and how many readings it found, or why it
-found none, such as **no readings**, **no readings in this window**,
-**switched off** for a module that is off, or **couldn't be read**. Several
-reads of the same source, such as this month and the month before, count as
-one source.
-
-The list shows only what the Coach read, never a value. A row names a part of
-your record, a window and a count. The name of a lab test, which comes from
-your own records, never appears there.
-
-<figure>
-  <img src={coachSteps.src} alt="Coach conversation on a phone: the question 'How is my blood pressure lately?', then the opened list 'Looked at 3 sources' with blood pressure over the last 90 days at 142 readings, sleep over the last 30 days with no readings, and lab results over the last 12 months at 4 rows, the answer below it, and the collapsed 'What I'm looking at' disclosure" width="360" />
-  <figcaption>An answer from before v1.41.0 with its sources list opened. Newer answers show the status line instead; both are closed by default.</figcaption>
-</figure>
+answer read without pointing at them (**Data used**). The step labels are
+written by the server. Reasoning titles and summaries are model text, so they
+are screened like an answer: one that names a dose change, a diagnosis or a
+figure the Coach did not read is dropped. The trail is stored encrypted with
+the answer. Older answers show a **Looked at *n* sources** list in its place.
 
 ## Tables of your values
 
 When the Coach reads a stretch of days, weeks or months, or a set of workouts,
 sleep nights, lab results or medication adherence, it keeps what it read as a
 table. The tables the answer relies on appear under the answer. Tables it read
-without pointing at them sit under **Data used** in the opened sources list
-above the answer.
+without pointing at them sit under **Data used** in the opened status line.
 
 - **The latest rows in view.** A table over time shows its latest 12 periods,
   still in date order, and any other table its first 12 rows. **Show all**
@@ -282,21 +192,9 @@ above the answer.
 A table keeps the values the answer was given with. A reading you edit or sync
 later does not change a table an earlier answer showed.
 
-### Copying a table
-
-The copy button beside a table's title offers two forms:
-
-- **Copy for spreadsheet** puts the table on the clipboard as tab-separated
-  values and as an HTML table, so a spreadsheet gets a grid and a document gets
-  a table.
-- **Copy as text** gives aligned plain text, for a message or a note.
-
-Both copy every row, not only the ones on screen, with the column headings and
-their units. A cell that a spreadsheet would read as a formula (one starting
-with `=`, `+`, `-`, `@` or `|`) gets a leading apostrophe so it stays text; a
-plain negative number is left alone. The button needs the browser's clipboard,
-which browsers offer only over HTTPS or on `localhost`, so a server reached
-over plain HTTP shows no copy button.
+The copy button beside a table's title offers **Copy for spreadsheet** and
+**Copy as text**. Both copy every row with headings and units. A cell a
+spreadsheet would read as a formula gets a leading apostrophe.
 
 ## Charts
 
@@ -320,7 +218,7 @@ comparison of two metrics is the exception and gets a second axis.
 ### Comparisons
 
 Ask how this month compares with the last one, or whether your sleep moves
-with your resting heart rate, and since v1.41.0 the Coach reads both series
+with your resting heart rate, and the Coach reads both series
 in one step and draws them in one chart. Two periods of one metric are the
 current window against the one before, or against the same window a year
 earlier; the server works out the change between them, and the model gets
@@ -347,7 +245,7 @@ than drawing a histogram of noise.
 
 ## How a figure was worked out
 
-At the end of the opened sources list, the line **How this was worked out** lists each
+At the end of the opened status line, **How this was worked out** lists each
 source the answer rests on with its window, the number of readings and how
 they were combined, for example "Blood pressure, last 90 days: 142 readings,
 weekly averages · Sleep, last 30 days: no readings in this window". A source
@@ -407,9 +305,8 @@ continued answer offers no further **Keep looking**.
 If the answer really depends on something the conversation does not settle,
 such as "how is my pulse?" when you record pulse, resting heart rate and
 walking heart rate, the Coach asks one short question instead of answering.
-Since v1.41.0 the choices appear as suggested replies right under the
-question, in the conversation, rather than in a card above the message box.
-Tap one, or type your own answer.
+The choices appear as suggested replies under the question. Tap one, or type
+your own answer.
 
 - The question can be about which metric, which time window, what to compare
   with (the period before, a year earlier, or your usual 90 days), which of
@@ -436,8 +333,8 @@ assumptions.
 
 ## What the Coach remembers
 
-Since v1.41.0 the Coach remembers what you tell it about your preferences,
-your goals and your circumstances, and uses it in later conversations.
+The Coach remembers what you tell it about your preferences, your goals and
+your circumstances, and uses it in later conversations.
 
 When it keeps something, a note under the answer says so, **Remembered:**
 *what it kept*, with **Undo** right beside it. Anything about your health (a
@@ -535,33 +432,16 @@ included, counts toward the limit of 20 Coach messages a minute.
 
 | What | Limit |
 | --- | --- |
-| Tables per answer | 8 |
-| Rows per table | 400, the latest kept; the table then says "Showing the latest 400 of *n* rows" |
-| Stored tables per answer | 128 KB before encryption; tables past it are dropped from the end, before the answer is shown |
-| Rows shown before **Show all** | 12 |
-| Lookups per answer | 48 |
-| Steps in the status line's trail | 99 |
-| Rounds per answer | 16 on your own provider, 8 on the operator's, then **Keep looking** |
+| Tokens, time and rounds per answer | See [How long the Coach keeps looking](#how-long-the-coach-keeps-looking) |
+| Tables per answer | 8, each up to 400 rows (the latest kept) |
 | Clarifying questions | 1 in 6 turns of a conversation, 3 a day |
 | Remembered things a question starts with | 8, plus 6 active plans |
 | Open plan proposals | 3; an unanswered one lapses after 14 days |
-| Follow-up suggestions | 3, under the latest answer only |
-| Choices on a clarifying question | 4 |
-| Earlier tables the model is told about | 3 from each of the last 5 answers that have tables |
-| Histogram | At least 10 values, at most 20 ranges |
+| Coach messages | 20 a minute |
 
-## For API clients
-
-The stream, its frames (`step`, `result`, `followUps`, `clarification`, and
-since v1.41.0 `activity`, `memoryNote`, `planProposal`, interim `result` frames
-and `done.stop`) and the request fields for tapping a suggestion (`followUp`),
-answering a question (`clarification`) or answering a memory note or plan
-(`memoryDecision`, `planDecision`) are described in the
-[OpenAPI document](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml).
-A stored answer carries only the tables' descriptions; the values come from
-`GET /api/insights/chat/{id}/messages/{messageId}/results`, and the text of
-the trail from `GET /api/insights/chat/{id}/messages/{messageId}/trail`. See
-[API endpoints](/reference/api-endpoints/#insights--coach).
+API clients find the stream frames and request fields in the
+[OpenAPI document](https://github.com/MBombeck/HealthLog/blob/v1.46.0/docs/api/openapi.yaml);
+see also [API endpoints](/reference/api-endpoints/).
 
 ## Related
 
