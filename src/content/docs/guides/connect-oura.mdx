@@ -7,11 +7,11 @@ sidebar:
 
 HealthLog connects to an Oura account over [OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc6749) against the Oura API v2. You bring your own developer app: the Oura **Client ID** and **Client Secret** are pasted into Settings (or set as server env vars) and stored AES-256-GCM-encrypted at rest. HealthLog never ships a shared credential.
 
-Once linked, the ring's sleep (with stage hypnogram), heart rate, respiratory rate, activity, blood-oxygen and **daily readiness** flow in. Oura readiness ranks below WHOOP but above Polar and the computed proxy as a recovery source — see [Recovery and readiness](/methodology/recovery/).
+Once linked, the ring's sleep (with stage hypnogram), heart rate through the day, respiratory rate, activity, workouts, blood-oxygen and **daily readiness** flow in. Oura readiness ranks below WHOOP but above Polar and the computed proxy as a recovery source — see [Recovery and readiness](/methodology/recovery/).
 
 ## What gets synced
 
-The Oura client (`src/lib/oura/client.ts`) reads from the Oura v2 user collections and maps:
+HealthLog reads the Oura v2 user collections and maps:
 
 - **Sleep** — the `sleep` detail records carry a 5-minute hypnogram; light maps to HealthLog's CORE stage, plus efficiency, HRV and resting (lowest) heart rate.
 - **Daily readiness** — the headline readiness score with its temperature-deviation and balance contributors.
@@ -21,27 +21,31 @@ The Oura client (`src/lib/oura/client.ts`) reads from the Oura v2 user collectio
 - **VO₂ max** — the dedicated `vO2_max` collection.
 - **Cardiovascular age** — Oura's daily estimate, stored as vascular age.
 - **Daily resilience** — the resilience level, encoded on a 1 to 5 scale.
+- **Workouts** — each Oura workout, recorded or auto-detected, becomes a workout. The same walk from another source is shown once, by your [source priority](/guides/source-priority/).
+- **Heart rate through the day** — the ring's readings every few minutes, stored as pulse readings.
 - **Cycle phases** — a best-effort import of `daily_cycle_phases` for Cycle Insights, where the ring provides it.
 
-Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's. Periods you dismissed in the Oura app (Oura marks them as `rest`) and periods you deleted are not imported: they are not sleep. Before v1.42.4 they were stored with their heart rate, HRV and breathing rate and added an extra session to the day; the first sync after the update removes those rows. Daily totals are stored at noon of their day in your own time zone, so they land on the right day wherever you live (since v1.39.3; see [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
+Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's. Periods you dismissed in the Oura app (Oura marks them as `rest`) and periods you deleted are not imported: they are not sleep. Daily totals are stored at noon of their day in your own time zone, so they land on the right day wherever you live (see [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
+
+After connecting, HealthLog imports the account's whole history in the background, a slice at a time, starting with the newest days. A slice that stops (a rate limit, a failed window) is picked up where it left off.
 
 ## OAuth scopes
 
 HealthLog requests:
 
 ```
-daily personal spo2 heart_health
+daily spo2 heart_health stress workout heartrate personal
 ```
 
-`daily` covers sleep, readiness and activity; `personal` is the profile information used to anchor the sync. `spo2` covers the daily blood-oxygen average, and `heart_health` covers VO2 max, cardiovascular age and resilience. All four are read-only.
+`daily` covers sleep, readiness and activity; `personal` is the profile information used to anchor the sync. `spo2` covers the daily blood-oxygen average, `heart_health` covers VO₂ max and cardiovascular age, `stress` covers resilience, `workout` the workouts and `heartrate` the heart rate through the day. All are read-only. Cycle phases are read when Oura allows it, without a scope of their own.
 
-Oura's current sign-in enforces these per data type: a grant without `spo2` or `heart_health` is refused on exactly those types while everything else syncs. HealthLog asks for `spo2` and `heart_health` since v1.42.3.
+Oura enforces these per data type: a grant without one of them is refused on exactly those types while everything else syncs.
 
 ### Existing connections: reconnect once
 
-A connection made before v1.42.3 holds a grant without the two new scopes. HealthLog notices when Oura refuses only those data types, keeps syncing everything else and does not count it as a broken connection. The Oura card in **Settings → Integrations** then shows a short hint naming what is missing (SpO2, VO2 max, cardiovascular age, resilience) with a **Reconnect Oura** button. Reconnect once and approve the new permissions; the hint goes away with the new grant.
+A connection made before HealthLog asked for a scope holds a grant without it. HealthLog notices when Oura refuses only those data types, keeps syncing everything else and does not count it as a broken connection. The Oura card in **Settings → Integrations** then shows a short hint naming what is missing (for example resilience, workouts or heart rate) with a **Reconnect Oura** button. Reconnect once and approve the new permissions; the hint goes away with the new grant.
 
-If authorization fails after you approve, or Oura's consent screen does not offer the new permissions, open your application in Oura's developer portal and check that the `spo2` and `heart_health` scopes are enabled for it, then connect again.
+If authorization fails after you approve, or Oura's consent screen does not offer the new permissions, open your application in Oura's developer portal and check that every scope above is enabled for it, then connect again.
 
 ## 1. Register an Oura developer app
 
@@ -62,12 +66,12 @@ OURA_REDIRECT_URI="https://your-instance.example.com/api/oura/callback"
 ## 3. Connect from Settings
 
 1. Sign in as the target user and open **Settings → Integrations → Oura**.
-2. Click **Connect Oura** and grant the requested scopes (`daily`, `personal`, `spo2`, `heart_health`).
+2. Click **Connect Oura** and grant the requested scopes.
 3. Oura redirects back to `/api/oura/callback`; HealthLog exchanges the code, stores the token encrypted, and runs an initial sync.
 
 ### Which token endpoint HealthLog uses
 
-Oura moved its sign-in to a new authorization server. Apps created in Oura's current developer portal get their codes from that server, and the older documented token endpoint refuses them. Since v1.42.2 HealthLog exchanges every code at the current endpoint (`moi.ouraring.com/oauth/v2/ext/oauth-token`) and never sends a code from the new server to the old endpoint, since a code works only once. Refreshing a token falls back to the older endpoint (`api.ouraring.com/oauth/token`) once, for apps that still live there. The callback also checks the `iss` parameter Oura sends ([RFC 9207](https://datatracker.ietf.org/doc/html/rfc9207)) and stops the connection when it does not name one of Oura's own servers.
+Oura moved its sign-in to a new authorization server. Apps created in Oura's current developer portal get their codes from that server, and the older documented token endpoint refuses them. HealthLog exchanges every code at the current endpoint (`moi.ouraring.com/oauth/v2/ext/oauth-token`) and never sends a code from the new server to the old endpoint, since a code works only once. Refreshing a token falls back to the older endpoint (`api.ouraring.com/oauth/token`) once, for apps that still live there. The callback also checks the `iss` parameter Oura sends ([RFC 9207](https://datatracker.ietf.org/doc/html/rfc9207)) and stops the connection when it does not name one of Oura's own servers.
 
 Nothing changes in your setup: the redirect URI and the credentials stay the same.
 
@@ -83,11 +87,11 @@ The hypnogram comes from the `sleep` detail collection. A night that only produc
 
 ### Connecting fails right after you approve access
 
-Before v1.42.2, an app registered in Oura's current developer portal could not finish connecting: Oura answered the code exchange with `400 invalid_request`. Update to v1.42.2 or later and connect again. If the integration card says the sign-in answer did not come from Oura's own authorization server, start the connection again; that message means the callback named an issuer HealthLog does not accept.
+If the integration card says the sign-in answer did not come from Oura's own authorization server, start the connection again; that message means the callback named an issuer HealthLog does not accept.
 
-### SpO2, VO2 max, cardiovascular age or resilience are missing
+### SpO2, VO2 max, cardiovascular age, resilience, workouts or heart rate are missing
 
-The grant does not cover the `spo2` or `heart_health` scope. Reconnect Oura once from the integration card (see [Existing connections: reconnect once](#existing-connections-reconnect-once)). If the authorization then fails, enable both scopes for your application in Oura's developer portal and try again.
+The grant does not cover the matching scope. Reconnect Oura once from the integration card (see [Existing connections: reconnect once](#existing-connections-reconnect-once)). If the authorization then fails, enable the scopes for your application in Oura's developer portal and try again.
 
 ### Callback URI mismatch
 
