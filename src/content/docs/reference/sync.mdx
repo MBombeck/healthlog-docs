@@ -12,7 +12,7 @@ store. A native client (the [iOS app](/ios/ios-app/)) does hold a local copy,
 and this page is the contract it follows to keep that copy in step with the
 server. The wire shapes here are served by `/api/sync/state` and
 `/api/sync/changes`; the full envelopes are in the
-[OpenAPI spec](/reference/api-overview/). Authentication is the bearer-token flow from
+[OpenAPI spec](/reference/api-endpoints/#the-openapi-spec). Authentication is the bearer-token flow from
 [Native API clients](/reference/native-clients/).
 
 <img src={syncFlow.src} alt="Offline sync flow: a client does a one-time full backfill through the list and batch endpoints, then stays current by calling GET /api/sync/state and draining GET /api/sync/changes page by page with an opaque cursor; each page carries tombstones applied before upserts; a cursor older than the retention horizon returns cursorExpired and the client re-initialises with a clean backfill." />
@@ -93,8 +93,9 @@ There are three moving parts, and they do not overlap:
 
 A client sends its local rows up through the existing write endpoints —
 `POST /api/measurements/batch`, `POST /api/mood-entries/bulk`,
-`POST /api/medications/intake/bulk`. These are the same endpoints documented on
-the per-domain API pages; there is no separate "sync push" route.
+`POST /api/medications/intake/bulk`. These are the ordinary write endpoints in
+the [OpenAPI spec](/reference/api-endpoints/#the-openapi-spec); there is no
+separate "sync push" route.
 
 ### Pull — `GET /api/sync/changes`
 
@@ -210,18 +211,16 @@ was offline no longer than its refresh window is always inside the safe range �
 expiry only fires when a device has been away long enough that re-pairing is
 expected anyway.
 
-Since v1.39.4 a second case expires a cursor: the account's record was replaced
+A second case expires a cursor: the account's record was replaced
 wholesale after the cursor was issued, by a backup restore, by the person's
 **Delete all data**, or by the admin's global wipe. A restore writes rows back
 with their original `updatedAt`, behind the cursor's watermarks, and removes
 rows without leaving tombstones, so an incremental catch-up would miss both.
 The server records when that happened (`users.sync_reset_at`), and a cursor
 issued before it answers `cursorExpired: true` like an aged-out one. The
-comparison uses the time the cursor was issued, which new cursors carry inside
-the opaque token, not its watermarks. A cursor from before v1.39.4 carries no
-issue time and counts as issued before any reset, so on an account that was
-restored or wiped since, it expires once. The client handles both cases the
-same way: drop the cursor and the local copy, and backfill.
+comparison uses the time the cursor was issued, which the cursor carries inside
+the opaque token, not its watermarks. The client handles both cases the same
+way: drop the cursor and the local copy, and backfill.
 
 ## Tombstones
 
@@ -288,16 +287,6 @@ The native access token defaults to a 24-hour lifetime; the native refresh
 token lives 60 days (`incrementalWindowDays` on `/api/sync/state`). A device
 offline longer than the refresh window re-pairs with a full backfill — which is
 exactly the window the tombstone-retention horizon is sized to cover.
-
-## Domain readiness
-
-The **server side of every served domain is complete and tested** —
-measurements, mood, intakes and the two cycle domains all carry the sync
-columns, surface tombstones, and serve the delta feed today. The iOS consumer
-adopts **measurements first** and the other
-domains on its own schedule; mood and intakes are server-ready ahead of the
-multi-domain client, so the contract is locked and exercised before that client
-lands. Adoption pacing is an iOS-side roadmap decision, not a server gap.
 
 ## Related
 

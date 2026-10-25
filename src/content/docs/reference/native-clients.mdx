@@ -1,19 +1,13 @@
 ---
 title: "Native API Clients"
-description: "Bearer-token issuance, refresh-token rotation, idempotency keys, and device registration for the iOS app and external automation."
+description: "Bearer-token issuance, sign-in variants, refresh-token rotation, background reads and device registration for the iOS app and external automation."
 sidebar:
   order: 11
 ---
 
 The web PWA uses cookie sessions; native clients (the HealthLog iOS app, n8n, Health Connect bridges, custom shortcuts) authenticate with [bearer tokens](https://datatracker.ietf.org/doc/html/rfc6750) — an opaque credential sent in the `Authorization: Bearer …` header that the server resolves to a user on every request. Both flows share the same handlers, so every protected route accepts either credential.
 
-Since v1.36.0 a request can also name a record other than the caller's own, when the caller holds a [shared-access grant](/guides/shared-access/) on it. A Bearer client names it with an `X-HealthLog-Account: <accountId>` header on each request it wants scoped that way. `POST /api/account/switch` is cookie-only and refuses a Bearer caller with `400` (`meta.errorCode: sharing.switch.wrong_transport`), because a token has to keep meaning one person for as long as it exists and must never accumulate switch state. The header is honoured only on routes that declared themselves safe to serve under a grant, and the grant is re-read from the database on every request, so a revocation lands on the very next call rather than at the next login. See [Shared access](/reference/api-endpoints/#shared-access).
-
-Since v1.37.0 a grant also carries a canonical level and, optionally, a scope. `GET /api/auth/me` reports `level` (`read` / `write` / `manage`), `sections` and `recordKind` on the active record and on every entry in `accountAccess`, alongside the `access` field a v1.36 build already reads. `access` keeps its two members on purpose, so a `MANAGE` grant serialises there as `write` and an older decoder does not meet a case it was compiled without. Branch write affordances on `level` or `canWrite`, never on `access`. Treat `sections: null` as the entire record, which is what every grant written before v1.37.0 carries, and `sections: []` as nothing at all, because an empty array means the stored scope could not be parsed and the server has failed closed. Since v1.38.15 the payload also carries `moduleAccess`, one of `enabled`, `disabled`, `not_granted` or `unavailable` per module beside the `modules` booleans it never contradicts, so a client can say why a section is absent instead of dropping the row without a word. `modules` and `cycleTrackingEnabled` describe the active record and are masked to the sections a scoped grant opens; a Bearer request carries no switch, so for a token caller they are the token owner's own. Since v1.38.16 the payload also carries `onboarding`, the needs-based setup state for the same record: nine ordered steps with a status each, the answers, a completion stamp of its own and the first result the flow offered. A client that renders the flow writes one step at a time to `PATCH /api/onboarding/answers` and confirms with `POST /api/onboarding/complete`; both are own-record only and refuse a switched or scoped context with `403 sharing.not_permitted`.
-
-Bearer traffic is not fenced. The per-request record assertion added for browser sessions in v1.37.0 (`X-HealthLog-Record-Epoch` and `X-HealthLog-Record-Scope`, and the `409` with `meta.errorCode: sharing.session.changed` that reconciles a stale tab) applies to cookie transport only, and `recordSession` is `null` for a token caller. A native client names the record on the request itself and never held a selector that could go stale.
-
-Two families a token cannot reach at all, both structurally rather than by policy: offering a `MANAGE` invitation, and every act on a [managed profile](/guides/managed-profiles/) that mints, changes or ends one. Creating a profile, editing its identity, deleting it and inviting or removing a guardian each resolve a fresh second factor, and that step-up is cookie-only by construction. Route the person to a browser with copy that says why, rather than surfacing the refusal as an error. Accepting a `MANAGE` invitation carries no such restriction.
+A Bearer client acts on its owner's own record unless it names another one it holds a [shared-access grant](/guides/shared-access/) on, with an `X-HealthLog-Account: <accountId>` header on each request. Bearer traffic is never fenced, and a token cannot offer a manage grant or change a managed profile, because both need a fresh second factor in a browser; send the person there with copy that says why. The wire rules, including the levels `GET /api/auth/me` reports, are under [Shared access](/reference/api-endpoints/#shared-access).
 
 ## Token Issuance
 
@@ -26,6 +20,12 @@ A request opts in by sending **either**:
 
 Automation (n8n, a Health Connect bridge, a shortcut) sends the `X-Client-Type: native` header; no other `User-Agent` counts. Without one of those signals you get only the session cookie, as a browser does.
 
+When the account has a second factor, sign-in answers `meta.mfaRequired` with an opaque `mfaTicket` instead of tokens. Complete it at `POST /api/auth/mfa/verify` (a TOTP or recovery code) or `POST /api/auth/mfa/webauthn/verify` (a security key, with options from `/api/auth/mfa/webauthn/verify/options`); the answer is the same native bundle.
+
+### Sign-in through the web page
+
+The app can also sign in on the instance's own web login page, which gives a self-hosted domain working password autofill and passkeys. It opens `GET /api/auth/native/login?code_challenge=<S256>` in a system browser sheet; after the person signs in there, the browser returns to `healthlog://login-callback` with a one-time `code`, and the app exchanges it with its PKCE `codeVerifier` at `POST /api/auth/native/token` for the standard native bundle. Only a session created inside that sheet can complete the flow, and the tokens never ride a URL.
+
 ### Single sign-on
 
 An instance with OIDC configured offers a third route to the same bundle. The
@@ -35,7 +35,7 @@ system browser sheet; the callback returns to the compiled-in scheme
 when the account carries a second factor), and the app exchanges that code at
 `POST /api/auth/oidc/native/token` for the standard native bundle. The
 `redirect_uri` is a compile-time constant rather than a parameter, and the
-token pair never rides a URL — only the opaque code does. An instance running
+token pair never rides a URL; only the opaque code does. An instance running
 `OIDC_ONLY=true` offers this flow alone.
 
 ### Response shape (native)
@@ -68,47 +68,15 @@ curl -s -X POST https://your-instance.example.com/api/auth/refresh \
 
 **Reuse-detection**: presenting the same refresh token a second time revokes every refresh token for that device. Only a token issued before per-device families existed, or one presented with a device id that does not match the stored row, escalates to a user-wide revoke. The affected device gets a forced re-login; the attacker holding a stolen token is now locked out. Send `revoke: true` on a normal logout to mark both the refresh row and its paired access token as revoked.
 
-A stable `errorCode` on the refresh response lets a client tell a **revoked family** (the device must re-authenticate) apart from a **transient failure** (retry is safe), so the app doesn't bounce a user to login on a network blip. The full set of codes the server can answer with, on every route, is enumerated in the `ErrorEnvelope` description of the OpenAPI document since v1.38.16; generate the client's enum from there rather than from the codes a test run happened to trigger.
+A stable `errorCode` on the refresh response lets a client tell a **revoked family** (the device must re-authenticate) apart from a **transient failure** (retry is safe), so the app doesn't bounce a user to login on a network blip; the codes are listed in [the sync contract](/reference/sync/#authentication-and-token-lifetimes). Every code the server can answer with is enumerated in the `ErrorEnvelope` description of the OpenAPI document; generate the client's enum from there rather than from the codes a test run happened to trigger.
 
-## Offline Sync Delta Feed
+## Sync, idempotency and rate limits
 
-The full sync contract — domains, identity keys, the opaque cursor, tombstones, and per-domain conflict rules — lives on the dedicated [Offline sync contract](/reference/sync/) page. This section is the bearer-client quick reference.
-
-After a client has done its first full backfill, it stays current with an incremental delta feed instead of re-pulling everything.
-
-```
-GET /api/sync/state     — handshake: "should I sync?" + the sync window / retention
-GET /api/sync/changes   — paginated measurement deltas since the last cursor
-```
-
-`GET /api/sync/changes` pages over an **opaque keyset cursor** — echo it back, never parse it. Each page carries `upserts` (live rows) and `tombstones` (soft-deleted rows, keyed on `externalId`). **Apply tombstones before upserts within a page.** A `cursorExpired: true` response means the cursor has aged out past the retention window, or (since v1.39.4) that the account was restored from a backup or wiped after the cursor was issued. Either way, re-initialise with a clean backfill. Default page size is 200, hard cap 500. The delta feed is a catch-up mechanism, never a replacement for the first-pair backfill.
-
-```bash
-curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limit=200" \
-  -H "Authorization: Bearer hlk_..."
-```
-
-The measurement delete routes **soft-delete** (write a tombstone) rather than hard-deleting, so a deletion on one device propagates to the others as a tombstone instead of silently re-syncing. Tombstones are pruned past a retention window keyed to the refresh-token lifetime. A single-resource GET or PUT against a tombstoned row returns as deleted. The full response envelopes are in the [OpenAPI spec](/reference/api-endpoints/).
-
-## Idempotency-Key Header
-
-An [idempotent](https://en.wikipedia.org/wiki/Idempotence) request can be safely retried without changing the result beyond the first attempt — essential for a mobile client on a flaky network that can't tell a lost request from a lost response. HealthLog implements the [`Idempotency-Key` HTTP header](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header) convention (an IETF draft, still the canonical reference for the pattern).
-
-A route that declares idempotency honours an `Idempotency-Key: <8-128 chars>` header, and the OpenAPI document names the header on each one; the method alone does not decide it. Measurement, mood, lab, cycle, document and medication writes are covered, including adding a medication, logging a side effect, registering a supply container, logging a GLP-1 titration step and adding a custom cycle symptom, which an offline queue replays after a lost response. Re-sending the same key with the same request within 24 hours replays the original response with `X-Idempotent-Replay: true`. Since v1.40.0 "the same request" means the same method, path and body (JSON compared with sorted keys, a multipart boundary ignored); a different body under the same key is executed and saved. Use one key per write: two halves of one reading sent as two requests need two keys.
-
-```bash
-curl -X POST https://your-instance.example.com/api/measurements \
-  -H "Authorization: Bearer hlk_..." \
-  -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
-  -H "Content-Type: application/json" \
-  -d '{"type": "WEIGHT", "value": 78.4, "takenAt": "2026-05-09T07:15:00Z"}'
-```
-
-**Not cached**: 401, 403, 408, 429, any 5xx, and any response body containing a token prefix (`hlk_`, `hlr_`, `sk-`, `sk-ant-`). Validation 4xx (e.g. 422) **is** cached, so a broken retry doesn't re-hit the database. A `429` from the rate limiter carries `Retry-After` in whole seconds plus the `X-RateLimit-Limit`, `-Remaining` and `-Reset` triple, so an offline queue holds the request for that long instead of re-sending it into the same wall. A `429` without them came from a budget or from an upstream provider and has no window to wait out. A `429` carrying `meta.errorCode: record_write.rate_limited` is the shared per-account bucket every authenticated write draws on (300 a minute, keyed on the acting account), not a route of its own: an offline queue that replays one row at a time should drain slower rather than retry the one request.
+A native client keeps its local copy current through the delta feed in the [offline sync contract](/reference/sync/): domains, identity keys, the opaque cursor, tombstones and conflict rules are there. Retries are made safe by the `Idempotency-Key` header, and a `429` says how long to wait; both are described once, in [Idempotency](/reference/api-overview/#idempotency) and [Rate limits](/reference/api-overview/#rate-limits). In short: one key per write, and an offline queue that meets `record_write.rate_limited` drains slower instead of retrying the same request.
 
 ## Background document reads
 
-Since v1.40.0 `POST /api/documents/inbound/{id}/index`, `/summary`, `/suggest`
+`POST /api/documents/inbound/{id}/index`, `/summary`, `/suggest`
 and `/extract` accept a `Prefer: respond-async` header. With it they answer
 `202` with `{ runId, status: "QUEUED", pollAfterMs }`, a `Location` header
 pointing at `/api/ai-runs/{id}` and `Preference-Applied: respond-async`.
@@ -120,66 +88,16 @@ have answered with, so one error table covers both paths. It may carry
 account's run, it is a `404` `aiRuns.notFound`. Codes only a run produces are
 `aiRuns.workerUnavailable`, `aiRuns.timedOut` and `aiRuns.failed`.
 
-Without the header the four routes answer exactly as before.
-`POST /api/labs/ocr/extract` always answers `202` with a run id since v1.40.0.
+Without the header the four routes answer synchronously.
+`POST /api/labs/ocr/extract` always answers `202` with a run id.
 
 ## When the server cannot open its data
 
-Since v1.40.0 a server whose encryption key does not match its data answers
+A server whose encryption key does not match its data answers
 `503` with `meta.errorCode` `encryption.key_mismatch` on every route except
 `/api/health` and `/api/version`. Show it as a server configuration problem the
 operator has to fix, not as offline, and do not retry in a loop. See
 [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check).
-
-## Changes in v1.41.0
-
-Everything here is additive; a client that ignores it keeps working.
-
-- **Thinking depth.** `GET /api/auth/me` carries `coachReasoning` with the
-  resolved level, the person's preference, the highest level to offer and
-  whether **Off** is really off on the active provider.
-  `PUT /api/auth/me/coach-prefs` accepts `reasoning` (`off`, `low`, `medium`,
-  `high`). Offer the levels up to `maxLevel`, label the lowest "Minimal" when
-  `offIsReal` is `false`, and lock the field when `maxLevel` is `off`. See
-  [Coach reasoning, trail and memory](/reference/api-endpoints/#coach-reasoning-trail-and-memory-since-v1410).
-- **The Coach stream** adds `activity`, `memoryNote` and `planProposal`
-  frames, interim `result` frames while the turn runs, and `stop` and
-  `withheldResults` on `done`. A client that does not know a frame type
-  ignores it, as before. Answer a memory note with `memoryDecision` and a plan
-  with `planDecision` on the next chat request.
-- **The trail.** `GET /api/insights/chat/{id}/messages/{messageId}/trail`
-  serves the text of an answer's trail; fetch it when the person opens it.
-- **Memory.** The facts list carries each fact's `source`, `sourceMessageId`
-  and `lastUsedAt`; `POST /api/insights/coach/facts` with a message id saves
-  one of the person's own messages, and `PATCH /api/insights/coach/facts/{id}`
-  edits a fact's wording.
-- **The usual-range line.** `GET /api/insights/coach-read` adds `basis`,
-  `latestDate` and `latestIsToday` to the baseline. Name the date when
-  `latestIsToday` is `false`, and say the range is the one for this time of day
-  when `basis` is `sameHours`.
-
-## Changes in v1.40.1 and v1.40.2
-
-Everything here is additive; a client that ignores it keeps working.
-
-- **Pulse averages.** Since v1.40.1 a day's pulse is the mean of its hours'
-  means, and a week, month or year the mean of its days, wherever the server
-  returns a pulse average or a daily pulse value. Count, minimum and maximum
-  still cover every reading. See [A day of pulse](/insights/intraday-pulse/#a-day-of-pulse).
-- **Blood pressure series.** Since v1.40.1 the series takes systolic and
-  diastolic from one source per day, the one the source priority ranks first.
-- **The daily digest** (`GET /api/daily/digest`) gains `lead`, `today[]`,
-  `restMode`, `score.steadyWeeks` and `score.steadyAtLeast` in v1.40.2, and its
-  push `line` no longer carries vital values. `label` and `value` of a fact are
-  localised on the server; render them, do not compose your own. See
-  [Today overview in the daily digest](/reference/api-endpoints/#today-overview-in-the-daily-digest-since-v1402).
-- **The Coach lookback.** `defaultWindow` gains `lastYear` and is a limit on
-  every Coach read since v1.40.2. See
-  [Coach lookback](/reference/api-endpoints/#coach-lookback-since-v1402).
-- **Message feedback.** The web no longer shows the thumbs, but
-  `POST /api/insights/chat/messages/{id}/feedback` stays for the app.
-- **Documents.** `GET /api/documents/inbound/usage` gains `linkedProcedures`;
-  pass an entry's `encounterId` to the list's `encounterId` filter.
 
 ## Device Registration
 
@@ -196,10 +114,10 @@ If the same APNs / FCM token is already registered to a **different** account, t
 
 ## Token Storage (Server-Side)
 
-Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [ingest token](/guides/ingest-token/) verification. Since v1.30.33 web session cookies use the same storage shape — a random secret in the cookie, only its HMAC in the database.
+Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256** hashes (keyed by `API_TOKEN_HMAC_KEY`), not plain SHA-256. An HMAC is a keyed hash: without the secret key an attacker who exfiltrates the database cannot precompute the hash of a guessed token, which defeats rainbow-table lookups. The same mechanism is reused for [ingest token](/guides/ingest-token/) verification. Web session cookies use the same storage shape: a random secret in the cookie, only its HMAC in the database.
 
 :::tip[Long-lived tokens are minted per medication]
-For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens — same auth header, no refresh dance. The token is scoped to intake for that medication, and since v1.30.17 every route that does not declare that scope refuses it.
+For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens — same auth header, no refresh dance. The token is scoped to intake for that medication, and every route that does not declare that scope refuses it.
 
-The generic **create API token** button under **Settings → API & tokens** is gone as of v1.30.17: the token it produced never worked for the medication intake it advertised, while reaching everything else. That page still lists and revokes existing tokens.
+**Settings → API & tokens** has no generic token button; it lists and revokes the tokens the account holds and mints the narrow [measurement, document and workout tokens](/guides/ingest-token/).
 :::
