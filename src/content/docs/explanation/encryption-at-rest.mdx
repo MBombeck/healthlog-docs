@@ -130,8 +130,11 @@ restore of this server needs:
 - `API_TOKEN_HMAC_KEY`, without which every session, token and share link ends
   (no data is lost).
 
-Each key is shown by id and a fingerprint, the first 12 hex characters of
-SHA-256 over the key, never the key itself. A key the kit needs that this
+Each key is shown by id and a fingerprint, never the key itself. For the
+encryption and off-host keys that is the first 12 hex characters of SHA-256
+over the key. `API_TOKEN_HMAC_KEY` may be a phrase, so its fingerprint, here
+and in the database dump manifests, uses scrypt, and the phrase cannot be
+guessed from it. A key the kit needs that this
 server does not hold shows "Not on this server". The kit also says where the
 keys are set on your platform:
 
