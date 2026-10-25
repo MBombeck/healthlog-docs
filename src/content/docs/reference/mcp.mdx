@@ -85,6 +85,20 @@ mode) page with an **opaque cursor**: when more results remain the response
 carries `nextCursor`; pass it back as `cursor` to get the next page. Treat the
 cursor as a black box — do not construct one.
 
+A tool that stops at a fixed ceiling (`search`, `get_visits`,
+`get_ecg_recordings`, `get_preventive_care`) adds `truncated: true` and the
+`limit` it applied when more records exist. The list is then partial; its last
+entry is not the oldest one there is.
+
+### Transport and failures
+
+`/mcp` takes `POST` only. The server is stateless and answers every call as
+one JSON response, so `GET` and `DELETE` answer `405` with `Allow: POST`.
+
+A tool that fails returns an MCP error result with the code `mcp.tool.failed`,
+a fixed message and the request id, never the underlying exception. The
+operator finds the failure in the logs by that id.
+
 ### Structured output
 
 `search`, `fetch`, the multi-result reads, and the write tools declare an

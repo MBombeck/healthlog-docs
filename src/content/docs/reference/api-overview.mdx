@@ -300,6 +300,16 @@ exchange or a password confirmation, may still answer `401` with prose and no
 code. A missing `meta.errorCode` there means the route refused the credential it
 was handed, not that the response is malformed.
 
+## Retired and deprecated routes
+
+A route that was published and then removed answers every method with `410`
+and `meta.errorCode: route.retired`, plus `meta.removedIn` (the release) and
+`meta.replacedBy` (the path to use instead, or `null`). Stop calling it; a
+retry will not help. A deprecated route still answers, and says so with a
+`Deprecation` header, a `Sunset` header with the first date it may stop
+answering, and a `Link` to its successor. The OpenAPI document marks both
+kinds.
+
 ## Example
 
 ```bash
