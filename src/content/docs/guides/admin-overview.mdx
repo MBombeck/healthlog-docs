@@ -260,7 +260,7 @@ The audit log with an action filter, a date-range preset (24 hours, 7 days,
 30 days, all), page size, CSV download, and IP and location columns per row.
 Location comes from the geo resolver described in
 [Offline geolocation](/self-hosting/geolite2/). Client IP resolution behind a
-proxy honours `TRUST_PROXY_HOPS` and `TRUST_CF_CONNECTING_IP`; see
+proxy honours `TRUST_PROXY_HOPS`, `TRUSTED_PROXY_CIDRS` and `TRUST_CF_CONNECTING_IP`; see
 [Reverse proxy](/guides/reverse-proxy/).
 
 ## App logs

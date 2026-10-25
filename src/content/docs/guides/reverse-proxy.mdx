@@ -22,6 +22,8 @@ terminates trusted HTTPS on the tailnet with no extra container.
 | `NEXT_PUBLIC_APP_URL` | Every public absolute URL the UI emits | Must match the hostname the proxy serves |
 | `APP_URL` | Server-side absolute URLs from background jobs, and the [origin a browser write may come from](#cross-site-writes) | Mirror of the above; both must match |
 | `TRUST_PROXY_HOPS` | `X-Forwarded-For` chain trust | Defaults to `1` |
+| `TRUSTED_PROXY_CIDRS` | Which connections may report a client address | Unset: any private address; see [below](#trusted_proxy_cidrs) |
+| `TRUST_CF_CONNECTING_IP` | Reading the visitor address Cloudflare sends | Off unless `1`; see [below](#trust_cf_connecting_ip) |
 
 A mismatch between `NEXT_PUBLIC_APP_URL` and the address you actually use shows
 up first as OAuth callbacks landing on the wrong host; see
@@ -43,37 +45,77 @@ per request to defeat IP-based rate limits.
 A wrong count logs a one-shot stderr warning and collapses every anonymous
 caller into one shared rate-limit bucket. An empty value, which is what the
 shipped compose file passes when you leave the variable unset, means the
-default of `1`.
+default of `1`. A value that is not a non-negative integer resolves no client
+address at all (earlier releases failed every request on it) and is named in
+the boot log until you fix it.
 
 `X-Real-IP` gets the same trust as `X-Forwarded-For`. It is read
-only when `TRUST_PROXY_HOPS` is `1` or more and the request carries no
-`X-Forwarded-For`, which covers a proxy that sets only `X-Real-IP`. With `0`
-neither header is believed, because without a proxy in front both come from
-the caller, and the address the connection came from is used. If your proxy
-sets only `X-Real-IP` and you had set `0` for it, set `1` instead.
+only when `TRUST_PROXY_HOPS` is exactly `1` and the request carries no
+`X-Forwarded-For`, which covers a single proxy that sets only `X-Real-IP`.
+With `0` neither header is believed, because without a proxy in front both
+come from the caller, and the address the connection came from is used. With
+`2` or more the count describes an `X-Forwarded-For` chain, so have your
+proxies send one. If your proxy sets only `X-Real-IP` and you had set `0` for
+it, set `1` instead.
 
-### Only a proxy on a private network is believed
+### Which connections may report the client address
 
-Forwarding headers are read only from a connection that could come from a
-proxy: loopback, a private or unique-local network, link-local, or CGNAT (a
-Tailscale address). A request that reaches HealthLog straight from a public
-address carries headers its sender wrote, so HealthLog ignores them, uses the
-connection's own address, and logs once that it did. A proxy on the same host
-or Docker network connects from a private address, so the setups on this page
-need nothing. A proxy that reaches HealthLog over a public address has to move
-onto a private network with it, such as a VPN or tailnet.
+Forwarding headers are read only from a connection that could be your proxy.
+A request whose sender may not forward is its own client: HealthLog ignores
+its headers, uses the connection's own address, and logs once that it did.
 
-The log line also appears when the published port is open to the internet
-beside the proxy. Bind it to `127.0.0.1` or the proxy's network then, which is
-the safer setup anyway: some Docker setups (rootless Docker, Docker Desktop,
-IPv6 through the userland proxy) hand the app a private gateway address for
-every connection, and a direct caller then looks like a proxy.
+- **`TRUSTED_PROXY_CIDRS` unset** (the default): any connection from a
+  loopback, private, CGNAT (Tailscale), unique-local or link-local address may
+  forward. A proxy on the same host or Docker network connects from such an
+  address, so the setups on this page work without it.
+- **`TRUSTED_PROXY_CIDRS` set**: only a connection from inside those ranges may
+  forward. Every other connection is its own client, private ones included.
+
+At boot the app logs one `[proxy-trust]` line naming the rule in force and the
+hop count. A value that is not a CIDR is logged as an error, and until it is
+fixed no connection may report a client address.
+
+### `TRUSTED_PROXY_CIDRS`
+
+Comma-separated CIDRs, IPv4 or IPv6, that your reverse proxy connects from; a
+bare address counts as one host.
+
+| Where the proxy runs | `TRUSTED_PROXY_CIDRS` |
+| --- | --- |
+| Same host, proxying to `127.0.0.1:3000` (bare Nginx, Caddy) | `127.0.0.1/32,::1/128` |
+| A container on a Docker network with HealthLog (Traefik, NPM, Coolify) | that network's subnet, e.g. `172.18.0.0/16` (`docker network inspect <network>`, under `IPAM`) |
+| Another machine that connects from a public address | that machine's address, e.g. `198.51.100.7/32` |
+| No proxy, or `tailscale serve` only | leave it unset |
+
+Set it in two cases:
+
+- **Docker Desktop, OrbStack or `docker-proxy`.** These forward every
+  connection to a published port (such as `3000:3000`) from the Docker
+  network's gateway, a private address. Without the list, anyone who reaches
+  the port directly passes the private-address check and can choose the
+  address every per-IP rate limit, the audit log and the sign-in notices see.
+  Naming your proxy closes that.
+- **A proxy that reaches HealthLog from a public address.** Unlisted, it is
+  not believed: every request through it resolves to the proxy's own address,
+  so all users share one sign-in rate limit and one mistyped password can hold
+  sign-in back for everyone. Releases before 1.46 believed any peer, so this
+  shows up after the upgrade. List the proxy's address (or put it on a private
+  network with HealthLog) and restart.
+
+The log line about a public address sending forwarding headers also appears
+when the published port is open to the internet beside the proxy. Bind it to
+`127.0.0.1` or the proxy's network then.
+
+### `TRUST_CF_CONNECTING_IP`
 
 `TRUST_CF_CONNECTING_IP=1` takes the client address from Cloudflare's
-`CF-Connecting-IP` header and skips this check, so set it only when the origin
-accepts connections from Cloudflare alone (a Cloudflare Tunnel, or a firewall
-limited to Cloudflare's address ranges). Otherwise anyone who reaches the origin
-can name their own address.
+`CF-Connecting-IP` header before any of the checks above: from every
+connection, whatever `TRUSTED_PROXY_CIDRS` and `TRUST_PROXY_HOPS` say. Any
+client can send that header, so the flag is safe only when the origin accepts
+connections from Cloudflare alone: a Cloudflare Tunnel with no published port,
+or a firewall limited to [Cloudflare's address ranges](https://www.cloudflare.com/ips/).
+Otherwise anyone who reaches the origin can name their own address, a new one
+per request. Without Cloudflare in front, leave it unset.
 
 ### Cross-site writes
 
@@ -233,8 +275,8 @@ client IP matching your source address. A `null` IP or a single `unknown`
 rate-limit bucket means `TRUST_PROXY_HOPS` is higher than the real hop count, or
 the proxy is dropping `X-Forwarded-For`. A log line saying that "a connection
 from a public address sent X-Forwarded-For or X-Real-IP" means the request did
-not come through a proxy on a private network; see
-[Only a proxy on a private network is believed](#only-a-proxy-on-a-private-network-is-believed).
+not come through a proxy HealthLog may believe; see
+[Which connections may report the client address](#which-connections-may-report-the-client-address).
 
 ## Plain HTTP on a LAN
 
