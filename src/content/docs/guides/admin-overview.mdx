@@ -22,8 +22,8 @@ accounts with the admin role, and the first account registered on a fresh
 instance gets that role.
 
 A few admin actions also require a fresh second factor (confirmed within the
-last five minutes); those are marked "step-up" below. Since v1.39.3 the actions
-that move or replace data ask the admin to confirm it is them unless they
+last five minutes); those are marked "step-up" below. The actions that move or
+replace data ask the admin to confirm it is them unless they
 signed in within the last five minutes: downloading, uploading or restoring a
 backup, wiping all data, and setting another account's password. An admin with
 a second factor confirms with it; one without uses the password or a passkey.
@@ -31,23 +31,33 @@ See [Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you).
 
 ## System status
 
-Host metrics chart and a status card: database, start time, user and
-measurement counts, active tokens and sessions, worker state, last reminder
+Host metrics chart and a status card: database, heap limit, start time, user
+and measurement counts, active tokens and sessions, worker state, last reminder
 check, and the state of Umami, GlitchTip, Web Push, and the offline geo
 databases. Each row carries its state on the indicator beside it rather than in
 the colour of the text, so the wording stays readable in every state, including
 the worker-absent one a split deployment shows on the page served from the web
-process. A separate card lists failing background jobs, but only when a
-queue has actually given up. Since v1.39.1 a job that ran out of time says what
-its limit was and that either the run was too slow for it or the app restarted
-while it ran, instead of a bare "job timed out"; a restart shows in the
-container's restart count and log. The geo row reflects `GEOLITE2_DIR`,
-`MAXMIND_LICENSE_KEY`, `IP_GEO_LOOKUP_URL` and `IP_GEO_LOOKUP_DISABLED`. Since
-v1.42.0 it warns only when no database is mounted and the default online
-provider is in use; a provider you named in `IP_GEO_LOOKUP_URL` shows green. See
+process.
+
+The **Heap limit** row shows how much memory the app may use. It turns amber
+when the container's memory limit is below the supported floor of 1536 MB
+("Container 1024 MB, below the supported floor of 1536 MB. Set
+APP_MEMORY_LIMIT=1536m in .env"), or when the heap is low for another reason.
+Raise `APP_MEMORY_LIMIT` and recreate the container; never lower it below the
+floor. See
+[Requirements](/getting-started/self-host-in-10-minutes/#requirements).
+
+A separate card lists failing background jobs, but only when a queue has
+actually given up. A job that ran out of time says what its limit was and that
+either the run was too slow for it or the app restarted while it ran; a restart
+shows in the container's restart count and log. The geo row reflects
+`GEOLITE2_DIR`, `MAXMIND_LICENSE_KEY`, `IP_GEO_LOOKUP_URL` and
+`IP_GEO_LOOKUP_DISABLED`. It warns only when no database is mounted and the
+default online provider is in use; a provider you named in
+`IP_GEO_LOOKUP_URL` shows green. See
 [Offline geolocation](/self-hosting/geolite2/).
 
-Since v1.43.0 two more cards sit on this page.
+Two more cards sit on this page.
 
 **Support report** creates a text summary of the instance for a bug report,
 with **Copy** and **Download**. It is built when you press the button and
@@ -92,8 +102,10 @@ tokens users hold.
 
 ## About
 
-The same version card users see under Settings, About this app: running version, an
-update check, and links to the repository, changelog, docs and credits.
+The same version card users see under Settings, About this app: running
+version, an update check, and links to the repository, changelog, docs and
+credits.
+
 ## Integrations
 
 Three cards. Umami analytics (enable, script URL, website id, test action),
@@ -111,14 +123,12 @@ no default target: reports leave the host only after somebody typed a DSN
 here.
 
 Page views go to Umami through the HealthLog server, so the browser only talks
-to this host. Since v1.40.1 that also works with an Umami whose tracker was
-built with a custom collect endpoint: the server reads the endpoint from the
-tracker script and forwards the events to the configured Umami host. Before,
-those events ended in errors on the HealthLog server. After updating, reload
-open tabs once so they load the new tracker.
+to this host. That also works with an Umami whose tracker was built with a
+custom collect endpoint: the server reads the endpoint from the tracker script
+and forwards the events to the configured Umami host.
 
 The users' own connections (Withings, Oura, Apple Health and the rest) are
-not configured here. Since v1.42.4 a watchdog tells every admin when one of
+not configured here. A watchdog tells every admin when one of
 them goes quiet or keeps failing; see
 [The watchdog](/guides/integrations/#the-watchdog-for-the-instance-admin).
 
@@ -130,14 +140,16 @@ action here; users mint their own tokens under Settings, API & tokens.
 
 ## Coach
 
-Six cards for everything AI-related at the instance level. The **Assistant**
-card holds the switches, the server-side provider key sits at the end of every
-user's chain and needs each user's consent before it is used (its base URL is
-HTTPS-only with an allowlist you can extend through
-`ADMIN_AI_BASE_URL_ALLOWLIST`), then the central Codex connection (device-code
-flow, off until connected), provider health, and the two feedback-quality
-tables for Coach and Insights, filled by a daily aggregation job. User-side
-setup is in [AI providers](/guides/ai-providers/).
+Seven cards for everything AI-related at the instance level: the
+**Assistant** card, **AI usage levels**, the server key, the central Codex
+connection, provider health, and the two feedback-quality tables. The server
+key drives OpenAI, or Anthropic when its base URL is Anthropic's; it sits at
+the end of every user's chain and needs each user's consent before it is used
+(its base URL is HTTPS-only with an allowlist you can extend through
+`ADMIN_AI_BASE_URL_ALLOWLIST`). The central Codex connection uses the
+device-code flow and is off until connected. Provider health shows, per
+provider type, how many chains are failing and which providers are paused and
+until when. User-side setup is in [AI providers](/guides/ai-providers/).
 
 The Assistant card has a master switch and four switches under it:
 
@@ -149,7 +161,7 @@ The Assistant card has a master switch and four switches under it:
 | **Status notes** | The short notes a model writes per reading and metric, workout notes and reaction lines. The largest share of token use. |
 | **Reading documents** | AI reading of stored documents, lab report scans, and turning a typed medication description into a schedule. The largest share of data leaving the server. |
 
-Since v1.39.0 a switch stops the work it covers, not just the text. With a
+A switch stops the work it covers, not just the text. With a
 switch off, nothing it covers is sent to a model, including background work
 that was queued before you flipped it, and text a model wrote earlier is not
 shown. Nothing is deleted: turn the switch back on and the stored notes come
@@ -157,16 +169,13 @@ back. Readings, charts, scores and correlations load the same whatever these
 switches say. If the server cannot read the switches for a moment, every AI
 feature stays off for that request rather than every one turning on.
 
-Two switches changed in v1.39.0. **Reading documents** is new and on by
-default; before it, only the master switch covered the vault, lab scans and
-medication text. The **Correlations** switch is gone, because correlations are
-statistics that no model writes, so they now always load. **Status notes** was
-called **Status cards**, and the card itself was called **Assistant Surfaces**.
+**Reading documents** is on by default. Correlations have no switch: they are
+statistics that no model writes, so they always load.
 
 With the master switch off, **Test connection** in a user's AI settings says
 AI is off on this server instead of calling the model.
 
-Since v1.43.0 the **AI usage levels** card sets the highest level an account
+The **AI usage levels** card sets the highest level an account
 may choose and the level accounts without a choice run at (both standard by
 default), and the hours between status card refreshes after a sync at
 standard (1 to 48; empty uses `AI_SYNC_REGEN_GAP_HOURS`, else 6). The default
@@ -175,7 +184,7 @@ per level. See [AI usage levels](/guides/ai-providers/#ai-usage-levels).
 
 ### Thinking
 
-Since v1.41.0 the Assistant card also decides whether models may think before
+The Assistant card also decides whether models may think before
 they answer. **Allow deeper thinking** is on by default and covers the Coach,
 the daily briefing and the weekly and monthly summaries. Status notes,
 workout notes, reaction lines, nudges and document reading never think,
@@ -192,11 +201,10 @@ When the model is yours to pay for, through the server's shared key or the
 shared ChatGPT connection, the Coach thinks at **Medium** at most, whatever
 the two controls allow, and an answer gets a smaller budget: 55,000 tokens, 120
 seconds and eight rounds instead of 165,000 tokens, 200 seconds and sixteen on
-a person's own provider (since v1.41.2). The background jobs ask for **Low** on your budget. See
+a person's own provider. The background jobs ask for **Low** on your budget. See
 [Thinking depth](/guides/coach-conversations/#thinking-depth) and
 [AI providers](/guides/ai-providers/#reasoning).
 
-## Module availability
 ## Module availability
 
 One switch per optional module, applied server-wide above each user's own
@@ -208,8 +216,6 @@ page of that module tells them it is not available on this server.
 
 The Coach has one operator switch, the one on the Assistant card. Its row here
 shows that switch's state, cannot be flipped, and links to the Assistant card.
-If you had turned the Coach module off here before v1.39.0, the upgrade carries
-that over to the Coach switch.
 
 ## Reminders
 
@@ -259,7 +265,7 @@ preset (15 minutes, 1 hour, 6 hours, all), refresh, and a detail dialog per
 event. Optional shipping to Loki is configured with `LOKI_USERNAME` and
 `LOKI_PASSWORD`.
 
-Since v1.39.1 long background jobs leave a trace in the app log (the
+Long background jobs leave a trace in the app log (the
 container's output, Loki if configured, and this page when the jobs run in the
 same container as the web app). A job that runs for more than a minute writes `job.finished` naming its
 queue when it ends, and `job.progress` every two minutes while it runs, with
@@ -267,7 +273,7 @@ how far it has got and how much memory the app is using. A job that passes its
 time limit writes a `job.expired` warning. After a restart, the worker writes
 `worker.boot.jobs_cut_off`, naming every job the restart cut off.
 
-Since v1.43.0 the page has an **Error ID** filter. Type the id a person read
+The page has an **Error ID** filter. Type the id a person read
 off an error message, or its first eight characters, and the page finds the
 event behind it. That search reads a second buffer that keeps the last 1,000
 warnings and errors of the process, so ordinary traffic cannot push them out
@@ -282,9 +288,12 @@ restore. A
 backup is a database row, not a file on disk, and the payload never reaches
 the browser except through the download action. Restore asks you to type
 `RESTORE` and replaces rather than merges: every row the account gained after
-the snapshot was taken is removed with the rest of its class. Since v1.39.1
-the restore runs in the background and the page shows its progress, also after
-a reload; one restore per account runs at a time. The upload takes a `.json`
+the snapshot was taken is removed with the rest of its class. The restore runs in
+the background and the page shows its progress, also after a reload; one
+restore per account runs at a time. A restore never runs beside a backup or
+another large job (an import, a nightly pass). While it waits, the page says
+which of the two it waits for and since when; it starts about a minute after
+that job finishes. The upload takes a `.json`
 or `.json.gz` file of up to 512 MB and compresses a plain file in the browser
 first. Beside the typed confirmation sits a **Restore instance settings** checkbox, off by default. Off,
 the restore touches the snapshot owner's data only and leaves registration, the
@@ -299,11 +308,11 @@ off after a restore until re-enabled. Optional off-site copies use
 `BACKUP_S3_SECRET_KEY` and `BACKUP_ENCRYPTION_KEY`. Full procedure in
 [Backups](/guides/backups/).
 
-Below the table, since v1.38.16, **Off-host copies**: one row per account with
+Below the table, **Off-host copies**: one row per account with
 the state of its newest object in your bucket (fresh, due, stale, never, or no
 record yet), the size, and when the nightly run last checked it, stale first.
 It reads the worker's ledger, not the bucket, and says plainly when off-host
-backup is not configured. Since v1.39.3 it also reads the bucket's lifecycle
+backup is not configured. It also reads the bucket's lifecycle
 rule and says when there is none (every nightly copy is then kept forever) or
 when the credential may not read it, and it lists deleted or wiped accounts
 whose copies are still in the bucket, with the bucket's answer when it refused
@@ -318,8 +327,7 @@ to delete them. See
 ## Encryption
 
 Encryption coverage, rotation status with a **Rotate now** trigger, the
-per-column key-id breakdown and, since v1.39.3, **Keys the backups still
-need**: per key id, the stored copies that need it with the oldest date, and
+per-column key-id breakdown and **Keys the backups still need**: per key id, the stored copies that need it with the oldest date, and
 when the last off-host copy that needs it expires under the bucket's lifecycle
 rule. Rotation is behind a step-up gate; a 401 here means you need a fresh
 second factor, or have none enrolled, in which case the rotation script from a
@@ -328,7 +336,7 @@ legacy `ENCRYPTION_KEY`; a key is 64 hex characters or 32 bytes of base64, and
 anything else stops the container at startup. Procedure in
 [Encryption key rotation](/guides/encryption-key-rotation/).
 
-Since v1.40.0 the section opens with **Back up your encryption key**: the
+The section opens with **Back up your encryption key**: the
 active key id, its fingerprint, where the key is set on your platform, an
 optional **Check my copy** that compares a pasted key and discards it, and
 **I have backed up this key**. The status card at the top of the admin page
@@ -340,8 +348,7 @@ admins see a dashboard reminder until the active key is confirmed. See
 
 One action: wipe all data on the instance. It requires typing `DELETE ALL`,
 which the server checks as well, and the response reports a count per table
-that held rows. It is not step-up gated, but since v1.39.3 it asks the admin to
+that held rows. It is not step-up gated, but it asks the admin to
 confirm it is them unless they signed in within the last five minutes. It
 deletes nothing in the off-host bucket: those copies are the way back from a
 wipe pressed by mistake.
-
