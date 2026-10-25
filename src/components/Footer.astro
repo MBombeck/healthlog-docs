@@ -1,0 +1,12 @@
+---
+// Starlight's footer plus the control that reopens the analytics choice
+// (public/analytics-consent.js).
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default><slot /></Default>
+<p class="hl-consent-settings">
+	<button type="button" onclick="window.hlAnalyticsSettings && window.hlAnalyticsSettings()">
+		Analytics settings
+	</button>
+</p>
