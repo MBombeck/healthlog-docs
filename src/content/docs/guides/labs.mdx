@@ -36,8 +36,7 @@ also offered). A result has:
 "Save and add another" keeps the form open for the next line of the report. It
 keeps the biomarker, the sample date and the visit, clears only the value, its
 note and the printed range, and puts the cursor in the value field, so a run of
-readings for one marker is a run of values. Before v1.39.0 the second save could
-answer "Pick a biomarker first." while the picker still showed one.
+readings for one marker is a run of values.
 Every result is linked to a biomarker in your catalog: if the analyte name
 does not exist yet (matched case-insensitively), a catalog entry is created
 from what you typed. Two spellings of the same name resolve to one entry.
@@ -47,14 +46,26 @@ value, the range badge, the range bar and a small trend line. Open a group for
 the history chart (30, 90, 365 days or all) and the full list of readings,
 where each one can be edited or deleted. A deletion is soft and offers undo.
 
+A marker with at least three readings over a year also shows its **trend**:
+the change per year with its interval, and, where the straight line would
+leave the reference range within three years, roughly when. That is a
+projection, not a forecast. A series whose newest reading is more than a year
+old is shown without a projection.
+
+A spreadsheet of past results can come in through the
+[CSV import](/guides/import-csv/#lab-results-and-medications).
+
 ## Scan a report
 
 When your configured AI provider can read images, **Add** offers **Scan a
 report**. Pick a photo or PDF (PDF only where the provider supports it). The
 image is sent to the provider for extraction, never stored, and never logged.
-Since v1.40.0 the scan runs as a background job on the server, so a slow model
-is no longer cut off by a proxy timeout; keep the page open until it finishes,
-because nothing is kept until you review it (see
+A PDF is read page by page, up to 20 pages and 400 readings. If the provider
+stops partway through a page, the readings it returned are kept and the review
+names the pages to check against the report. A scan that reaches your daily
+AI budget stops there and says so. The scan runs as a background job on the
+server, so a slow model is not cut off by a proxy timeout; keep the page open
+until it finishes, because nothing is kept until you review it (see
 [Long reads run in the background](/guides/document-vault/#long-reads-run-in-the-background)).
 Each proposed row comes back with analyte, value, unit, the printed reference
 text verbatim, a date, and a confidence per field.
@@ -64,11 +75,11 @@ discard every row, and flags duplicates, low-confidence fields and analytes
 that would create a new catalog entry. Only the rows you confirm are saved,
 marked with the source "OCR"; a row that duplicates an existing reading is
 skipped. If the document vault is on, the file is also filed there and each
-saved row keeps a link back to it. Since v1.43.0 that link shows on both
+saved row keeps a link back to it. That link shows on both
 ends, in the **Related** section of the result and of the document; see
 [Link related records](/guides/related-records/).
 
-Since v1.43.0 the review also says which of your markers a row will join. A
+The review also says which of your markers a row will join. A
 printed name is matched by your marker's own name first, then by a name you
 gave that marker before, then by a common abbreviation of the same test when
 the unit fits; the row says **by a name you chose before** or **recognised as
@@ -77,17 +88,16 @@ lets you pick one you already track instead, and the printed name is
 remembered for the next report. Two spellings of one marker in the same
 report are read as one marker.
 
-If your provider is text-only, enable **local OCR** in the Labs settings. The
-image is then read in your browser (German and English models), and only the
-recognised text goes to the provider. It is less accurate than a vision
-model, which is why the review step exists; it cannot read PDFs. The OCR engine
-and its language data are served by your own HealthLog server (v1.39.3 and
-later); earlier versions tried to load them from a public CDN, which the
-security policy blocked, so local OCR could not start.
+If your provider is text-only, turn on **Read scans on this device** under
+**Settings → Modules → Labs**. The image is then read in your browser (German
+and English models), and only the recognised text goes to the provider. It is
+less accurate than a vision model, which is why the review step exists; it
+cannot read PDFs. The OCR engine and its language data are served by your own
+HealthLog server.
 
 A lab report is a document, so scanning follows the rules for
-[reading documents](/guides/document-vault/#ai-assist-and-content-search).
-Since v1.39.0 the first scan that would go to an AI service outside your
+[reading documents](/guides/document-vault/#reading-documents-with-ai).
+The first scan that would go to an AI service outside your
 server, your own key included, asks for your consent to reading documents; a
 local model on your server needs none. The scan also needs the Labs module on.
 When the operator has switched off **Reading documents** or the master switch
@@ -96,18 +106,20 @@ an hourly limit per person, set with `LABS_OCR_LIMIT_PER_HOUR` (default 6).
 
 Reports that arrive in the [document vault](/guides/document-vault/) take the
 other direction: a stored document that looks like a lab report is staged as
-pending facts for the same kind of review, never committed on its own.
+pending facts for the same kind of review, never committed on its own. On a
+stored document, **Extract lab values** reads it the way a scan does: a PDF
+page by page and text in parts, up to 400 readings. If the provider stops
+early, the readings already found are kept and the review warns that some
+values may be missing, every time it is opened.
 
 ## One unit per marker
 
 A marker is tracked in one unit, and every reading is stored in that unit.
-Spelling is forgiven (`mmol/l` for `mmol/L`, `ug/L` for `µg/L`). Before
-v1.40.0 a reading printed in another unit was kept under the marker's unit
-without conversion, so 5.6 mmol/L of glucose showed up as 5.6 mg/dL and "far
-below range". Since v1.40.0 such a reading is never relabelled, and since
-v1.42.3 it is converted where the conversion is well defined and refused
-where it is not. That holds on every path that writes a lab value: the form,
-a scan, a document from the vault and the API.
+Spelling is forgiven (`mmol/l` for `mmol/L`, `ug/L` for `µg/L`). A reading
+printed in another unit is never relabelled: it is converted where the
+conversion is well defined and refused where it is not. That holds on every
+path that writes a lab value: the form, a scan, a document from the vault,
+the CSV import and the API.
 
 ### Unit conversion
 
@@ -171,8 +183,8 @@ reading."); the other rows are saved. The API answers `422`
 `labs.unit.mismatch` with a reason.
 
 A marker's unit cannot be changed while it has readings, because the stored
-values would be shown in the new unit without being converted. Values
-already stored under the wrong unit before v1.40.0 cannot be found
+values would be shown in the new unit without being converted. Values that
+a version before 1.40 stored under the wrong unit cannot be found
 automatically. If a marker shows a reading far outside its usual range,
 check the report it came from, delete the reading and enter it again.
 
@@ -213,13 +225,14 @@ hidden flag that removes it from pickers without deleting readings. A seed
 list of 30 common analytes across ten panels (lipids, glucose, thyroid, iron,
 vitamins, inflammation, renal, liver, electrolytes, blood count) is offered
 when you add an entry; you accept or override its unit and range. The
-catalog is managed under Settings, Appearance, Labs, together with view mode,
-sort order and the local-OCR switch.
+catalog is managed under **Settings → Modules → Labs**, together with **Read
+scans on this device**. View mode and sort order are under **Settings →
+Arrangement → Labs**.
 
 ## Merge markers and other names
 
 The same test can arrive under two names from two labs, and then sits in the
-catalog twice. Since v1.43.0 you can merge them. In the catalog choose
+catalog twice. You can merge them. In the catalog choose
 **Merge**, select at least two markers and pick the one to keep. **Show
 preview** lists, before anything changes, how many readings move, which of
 them are converted to the kept marker's unit and which names will lead to it
