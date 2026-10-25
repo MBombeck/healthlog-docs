@@ -1,6 +1,6 @@
 ---
 title: Environment variables
-description: Every environment variable a HealthLog deployment reads — required core, optional integrations, notifications, geolocation, logging, backups, and build-time toggles.
+description: Every environment variable a HealthLog deployment reads: required core, integrations, notifications, geolocation, logging, backups and build-time toggles.
 sidebar:
   order: 3
 ---
@@ -14,13 +14,13 @@ two never drift.
 A variable in `.env` reaches the container **only** if it is also listed under
 `environment:` in `docker-compose.yml`. Docker Compose reads `.env` for `${VAR}`
 substitution at compose-up time, but does not forward arbitrary vars into the
-container. When you add a new optional var, add it to the whitelist too — the
-tables below flag the variables that are **not** whitelisted by default.
+container. Everything on this page is on the shipped whitelist unless its row
+says otherwise.
 :::
 
 An empty value counts as unset. The compose file passes every whitelisted
-variable you did not set as an empty string, and since v1.39.3 the app reads an
-empty or blank value as "use the default" everywhere. Switch-style variables
+variable you did not set as an empty string, and the app reads an empty or
+blank value as "use the default" everywhere. Switch-style variables
 (the `*_DISABLED` ones below) are on for `1`, `true`, `yes` or `on`, in any
 case; any other value, including an empty one, leaves them off.
 
@@ -35,16 +35,15 @@ deployment but have compose defaults.
 | `DATABASE_URL` | Postgres connection string. The compose default appends `connection_limit` + `pool_timeout`. |
 | `POSTGRES_PASSWORD` | Password for the bundled `db` service. `openssl rand -hex 32`. |
 | `NEXT_PUBLIC_APP_URL` | Public URL embedded in OAuth redirects, webhook callbacks, deep links. |
-| `APP_URL` | Server-side mirror of the above, used by background workers. Must match. Since v1.42.2 it also builds the links that ntfy, Telegram, webhook and email notifications open, and the ntfy mood quick answers; without it those channels deliver without a link. |
+| `APP_URL` | Server-side mirror of the above, used by background workers. Must match. It also builds the links that ntfy, Telegram, webhook and email notifications open; without it those channels deliver without a link. |
 | `ENCRYPTION_KEY` | AES-256-GCM key for at-rest secrets. 64 hex chars. Required unless `ENCRYPTION_KEYS` is set. Keep a copy outside the server; see [Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key). |
 | `API_TOKEN_HMAC_KEY` | HMAC-SHA256 key for hashing Bearer tokens, refresh tokens and web session cookies. 64 hex chars. |
 
 :::caution[Rotating `API_TOKEN_HMAC_KEY` signs everyone out]
-Since v1.30.33 the browser session cookie is a random secret stored only as an
-HMAC under this key, the same way Bearer and refresh tokens already were.
-Rotating the key therefore invalidates every issued `hlk_*` token **and** every
-browser session — users sign in again, and any automation holding a token needs
-a new one. Plan it like a password change, not a config tweak.
+The browser session cookie is a random secret stored only as an HMAC under
+this key, like Bearer and refresh tokens. Rotating the key therefore
+invalidates every issued `hlk_*` token **and** every browser session: users
+sign in again, and any automation holding a token needs a new one. Plan it like a password change, not a config tweak.
 :::
 
 ## Encryption key map
@@ -55,23 +54,23 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | --- | --- |
 | `ENCRYPTION_KEYS` | JSON map, e.g. `{"v1":"<hex>","v2":"<hex>"}`. |
 | `ENCRYPTION_ACTIVE_KEY_ID` | The key id new writes use, e.g. `v2`. |
-| `ENCRYPTION_KEY_CHECK` | Since v1.40.0. `enforce` (default) refuses to serve when the key does not open the stored data; `warn` only logs it, reports it as a `warning` on `/api/health` and serves anyway. A last resort for a refusal you are certain is false; it disables a safety check. See [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check). |
-| `HEALTHLOG_PLATFORM` | Since v1.40.0. Where this server's environment lives: `compose`, `truenas`, `coolify`, `unraid` or `portainer`. Opens the admin's key backup step on that platform's instructions; unset or unknown means `compose`. |
+| `ENCRYPTION_KEY_CHECK` | `enforce` (default) refuses to serve when the key does not open the stored data; `warn` only logs it, reports it as a `warning` on `/api/health` and serves anyway. A last resort for a refusal you are certain is false; it disables a safety check. See [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check). |
+| `HEALTHLOG_PLATFORM` | Where this server's environment lives: `compose`, `truenas`, `coolify`, `unraid` or `portainer`. Opens the admin's key backup step on that platform's instructions; unset or unknown means `compose`. |
 
 ## Session, proxy & database pool
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_COOKIE_SECURE` | tracks `NODE_ENV=production` | Force or disable the cookie `Secure` flag. Set `false` for trusted plain-HTTP LANs. |
-| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. `0` trusts neither `X-Forwarded-For` nor `X-Real-IP`. An empty value means the default since v1.39.3. See [reverse proxy](/guides/reverse-proxy/#trust_proxy_hops). On the compose whitelist since v1.37.33. |
+| `TRUST_PROXY_HOPS` | `1` | How many `X-Forwarded-For` hops to trust. `0` trusts neither `X-Forwarded-For` nor `X-Real-IP`. See [reverse proxy](/guides/reverse-proxy/#trust_proxy_hops). |
 | `TRUST_CF_CONNECTING_IP` | unset | Set `1` **only** behind Cloudflare to trust the `cf-connecting-ip` header. |
-| `DATABASE_POOL_MAX` | `20` | Total Postgres connection budget for the process, not the Prisma ceiling: pg-boss takes 2 of it and Prisma gets the rest (18 at the default). Not whitelisted by default, so `DB_CONNECTION_LIMIT` is the knob that reaches the container. |
-| `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | The compose file feeds them into the `connection_limit` and `pool_timeout` query params of the default `DATABASE_URL`, and the app also reads both directly (`src/lib/db.ts`), where they take precedence over `DATABASE_POOL_MAX` and over the URL's query params. Since v1.40.1 a process holds one database client, so in the default `all` mode the web requests and the background worker share this one pool. |
-| `DATABASE_STATEMENT_TIMEOUT_MS` | `60000` | Statement timeout applied to every database session, in milliseconds. `0` disables it and restores the unbounded behaviour. Since v1.39.4 a backup restore and the chart rebuild after it set their own, longer limit for their statements, so this value no longer caps them. |
-| `DATABASE_WORK_MEM` | `16MB` | Since v1.42.0. Postgres `work_mem` for every app session, as a Postgres size string. Sorts and aggregates larger than this spill to disk; each sort step of each pooled connection may use this much, so raise it with the pool size in mind. |
-| `DATABASE_SESSION_OPTIONS_DISABLED` | unset | Since v1.42.0. The two settings above reach Postgres in the libpq `options` startup parameter, which PgBouncer refuses unless it is in its `ignore_startup_parameters`. Behind such a pooler, set this and the app sends no session settings; the pooler's or the database's defaults apply. Since v1.42.2 the app still pins the time zone to UTC, with `SET TIME ZONE 'UTC'` on each new connection. See [Database maintenance](/self-hosting/database-maintenance/#session-settings-work_mem-and-pgbouncer). |
+| `DB_CONNECTION_LIMIT` / `DB_POOL_TIMEOUT` | `20` / `20` | Connection budget per container and the wait for a free connection, in seconds. The compose file feeds them into the `connection_limit` and `pool_timeout` parameters of `DATABASE_URL`; that is how they reach the app. The budget is shared: a container that runs the job worker (the default `all` mode, or `worker`) gives the job queue 4 connections and the rest of the app 16; a `web` container gives the queue 2. |
+| `DATABASE_POOL_MAX` | unset | Older name for the same budget. Not on the compose whitelist; use `DB_CONNECTION_LIMIT`. |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | `60000` | Statement timeout applied to every database session, in milliseconds. `0` disables it. A backup restore and the chart rebuild after it set their own, longer limit. |
+| `DATABASE_WORK_MEM` | `16MB` | Postgres `work_mem` for every app session, as a Postgres size string. Sorts and aggregates larger than this spill to disk; each sort step of each pooled connection may use this much, so raise it with the pool size in mind. |
+| `DATABASE_SESSION_OPTIONS_DISABLED` | unset | The two settings above reach Postgres in the libpq `options` startup parameter, which PgBouncer refuses unless it is in its `ignore_startup_parameters`. Behind such a pooler, set this and the app sends no session settings; the pooler's or the database's defaults apply. The app still pins the time zone to UTC, with `SET TIME ZONE 'UTC'` on each new connection. See [Database maintenance](/self-hosting/database-maintenance/#session-settings-work_mem-and-pgbouncer). |
 | `HEALTHLOG_PROCESS_TYPE` | `all` | `all` / `web` / `worker` process split. |
-| `HEALTHLOG_IMAGE_REF` | `:latest` | **Compose-level substitution only**: the suffix of the `app` image reference. `:v1.38.0` pins a tag, `@sha256:<digest>` pins the immutable digest. See [pin the image by digest](/guides/updates-and-deploy/#pin-the-image-by-digest). |
+| `HEALTHLOG_IMAGE_REF` | `:latest` | **Compose-level substitution only**: the suffix of the `app` image reference. `:v1.46.0` pins a tag, `@sha256:<digest>` pins the immutable digest. See [pin the image by digest](/guides/updates-and-deploy/#pin-the-image-by-digest). |
 | `APP_MEMORY_LIMIT` | `1536m` | **Compose-level substitution only**: the app container's `mem_limit`. Node sizes its heap from it: `1536m` gives about 792 MB. This is the supported floor: below it a long-used account fills the heap, and the boot log, the support report and Admin → System status say so. Raise it on a busy instance; never lower it (see [Requirements](/getting-started/self-host-in-10-minutes/#requirements)). The worker example in the compose file carries `WORKER_MEMORY_LIMIT` with the same default. The Unraid Community Applications template and the TrueNAS app set no memory limit, so it does not apply there. See [Scaling](/self-hosting/scaling/#memory). |
 
 ## OIDC SSO (optional)
@@ -97,11 +96,11 @@ password/passkey login is locked out of sign-in entirely.
 
 ## Device integrations (optional)
 
-Withings, WHOOP, Fitbit (classic), and Google Health credentials are
-**per-user, pasted in Settings and encrypted in the database** — they have no
-env-var path. Oura, Polar, and Strava accept a shared instance-wide app via
+Withings, WHOOP, Fitbit (classic) and Google Health credentials are
+**per-user, pasted in Settings and encrypted in the database**; they have no
+env-var path. Oura, Polar and Strava accept a shared instance-wide app via
 env, with a per-user override in Settings (for Strava the per-user pair is the
-primary path — see [Connect Strava](/guides/connect-strava/)). The
+primary path, see [Connect Strava](/guides/connect-strava/)). The
 `*_REDIRECT_URI` overrides are only needed when the callback origin differs
 from `NEXT_PUBLIC_APP_URL`.
 
@@ -111,31 +110,32 @@ from `NEXT_PUBLIC_APP_URL`.
 | `WITHINGS_REDIRECT_URI` | Callback override for [Withings](/guides/connect-withings/). |
 | `WHOOP_REDIRECT_URI` | Callback override for [WHOOP](/guides/connect-whoop/). |
 | `WHOOP_WEBHOOK_SECRET` | Path segment + HMAC body-signature key for the WHOOP webhook. |
-| `FITBIT_REDIRECT_URI` | Callback override for [classic Fitbit](/guides/connect-fitbit/). |
+| `FITBIT_REDIRECT_URI` | Callback override for [classic Fitbit](/guides/connect-fitbit/), whose API ends on 30 October 2026. |
 | `GOOGLE_HEALTH_REDIRECT_URI` | Callback override for [Google Health](/guides/connect-google-health/). |
+| `GOOGLE_HEALTH_BACKFILL_HORIZON_YEARS` | How many years back a Google Health history import reads, a whole number from 1 to 100. Default `20`. A data type whose history goes further back ends there, and the integration card names the date. |
 | `OURA_CLIENT_ID` / `OURA_CLIENT_SECRET` | Shared [Oura](/guides/connect-oura/) app; per-user Settings values win. |
 | `OURA_REDIRECT_URI` | Callback override for Oura. |
 | `POLAR_CLIENT_ID` / `POLAR_CLIENT_SECRET` | Shared [Polar](/guides/connect-polar/) app; per-user Settings values win. |
 | `POLAR_REDIRECT_URI` | Callback override for Polar. |
 | `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Optional shared [Strava](/guides/connect-strava/) app fallback; per-user Settings credentials are the primary path and always win. |
 | `STRAVA_REDIRECT_URI` | Callback override for Strava; defaults to `${NEXT_PUBLIC_APP_URL}/api/strava/callback`. |
-| `NIGHTSCOUT_PRIVATE_ORIGINS` | Nightscout origins on your own network the per-user connection form should accept, comma-separated (e.g. `http://nightscout.lan:1337`). Without it a private address is refused as an SSRF target. Same grammar as `NOTIFICATION_PRIVATE_ORIGINS` below; unchanged in v1.38.17. See [Connect Nightscout](/guides/connect-nightscout/). |
-| `DAWARICH_PRIVATE_ORIGINS` | Since v1.43.0. Dawarich instances on your own network the per-user connection may reach, comma-separated exact origins (e.g. `http://dawarich.lan:3000`). Same grammar as `NIGHTSCOUT_PRIVATE_ORIGINS`: one `scheme://host[:port]` per entry, no path, wildcard or range; a listed host does not open its subdomains or another port. Link-local, metadata and unspecified addresses are never granted. A public Dawarich instance needs nothing here. On the compose whitelist; needs a restart. See [Connect Dawarich](/guides/connect-dawarich/#an-instance-on-your-own-network). |
+| `NIGHTSCOUT_PRIVATE_ORIGINS` | Nightscout origins on your own network the per-user connection form should accept, comma-separated (e.g. `http://nightscout.lan:1337`). Without it a private address is refused as an SSRF target. Same grammar as `NOTIFICATION_PRIVATE_ORIGINS` below. See [Connect Nightscout](/guides/connect-nightscout/). |
+| `DAWARICH_PRIVATE_ORIGINS` | Dawarich instances on your own network the per-user connection may reach, comma-separated exact origins (e.g. `http://dawarich.lan:3000`). Same grammar as `NIGHTSCOUT_PRIVATE_ORIGINS`: one `scheme://host[:port]` per entry, no path, wildcard or range; a listed host does not open its subdomains or another port. Link-local, metadata and unspecified addresses are never granted. A public Dawarich instance needs nothing here. On the compose whitelist; needs a restart. See [Connect Dawarich](/guides/connect-dawarich/#an-instance-on-your-own-network). |
 | `INTEGRATION_FAILURE_ALERT_THRESHOLD` | Consecutive failures before an integration is reported as persistently failing and notified about. Default `3`, minimum `1`. |
 
-## APNs — iOS push (all-or-none)
+## APNs: iOS push (all-or-none)
 
 Missing any one disables APNs silently.
 
 | Variable | Purpose |
 | --- | --- |
 | `APNS_KEY_ID` / `APNS_TEAM_ID` / `APNS_BUNDLE_ID` | Apple Developer identifiers. |
-| `APNS_KEY_B64` | The `.p8` key, base64-encoded — the **recommended** form, immune to newline mangling by deployment panels. Precedence: `APNS_KEY_B64` > `APNS_KEY` > `APNS_KEY_FILE`. |
+| `APNS_KEY_B64` | The `.p8` key, base64-encoded. The **recommended** form, immune to newline mangling by deployment panels. Precedence: `APNS_KEY_B64` > `APNS_KEY` > `APNS_KEY_FILE`. |
 | `APNS_KEY` / `APNS_KEY_FILE` | Raw PEM contents, or a path to the file. Both are on the compose whitelist alongside `APNS_KEY_B64`. |
 | `APNS_PRODUCTION` | Force the production APNs gateway; default follows each device's registered environment. |
 | `APNS_CRITICAL_ENTITLEMENT` | Set `true` only if the iOS build carries Apple's Critical Alerts entitlement; otherwise urgent alerts degrade to time-sensitive. |
 
-The `.p8` must be scoped **"Sandbox & Production"** — a Sandbox-only key fails
+The `.p8` must be scoped **"Sandbox & Production"**; a Sandbox-only key fails
 with `BadEnvironmentKeyInToken` on production builds. See
 [troubleshooting](/self-hosting/troubleshooting/).
 
@@ -152,7 +152,7 @@ Setting host + port + from enables the email channel; user/pass are optional.
 ## Web Push (VAPID)
 
 The admin panel is the primary home for VAPID keys (stored encrypted in the
-database), but an env fallback exists — the loader reads the database first,
+database), but an env fallback exists; the loader reads the database first,
 then these:
 
 | Variable | Purpose |
@@ -162,7 +162,7 @@ then these:
 
 ## Notification targets on a private network (optional)
 
-Since v1.38.17. Webhook and ntfy targets are resolved at send time and
+Webhook and ntfy targets are resolved at send time and
 refused when the answer is a private, loopback, link-local or CGNAT address,
 which is the DNS-rebinding defence and which also stops a Gotify or an ntfy
 behind a LAN reverse proxy. The operator opens a target by listing its exact
@@ -202,15 +202,15 @@ user-supplied.
 
 | Variable | Purpose |
 | --- | --- |
-| `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. Since v1.37.1 the resolver reads them first and goes online only for an address they cannot place. |
+| `GEOLITE2_DIR` | Directory of mounted MaxMind GeoLite2 `.mmdb` files. The resolver reads them first and goes online only for an address they cannot place. |
 | `MAXMIND_LICENSE_KEY` | A free MaxMind licence key. Set it and the worker downloads the GeoLite2 City + ASN databases into `GEOLITE2_DIR` itself at boot, refreshed monthly. The third way to supply the databases, no rebuild or manual mount; a mounted database still wins. |
-| `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. Since v1.42.0 setting it counts as an explicit choice, and the admin status shows the geo row green instead of a warning. Without GeoLite2 databases and without this variable the row warns, because every login IP goes to a provider nobody chose. |
-| `IP_GEO_LOOKUP_DISABLED` | Turns third-party IP lookups off entirely (no geo egress): the resolver uses only the GeoLite2 databases, if present, and the monthly MaxMind download is skipped too. Also silences the one-time admin notice about online lookups, since there is nothing to warn about. Before v1.39.3 only `1` worked. |
+| `IP_GEO_LOOKUP_URL` | Alternate lookup provider; default is ipwho.is. Setting it counts as an explicit choice, and the admin status shows the geo row green instead of a warning. Without GeoLite2 databases and without this variable the row warns, because every login IP goes to a provider nobody chose. |
+| `IP_GEO_LOOKUP_DISABLED` | Turns third-party IP lookups off entirely (no geo egress): the resolver uses only the GeoLite2 databases, if present, and the monthly MaxMind download is skipped too. Also silences the one-time admin notice about online lookups, since there is nothing to warn about. |
 | `IP_GEO_ALLOW_INSECURE` | Explicitly allow a plain-HTTP lookup provider; refused otherwise. |
 
 ## Outbound requests the server makes on its own (optional)
 
-Since v1.39.3. Besides the services you connect yourself, the server contacts
+Besides the services you connect yourself, the server contacts
 three third parties by default. Each has an off-switch; the third is
 `IP_GEO_LOOKUP_DISABLED` in the section above. Both variables below are on the
 compose whitelist. See
@@ -231,15 +231,15 @@ See [Backups](/guides/backups/).
 | `BACKUP_S3_ENDPOINT` / `BACKUP_S3_BUCKET` | Target. |
 | `BACKUP_S3_ACCESS_KEY` / `BACKUP_S3_SECRET_KEY` | Credentials. |
 | `BACKUP_S3_REGION` | Defaults to `auto`. |
-| `BACKUP_ENCRYPTION_KEY` | Separate AES key — **must not** equal `ENCRYPTION_KEY`. |
-| `BACKUP_ENCRYPTION_PREVIOUS_KEYS` | Retired off-host keys, comma-separated, kept so older objects stay readable during a rotation of `BACKUP_ENCRYPTION_KEY`. Read only, never written with. Optional and not part of the all-or-none set. On the compose whitelist since v1.39.3. See [Rotating the off-host key](/guides/backups/#rotating-the-off-host-key). |
+| `BACKUP_ENCRYPTION_KEY` | Separate AES key; it **must not** equal `ENCRYPTION_KEY`. |
+| `BACKUP_ENCRYPTION_PREVIOUS_KEYS` | Retired off-host keys, comma-separated, kept so older objects stay readable during a rotation of `BACKUP_ENCRYPTION_KEY`. Read only, never written with. Optional and not part of the all-or-none set. See [Rotating the off-host key](/guides/backups/#rotating-the-off-host-key). |
 | `BACKUP_RETENTION_DAYS` | Not read by the app. The number for your bucket's lifecycle rule, kept here so the two agree. |
 
 ## Stored backups in the database
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `BACKUP_MAX_STORED_MB` | `2048` | Largest weekly or uploaded backup of one account the app keeps, in MB of encrypted copy. A storage limit, not a memory one: a copy is written and read in pieces of about a megabyte. A backup past it fails with a message naming this variable, and the previous copy stays. On the compose whitelist since v1.39.2. See [Backups kept in the database](/guides/backups/#backups-kept-in-the-database). |
+| `BACKUP_MAX_STORED_MB` | `2048` | Largest weekly or uploaded backup of one account the app keeps, in MB of encrypted copy. A storage limit, not a memory one: a copy is written and read in pieces of about a megabyte. A backup past it fails with a message naming this variable, and the previous copy stays. See [Backups kept in the database](/guides/backups/#backups-kept-in-the-database). |
 
 ## Audit-trail retention
 
@@ -278,7 +278,7 @@ to it lives only in the audit trail. See
 | Variable | Purpose |
 | --- | --- |
 | `DEPLOY_WEBHOOK_SECRET` | Authenticates `POST /api/internal/deploy-webhook`. |
-| `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | Replay hardening — require a fresh `X-Deploy-Webhook-Timestamp` (±5 min). |
+| `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | Replay hardening: require a fresh `X-Deploy-Webhook-Timestamp` (±5 min). |
 | `DEPLOY_LOGS_URL` | Deployment-dashboard URL linked in failure notifications. |
 | `TLS_LEAF_SPKI_PINS` | Known-good served-leaf SPKI pins for the [server-side pin monitor](/security/certificate-pinning/#the-server-side-leaf-alarm); unset, the monitor logs the served pin but cannot alarm. |
 
@@ -293,6 +293,8 @@ reaches the container.
 | `LOG_SAMPLE_RATE` | Sampling for high-volume events. |
 | `LOG_SLOW_THRESHOLD_MS` | Requests slower than this are flagged. |
 | `LOG_INCLUDE_STACK` | Include stack traces in error events. |
+| `HEALTHLOG_HEAP_SNAPSHOT` | `1` writes one heap snapshot when the heap first reaches 85 % of its limit, for chasing a crash. Off by default. The file holds decrypted health data and keys: delete it afterwards and never share it. See [heap out of memory](/self-hosting/troubleshooting/#the-app-restarts-with-javascript-heap-out-of-memory). |
+| `HEALTHLOG_DIAG_DIR` | Directory inside the container for that snapshot. Default `/tmp`. |
 | `LOKI_ENDPOINT` / `LOKI_USERNAME` / `LOKI_PASSWORD` | Optional Loki log shipping. `LOKI_ENDPOINT` takes the base URL or the full push URL, and a private address works; link-local, cloud metadata and unspecified addresses are refused. A failed push writes one line to the container log at most every five minutes per reason, without the password. |
 
 ## FHIR (optional)
@@ -305,24 +307,24 @@ reaches the container.
 
 | Variable | Purpose |
 | --- | --- |
-| `AI_PRIVATE_ORIGINS` | AI endpoints on your own network (Ollama, LM Studio, LiteLLM). Comma-separated exact origins (`scheme://host[:port]`, no path, no wildcard), e.g. `http://ollama.lan:11434`. Unset, a private AI base URL is refused, apart from what the deprecated `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` still covers. Metadata, link-local and unspecified addresses stay refused even when listed; a malformed entry is logged once and grants nothing. Since v1.39.3, on the compose whitelist. See [Configure AI providers](/guides/ai-providers/). |
-| `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Older form of `AI_PRIVATE_ORIGINS`, kept for existing installs. A comma-separated host list (`ollama.lan, 10.0.0.5`) grants those hosts on any port, over the same pinned connection. `true` is deprecated since v1.39.3: it covers only the admin AI key and AI settings saved on an admin account, is named in the boot summary and on the admin AI settings page, and will be removed in a later release. Unset or `false` allows none. |
+| `AI_PRIVATE_ORIGINS` | AI endpoints on your own network (Ollama, LM Studio, LiteLLM). Comma-separated exact origins (`scheme://host[:port]`, no path, no wildcard), e.g. `http://ollama.lan:11434`. Unset, a private AI base URL is refused, apart from what the deprecated `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` still covers. Metadata, link-local and unspecified addresses stay refused even when listed; a malformed entry is logged once and grants nothing. See [Configure AI providers](/guides/ai-providers/). |
+| `ALLOW_LOCAL_AI_PRIVATE_HOSTS` | Older form of `AI_PRIVATE_ORIGINS`, kept for existing installs. A comma-separated host list (`ollama.lan, 10.0.0.5`) grants those hosts on any port, over the same pinned connection. `true` is deprecated: it covers only the admin AI key and AI settings saved on an admin account, is named in the boot summary and on the admin AI settings page, and will be removed in a later release. Unset or `false` allows none. |
 | `INSIGHTS_RATE_LIMIT_PER_HOUR` | Bounds `POST /api/insights/generate` per user per hour (default 10). |
 | `INSIGHTS_MAX_TOKENS` | Completion-token budget per insight generation. Default `2500`, clamped to 500–8000. Raise it when a verbose local model truncates its JSON mid-answer. |
 | `NATIVE_CANVAS` | Override for the native canvas renderer (document thumbnails, scanned-PDF rasterization). Default auto-detects AVX2 on Linux x64 and disables cleanly on CPUs without it. `off` force-disables; `on` force-enables (crashes the process on a CPU that truly lacks AVX2). |
 | `DOCUMENT_AI_LIMIT_PER_HOUR` | Per-user hourly ceiling for the document-AI actions (extract, suggest, summarise and index share one bucket). Default `6`, clamped to 1–1000. |
-| `AI_SYNC_REGEN_GAP_HOURS` | Since v1.43.0. Minimum hours between two refreshes of a status card after a sync, for accounts at the standard [AI usage level](/guides/ai-providers/#ai-usage-levels). Default `6`, whole hours from 1 to 48. A reading entered by hand keeps a one-hour gap. The value set under Admin, Coach, AI usage levels wins over this one. On the compose whitelist. |
+| `AI_SYNC_REGEN_GAP_HOURS` | Minimum hours between two refreshes of a status card after a sync, for accounts at the standard [AI usage level](/guides/ai-providers/#ai-usage-levels). Default `6`, whole hours from 1 to 48. A reading entered by hand keeps a one-hour gap. The value set under Admin, Coach, AI usage levels wins over this one. |
 | `LABS_OCR_LIMIT_PER_HOUR` | Per-user hourly ceiling for lab-report scans (photo or PDF and browser-OCR text share one bucket). Default `6`, clamped to 1–1000. A scan that fails before the AI provider is called does not count. |
 | `ADMIN_AI_BASE_URL_ALLOWLIST` | Extra hosts the **admin-configured** AI base URL may point at, on top of the built-in public providers. Comma-separated bare hostnames. It widens the admin setting only; per-user BYO keys keep the pinned public-host posture either way. |
-| `CODEX_MODEL` / `CODEX_MODEL_FALLBACK_CHAIN` | Codex (ChatGPT sign-in) model slugs. The first pins one slug ahead of the built-in chain; the second replaces the chain outright, comma-separated. Reach for them when the provider rotates a slug and requests start failing with 503. |
+| `CODEX_MODEL` / `CODEX_MODEL_FALLBACK_CHAIN` | ChatGPT sign-in model slugs. The first pins one slug ahead of the built-in chain, which starts at `gpt-5.6-terra`; the second replaces the chain outright, comma-separated. Reach for them only when the provider rotates a slug and requests start failing with 503. An override set only to get past rejected older models can be removed. |
 | `COACH_EXPERIMENT_VERDICT` | `1` surfaces reviewed n-of-1 experiment outcomes in the Coach snapshot. Off by default; the review worker records outcomes either way. |
 
 ## Documents (optional)
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `DOCUMENT_UPLOAD_LIMIT_PER_HOUR` | `120` | Hourly upload ceiling for each document token, the credential a Paperless-ngx workflow or the import script uploads with. Counted per token, and every upload that sends a file counts, duplicates included; uploads from the web app and the phone keep their own limit of 60 an hour per person. Clamped to 1–1000; a value that is not a number falls back to the default. Raise it to let a large import finish sooner; the per-account storage quota still applies. On the compose whitelist since v1.39.2. See [Import documents](/guides/import-documents/#limits-and-storage). |
-| `DOCUMENT_SOURCE_ORIGINS` | unset | The Paperless-ngx and Papra instances the [document picker](/guides/import-documents/#pick-documents-inside-healthlog) may contact, as comma-separated exact origins, e.g. `https://paperless.example.com,http://papra.lan:1221`. Unset or empty, the picker is off and the Document archives card does not appear. Same grammar as [`NOTIFICATION_PRIVATE_ORIGINS`](#notification-targets-on-a-private-network-optional): one `scheme://host[:port]` per entry, no path, wildcard or CIDR; link-local, metadata and unspecified addresses are never granted; a malformed entry is logged once and grants nothing. Unlike that list it is the whole decision: an origin that is not listed is refused even when it is public. Requests are pinned to the listed origin and never follow a redirect. Removing an origin cuts off the connections that use it; people can still see and remove a stored connection. On the compose whitelist since v1.39.3; needs a restart. |
+| `DOCUMENT_UPLOAD_LIMIT_PER_HOUR` | `120` | Hourly upload ceiling for each document token, the credential a Paperless-ngx workflow or the import script uploads with. Counted per token, and every upload that sends a file counts, duplicates included; uploads from the web app and the phone keep their own limit of 60 an hour per person. Clamped to 1–1000; a value that is not a number falls back to the default. Raise it to let a large import finish sooner; the per-account storage quota still applies. See [Import documents](/guides/import-documents/#limits-and-storage). |
+| `DOCUMENT_SOURCE_ORIGINS` | unset | The Paperless-ngx and Papra instances the [document picker](/guides/import-documents/#pick-documents-inside-healthlog) may contact, as comma-separated exact origins, e.g. `https://paperless.example.com,http://papra.lan:1221`. Unset or empty, the picker is off and the Document archives card does not appear. Same grammar as [`NOTIFICATION_PRIVATE_ORIGINS`](#notification-targets-on-a-private-network-optional): one `scheme://host[:port]` per entry, no path, wildcard or CIDR; link-local, metadata and unspecified addresses are never granted; a malformed entry is logged once and grants nothing. Unlike that list it is the whole decision: an origin that is not listed is refused even when it is public. Requests are pinned to the listed origin and never follow a redirect. Removing an origin cuts off the connections that use it; people can still see and remove a stored connection. Needs a restart. |
 
 The per-file cap and the per-account quota for documents are admin settings,
 not environment variables; see [the document vault](/guides/document-vault/#limits-and-how-to-tune-them).
@@ -332,8 +334,8 @@ not environment variables; see [the document vault](/guides/document-vault/#limi
 | Variable | Purpose |
 | --- | --- |
 | `OPENMETEO_BASE_URL` / `OPENMETEO_GEOCODING_URL` | Override the weather / geocoding endpoints for the [environmental module](/explanation/environmental-module/). |
-| `OPENMETEO_AIR_QUALITY_URL` | Since v1.42.0. Overrides the air-quality and pollen endpoint (default `https://air-quality-api.open-meteo.com`), for example a self-hosted Open-Meteo on the LAN. |
-| `ENVIRONMENT_AIR_QUALITY_DISABLED` | Since v1.42.0. Turns the air-quality part off for every account: no air-quality requests, no air values anywhere, and the per-account switch has no effect. Weather and daylight keep working. |
+| `OPENMETEO_AIR_QUALITY_URL` | Overrides the air-quality and pollen endpoint (default `https://air-quality-api.open-meteo.com`), for example a self-hosted Open-Meteo on the LAN. |
+| `ENVIRONMENT_AIR_QUALITY_DISABLED` | Turns the air-quality part off for every account: no air-quality requests, no air values anywhere, and the per-account switch has no effect. Weather and daylight keep working. |
 
 ## Webhook hardening (optional)
 
@@ -345,8 +347,8 @@ not environment variables; see [the document vault](/guides/document-vault/#limi
 
 | Variable | Purpose |
 | --- | --- |
-| `DEMO_MODE` | `true` makes the proxy refuse every mutation except login and paints the demo banner. It is the switch behind a public try-it-out deployment, not a safety belt for a real one — leave it unset on an instance holding real data. |
-| `DASHBOARD_SSR_PREFETCH` | The dashboard, insights, coach and checkups pages prefetch their data on the server. `false` falls back to pure client fetching — a diagnostics escape hatch, not a tuning knob. |
+| `DEMO_MODE` | `true` makes the proxy refuse every mutation except login and paints the demo banner. It is the switch behind a public try-it-out deployment, not a safety belt for a real one; leave it unset on an instance holding real data. |
+| `DASHBOARD_SSR_PREFETCH` | The dashboard, insights, coach and checkups pages prefetch their data on the server. `false` falls back to pure client fetching, a diagnostics escape hatch, not a tuning knob. |
 
 ## Build-time only (not runtime)
 
@@ -362,6 +364,6 @@ effect.
 
 Telegram bot tokens and ntfy settings are configured **per user** in
 notification settings; error-tracking URLs live in the **admin panel**. All
-are stored encrypted in the database — not as environment variables.
+are stored encrypted in the database, not as environment variables.
 Device-integration credentials (Withings, WHOOP, Fitbit, Google Health,
 Strava) are per-user in Settings, likewise encrypted.
