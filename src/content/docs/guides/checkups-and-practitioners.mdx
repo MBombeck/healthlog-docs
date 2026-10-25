@@ -48,7 +48,7 @@ a history. A dashboard card shows the next few due, overdue ones first.
 
 A reminder whose rule names several hours, such as the Coach's
 morning-and-evening blood pressure course (`FREQ=DAILY;BYHOUR=7,19`), is sent
-at each of them. Before v1.39.3 only the first hour of the day was sent.
+at each of them.
 
 Reminders notify through the ordinary channels (APNs, Telegram, ntfy, Web
 Push, webhook) as the measurement-reminder type, which is on by default; see
@@ -87,23 +87,13 @@ reminder already sent that day is not sent a second time at the later hour.
 Switching a reminder off and on again keeps an open due date for a reminder
 that stays due; a weekly or more frequent one is scheduled from that moment.
 
-Before v1.39.2 every reminder moved on to its next date as soon as it had
-notified, so an open yearly check-up read as due next year on the day it was
-reminded, and a rule-based check-up on its last date disappeared. The
-upgrade to v1.39.2 puts such reminders back to the day they notified, when
-that was within the previous 90 days and they have not been done, skipped,
-snoozed past that day or edited since. A snooze that had already run out
-before the notification does not count, and a course whose end date had
-passed before it stays closed. Older cases keep the date they have; snoozing
-one to a nearer day brings it back.
-
 ## Practitioners
 
 `/checkups/practitioners` is your own list of doctors and practices. Each has
 a name (a person or a practice, whichever you think of first), a free-text
 specialty and practice, and an address, a phone number and a note (parking,
 which entrance, who to ask for). The address, phone number and note are stored
-encrypted (the address and phone number since v1.39.4); the name, specialty
+encrypted; the name, specialty
 and practice are not, so the picker can search and sort on them. The list is scoped to your account so one
 household member's cardiologist never appears in another's picker. It is
 deliberately not in Settings: a list of your doctors is record content, not
@@ -121,27 +111,25 @@ row so the history stays honest. The list shows upcoming visits soonest-first
 and past visits newest-first.
 
 A visit can link up to 100 documents, lab results and illness episodes each,
-and a vaccination dose can point at the visit it was given at. Since v1.43.0 a
-visit also links the medications prescribed, changed or reviewed there and the
+and a vaccination dose can point at the visit it was given at. A visit also
+links the medications prescribed, changed or reviewed there and the
 vaccinations given there, and its **Related** section lists everything it
 belongs to; see [Link related records](/guides/related-records/). When a
 document's date is within seven days of a visit, the app suggests the link.
 
-The link pickers reach your whole record. Since v1.42.4 each picker opens on
+The link pickers reach your whole record. Each picker opens on
 the records around the visit's date (or, when you link a visit from a
 document, around the document's date), and you page to older and newer
 entries from there. Typing searches the whole list, not only what is shown
 (lab results by analyte and panel). Records already linked always show, however far back
-they are. Before, the pickers offered only the newest few hundred entries, so
-anything older could not be linked on a long record.
-Since v1.43.0 a year or a month typed into a picker (`2019`, `03.2019`,
+they are. A year or a month typed into a picker (`2019`, `03.2019`,
 `March 2019`) lists every record of that period, also in the visit picker; see
 [Find a year or a month in a picker](/guides/related-records/#find-a-year-or-a-month-in-a-picker).
 Filing a visit from a due checkup marks that checkup satisfied.
 
 ### Procedures and surgeries
 
-Since v1.39.1 you record a procedure as a visit of the kind **Procedure or
+You record a procedure as a visit of the kind **Procedure or
 surgery**. The form then offers a body site ("knee", "gallbladder") and a side.
 A visit of another kind shows the two fields only once it has a site or a
 side, so switching the kind never hides what you typed. While you type, the
@@ -165,7 +153,7 @@ stored in plain text for the search.
 
 ### Body sites
 
-A body site can sit on a visit and, since v1.39.2, on a condition in the
+A body site can sit on a visit and on a condition in the
 [illness journal](/guides/illness/#body-site). The **Body sites** tab brings
 both together: what was done on your left knee, and what is wrong with it.
 
@@ -243,7 +231,7 @@ section yet; a condition's body site is exported (see the
 is not. Through MCP, upcoming appointments are a field on the
 preventive-care tool and past visits have their own tool, which can be
 narrowed to procedures; without a time window it then reads the whole record.
-Since v1.39.3 visits and procedures are also found by `search` (by body site,
+Visits and procedures are also found by `search` (by body site,
 side, reason or practitioner) and opened with `fetch`, which is what ChatGPT's
 default mode uses.
 Backups carry the body site and the side and restore them.
