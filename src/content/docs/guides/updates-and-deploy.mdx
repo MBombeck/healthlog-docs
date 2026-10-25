@@ -1,18 +1,20 @@
 ---
 title: Updates and deploy verification
-description: Pull a new release safely, run migrations in the right order, scale the web/worker split, and verify the served build by its buildSha.
+description: Update HealthLog safely, know which releases need a step of their own, roll back with the dump, and verify the served build.
 sidebar:
   order: 13
 ---
 
-HealthLog ships releases roughly weekly. Pin a tag, back up before upgrades, and
-skim the [changelog](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md)
-before pulling `latest`.
+HealthLog ships releases roughly weekly. Each release's notes, including its
+upgrade notes, are in the
+[CHANGELOG](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md).
+Read them before you pull, take a dump, and pin a tag if you want to choose
+when an update happens.
 
-## Migration ordering
+## The update sequence
 
 Migrations land **before** the new app container takes traffic. On a
-single-instance host the canonical sequence is:
+single-instance host the sequence is:
 
 ```bash
 # 0. Dump the database first. A migration is not undone by going back to
@@ -20,165 +22,56 @@ single-instance host the canonical sequence is:
 docker compose exec -T db pg_dump -U healthlog healthlog \
   | gzip > healthlog-before-update-$(date +%F).sql.gz
 
-# 1. Pull the new image. If you pin a version with HEALTHLOG_IMAGE_REF,
-#    set it to the new one first.
-docker compose pull app
+# 1. Get the new compose file (git pull in your checkout) and pull the new
+#    image. If you pin a version with HEALTHLOG_IMAGE_REF, set it first.
+git pull
+docker compose pull
 
-# 2. Run the migrations with the new image before it takes traffic. The
-#    one-off container starts inside the stack, so it reaches the database
-#    as `db` and gets the same environment as the app. Its entrypoint
-#    applies the migrations and exits; a failed migration stops here.
+# 2. Optional: run the migrations with the new image before it takes
+#    traffic. The one-off container starts inside the stack, so it reaches
+#    the database as `db`. Its entrypoint applies the migrations and exits;
+#    a failed migration stops here.
 docker compose run --rm app sh -c 'exit 0'
 
-# 3. Recreate the app container so it picks up the new image.
-docker compose up -d app
+# 3. Recreate the containers so they pick up the new image.
+docker compose up -d
 ```
 
-Use `docker compose run` rather than a plain `docker run` for step 2. A plain
-`docker run` starts outside the stack's network, where `db` does not resolve,
-and the entrypoint gives up after thirty seconds with "Database not reachable".
-The entrypoint also runs the migrations on every boot, so step 2 is optional; it
-is there for when you want to see the migration result before the new container
-takes traffic.
+The entrypoint applies pending migrations on every start, so step 2 is only
+for seeing the result before the new container serves. Use `docker compose run`
+rather than a plain `docker run`: outside the stack's network `db` does not
+resolve, and the entrypoint gives up after thirty seconds with "Database not
+reachable".
 
 Keep the dump until the new version has run for a few days, and keep your
-encryption key with it: a dump without the key cannot be read. The command
-assumes the bundled `db` service; with an
-[external Postgres](/self-hosting/external-postgres/) run `pg_dump` against
+encryption key with it: a dump without the key cannot be read. With an
+[external Postgres](/self-hosting/external-postgres/), run `pg_dump` against
 that server instead.
 
-### The pending-migrations line
+Before it migrates, the container logs how many migrations are pending
+(`HealthLog: 2 database migrations pending. Back up the database before
+updating ...`) or `HealthLog: Database schema is up to date.` The line is a
+reminder and does not pause anything, which is why the dump comes first.
 
-Since v1.42.4 the container says what is about to happen before it applies
-migrations:
-
-```text
-HealthLog: 2 database migrations pending. Back up the database before updating (pg_dump, see the Updates section of docs/self-hosting/getting-started.md); a migration is not undone by going back to the previous image.
-HealthLog: Running database migrations...
-```
-
-or `HealthLog: Database schema is up to date.` when the image brings none.
-If the count cannot be read, the line says so and the start continues. The
-line is a reminder and does not pause anything: the migrations run right
-after it. That is why the dump belongs before the pull, in step 0, and not
-after you have seen the count.
-
-:::caution[Do not start the app before migrations run]
-If the new container starts against the old schema, Prisma throws
-`P2022 column does not exist` on the first query that touches the new shape, the
-request 500s, and the dispatcher logs fill with the same error. `/api/version`
-does not exercise the affected tables, so the container stays "healthy" and a
-naïve load balancer routes real traffic into the broken shell.
+:::caution[Do not run the old and new image side by side]
+Some releases drop a column the previous image still reads (v1.44.0 and
+v1.46.0 do). An old container left running against the new schema then fails
+on ordinary reads. Stop the old container before the new one migrates; the
+sequence above does that on a single host. With a
+[web/worker split](/self-hosting/scaling/), stop both roles before the first
+new container starts.
 :::
 
-## Migrations in the v1.30 line
+## Releases that need a step of their own
 
-Three migrations shipped between v1.30.15 and v1.30.34. All three are additive
-and need no operator action beyond the normal `migrate deploy`:
+Most releases need nothing beyond the sequence above. These do:
 
-| Migration | Release | What it adds |
-| --- | --- | --- |
-| `0254_document_summary_state` | v1.30.31 | A state column on documents so the four summary outcomes can be told apart. Documents that already hold a summary are moved to `READY`; every other pre-existing row is truthfully "not attempted". |
-| `0255_session_token_hash` | v1.30.33 | A nullable hash column on sessions for the new cookie shape. |
-| `0256_medication_inventory_pen_labelling` | v1.30.34 | Manufacturer and printed strength on an inventory container, both nullable. |
-
-:::note[v1.30.33 does not sign anyone out]
-`0255` is nullable on purpose. Every session that exists when you deploy keeps a
-`NULL` hash and stays resolvable the old way, so nobody is logged out. Those rows
-cannot have their sliding expiry extended, so the old scheme drains itself within
-the normal 30-day session lifetime with no operator action. Every sign-in from
-v1.30.33 onward uses the new scheme.
-
-What *does* sign everyone out is rotating `API_TOKEN_HMAC_KEY`, which now keys
-session cookies as well as API tokens — see
-[environment variables](/reference/environment-variables/).
-:::
-
-## Migration 0339 in v1.38.18
-
-Take a backup before deploying v1.38.18, and expect no image rollback without
-one. Migration `0339_retire_wizard_columns` drops `users.onboarding_step` and
-`users.onboarding_goals`, two columns the v1.38.16 and v1.38.17 images select
-on every session load. An older image against a migrated database therefore
-fails at login, not only on the retired wizard.
-
-Rolling the image back means restoring the database, or re-adding the two
-columns with their defaults. The second is loss-free, because nothing at
-v1.38.18 writes them:
-
-```sql
-ALTER TABLE users
-  ADD COLUMN onboarding_step integer NOT NULL DEFAULT 0,
-  ADD COLUMN onboarding_goals text[] NOT NULL DEFAULT '{}';
-```
-
-`onboarding_completed_at` stays; it gates the first-run redirect and the
-needs-based flow keeps stamping it.
-
-## Migrations 0343, 0344 and 0345 in v1.39.0
-
-Take a backup before deploying v1.39.0. Two of the migrations remove data, and
-one of them changes settings for some accounts.
-
-`0343_ai_capability_switches` reshapes the assistant switches on the admin
-Coach page:
-
-- It adds the **Reading documents** switch, on by default.
-- Where the Coach module was switched off under module availability, it turns
-  the **Coach** switch off instead, and removes the Coach entry from module
-  availability.
-- For every account that had hidden the Coach, it switches **AI analysis** off
-  (the `insights` module). Hiding the Coach used to stop the nightly briefing and
-  status notes as well; from this release it hides the Coach and nothing else,
-  so these accounts keep the privacy they chose. They can switch AI analysis
-  back on under Settings, Modules.
-- It drops the column behind the retired **Correlations** switch.
-
-`0344_insight_status_cache` moves the per-metric status notes out of the audit
-log into their own table, encrypted at rest, one row per metric and language.
-It deletes the old rows from the audit log and copies nothing, because a
-migration cannot encrypt. Expect one night in which every note is written again,
-which costs about one normal night of model use on top.
-
-`0345_cycle_absorbed_start` only adds a column. It remembers which period start
-was folded into an earlier one, so deleting a start tapped by mistake brings
-the later one back.
-
-Restoring an instance backup taken before v1.39.0 applies the same Coach change
-as `0343`: a Coach switched off under module availability comes back as the
-**Coach** switch turned off.
-
-An older image against the migrated database still reads the dropped
-Correlations column. Rolling back means restoring the backup, or re-adding the
-column with its old default:
-
-```sql
-ALTER TABLE app_settings
-  ADD COLUMN assistant_correlations_enabled boolean NOT NULL DEFAULT true;
-```
-
-Re-adding the column does not bring back the deleted status notes or undo the
-AI analysis change; the older image writes the notes again on its next nightly
-run.
-
-## Upgrading to v1.43.0
-
-Take a backup first (step 0 above). The container logs how many migrations
-are pending before it applies them; for this release the line counts nine.
-One of them removes columns, so going back to v1.42.4 afterwards means
-restoring the dump.
-
-| Migration | What it does |
+| Release | What to do |
 | --- | --- |
-| `0402_ai_usage_levels` | Adds the per-account AI usage level, the instance ceiling and default (both `standard`), and the optional sync gap for status cards. Additive |
-| `0403_biomarker_aliases_merges` | Adds a table of other names per lab marker and a ledger of merges, so an old marker id can still answer with the marker it went into. Additive |
-| `0404_medication_ingredients` | Adds a supplement's composition per tablet or capsule, and a new kind of background document run for reading a label photo. Additive |
-| `0405_life_circumstances` | Adds six kinds of health-profile facts, four AI sections, AUDIT-C as an instrument, and a column for the yearly "still true" confirmations. Additive |
-| `0406_dawarich_context` | Adds the sealed Dawarich connection to the account and one row of daily figures per day. No coordinate or place name is stored. Additive |
-| `0407_pulse_day_mean_method` | Adds the instance's pulse day-mean method, left on the method every version before used, and the result of the last dry run. Additive |
-| `0408_intraday_hour_buckets` | Adds hourly increments to the intraday profiles of summed types (steps, active energy, distance, flights). Additive |
-| `0409_drop_plaintext_location` | Drops the readable location columns that v1.42 replaced with sealed copies. Stops before dropping anything if a row is not sealed yet; see [below](#migration-0409-stops-the-upgrade) |
-| `0410_relation_links` | Adds five link tables: lab result and document, visit and medication, visit and vaccination, medication and document, medication and condition. Additive |
+| v1.46.0 | The compose file moves the bundled database to Postgres 18 on the first `docker compose up -d`. Needs free disk about the size of the database. See [Moving to Postgres 18](/self-hosting/postgres-upgrade/). |
+| v1.45.0 | With a web/worker split, start the new worker first and the web containers after its log shows `"reminder_worker": "started"`. Add `stop_grace_period: 45s` to a forked compose file. |
+| v1.43.0 | Run v1.42.x first and let it finish its location backfill. A host that skips it stops at migration 0409; see [below](#migration-0409-stops-the-upgrade). |
+| v1.42.0 | The database container restarts once (it now loads `pg_stat_statements`). Background jobs repair and clean up folded Apple Health data; afterwards start the maintenance run (see [Database maintenance](/self-hosting/database-maintenance/)). Behind PgBouncer set `DATABASE_SESSION_OPTIONS_DISABLED=1` first. |
 
 ### Migration 0409 stops the upgrade
 
@@ -245,886 +138,46 @@ v1.43 schema no longer matches the database.
 The same steps are in the app repository as
 [`docs/ops/migration-0409-plaintext-location.md`](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/migration-0409-plaintext-location.md).
 
-### What else to know
-
-- **One new optional variable.** `DAWARICH_PRIVATE_ORIGINS` lists Dawarich
-  instances on your own network; a public instance needs nothing. A second
-  optional variable, `AI_SYNC_REGEN_GAP_HOURS`, sets the gap between status
-  card refreshes after a sync at the standard AI usage level (default 6
-  hours); the value under Admin, Coach wins over it. Both are on the compose
-  whitelist. See [Environment variables](/reference/environment-variables/).
-- **AI usage levels.** Every account runs at `standard` until somebody
-  changes it. Standard refreshes status cards after a sync at most every six
-  hours instead of every hour, so expect fewer model calls. Set the ceiling
-  and the default under Admin, Coach. See
-  [AI usage levels](/guides/ai-providers/#ai-usage-levels).
-- **Pulse day mean.** Nothing changes until an admin runs the dry run and
-  applies the weighted method under Admin, System status. See
-  [Sparse hours](/insights/intraday-pulse/#sparse-hours).
-- **Support.** Every server error now shows an error id, and Admin, System
-  status creates a redacted support report. See
-  [Report a problem](/support/#report-an-app-or-server-bug).
-- **What users see.** Records link to each other
-  ([Related records](/guides/related-records/)), supplements count toward the
-  nutrients with their upper limits ([Nutrients](/guides/nutrients/#supplements-as-a-source)),
-  a new [life circumstances](/guides/life-circumstances/) card with AUDIT-C,
-  lab markers can be merged ([Labs](/guides/labs/#merge-markers-and-other-names)),
-  [Dawarich](/guides/connect-dawarich/) as a movement source, managed profiles
-  can be handed over through single sign-on
-  ([Managed profiles](/guides/managed-profiles/#hand-the-profile-over)), and
-  trend colours follow the server's verdict
-  ([Targets](/guides/settings-overview/#targets)).
-- **Notification taps.** A notification about a profile you look after, and a
-  discreet one, now open the dashboard. See
-  [What tapping a notification opens](/guides/reminder-channels/#what-tapping-a-notification-opens).
-- **For API clients.** Request timestamps need seconds, the legacy integration
-  status fields are deprecated and go in v1.44, and OpenAPI writes nullable
-  fields as type arrays. See
-  [Changes in v1.43.0](/reference/api-endpoints/#changes-in-v1430).
-
-## Upgrading to v1.42.4
-
-Take a backup as usual (step 0 above). There are two migrations, and nothing
-else to do:
-
-| Migration | What it does |
-| --- | --- |
-| `0400_integration_health_watchdog` | Adds a nullable column with the last ten sync calls per connection (outcome and short error code only, no values or tokens) and a small table where the watchdog keeps what it observed per connection. Additive, runs in seconds |
-| `0401_healthkit_type_sync_text_and_background` | Turns the type column of the per-type Apple Health arrival table into text, so medication doses can be recorded there too, and adds the last background arrival per type. The table holds a few dozen rows per account, so the rewrite is quick |
-
-What to know:
-
-- **Every integration uses one card.** A badge with one word, one sentence,
-  at most one button, the rarer actions in a menu, and a copyable
-  **Details for a bug report** section. See
-  [Integration status and problems](/guides/integrations/).
-- **The admin hears about broken connections.** A watchdog checks every
-  connection hourly and sends the instance admin one message per incident
-  and one when it recovers. Its first run after the update records what is
-  already broken without sending anything. Admins need a working
-  [notification channel](/guides/reminder-channels/) to receive it. See
-  [The watchdog](/guides/integrations/#the-watchdog-for-the-instance-admin).
-- **Google Health backfills finish.** The backfill resumes inside a data type
-  and works in slices, so a long heart-rate history gets through rate limits
-  and failed requests. A backfill an older version left half done continues
-  on its own. See
-  [The backfill runs in slices](/guides/connect-google-health/#the-backfill-runs-in-slices).
-- **The start log counts pending migrations** before applying them; see
-  [above](#the-pending-migrations-line).
-- **What users see.** The visit link pickers open on the visit's date and
-  search and page through every record
-  ([Checkups and visits](/guides/checkups-and-practitioners/#visits)); the
-  lab list shows every marker; side effects, GLP-1 medications, drug levels
-  and symptoms page through all their entries. An extra dose logged in Apple
-  Health on another day is stored as an extra dose instead of replacing an
-  earlier one. The sleep score reads a night's timing from its main session,
-  and Oura periods you dismissed or deleted are no longer imported; rows an
-  earlier sync stored for them are removed on the next sync
-  ([Connect Oura](/guides/connect-oura/#what-gets-synced)).
-- **For API clients.** `health` on every integration status response,
-  `MEDICATION_DOSE` and `lastBackgroundAt` in the Apple Health
-  `metricFreshness[]`, `syncTrigger` on `POST /api/medications/intake/bulk`,
-  `GET /api/labs/overview`, `q` on `/api/labs`, `from`, `to`, `offset`,
-  `sortDir` and `q` on the illness episode list, and `offset` on the visit
-  list.
-
-## Upgrading to v1.42.3
-
-Take a backup as usual. There is one migration, and nothing else to do:
-
-| Migration | What it does |
-| --- | --- |
-| `0398_integration_plan_and_scope_state` | Adds two nullable columns: the Withings data types a connection's API plan refuses, and the Oura data types a grant does not cover. Runs in seconds |
-
-What to know:
-
-- **Withings syncs again on its own.** Since 12 October 2026 Withings
-  refused every request that included a data type outside the free API
-  plan, so nothing imported. After the update the next hourly sync leaves
-  those types out, imports everything since the last successful sync and
-  releases connections that were marked for reconnection over it. No
-  reconnect is needed. See
-  [Withings API plans](/guides/connect-withings/#withings-api-plans-october-2026).
-- **Oura asks for two more scopes,** `spo2` and `heart_health`. Existing
-  connections keep syncing everything else and show a hint to reconnect
-  once for SpO2, VO2 max, cardiovascular age and resilience. If the
-  authorization then fails, enable those scopes for your application in
-  Oura's developer portal. See
-  [Connect Oura](/guides/connect-oura/#existing-connections-reconnect-once).
-- **ntfy quick answers behind a sign-in gateway.** Let
-  `POST /api/notifications/action/*` through and keep `APP_URL` on the
-  exact public https address. Refusals are logged as
-  `notification.action.refused` with a reason. See
-  [When a quick answer does nothing](/guides/reminder-channels/#when-a-quick-answer-does-nothing).
-- **What users see.** Lab readings in another unit are
-  [converted](/guides/labs/#unit-conversion) where the conversion is well
-  defined, a chronic condition on its own no longer puts the account into
-  [rest mode](/guides/illness/#while-you-are-unwell), and the Withings card
-  names the readings the Withings plan withholds.
-- **For API clients.** `converted`, `sourceValue`, `sourceUnit` and
-  `printedReferenceText` on lab results, `analyteKey` on biomarkers, and
-  `planUnavailable` (Withings) and `scopeReconnect` (Oura) in the
-  integration status. See
-  [API endpoints](/reference/api-endpoints/#lab-results-in-another-unit).
-
-## Upgrading to v1.42.2
-
-Take a backup as usual. There are two migrations. They add columns and an
-index, rewrite no table and run in seconds:
-
-| Migration | What it does |
-| --- | --- |
-| `0395_medication_auto_mark_taken` | The **Record doses automatically** option on a medication, the moment it was switched on, and the mark on a dose recorded that way |
-| `0397_measurements_noted_live_idx` | A partial index on readings that carry a note, for the record search |
-
-What to know:
-
-- **ntfy behind a reverse proxy.** HealthLog now publishes to ntfy as JSON to
-  the server's root URL, with the topic in the body. A proxy in front of your
-  own ntfy has to let `POST /` through, not only `POST /<topic>`. See
-  [ntfy](/guides/reminder-channels/#ntfy).
-- **`APP_URL` builds the notification links.** Tapping a notification now
-  opens the page it is about, on every channel. ntfy, Telegram, the webhook
-  and email need `APP_URL` for that link, and the ntfy mood quick answers need
-  it to reach the instance from a phone. Without it those channels deliver as
-  before, without a link. See
-  [Tap targets, content and quick answers](/guides/reminder-channels/#tap-targets-content-and-quick-answers).
-- **The ntfy topic carries the quick answers.** For six hours after a mood
-  reminder, anyone who can read your topic can log that one answer. Use a
-  long random topic or your own ntfy with access control. See
-  [Quick answers](/guides/reminder-channels/#quick-answers-on-the-mood-reminder).
-- **A shared Postgres in another time zone works.** Every connection now runs
-  in UTC, whatever the server or database is set to, and the startup log warns
-  if a connection still reports another zone. This fixes passkey sign-in on
-  such an instance. Nothing to configure; see
-  [External PostgreSQL](/self-hosting/external-postgres/#what-the-database-has-to-provide).
-- **Oura connects again** for apps from Oura's current developer portal. No
-  setting changes. See [Connect Oura](/guides/connect-oura/#which-token-endpoint-healthlog-uses).
-- **The daily AI budget turns at local midnight** for each account instead of
-  at midnight UTC. See [Caching and budget](/guides/ai-providers/#caching-and-budget).
-- **What users see.** A [search](/guides/search/) of their own record in the
-  command palette, a setting for
-  [health figures in notifications](/guides/reminder-channels/#health-figures-in-notifications)
-  (off by default, so notifications name the topic and no figure), medications
-  that [record their doses automatically](/guides/track-medications/#record-doses-automatically),
-  **Open in new tab** for PDFs and images in the document vault, and a
-  [timeline](/guides/timeline/) that opens on a window fitted to the record.
-- **For API clients.** New routes `POST /api/search` and
-  `POST /api/notifications/action/{token}`; `autoMarkTaken`,
-  `autoMarkTakenSince` and `remindersActive` on medications, `autoRecorded`
-  on intakes, `content.detail` in the notification preferences, and `url` on
-  every visible APNs push. See
-  [API endpoints](/reference/api-endpoints/#search-and-notification-actions).
-
-## Upgrading to v1.42.1
-
-There are no new settings. One migration, `0393_google_health_backfill_progress`,
-adds a column so an interrupted Google Health backfill resumes where it
-stopped.
-
-- **Google Health stays connected.** A long backfill renews its access token
-  instead of parking the connection after Google's one-hour expiry, and one
-  sync per account runs at a time; a manual sync during another answers `409`
-  with `sync_in_progress`.
-- **The measurement maintenance run works on Docker.** The bundled
-  `docker-compose.yml` gives the database `shm_size: 256mb`, and the
-  maintenance connection no longer needs a shared-memory segment. If you keep
-  your own compose file, nothing else is required.
-
-## Upgrading to v1.42.0
-
-Take a backup before updating. This release has twelve migrations, `0379` to
-`0390`. They add tables and nullable columns, one value to the measurement
-source list and one relaxed constraint; none rewrites a table, and together
-they run in seconds:
-
-| Migration | What it does |
-| --- | --- |
-| `0379_measurement_source_health_connect` | Adds `HEALTH_CONNECT` to the measurement sources |
-| `0380_import_job_kind` | Tells Apple Health and Health Connect import jobs apart |
-| `0381_environment_air_quality` | Nullable air-quality, pollen and UV columns on the stored environment days, and the per-account air-quality switch (on) |
-| `0382_environment_location_encrypted` | Encrypted columns for the home, travel and day locations; the readable ones become nullable |
-| `0383_managed_profile_handover` | The table for managed-profile handover links |
-| `0384_healthkit_type_sync` | When each Apple Health type last arrived, and how |
-| `0385_lab_unit_conversion_source` | Three empty columns for lab unit conversion, which arrives in a later release |
-| `0386_custom_vaccine` | A record's own vaccine definitions, and the link from a dose to one |
-| `0387_life_event` | Life events for the timeline, title and note encrypted |
-| `0388_documents_layout` | The per-account layout choice of the document vault |
-| `0389_measurement_fold_repair` | Which accounts the one-time fold repair has finished |
-| `0390_handover_creator_set_null` | Keeps a claimed handover when the guardian who made it deletes their account |
-
-**The database restarts once.** The bundled `docker-compose.yml` now loads
-`pg_stat_statements` through the `command:` of the `db` service, so the first
-`docker compose up` after pulling it recreates the database container. Plan a
-minute without the app. Reading the statistics is optional and needs one
-`CREATE EXTENSION pg_stat_statements;`; see
-[Query statistics](/self-hosting/database-maintenance/#query-statistics). If
-you keep your own compose file, nothing changes until you add the same lines.
-
-New optional variables, all on the compose whitelist:
-
-| Variable | What it does |
-| --- | --- |
-| `DATABASE_WORK_MEM` | Postgres `work_mem` per app session, `16MB` by default |
-| `DATABASE_SESSION_OPTIONS_DISABLED` | `1` behind PgBouncer, which refuses the session settings otherwise |
-| `ENVIRONMENT_AIR_QUALITY_DISABLED` | `1` turns air quality and pollen off for the whole instance |
-| `OPENMETEO_AIR_QUALITY_URL` | Points the air-quality requests at a self-hosted Open-Meteo |
-
-If your database sits behind PgBouncer without `options` in its
-`ignore_startup_parameters`, set `DATABASE_SESSION_OPTIONS_DISABLED=1` before
-updating. Setting the statement timeout to `0` no longer keeps the app from
-sending session settings. With the variable set, the measurement maintenance
-job applies its own settings with `SET` after it connects, and its concurrent
-index rebuild needs a whole session: run it through a session-mode pool or a
-direct connection, not a transaction-mode pool. See
-[Session settings](/self-hosting/database-maintenance/#session-settings-work_mem-and-pgbouncer).
-
-`IP_GEO_LOOKUP_URL` is now read as a decision. With the variable set, the geo
-row under **Admin, System status** shows green for the provider you named.
-Without GeoLite2 databases and without the variable, the default online
-provider still receives every login IP, and the row shows a warning. Mount the
-databases, name a provider, or set `IP_GEO_LOOKUP_DISABLED`; see
-[Offline geolocation](/self-hosting/geolite2/).
-
-All requests to Open-Meteo, weather and air quality alike, share one instance
-budget: 500 calls a minute, 4,000 an hour and 8,000 a day, below the free
-limits of the hosted service, and 5 % of the daily budget per account. The
-budget is built in, not a variable, and applies to a self-hosted Open-Meteo as
-well. A refused request ends the night's run, and the next night continues
-where it stopped. See
-[Switches](/explanation/environmental-module/#switches).
-
-### After the update, in this order
-
-1. **The fold repair runs by itself.** Once per account, a background job
-   recomputes hourly and daily means that an earlier fold computed from part
-   of a day, and writes only values that differ. It checks only the window in
-   which every sample of a day is still stored: the last 75 days for daily
-   means, and for hourly means the 75 days before the raw window. Older days
-   stay as they are, and the job counts them as
-   `windowsSkippedBeyondHorizon`. The nightly mean and dense folds follow the
-   same rule and leave a day beyond that horizon that already has a mean
-   untouched.
-2. **The cleanup follows by itself.** The compaction tombstone purge removes
-   the folded Apple Health samples older releases kept as deleted rows. It
-   waits for the repair account by account and starts on an account only once
-   its repair has finished. On an instance that has synced Apple Health for a
-   while the measurements table shrinks a lot.
-3. **The maintenance run is yours to start.** When the cleanup has finished,
-   start the maintenance from **Admin, System status** at a quiet hour. It runs
-   `VACUUM (ANALYZE)` and rebuilds the indexes with `REINDEX INDEX
-   CONCURRENTLY` to give the space back, and refuses to start while the
-   cleanup is still running.
-
-See [Database maintenance](/self-hosting/database-maintenance/) for how to
-follow each step.
-
-Two more things run by themselves:
-
-- **Locations are sealed.** The boot-time encryption pass encrypts the stored
-  home, travel and day locations and clears their readable copies.
-- **Air quality fills in.** With a home location set, the nightly environment
-  run adds air quality for up to 90 stored days per account and night, newest
-  first.
-
-What to know:
-
-- **Correlations change.** Every daily correlation now removes the season and
-  the trend first. Some patterns people saw before disappear; they were mostly
-  the season. See
-  [Correlations look past the season](/explanation/environmental-module/#correlations-look-past-the-season).
-- **What users see.** Any date opens [its day](/guides/day-view/), an opt-in
-  [timeline](/guides/timeline/) with life events, air quality and pollen in
-  [the environment module](/explanation/environmental-module/), a
-  [Health Connect import](/guides/import-health-connect/), the
-  [handover of a managed profile](/guides/managed-profiles/#hand-the-profile-over),
-  [own vaccines](/guides/vaccinations/#your-own-vaccines), editing a workout
-  entered by hand, and a confirmation before every delete in the document
-  vault.
-- **The timeline** draws up to six value lines. Each is a series of means per
-  quarter, month or week, depending on the zoom. A gap of up to one quarter,
-  two months or four weeks is bridged with a dashed line; a longer gap leaves
-  the line open. A mean from fewer than three readings is drawn as a hollow
-  point.
-- **The day view** lists under what ran that day only records with a start
-  date of their own. Profile details such as smoking, alcohol and work
-  schedule no longer appear there. On a wide screen the docked day collapses
-  to an edge instead of closing, and the edge reopens the last day. Several
-  readings of one type on a day show in the day's tiles as their mean, marked
-  **Average of n readings**.
-- **Discord and Slack webhooks work.** The generic webhook body now carries
-  `content` for Discord and `text` for Slack; before, both refused it. A
-  webhook channel that turned itself off after five failed deliveries stays
-  off until you switch it back on. See
-  [Notifications via webhook](/guides/webhook-notifications/).
-- **Deleting a Coach conversation stays final.** The delete is sent at the
-  latest when the page is left, so a reload or a closed tab inside the undo
-  window no longer brings the conversation back.
-- **For API and MCP clients.** New routes under `/api/day`, `/api/timeline`
-  and `/api/life-events`, two new MCP tools (`get_day`, `get_environment`), and
-  `HEALTH_CONNECT` as a source value. A client that decodes the source list
-  strictly needs to accept it. See [MCP](/reference/mcp/#read-tools).
-
-Rolling back to v1.41.x is not a plain image swap once the locations are
-sealed: the older image cannot open them and shows no home or travel places.
-Roll back with the backup you took before updating.
-
-## Upgrading to v1.41.2
-
-There are no migrations and no new settings. Take a backup as usual before
-updating.
-
-- **More room for a Coach answer.** On a person's own provider a turn may use
-  165,000 tokens, 200 seconds and 16 rounds (was 120,000, 150 and 12); on your
-  budget 55,000 tokens, 120 seconds and 8 rounds (was 40,000, 90 and 6). The
-  300-second read timeout in [Reverse proxy](/guides/reverse-proxy/) still
-  covers the longer turn; a proxy set below about 200 seconds may cut an
-  answer off. See [Thinking](/guides/admin-overview/#thinking).
-- **Prompt caching counts.** Codex and `api.openai.com` requests carry a
-  stable cache key per conversation, so later rounds of a turn read the prompt
-  from the provider's cache. Anthropic cache reads and writes, and cached
-  tokens reported by local and OpenAI-compatible servers, now count in the
-  turn's budget. Nothing to configure.
-- **MCP clients with strict validation.** Every tool result now matches the
-  output schema the tool advertises, so a client that validates strictly no
-  longer refuses `list_metrics`, `get_intraday_pulse` or the Coach-backed
-  reads. A measurement type whose readings were all deleted is no longer
-  listed as present. See [Structured output](/reference/mcp/#structured-output).
-
-## Upgrading to v1.41.1
-
-There are no migrations and no new settings.
-
-- **What users see.** While the Coach works, one row shows the current step
-  with animated dots, without a running seconds count, and tables appear only
-  with the answer. Afterwards the row reads **Thought process** with the
-  number of steps and stays closed until opened. See
-  [The status line](/guides/coach-conversations/#the-status-line).
-- **On a demo instance** a refused chat says that the Coach does not answer in
-  the demo, and carries `meta.errorCode: "demo.readOnly"`, instead of
-  reporting an unreachable provider.
-
-## Upgrading to v1.41.0
-
-Take a backup as usual. There are three migrations, `0376` to `0378`. They only
-add columns, with constant defaults or nullable, rewrite no table and run in
-seconds:
-
-| Migration | What it does |
-| --- | --- |
-| `0376_ai_reasoning_controls` | The two reasoning controls on the instance settings: reasoning allowed, no cap |
-| `0377_coach_message_trail` | An encrypted column for the text of a Coach answer's trail |
-| `0378_coach_fact_source` | Where each remembered fact came from, when it was last used and the message it came out of. Facts from before the update read as found by the background pass |
-
-What to know after the update:
-
-- **Reasoning is on.** With a model that can reason, the Coach thinks at
-  **Medium** unless a person picks otherwise, and the daily briefing and the
-  weekly and monthly summaries reason too. That uses more tokens per answer. To
-  switch it off or cap it, use **Allow deeper thinking** and **Highest thinking
-  depth** under Admin, Coach, on the Assistant card. On your own shared key or
-  shared ChatGPT connection the Coach is held to **Medium** in any case. See
-  [Thinking](/guides/admin-overview/#thinking).
-- **Longer Coach answers in time.** A question may now run up to 150 seconds on
-  a person's own provider and 90 seconds on yours. The stream sends a status
-  update with every step, and the 300-second read timeout in
-  [Reverse proxy](/guides/reverse-proxy/) covers it; a proxy set much shorter
-  may cut a long answer off.
-- **What users see.** Thinking depth in the Coach settings, a status line above
-  each answer, comparison charts, suggested replies under a clarifying
-  question, and a Coach that remembers with an undo. See
-  [Coach conversations](/guides/coach-conversations/).
-
-Rolling back to v1.40.x leaves the three columns in place; the older image does
-not read them.
-
-## Upgrading to v1.40.6
-
-There are no migrations and no new settings. Take a backup as usual before
-updating.
-
-- **Coach answers about long histories.** On an account with many series the
-  Coach could get a block without numbers and still treat it as data. It now
-  reads each series on its own, condensed when it is long, and says so when a
-  read fails instead of answering from nothing. Nothing to do on your side.
-- **Today means today.** The signals of the day, the lead line, the health
-  status and the morning push speak about today only from readings taken today
-  in the person's timezone, and a briefing stored on an earlier day is no
-  longer shown as today's.
-- **MCP clients that accept only JSON Schema 2020-12** can load the tools now.
-  If such a client refused to connect before, connect it again. See
-  [MCP server](/guides/mcp-server/).
-- **What users see.** On a phone the dashboard card puts a small score ring
-  beside the lead line. Text fields show focus as a neutral border instead of
-  a purple ring, and the Coach panel drops its search field (the full
-  conversation list keeps one).
-
-## Upgrading to v1.40.5
-
-There are no migrations and no new settings. The Coach's conversations panel
-runs the full height of the window, the top bar on the Coach names the open
-conversation, and a new chat starts from a round plus button at the bottom of
-the panel. See [The Coach page](/guides/coach-conversations/#the-coach-page).
-
-## Upgrading to v1.40.4
-
-There are no migrations and no new settings. The Coach's conversations panel
-sits against the right edge of the window, and the model and token count of
-an answer move behind an info icon in the row under it. With touch, the
-panel's buttons keep their full size at any width, a tablet included. See
-[Under each answer](/guides/coach-conversations/#under-each-answer).
-
-## Upgrading to v1.40.3
-
-Take a backup as usual. There is one migration:
-
-| Migration | What it does |
-| --- | --- |
-| `0375_coach_conversation_updated_at_repair` | Moves Coach conversations that an earlier release made look recently active back to the time of their last message. It changes only the conversations table and runs in seconds |
-
-What to know after the update:
-
-- **Key rotation keeps the order.** Rotating the encryption key or encrypting
-  stored text in place no longer makes old Coach conversations look new, and
-  measurements, mood entries and every other encrypted record keep their sync
-  position through the same rewrite. See
-  [Encryption key rotation](/guides/encryption-key-rotation/).
-- **Usual ranges.** A personal usual range never shrinks to a single value, and
-  glucose today is compared with the same hours of earlier days. A fasting
-  morning no longer reads as low against whole days.
-- **What users see.** The Today lead shows whole sentences, and chart
-  legends, trend lines and tooltips name every metric in the reader's
-  language. See [The Today overview](/insights/today/#the-today-overview).
-- **For API clients.** The daily digest carries a `signalLine` decided on the
-  server, and health status deviations carry a `basis` (`day` or
-  `sameHours`).
-
-Rolling back to v1.40.2 is safe; the migration only corrected timestamps.
-
-## Upgrading to v1.40.2
-
-There are no migrations and no new settings. Take a backup as usual before
-updating.
-
-- **Rolling back to v1.40.1 or earlier.** An account that saved the Coach
-  lookback **12 months** (`lastYear`, new in v1.40.2) has its whole Coach
-  preferences read as defaults by the older version, metric exclusions
-  included, until they are saved again. Ask such accounts to pick another
-  lookback before a rollback, or to save their exclusions again after it.
-- **What users see.** The Coach has a conversations panel, quick settings
-  behind a gear and a lookback that is now a real limit
-  ([Coach conversations](/guides/coach-conversations/#the-coach-page)); the
-  dashboard opens with a Today overview
-  ([The Today view](/insights/today/#the-today-overview)); the document
-  archive filters by procedure.
-
-## Upgrading to v1.40.1
-
-Take a database backup first. There are three migrations, `0372` to `0374`:
-
-| Migration | What it does |
-| --- | --- |
-| `0372_pulse_hourly_mean_day` | Recalculates the stored pulse summaries so a day is the mean of its hours and a week, month or year the mean of its days. It reads every pulse reading once, so it takes longer on an account with years of heart-rate data |
-| `0373_backup_pass_attempts` | A small table noting when each backup pass started and finished per account |
-| `0374_document_thumbnail_failures` | A small table for document previews that cannot be rendered, so they are not retried at every start |
-
-What to check after the update:
-
-- **Memory.** The compose file now gives the app `1536m` instead of `1g` by
-  default (`APP_MEMORY_LIMIT`), a Node heap of about 792 MB instead of 524 MB.
-  If your host has 2 GB of memory or less, set `APP_MEMORY_LIMIT=1g` in `.env`
-  before `docker compose up -d`. If you set it yourself already, nothing
-  changes. See [Scaling](/self-hosting/scaling/#memory).
-- **Database pool.** Web pages and background jobs in the default `all` mode
-  now share one connection pool of `DB_CONNECTION_LIMIT` connections. If you
-  lowered it a lot, check that jobs do not queue.
-- **A restore that was refused.** A restore refused on v1.40.0 with "the key
-  material behind the id differs" works now; start it again from its row. See
-  [Restore from the console](/guides/backups/#restore-from-the-console).
-- **Pulse averages change.** Daily, weekly and monthly pulse values are usually lower
-  on days with a workout, because every hour now counts once. See
-  [A day of pulse](/insights/intraday-pulse/#a-day-of-pulse).
-- **Umami.** If you use Umami with this instance, reload open tabs once after
-  the update.
-
-## Upgrading to v1.40.0
-
-Take a database backup first. There are seven migrations, `0365` to `0371`;
-after them you cannot go back to v1.39.9 without restoring that backup. They are
-quick and safe to run again if interrupted.
-
-| Migration | What it adds |
-| --- | --- |
-| `0365_encryption_key_canaries_and_key_backup` | The record the start-up key check keeps per key id, and the key backup confirmation |
-| `0366_document_ai_runs` | Background runs for document and lab-scan reads |
-| `0367_workout_insight_claim_set_null` | Deleting a workout no longer frees a slot for another AI paragraph that day |
-| `0368_medication_courses_and_custom_categories` | Medication courses and your own categories. Every existing medication with a start or end date becomes one course with the same dates |
-| `0369_symptom_definitions_and_events` | Your own symptoms and their entries |
-| `0370_document_ai_run_kinds_summary_suggest_extract` | Summary, filing suggestions and extraction as background runs |
-| `0371_idempotency_request_fingerprint` | The request fingerprint that makes an `Idempotency-Key` replay only the same request |
-
-What to check after the update:
-
-- **Back up the encryption key.** The admin sees a **Back up your encryption
-  key** step under Admin, Encryption and a dashboard reminder until it is
-  confirmed. See [Keep a copy of the key](/explanation/encryption-at-rest/#keep-a-copy-of-the-key).
-- **The start-up key check.** A server whose key cannot open its data now
-  refuses to serve and says why, instead of failing on every encrypted value.
-  See [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check).
-- **Background worker.** Long document reads and lab scans run on the
-  background worker, which runs inside the app container by default. If you
-  run a separate `app-worker`, update it to the same version. See
-  [Scaling](/self-hosting/scaling/#document-and-lab-scan-reads-run-on-the-worker).
-- **Two optional settings.** `HEALTHLOG_PLATFORM` (`compose`, `truenas`,
-  `coolify`, `unraid` or `portainer`) opens the key backup step on the matching
-  instructions. `ENCRYPTION_KEY_CHECK=warn` is a last resort if the key check
-  refuses a server whose key you are certain is right; it disables a safety
-  check, so use it only after the three real fixes. Both are on the compose
-  `environment:` list.
-- **Sign-in over plain http.** With `SESSION_COOKIE_SECURE` left at its
-  production default, the sign-in page on an `http://` address now says it
-  cannot complete there. Set `SESSION_COOKIE_SECURE=false` for a server you
-  only reach on your own network, or use https.
-- **Blood pressure entered on the iPhone.** Readings saved by the iPhone app
-  before v1.40.0 may be missing their lower value; it never reached the server
-  and cannot be recovered. Delete such a reading and enter it again with both
-  values and its original time.
-
-There is a new page for [TrueNAS SCALE](/self-hosting/truenas/).
-
-## Upgrading to v1.39.8
-
-Take a database backup first, as always. There are no migrations and no new
-settings.
-
-Two limits change, which matters only if you run a client of your own against
-the API. `POST /api/insights/ecg` now allows 600 requests a minute per account
-instead of 60, so the iPhone app can bring a long backlog of ECGs through in one
-sync. Batches sent to `POST /api/workouts/batch` with a `workouts:write` token
-count in an allowance of their own, 60 a minute shared by all workout tokens of
-the account, separate from the iPhone app's. See
-[Push workouts](/guides/ingest-token/#push-workouts).
-
-## Upgrading to v1.39.7
-
-Take a database backup first, as always. There are no migrations and no new
-settings.
-
-The daily briefing now carries its figures in each person's units, so every
-account's briefing is written once more at the next nightly run. With a paid
-AI provider that is one extra model request per account, once. With AI off or
-not set up, nothing is sent.
-
-Backups made from this release on also carry each account's settings and module
-selection, and a restore writes them back. Backups made before it restore as
-they always did, with the data and without the settings. See
-[Account settings in a backup](/guides/backups/#account-settings-in-a-backup).
-
-## Upgrading to v1.39.6
-
-Take a database backup first, as always. There are no new settings.
-
-Migration `0364_data_backup_preview` adds one nullable column,
-`data_backups.preview`, which holds the counts the restore dialog shows. New
-backups fill it when they are written. Backups made before the upgrade have
-none until the dialog first opens them; see
-[Restore from the console](/guides/backups/#restore-from-the-console).
-
-This release moves Next.js to 16.3.6, which fixes a critical vulnerability in
-the versions HealthLog used before, and raises fast-uri, ip-address and
-dompurify for advisories of their own. Please update.
-
-Full-history imports of connected services now have sixteen hours instead of
-fifteen minutes. An import that was already queued before the upgrade keeps
-the fifteen-minute limit it was queued with until it has run once. A retry of
-it that starts while it is still running stops at once, so it no longer runs
-twice.
-
-## Upgrading to v1.39.5
-
-There are no migrations of HealthLog's own and no new settings. Take a database
-backup first, as always.
-
-The job queue library (pg-boss) moves to 12.34 and updates its own tables in
-the `pgboss` schema on the first start, from schema version 37 to 42. The
-update adds a few columns to its small bookkeeping tables and replaces some of
-its functions; it does not rewrite the job table and runs in a moment. Schedules
-that carry no time zone are set to UTC, which is what they already ran on;
-HealthLog sets a time zone on every schedule it creates.
-
-If you raised `NODE_OPTIONS=--max-old-space-size` because a large heart-rate
-history or a restore ran the app out of memory, you can drop it again after
-updating. See [The app restarts with "JavaScript heap out of
-memory"](/self-hosting/troubleshooting/#the-app-restarts-with-javascript-heap-out-of-memory).
-
-## Upgrading to v1.39.4
-
-### Migrations 0360 to 0363
-
-Three of the four only add columns and indexes. One rounds stored
-coordinates, which cannot be undone.
-
-- `0360_coach_message_results` adds a column to `coach_messages` for the tables
-  of values a Coach answer read, stored encrypted (see
-  [Coach conversations](/guides/coach-conversations/)). Nothing else changes.
-- `0361_encrypt_route_geometry_and_practitioner_contact` adds encrypted columns
-  for the GPS track of a workout and for a practitioner's phone number and
-  address, makes the old track column optional, and adds two small indexes
-  that let the background job find the rows it still has to encrypt. SQL cannot
-  encrypt, so a background job starts a few minutes after boot, encrypts the
-  existing rows one at a time and empties the readable value in the same step.
-  It looks again every night at 04:07 Europe/Berlin for rows an older server
-  wrote during the upgrade. Until it has reached a row, the app reads that row
-  as before, so the map, the splits, the GPX download and the address book look
-  the same throughout. A large archive of outdoor workouts takes a few minutes.
-  The old columns are dropped in a later release. The same migration rounds the
-  weather module's stored coordinates (home, travel periods, each day's
-  weather) to one decimal of a degree, about 11 km; see
-  [the environmental module](/explanation/environmental-module/#a-conservative-location-posture).
-- `0362_measurement_reference_indexes` indexes the two columns that point into
-  the readings table, `personal_records.source_measurement_id` and
-  `ecg_recordings.measurement_id`. Without them, deleting readings checked both
-  tables once per deleted reading, which made a restore of a large account run
-  out of time, and slowed the nightly clean-up and account deletion. Both
-  tables are small, and the indexes are built during start-up, before the app
-  takes traffic.
-- `0363_user_sync_reset_at` adds `users.sync_reset_at`, the moment an
-  account was last restored from a backup or wiped. Paired apps holding a sync
-  position from before it start over (see
-  [Paired apps after a restore](/guides/backups/#paired-apps-after-a-restore)).
-
-Take a database dump before deploying. Going back to v1.39.3 after the
-background job has run is not supported: that version reads only the readable
-columns the job empties, so workout tracks and practitioner phone numbers and
-addresses would disappear from view. Restore the dump instead.
-
-### What to check as an operator
-
-- **Nothing to configure.** No new variable, and the encryption uses your
-  existing `ENCRYPTION_KEYS`. [Key rotation](/guides/encryption-key-rotation/)
-  covers the new columns; as always, keep an old key until the rotation reports
-  nothing left on it.
-- **Restores of large accounts.** The restore job may now run for six hours
-  instead of two, and a restore's own time limit counts the readings the
-  account holds as well as the ones in the file. A restore that the database
-  refuses names the cause on the admin backups page. See
-  [How long a restore may take](/guides/backups/#how-long-a-restore-may-take).
-- **Backup files.** A disaster-recovery backup carries the new encrypted
-  fields (practitioner phone and address, Coach tables) as ciphertext, like the
-  practice note; a portable export carries them readable, since that file is
-  meant to be read. Restoring either kind, or a file from before v1.39.4,
-  stores them encrypted. Workout GPS tracks are still not part of a backup, and
-  the file's manifest still says so.
-
-### What people will notice
-
-- **The Coach shows its work.** With a provider that can call tools, an answer
-  lists the sources the Coach read, shows the values as tables and charts that
-  can be copied, explains how a figure was worked out, and offers follow-up
-  suggestions. An ambiguous question gets a short question back with choices.
-  See [Coach conversations](/guides/coach-conversations/).
-- **Ended medications stop asking for a dose.** After a course's end date the
-  card and the table no longer offer Taken and Skip and show **Ended**; **Mental
-  health** is a new medication category, and editing a medication or
-  restoring a backup keeps its category. See
-  [When Taken and Skip appear](/guides/track-medications/#when-taken-and-skip-appear).
-- **Long charts show the average day.** On the **All** range each week or
-  month of steps, active energy, distance, flights or daylight is the average
-  daily total, captioned **Daily avg per week** or **Daily avg per month**, the
-  same on a long history as on a short one. Before, a long history showed the
-  whole total, about thirty times higher for a month. West of UTC, months on
-  that range no longer sit one month early. See
-  [Dashboard customization](/features/dashboard-customization/).
-- **Weather locations are coarser.** A home place stored to about a kilometre
-  is now stored to about 11 km. The weather readings change very little, since
-  the weather data comes in cells of 9 to 25 km.
-- **The sidebar's collapse control moved** from the top of the desktop sidebar
-  to the bottom: a row labelled **Collapse**, directly above **Admin Console**,
-  or above **Settings** for an account without admin access. A saved choice to
-  keep the sidebar collapsed carries over.
-- **Editing a practitioner's phone number or address** records only which
-  field changed in the audit log, not the old value.
-
-## Upgrading to v1.39.3
-
-### Migrations 0356 to 0359
-
-All four only add tables, columns and indexes; nothing is deleted.
-
-- `0356_document_source_connections` adds the table behind the
-  [document picker](/guides/import-documents/#pick-documents-inside-healthlog)
-  (one connection per person and archive, its token encrypted), and a nullable
-  source instance to the imported-document keys, whose unique indexes are
-  rebuilt to include it. Keys stored by v1.39.2 have no instance and keep
-  matching any.
-- `0357_encrypt_coach_title_and_metric_note` adds encrypted columns for the
-  Coach conversation title and the note on a custom-metric reading, and makes
-  the old title column optional. SQL cannot encrypt, so a background job after
-  boot encrypts the existing rows one at a time and empties the readable value
-  in the same step. The old columns are dropped in a later release.
-- `0358_backup_key_ids_and_offhost_purge` records which encryption keys each
-  stored backup needs (copies written before v1.39.3 are marked as not
-  recorded), when the nightly run last wrote an off-host object needing each
-  key, and the accounts whose off-host copies are waiting to be deleted.
-- `0359_session_reproof_stamp` adds the time a browser session last confirmed
-  it is the account holder.
-
-Take a database dump before deploying. Going back to v1.39.2 after the
-background job has run is not supported, because that version reads only the
-readable title and note the job empties; restore the dump instead.
-
-### What to check as an operator
-
-- **Off-host backup credential.** The worker now deletes an account's copies
-  when the account is deleted, a managed profile is deleted or someone uses
-  **Delete all data**, so its credential needs `DeleteObject` alongside
-  `PutObject`, `GetObject`, `ListBucket` and `AbortMultipartUpload`. Add
-  `GetLifecycleConfiguration` if you want the admin page to confirm your
-  lifecycle rule. In a web/worker split, set the `BACKUP_*` variables on both
-  containers. See [Bucket permissions](/guides/backups/#bucket-permissions).
-  New objects use wire format `0x04`, which only `scripts/restore-backup.ts`
-  from v1.39.3 or later reads.
-- **Local AI endpoints.** `ALLOW_LOCAL_AI_PRIVATE_HOSTS=true` now covers only
-  the admin AI key and AI settings saved on an admin account; every other
-  account's private endpoint is refused until its origin is in
-  `AI_PRIVATE_ORIGINS`. The admin AI settings page shows the exact line to add.
-  A host list in `ALLOW_LOCAL_AI_PRIVATE_HOSTS` keeps working. See
-  [Configure AI providers](/guides/ai-providers/).
-- **Reverse proxy.** Nothing in the proxy has to change. Behind it, the app now
-  accepts request bodies over 1 MB only on the upload routes, and it trusts
-  `X-Real-IP` only when `TRUST_PROXY_HOPS` is `1` or more: if your proxy sets
-  only `X-Real-IP` and you had set `TRUST_PROXY_HOPS=0` for it, set `1`. An
-  empty `TRUST_PROXY_HOPS` now means `1`. See
-  [Reverse proxy](/guides/reverse-proxy/#trust_proxy_hops).
-- **Your own compose file.** If you keep one, add the new variables to its
-  `environment:` whitelist: `DOCUMENT_SOURCE_ORIGINS`, `AI_PRIVATE_ORIGINS`,
-  `PASSWORD_BREACH_CHECK_DISABLED`, `UPDATE_CHECK_DISABLED` and
-  `BACKUP_ENCRYPTION_PREVIOUS_KEYS`, each as `NAME: "${NAME:-}"`. See the
-  [environment variables](/reference/environment-variables/).
-- **New switches.** `PASSWORD_BREACH_CHECK_DISABLED` and `UPDATE_CHECK_DISABLED`
-  turn off the breach and update checks, and `IP_GEO_LOOKUP_DISABLED` now also
-  accepts `true`, `yes` and `on`.
-
-### What people will notice
-
-- **Confirming it is you.** Downloading a full backup, making a doctor share
-  link, creating an assistant, measurement or document token, adding a second
-  factor or passkey, and changing the password or email address ask for a
-  password, second factor or passkey unless the person signed in within the
-  last five minutes. The admin backup download, upload and restore, the global
-  wipe and resetting another account's password ask the admin the same. An
-  account that signs in only through single sign-on signs in again instead.
-  See [Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you).
-- **Sign out everywhere else** now also ends connected assistants, API tokens
-  (Home Assistant, scale bridges, document importers) and, unless unticked,
-  doctor share links. A password change ends all of them.
-- **Single sign-on** links to an existing account with the same email only after
-  one sign-in to that account with its own password or passkey. Accounts
-  already linked are not affected.
-- **The password reset script** ships in the image from this release.
-
-## Migrations 0352 to 0355 in v1.39.2
-
-`0353_document_import_source` and `0354_condition_body_site` only add columns
-and tables: the source key and the held-back AI reading of imported documents,
-the memory of imported documents you deleted (see
-[Import documents](/guides/import-documents/#running-it-again-duplicates-and-deletions)),
-and the body site and side of a condition.
-
-`0355_checkup_stays_due` adds the column that keeps the repeat of an open
-reminder to once a week, and changes existing data in two places. It puts
-reminders repeating less often than weekly, or on their last date, that had moved on to
-their next date after notifying in the previous 90 days back to the day they
-notified, unless they were done, skipped, snoozed past that day or edited
-since, or were a course whose end date had passed before it (see
-[When a reminder is due](/guides/checkups-and-practitioners/#when-a-reminder-is-due)).
-And it adds **Appointments** to every saved choice of start-page items that
-lacks it, so visits show on the start page again for layouts saved before they
-existed (see [The Today view](/insights/today/#the-worth-a-look-rail)).
-Nothing is deleted.
-
-`0352_data_backup_chunks` adds the `data_backup_chunks` table and makes
-`data_backups.data` optional, because from v1.39.2 a stored backup is kept as
-pieces in the new table (see
-[Backups kept in the database](/guides/backups/#backups-kept-in-the-database)).
-Existing copies are not touched. Going back to the v1.39.1 image is not
-supported: that version reads only the single value, so it finds a copy stored
-in pieces empty, and if it writes a weekly copy into such a row, the row holds
-both forms. v1.39.2 then refuses to read that row ("This backup holds both a
-single stored value and pieces"), and the next weekly backup replaces it. Take
-a database dump before deploying; if you must go back, restore that dump.
-
 ## Rolling back
 
-Rolling back **migrations** is generally one-way (Prisma's `down` step is not
-auto-generated; most HealthLog migrations are forward-only). To revert:
+Migrations are forward-only, and the previous image is not guaranteed to read
+the newer schema. Rolling back therefore means going back to the dump you took
+in step 0:
 
-1. Roll the **app container** back to the previous image tag.
-2. Leave the **database schema** at the newer migration — the previous app
-   version reads forward-compatible shapes for nearly every release pair.
-3. If a column-drop shipped in the rollback target, hand-roll the column back via
-   a fresh forward migration. Never `migrate resolve --rolled-back` against
-   production without a fresh `pg_dump` first.
+1. Stop the app: `docker compose stop app`.
+2. Restore the dump into an empty database, as described in
+   [Restore a database dump](/guides/backups/#restore-a-database-dump).
+3. Pin the previous release with `HEALTHLOG_IMAGE_REF=:vX.Y.Z` in `.env` and
+   start it with `docker compose up -d`.
+
+Anything written after the dump is lost, so roll back early or not at all.
+From v1.46.0 back to v1.45 the old Postgres 16 volume is the way back instead;
+see [Going back](/self-hosting/postgres-upgrade/#going-back).
 
 ## Verify the served version
 
-The queued-deploy status is **not** the source of truth — the version
-`/api/version` actually answers is. A BuildKit layer-cache hit can re-ship the
-prior image even when the dashboard reports a clean deploy. `/api/version`
-returns `version` + `buildSha` + `builtAt`; the published image carries its build
-SHA so a deployment can prove what is running. Always confirm after a deploy:
+The deploy status of your platform is not the source of truth; the version the
+server answers is. `/api/version` needs no sign-in and returns `version`,
+`buildSha` and `builtAt`:
 
 ```bash
-# Asserts the targets serve the expected version, prints each buildSha,
-# exits non-zero on mismatch after a bounded retry loop.
-pnpm dlx tsx scripts/assert-deploy.ts <version>   # e.g. the tag you deployed
+curl -s https://your-instance.example.com/api/version
 ```
 
-Pass `--only=prod` / `--only=demo` for a single target, or
-`--attempts=N --interval=ms` to widen the retry window while a slow pull settles.
-
-## Walk the synthetic journey
-
-The version check proves the instance serves the right build. It does not prove
-a person can use it. `scripts/synthetic-journey.mjs` warms the instance, checks
-`/api/version` against the tag you deployed, signs in, writes a reading with an
-idempotency key, reads it back and deletes it again, printing one line per leg
-with its elapsed time and stopping at the first failure:
-
-```bash
-BASE_URL=https://your-instance.example.com \
-SYNTHETIC_USERNAME=<probe account> \
-SYNTHETIC_PASSWORD=<its password> \
-EXPECTED_VERSION=vX.Y.Z \
-  node scripts/synthetic-journey.mjs
-```
-
-It is plain Node 22 with no dependencies, so it runs from a workstation, a
-runner or the deploy host. Two preconditions on the probe account: it must be
-password-only, because the password flow stops at the MFA ticket for an account
-with a second factor, and the target must not be a demo instance, where every
-mutation is blocked and the write leg would be red for a reason that has nothing
-to do with the deploy.
-
-A red leg names the layer. `version` means the instance serves a different build
-than the tag; check the image digest and `pull_policy` first. `sign in` means
-sessions are broken, or the probe account gained a second factor. `write` means
-the database, the encryption keys or a migration that did not run. `read back`
-means a value was written and cannot be read back; roll back. `delete` means the
-reversible delete is broken and the probe reading is still on the account.
-
-The same journey runs by hand as the **Synthetic journey** workflow in the
-server repository. Nothing calls it from the deploy path. Full runbook:
-[Ops → Deploy](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/deploy.md).
+Probe it twice, a few seconds apart: during the container swap a single probe
+can be answered by the outgoing container. If the version is old, check the
+image the container really runs
+(`docker inspect healthlog-app --format '{{.Config.Image}}'`) and that the
+compose file still has `pull_policy: always`.
 
 ## Pin the image by digest
 
-Tags (`:latest`, `:v1.38.0`) are mutable aliases. The digest is the image's
+Tags (`:latest`, `:v1.46.0`) are mutable aliases. The digest is the image's
 only immutable identity, and it is what the release signature covers. The
 compose file's `app` image is `ghcr.io/mbombeck/healthlog${HEALTHLOG_IMAGE_REF:-:latest}`,
 so set `HEALTHLOG_IMAGE_REF` in the `.env` next to the compose file (or in the
 deployment platform's env vars) to change the reference without editing the
-file: `:v1.38.0` pins a tag, `@sha256:<digest>` pins the digest. Resolve a
+file: `:v1.46.0` pins a tag, `@sha256:<digest>` pins the digest. Resolve a
 release's digest with
 
 ```bash
@@ -1153,46 +206,3 @@ and the running container's image is the one you expect
 `/api/version` more than once a few seconds apart: during the container swap a
 single probe can be answered by the outgoing container.
 :::
-
-## Web/worker split for scale
-
-The default container runs both the Next.js server and the pg-boss worker
-(`HEALTHLOG_PROCESS_TYPE=all`). The same image deploys in three modes:
-
-| `HEALTHLOG_PROCESS_TYPE` | Web | Worker | Use when |
-| --- | --- | --- | --- |
-| `all` (default) | ✅ | ✅ | single-host self-hosting |
-| `web` | ✅ | ❌ | scaling HTTP horizontally |
-| `worker` | ❌ | ✅ | dedicated job worker |
-
-To split: set `HEALTHLOG_PROCESS_TYPE=web` on `app`, uncomment the `app-worker`
-service in the compose file, ensure both see the same `DATABASE_URL`,
-`ENCRYPTION_KEY`, and `API_TOKEN_HMAC_KEY`, then
-`docker compose up -d --build`. pg-boss claims jobs atomically via row-level
-locking (`FOR UPDATE SKIP LOCKED`), so a duplicate worker replica is safe but
-only doubles DB load — run one worker and scale the web containers, as the
-[scaling page](/self-hosting/scaling/) recommends. A startup gate refuses to
-boot the reminder worker when `HEALTHLOG_PROCESS_TYPE=web`, so a cross-mode
-misconfiguration aborts instead of doubling cron load.
-
-### Connection-pool sizing
-
-Each container opens its own pool, capped at **20 connections by default**. Plan
-total Postgres slots as **container_count × pool_max**. A stock Postgres 16 ships
-`max_connections = 100`:
-
-| Web | Worker | Containers | Slots used | Headroom |
-| --- | --- | --- | --- | --- |
-| 1 | 0 | 1 | 20 | 80 |
-| 1 | 1 | 2 | 40 | 60 |
-| 2 | 1 | 3 | 60 | 40 |
-| 3 | 1 | 4 | 80 | 20 |
-| 4 | 1 | 5 | 100 | 0 (do not exceed) |
-
-Override per container with `DB_CONNECTION_LIMIT`, which the bundled compose
-folds into `DATABASE_URL`; `DATABASE_POOL_MAX` is still read but is not on the
-compose whitelist, so setting it in `.env` alone does nothing. Past the
-"0 headroom" row, every other client (`psql`, backups, the Prisma CLI during a
-migration) gets `FATAL: sorry, too many clients already`. Either raise
-`max_connections`, lower `DB_CONNECTION_LIMIT`, or front Postgres with PgBouncer
-in transaction-pooling mode.
