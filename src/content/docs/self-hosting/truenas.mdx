@@ -6,7 +6,7 @@ sidebar:
 ---
 
 HealthLog runs on TrueNAS SCALE as a Docker app: one `app` container from
-`ghcr.io/mbombeck/healthlog` and one PostgreSQL 16 database. The app container
+`ghcr.io/mbombeck/healthlog` and one PostgreSQL database. The app container
 is stateless. Everything you care about lives in the database dataset and in
 one value you must keep yourself: the encryption key.
 
@@ -99,6 +99,7 @@ database container's Shell) for the reset statement, and set
 
 Pick the new tag, take a snapshot of the database dataset first, and update.
 Migrations run on start. The first start of a new install applies all of them,
-which is why the start period above is generous. Read the release's notes in
-[Updates and deploy](/guides/updates-and-deploy/) before a version with
-migrations you cannot roll back.
+which is why the start period above is generous. Read the release's notes in the
+[CHANGELOG](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md)
+first, and see [Updates and deploy](/guides/updates-and-deploy/) for the
+procedure.

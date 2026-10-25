@@ -222,6 +222,7 @@ export default defineConfig({
 						{ slug: 'self-hosting/portainer-and-unraid' },
 						{ slug: 'self-hosting/truenas' },
 						{ slug: 'self-hosting/external-postgres' },
+						{ slug: 'self-hosting/postgres-upgrade' },
 						{ slug: 'self-hosting/tls-certificates' },
 						{ slug: 'security/certificate-pinning' },
 						{ slug: 'guides/reverse-proxy' },

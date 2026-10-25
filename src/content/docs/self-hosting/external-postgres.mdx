@@ -14,8 +14,10 @@ operation once the database is no longer part of the stack.
 
 ## What the database has to provide
 
-**PostgreSQL 16.** The bundled service runs `postgres:16` and every release is
-tested against it. Use the same major version for an external instance.
+**PostgreSQL 16 or 18.** The bundled service runs Postgres 18, and every
+release is tested against both majors. An external instance on 16 keeps
+working; moving it to 18 is a dump and restore you schedule yourself (see
+[Moving to Postgres 18](/self-hosting/postgres-upgrade/#by-hand)).
 
 **A role that owns the database.** HealthLog needs no superuser and installs
 no extensions. What it does need is the right to create objects: on first
@@ -39,13 +41,11 @@ grants are `CREATE` on the database (for the `pgboss` schema) and `ALL` on the
 is the simpler arrangement and the one to prefer for a database that is only
 HealthLog's.
 
-**Any time zone.** HealthLog stores every time as UTC and, since v1.42.2,
-pins each connection it opens to UTC (`TimeZone=UTC`, sent in the libpq
-`options` startup parameter). The server's or the database's own `timezone`
-setting therefore does not matter: a shared instance set to `Europe/Berlin`
-works the same as one set to UTC. Before v1.42.2 such an instance made a fresh
-passkey challenge look hours old, and sign-in with a passkey was refused. The
-app checks the setting at startup and logs a warning naming the zone if a
+**Any time zone.** HealthLog stores every time as UTC and pins each
+connection it opens to UTC (`TimeZone=UTC`, sent in the libpq `options`
+startup parameter). The server's or the database's own `timezone` setting
+therefore does not matter: a shared instance set to `Europe/Berlin` works the
+same as one set to UTC. The app checks the setting at startup and logs a warning naming the zone if a
 connection still reports something else.
 
 Behind PgBouncer with `DATABASE_SESSION_OPTIONS_DISABLED=1` the app pins the
@@ -92,8 +92,8 @@ external role, or write the password into the URL directly and drop the
 variable.
 
 If you would rather not use an override, copy `docker-compose.yml`, delete
-the `db` service, the `pgdata` volume and the `depends_on:` block under
-`app`, and set `DATABASE_URL` in the copy.
+the `db` and `db-upgrade` services, the `volumes:` block at the end and the
+`depends_on:` block under `app`, and set `DATABASE_URL` in the copy.
 
 Portainer and Unraid users already fill in `DATABASE_URL` as a template field;
 the [template guide](/self-hosting/portainer-and-unraid/) covers that path.
@@ -119,8 +119,10 @@ message.
 
 Both database clients in the application, the ORM and the job queue, share
 one budget, taken from `connection_limit` in the URL or from the
-`DB_CONNECTION_LIMIT` environment variable. The default is 20 per container:
-2 for the job queue and 18 for everything else. A container running with
+`DB_CONNECTION_LIMIT` environment variable. The default is 20 per container.
+A container that runs the job worker (the default `all` mode, or a separate
+worker) gives 4 of them to the job queue and 16 to everything else; a web-only
+container gives the queue 2. A container running with
 [a separate worker](/self-hosting/scaling/) counts twice.
 
 Set PostgreSQL's `max_connections` so that HealthLog's containers together
@@ -170,8 +172,8 @@ already have for it.
 
 **Upgrades.** A new HealthLog release migrates the schema on start, as
 before. A PostgreSQL major-version upgrade is now yours to schedule; do it
-with the application stopped, and keep to version 16 until the release notes
-say otherwise.
+with the application stopped, as described in
+[Moving to Postgres 18](/self-hosting/postgres-upgrade/#by-hand).
 
 **Moving an existing install.** To take a HealthLog database out of the
 bundled service and into your instance, stop the application, dump from the
@@ -186,6 +188,8 @@ docker compose up -d app
 
 `--no-owner --no-privileges` matters when the dump was taken as one role and
 restored as another; the application role ends up owning everything it
-restores. Encrypted columns travel as they are: the encryption keys live in
+restores. Run `vacuumdb -h 10.0.0.5 -U healthlog -d healthlog --analyze-in-stages`
+before the app takes traffic: a restore brings the rows but not the planner
+statistics. Encrypted columns travel as they are: the encryption keys live in
 the application's environment, not in the database, so `ENCRYPTION_KEY` stays
 exactly as it was.

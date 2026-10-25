@@ -1,0 +1,144 @@
+---
+title: Moving to Postgres 18
+description: How the bundled database moves from Postgres 16 to 18 on the first start of v1.46, how to go back, and the dump and restore for a Postgres you run yourself.
+sidebar:
+  order: 5
+---
+
+From v1.46 the compose file runs Postgres 18. Installs from v1.45 or earlier
+ran 16, and a major version cannot open the data directory of an older one.
+The compose file therefore carries a one-time step, `db-upgrade`, that moves
+the database across on the first start after the update. On a stack that runs
+the project's `docker-compose.yml` there is nothing to do by hand.
+
+HealthLog runs on Postgres 16 and 18 alike. An install that brings its own
+database (the Unraid template, TrueNAS, an
+[external Postgres](/self-hosting/external-postgres/)) is not touched and
+keeps working on 16; the move there is yours to schedule, see
+[By hand](#by-hand).
+
+## Before you update
+
+- **Use the new compose file.** The move runs with the v1.46 compose file and
+  `docker compose up -d`. Pulling only the new image with the old compose file
+  keeps Postgres 16, which v1.46 still runs on.
+- **Free disk space about the size of the database.** The move writes a second
+  copy into a new volume, `postgres-data`, and leaves the old `pgdata` volume
+  as it was. `db-upgrade` checks the space first and stops without changing
+  anything if it is short.
+- **Have the encryption key at hand**, as before any update. A database is
+  unreadable without it.
+
+## What happens on the first start
+
+`db-upgrade` is a short-lived container next to `db`. It starts after the new
+Postgres 18 database is up and before the app, and it exits within a second
+when there is nothing to move. When the old `pgdata` volume holds a Postgres 16
+database and the new one is empty, it starts Postgres 16 inside its own
+container on the old volume, streams a dump into Postgres 18 in a single
+transaction, compares the row count of every table, gathers the planner
+statistics and leaves a marker file on the old volume. The app starts only
+after that succeeded, then applies the release's migrations as usual.
+
+On a typical personal record the move takes seconds; a database of a few
+gigabytes takes a few minutes. Watch it with:
+
+```bash
+docker compose logs -f db-upgrade
+```
+
+If any step fails, the new database stays empty, the app does not start, and
+the log says what happened. A move cut short by a restart or a full disk runs
+again from scratch on the next `docker compose up -d`. The old volume is read
+and never changed apart from the marker file; it is the way back.
+
+## Going back
+
+Stop the stack, put the two lines of the `db` service back the way v1.45 had
+them, and start it with the v1.45 image:
+
+```yaml
+db:
+  image: postgres:16.15-alpine
+  volumes:
+    - pgdata:/var/lib/postgresql/data
+```
+
+```bash
+docker compose down
+HEALTHLOG_IMAGE_REF=:v1.45.0 docker compose up -d
+```
+
+Anything written after the move lives only in the Postgres 18 volume.
+
+## Afterwards
+
+Keep the old volume until the new database has run for a while. When you are
+sure, remove it. `docker volume ls` shows its full name, prefixed with the
+compose project:
+
+```bash
+docker volume rm <project>_pgdata
+```
+
+`db-upgrade` then finds nothing to move. A later release drops the service and
+the `pgdata` line.
+
+**Starting over.** If the Postgres 18 volume is empty again after a move
+(deleted by hand, say), `db-upgrade` refuses to import the old state a second
+time and the app does not start, since that would quietly bring back the
+database as it was on the day of the move. To do exactly that on purpose,
+remove the marker and start again:
+
+```bash
+docker compose run --rm --entrypoint rm db-upgrade \
+  /var/lib/postgresql/data/HEALTHLOG_MOVED_TO_POSTGRES_18
+docker compose up -d
+```
+
+## By hand
+
+For a Postgres you run yourself, or a compose file changed so much that the
+step does not fit, the move is a dump and a restore. The commands below use
+the compose services; against your own server, run the same `pg_dump`,
+`pg_restore` and `vacuumdb` with `-h <host>`.
+
+```bash
+# 1. Stop the app (and app-worker, if you run one) so nothing writes.
+docker compose stop app
+
+# 2. Dump the database in Postgres' custom format.
+docker compose exec -T db pg_dump -U healthlog -Fc healthlog \
+  > healthlog-pg16-$(date +%F).dump
+
+# 3. Stop the old database. Its volume stays untouched.
+docker compose stop db
+```
+
+Then point the `db` service at Postgres 18 and a fresh volume. From 18 on, the
+image keeps its data under `/var/lib/postgresql/18/docker` and expects the
+volume mounted one level up, at `/var/lib/postgresql`. Mounted at
+`/var/lib/postgresql/data` it refuses to start with "there appears to be
+PostgreSQL data in: /var/lib/postgresql/data".
+
+```bash
+# 4. Start the new database and restore the dump into it.
+docker compose up -d db
+docker compose exec -T db pg_restore -U healthlog -d healthlog --no-owner \
+  < healthlog-pg16-<date>.dump
+
+# 5. Gather the planner statistics. A restore brings the rows but not the
+#    statistics, and until autovacuum has seen every table some pages can
+#    take seconds instead of milliseconds.
+docker compose exec -T db vacuumdb -U healthlog -d healthlog --analyze-in-stages
+
+# 6. Start the app and confirm it.
+docker compose up -d app
+curl -s http://localhost:3000/api/version
+```
+
+The start log should report no pending migrations beyond the release's own,
+because the dump carries the migration history. If you created the
+`pg_stat_statements` extension for
+[query statistics](/self-hosting/database-maintenance/), the dump carries it
+too.

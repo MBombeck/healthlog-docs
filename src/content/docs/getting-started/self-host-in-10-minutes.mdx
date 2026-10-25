@@ -51,9 +51,10 @@ longer if you also want a TLS-fronted public hostname (see
    cp .env.example .env
    ```
 
-   `.env.example` is the canonical reference for every variable the app reads.
-   Anything you do not uncomment falls back to a sane default or disables the
-   optional subsystem.
+   `.env.example` is a short starter. Every variable the app reads is described
+   in `.env.production.example` and in the
+   [environment reference](/reference/environment-variables/). Anything you do
+   not set falls back to a sane default or leaves the optional feature off.
 
 2. **Generate the three required secrets.** HealthLog refuses to boot without
    them. Generate with `openssl` and append to `.env`:
@@ -81,8 +82,10 @@ longer if you also want a TLS-fronted public hostname (see
    docker compose up -d
    ```
 
-   Compose starts two services: `db` (PostgreSQL 16 with a named volume) and
-   `app` (HealthLog on `localhost:3000`). The image runs `prisma migrate deploy`
+   Compose starts `db` (PostgreSQL 18 with a named volume) and `app` (HealthLog
+   on `localhost:3000`). A third, short-lived service, `db-upgrade`, checks for a
+   Postgres 16 database from an older install and exits at once on a new one.
+   The image runs `prisma migrate deploy`
    on boot, so the schema lands automatically; later restarts no-op when the
    database is already current. The first boot pulls a few hundred megabytes;
    once `docker compose logs -f app` shows the Next.js banner, the instance is
@@ -137,11 +140,6 @@ that ships in the image, from the host:
 docker compose exec app node scripts/reset-password.mjs <username-or-email>
 ```
 
-The script ships in the image from v1.39.3. On v1.39.2 and earlier the command
-fails with "Cannot find module"; update first, or run it from a source checkout
-as described under
-[Password reset](/guides/sign-in-and-security/#password-reset).
-
 It prompts for the new password without echoing it (minimum 12 characters)
 and writes the same Argon2id hash the app would. See
 [Sign in and account security](/guides/sign-in-and-security/) for the full
@@ -152,7 +150,8 @@ picture of passwords, passkeys, and second factors.
 
 The compose file ships with the repository, and that copy is the one to run.
 The shape below is abbreviated for reading: it leaves out log rotation, the
-worker service and most of the optional variables, and the comments in the real
+worker service, the one-time `db-upgrade` service and most of the optional
+variables, and the comments in the real
 file explain every load-bearing line. Copy it from the repository rather than
 from this page.
 
@@ -183,7 +182,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:16.15-alpine
+    image: postgres:18.6-alpine
     container_name: healthlog-db
     security_opt:
       - no-new-privileges:true
@@ -192,7 +191,7 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: healthlog
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U healthlog"]
       interval: 5s
@@ -201,7 +200,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  postgres-data:
 ```
 
 :::note[`pull_policy: always` is load-bearing]
@@ -251,13 +250,14 @@ curl -s http://localhost:3000/api/version
 Keep the dump until the new version has run for a few days, and keep your
 encryption key with it: a dump without the key cannot be read.
 
-Since v1.42.4 the start log counts the migrations before it applies them
+The start log counts the migrations before it applies them
 (`HealthLog: 2 database migrations pending. Back up the database before
 updating ...`), or says `HealthLog: Database schema is up to date.` The line
-is a reminder and does not pause the start. Per-release notes, the
+is a reminder and does not pause the start. The
 migration ordering for a host that wants the result before the new container
 takes traffic, and rollback are on
-[Updates and deploy verification](/guides/updates-and-deploy/).
+[Updates and deploy verification](/guides/updates-and-deploy/). Restoring that
+dump is under [Restore a database dump](/guides/backups/#restore-a-database-dump).
 
 ## Where to go next
 
@@ -271,20 +271,22 @@ takes traffic, and rollback are on
 
 ## Troubleshooting
 
-The recurring operator problems have their own page —
+The recurring operator problems have their own page,
 [Troubleshooting & FAQ](/self-hosting/troubleshooting/). First-boot classics:
 
 - **`app` exits with a Prisma migration error.** The Postgres healthcheck can
   race the migration on slow disks. Run `docker compose restart app` once the
-  database has stabilised — migrations are idempotent.
+  database has stabilised. Migrations are idempotent.
 - **Registration shows "registration disabled".** The bundled image ships with
   registration enabled; the toggle lives in
   `app_settings.singleton.registrationEnabled` and the admin panel can flip it.
 - **Login succeeds and immediately bounces back to the sign-in form.** You
   opened the app over plain HTTP on a non-`localhost` address without
   `SESSION_COOKIE_SECURE=false`; see step 4 above.
-- **Service unreachable on `localhost:3000`.** Check `docker compose ps` — the
-  `app` healthcheck polls `/api/health` every 30 s and marks the container
-  unhealthy while Postgres is still starting. Tail `docker compose logs db`.
+- **Service unreachable on `localhost:3000`.** Check `docker compose ps`. The
+  `app` container shows `health: starting` until its first good probe. That is
+  usually within 30 seconds, but a boot that waits on a migration can take
+  several minutes, and failed probes do not count for the first ten. Tail
+  `docker compose logs app db`.
 - **OAuth callbacks loop back to localhost.** Set `APP_URL` and
   `NEXT_PUBLIC_APP_URL` to the public hostname and restart `app`.

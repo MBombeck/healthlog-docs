@@ -47,7 +47,7 @@ normal, and all three come back the day a TLS proxy fronts the app.
 ## Portainer
 
 HealthLog ships a Portainer app template that deploys the app and its
-PostgreSQL 16 database as one stack from the project's `docker-compose.yml`.
+PostgreSQL database as one stack from the project's `docker-compose.yml`.
 
 1. In Portainer open **Settings, App Templates** and set the URL to
 
@@ -80,8 +80,10 @@ Verify the running version from any machine that can reach the host:
 curl -s http://<host>:3000/api/version
 ```
 
-All persistent state lives in one named volume, `pgdata`, the Postgres data
-directory. The app container is stateless, so backing up the database backs up
+All persistent state lives in one named volume, `postgres-data`, the Postgres
+data directory. A stack from v1.45 or earlier also has `pgdata`, the old
+Postgres 16 data, which the first start of v1.46 copies across (see
+[Moving to Postgres 18](/self-hosting/postgres-upgrade/)). The app container is stateless, so backing up the database backs up
 everything (see [Backups](/guides/backups/)). To upgrade deliberately rather
 than track `:latest`, set `HEALTHLOG_IMAGE_REF=:vX.Y.Z` in the stack's
 environment; the compose file expands it into the image reference. Read the
@@ -122,8 +124,8 @@ is required for either.
 
 ### Community Applications template
 
-Install PostgreSQL 16 first. In **Apps**, pick a community PostgreSQL
-container, install version 16, and set `POSTGRES_USER=healthlog`,
+Install PostgreSQL first. In **Apps**, pick a community PostgreSQL
+container, install version 16 or 18, and set `POSTGRES_USER=healthlog`,
 `POSTGRES_PASSWORD=<generated>`, and `POSTGRES_DB=healthlog`. Map its data
 path to a share on the array (for example `/mnt/user/appdata/healthlog-db`) so
 the database survives container updates, and note the container's IP or name.
@@ -147,8 +149,7 @@ template dropdown. Fill in the fields:
 The template also exposes `ENCRYPTION_KEYS` and `ENCRYPTION_ACTIVE_KEY_ID` as
 advanced fields. Leave them empty unless you are
 [rotating the encryption key](/guides/encryption-key-rotation/); a normal
-install uses `ENCRYPTION_KEY` alone. Since v1.40.0 it also carries two
-advanced fields: `HEALTHLOG_PLATFORM` (preset to `unraid`, so the key backup
+install uses `ENCRYPTION_KEY` alone. It also carries two advanced fields: `HEALTHLOG_PLATFORM` (preset to `unraid`, so the key backup
 step opens on the Unraid instructions) and `ENCRYPTION_KEY_CHECK` (preset to
 `enforce`; leave it). The Portainer template carries the same two, with
 `HEALTHLOG_PLATFORM` preset to `portainer`. The container runs with
@@ -177,6 +178,12 @@ new digest instead of reusing a cached one. Skim the CHANGELOG before upgrading
 and back up the database first. Migrations run automatically on container
 start and are forward-only. The wider procedure is in
 [Updates and deploy](/guides/updates-and-deploy/).
+
+A Compose Manager stack moves to Postgres 18 when you paste the v1.46 compose
+file and run **Compose Up**; until then it keeps 16, which still works. The
+Community Applications template uses your own PostgreSQL container, which no
+update touches; move it when you choose, as in
+[Moving to Postgres 18](/self-hosting/postgres-upgrade/#by-hand).
 
 ## Health checks
 
