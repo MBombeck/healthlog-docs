@@ -342,34 +342,14 @@ it needs.
 
 ## Automatic document reading (opt-in)
 
-The [document vault](/guides/document-vault/) is local-first by default: an
-uploaded document is only read by an external AI provider when you tap a
-per-document AI action, and text-layer PDFs are indexed for search locally
-with no egress. AI settings carry a per-user **"Read documents automatically
-with AI"** switch, **off by default**, that reads, describes, and indexes
-each upload through your configured provider with no per-document
-confirmation. Turning it on is standing consent for reading documents and is
-recorded in the consent audit trail; a subscription connection applies its own
-consumer data settings, so privacy-sensitive deployments should keep the
-switch off, or pair it with a no-training BYOK key or a local model. See the
-[vault guide](/guides/document-vault/#reading-documents-with-ai--automatic-search)
-for how the readers are chosen.
-
-Switching it on also catches up on documents already in your vault. That
-consent covers document reading, lab report scans and turning typed medication
-text into a schedule, and nothing else. Your consent for the Coach or AI
-analysis does not count for documents: the first time a document or a lab scan
-would go to an AI service outside your server, you are asked once. A
-self-hosted local model on your own server needs no consent for documents.
-Withdrawing the document consent stops reading at once, even while the switch
-is still on.
-
-The operator can stop all of this for the server with the **Reading documents**
-switch under Admin, Coach. With it off, or with the master switch off, asking
-for a summary, a lab scan or a schedule from medication text is refused with a
-message that AI is off on this server, and nothing is sent. Settings, AI provider says
-the same next to the automatic reading switch: "Reading documents with AI is
-switched off on this server."
+AI settings carry a per-user **Read documents automatically with AI** switch,
+off by default. On, each upload (and the documents already in the vault) is
+read, described and indexed through your provider without asking per document.
+It is its own consent, covering document reading, lab report scans and
+medication text, and a local model on your own server needs none. The operator
+can stop it for the server with the **Reading documents** switch under
+Admin, Coach. How the readers are chosen and what is sent is in
+[Reading documents with AI](/guides/document-vault/#reading-documents-with-ai).
 
 ## Withdrawing AI consent
 

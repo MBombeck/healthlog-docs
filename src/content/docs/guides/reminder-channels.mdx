@@ -40,9 +40,8 @@ with taken / skip / snooze action buttons that work without opening the app.
 APNs needs the all-or-none env set (`APNS_KEY_ID`, `APNS_TEAM_ID`,
 `APNS_BUNDLE_ID`, and one key source — `APNS_KEY_B64` is the recommended
 form: the base64-encoded `.p8` survives env-file round-trips that mangle
-literal newlines; `APNS_KEY` / `APNS_KEY_FILE` remain accepted). See the
-[iOS connect guide](/getting-started/connect-ios-app/#push-notifications-apns)
-for the `.p8` gotchas.
+literal newlines; `APNS_KEY` / `APNS_KEY_FILE` remain accepted). See
+[APNs in the environment reference](/reference/environment-variables/#apns-ios-push-all-or-none).
 
 One thing worth stating plainly: APNs binds a push to a specific Apple
 Developer team + bundle ID + signing key, and the published iOS app is signed
