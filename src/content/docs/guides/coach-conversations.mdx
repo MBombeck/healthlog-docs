@@ -178,8 +178,8 @@ can look at several series, compare them and come back with an answer:
 
 | Who pays for the model | Tokens per answer | Time | Rounds |
 | --- | --- | --- | --- |
-| You (your own key, your ChatGPT sign-in, your local model) | 120,000 | 150 s | 12 |
-| The server's operator | 40,000 | 90 s | 6 |
+| You (your own key, your ChatGPT sign-in, your local model) | 165,000 | 200 s | 16 |
+| The server's operator | 55,000 | 120 s | 8 |
 
 Thinking counts toward the tokens. Input a provider serves from its cache
 counts at a tenth of its size, since later rounds resend almost the whole
@@ -541,7 +541,7 @@ included, counts toward the limit of 20 Coach messages a minute.
 | Rows shown before **Show all** | 12 |
 | Lookups per answer | 48 |
 | Steps in the status line's trail | 99 |
-| Rounds per answer | 12 on your own provider, 6 on the operator's, then **Keep looking** |
+| Rounds per answer | 16 on your own provider, 8 on the operator's, then **Keep looking** |
 | Clarifying questions | 1 in 6 turns of a conversation, 3 a day |
 | Remembered things a question starts with | 8, plus 6 active plans |
 | Open plan proposals | 3; an unanswered one lapses after 14 days |
