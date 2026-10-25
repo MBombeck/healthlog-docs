@@ -35,20 +35,16 @@ You can also attach scanned pass pages from the
 [document vault](/guides/document-vault/). **Link a document** offers the whole
 vault, with documents dated within seven days of the dose on top and the rest
 by month, searchable. One document can be linked to every dose it covers, and
-since v1.39.0 you can do that from the document's own sheet in the vault too,
-which is quicker for a childhood record that lists a dozen doses. See
+you can do that from the document's own sheet in the vault too, which is
+quicker for a childhood record that lists a dozen doses. See
 [Linking a document to visits and vaccinations](/guides/document-vault/#linking-a-document-to-visits-and-vaccinations).
-Deleting a dose is soft and can be undone.
-
-Since v1.39.1 an opened dose shows the documents linked to it, and saving a
-change to the dose, such as a lot number, leaves its links in place unless you
-change them yourself. Before, a dose opened from the list showed no linked
-documents, and saving any change removed every one of them. If a dose lost its
-pages that way, link them again from the dose or from the document.
+An opened dose shows the documents linked to it, and saving a change to the
+dose, such as a lot number, leaves its links in place unless you change them
+yourself. Deleting a dose is soft and can be undone.
 
 ## The catalog and series counting
 
-The catalog is a fixed list of 35 entries over 26 antigens, each with its
+The catalog is a fixed list of vaccines and combinations, each with its
 components, a typical series length, a booster interval in months, a category
 (standard, standard from 60, childhood, indication, travel) and a source
 citation. It carries no trade names. A combination vaccine counts into each of
@@ -62,7 +58,7 @@ nothing. Once a series is complete, further doses are shown as boosters.
 
 ## Your own vaccines
 
-Since v1.42.0 a dose can name a vaccine the catalog does not list, such as an
+A dose can name a vaccine the catalog does not list, such as an
 older combination from a childhood record. Define it once: a name, the
 diseases it protects against (picked from the catalog's list), the series
 length and the booster interval. You can add one from the dose form without
@@ -89,7 +85,7 @@ is at most one booster reminder per antigen; confirming again re-anchors it
 rather than duplicating it. Logging a later dose of any matching component
 clears the reminder.
 
-Since v1.39.0 the vaccination page shows a planned booster next to that
+The vaccination page shows a planned booster next to that
 vaccine's heading: **Next booster** with the date, **Booster due** once it is
 within 30 days, and **Booster overdue since** once the date has passed. The
 last two are highlighted. The app does not work out booster dates on its own;
@@ -115,7 +111,7 @@ your readings, where the reminders live.
 /api/vaccinations/suggest?anchor=<date>`. The routes stay reachable with the
 module off so restore and import keep working.
 
-Since v1.39.0 the list from `GET /api/vaccinations` carries `renewals`, one
+The list from `GET /api/vaccinations` carries `renewals`, one
 entry per antigen with a confirmed booster: `dueAt`, `daysUntil` on the
 person's own calendar, and `state` (`current`, `dueSoon` within 30 days, or
 `overdue`). Render from `state` rather than working it out again. It is `null`
@@ -127,5 +123,5 @@ full set of linked doses (up to 100), and the document detail returns them as
 Under a shared-access grant the dose is a Health background write, but the
 booster it suggests is a Readings row, so the mint answers `403` with
 `meta.errorCode: vaccination.booster-out-of-scope` for a grant that opens only
-Health background, and nothing is written. Since v1.38.16 the pass offers add,
-edit and delete only to a grant whose level and sections reach them.
+Health background, and nothing is written. The pass offers add, edit and
+delete only to a grant whose level and sections reach them.
