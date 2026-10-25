@@ -33,7 +33,8 @@ If you are security-conscious and want the same MITM hardening that the managed 
 
 The pinning host list is a build configuration in the iOS project:
 
-1. Extract the SPKI hashes for your domain from its live TLS chain:
+1. Extract the SPKI hashes for your domain from its live TLS chain, with the
+   script in the [iOS repository](https://github.com/MBombeck/healthlog-iOS):
 
    ```bash
    scripts/extract-spki.sh yourdomain.example.com

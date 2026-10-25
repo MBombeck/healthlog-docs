@@ -89,34 +89,21 @@ naming rather than rounding the claim up to "nothing leaves".
 
 | Destination | When | What is sent | How to stop it |
 | --- | --- | --- | --- |
-| `api.pwnedpasswords.com` | A password is set, changed, or admin-reset | The first five hex characters of the SHA-1 of the candidate password, and nothing else. The remaining 35 characters are matched locally against the response, so neither the password nor its full hash crosses the network. The request carries `Add-Padding: true` so the response size does not leak which bucket was queried. | `PASSWORD_BREACH_CHECK_DISABLED=1` (v1.39.3 and later), or block the host at the network level. Either way the check fails open: setting a password still works, and a known-breached password is no longer refused. |
-| `ipwho.is` | A sign-in is geo-resolved for the login-history surface, and only for an address the offline GeoLite2 databases could not place | The IP address of the person signing in | Mount the GeoLite2 databases: since v1.37.1 the resolver reads them first, and an address they place never goes online. `IP_GEO_LOOKUP_DISABLED=1` turns the online lookup off entirely (`true`, `yes` and `on` work too since v1.39.3); `IP_GEO_LOOKUP_URL` moves it to a different provider rather than stopping it. See the note below. |
-| `api.github.com` | When a signed-in user opens the About page (at most once a day per browser, remembered in the browser), and on each fresh load of the admin overview. The cadence is a client cache, not a server-enforced bound | Nothing about the instance beyond the request itself. The route reads the latest release tag and compares it locally. | `UPDATE_CHECK_DISABLED=1` (v1.39.3 and later): the route answers `unknown` with reason `disabled` and contacts nobody, and the admin version card says **Update check off**. Blocking the host also works. |
+| `api.pwnedpasswords.com` | A password is set, changed, or admin-reset | The first five hex characters of the SHA-1 of the candidate password, and nothing else. The remaining 35 characters are matched locally against the response, so neither the password nor its full hash crosses the network. The request carries `Add-Padding: true` so the response size does not leak which bucket was queried. | `PASSWORD_BREACH_CHECK_DISABLED=1`, or block the host at the network level. Either way the check fails open: setting a password still works, and a known-breached password is no longer refused. |
+| `ipwho.is` | A sign-in is geo-resolved for the login-history surface, and only for an address the offline GeoLite2 databases could not place | The IP address of the person signing in | Mount the GeoLite2 databases: the resolver reads them first, and an address they place never goes online. `IP_GEO_LOOKUP_DISABLED=1` turns the online lookup off entirely; `IP_GEO_LOOKUP_URL` moves it to a different provider rather than stopping it. See the note below. |
+| `api.github.com` | When a signed-in user opens the About page (at most once a day per browser, remembered in the browser), and on each fresh load of the admin overview. The cadence is a client cache, not a server-enforced bound | Nothing about the instance beyond the request itself. The route reads the latest release tag and compares it locally. | `UPDATE_CHECK_DISABLED=1`: the route answers `unknown` with reason `disabled` and contacts nobody, and the admin version card says **Update check off**. Blocking the host also works. |
 
 None of the three carries health data. The first two carry something worth
 knowing about: a password prefix, and a login IP. Both are documented above
 rather than filed under "outbound connections only to services you configured",
 because that sentence would be tidier than the truth.
 
-:::note[The offline geo databases come first since v1.37.1]
-The resolver reads the bundled MaxMind GeoLite2 databases first, whether baked
-into your image or mounted with `GEOLITE2_DIR`, and asks `ipwho.is` only about
-an address they could not place. Mounting the databases therefore does what an
-operator mounts them for: a login IP the local databases can place stays on the
-host. An address they cannot place still goes online, so the only switch that
-closes the egress completely is `IP_GEO_LOOKUP_DISABLED=1`.
-
-While the databases are absent and online lookups are still on, the admin
-account is notified once. The notice is sent once per configuration state: it
-does not repeat on every worker restart (that repeat was fixed in v1.37.33,
-#851), and it comes back only if the host leaves that state and re-enters it.
-A host running `IP_GEO_LOOKUP_DISABLED=1` gets no notice, since there is no
-egress to warn about.
-
-On builds before v1.37.1 the order was inverted. The resolver asked the online
-provider first and read the databases only when that returned nothing, so an
-operator who mounted them specifically to keep login addresses on the host kept
-none of them there. If that is why you have the databases, update.
+:::note[The offline geo databases come first]
+The resolver reads the GeoLite2 databases first and asks `ipwho.is` only about
+an address they could not place, so the only switch that closes this egress
+completely is `IP_GEO_LOOKUP_DISABLED=1`. While the databases are absent and
+online lookups are on, the admin is notified once per configuration state. See
+[Offline geolocation](/self-hosting/geolite2/).
 :::
 
 Every outbound call from server code goes through a single `safeFetch` wrapper
