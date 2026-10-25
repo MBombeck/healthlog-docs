@@ -87,8 +87,7 @@ toggles are rejected with a 422 rather than defaulted, because an absent key
 used to resolve to "included". Both formats read the same aggregator, so they
 describe identical numbers.
 
-Since v1.39.3 every code the export sends has been checked against the HL7
-validator. A metric without a fitting LOINC term is sent with its text, and
+Every code the export sends is checked against the HL7 validator. A metric without a fitting LOINC term is sent with its text, and
 for step length, walking speed, walking asymmetry and VO₂ max with its
 HealthKit identifier, rather than under a code that means something else; this
 covers mood, estimated A1C and average cycle and period length. Resting heart
@@ -98,10 +97,10 @@ is not the ATC name; the name stays in the text. Mood is a survey finding, not
 part of the vital-signs panel.
 
 Optional patient identity (name, insurer, insurance number) on the account feeds
-the report cover and the FHIR `Patient`. There is no AI summary in this export;
-it was removed with the grouped toggles, because its text came from a cached
-briefing whose scope could not be proven against the selection. The endpoint is
-rate-limited (a shared `export:<userId>` bucket) and audit-logged.
+the report cover and the FHIR `Patient`. There is no AI summary in this
+export, because a cached briefing's scope cannot be proven against the
+selection. The endpoint is rate-limited (a shared `export:<userId>` bucket) and
+audit-logged.
 
 ## Shareable clinician record
 
@@ -116,10 +115,10 @@ own.
 
 A third way somebody else reads your data is a
 [shared-access grant](/guides/shared-access/) to another account on the instance,
-and it stands on its own too. A delegate reading your record reaches neither the
-FHIR API, nor the export, nor the share-link surface. Those are refused under a
-grant rather than hidden, because an export is a copy of everything and a link is
-a door that would survive the delegate's own revocation.
+and it stands on its own too. A delegate reaches neither the FHIR API nor the
+share-link surface, because a link is a door that would survive the delegate's
+own revocation. The health-record export is open to a manage-level grant only:
+it renders a selection rather than handing over the record whole.
 
 :::caution[Read-only and not a clinical record system]
 The FHIR API and the export describe your tracked data in a standard shape. They

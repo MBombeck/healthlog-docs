@@ -25,9 +25,9 @@ For a person with no account and no software, the **Sharing** card under **Setti
 
 Every statistic in the shared view carries its unit, so a doctor reads "latest 5.8 mmol/L" rather than a bare number. Glucose is shown in the unit you chose under **Settings → Account** (mg/dL or mmol/L), in the view and in the PDF alike. Weight, length and temperature stay in metric units even when you use imperial ones, because the view is written for a clinician. The FHIR Bundle keeps its standard UCUM units either way.
 
-## Another account on your instance gets none of these
+## What another account on your instance gets
 
-A [shared-access grant](/guides/shared-access/) lets somebody with their own account read or maintain your record inside the app, but a delegate cannot export it, reach the FHIR API, or mint a share link at any grant level. Taking a copy of a record out is a different act from keeping the record; the reasoning is in [What a shared record is](/explanation/record-sharing/).
+A [shared-access grant](/guides/shared-access/) lets somebody with their own account read or maintain your record inside the app, but a delegate cannot reach the FHIR API or mint a share link at any grant level. The health-record export is the one exception: a delegate with manage access can produce it for the record they look after. The reasoning is in [What a shared record is](/explanation/record-sharing/).
 
 :::caution[Read-only and not a clinical record system]
 The FHIR API and the export describe your tracked data in a standard shape. They are for sharing with a clinician, not for use as a system of record or for any automated clinical decision.

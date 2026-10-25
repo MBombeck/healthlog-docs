@@ -99,31 +99,33 @@ another account's record, on the routes that declare it. The model is in
 [What a shared record is](/explanation/record-sharing/); the wire rules are
 these.
 
-- **Naming the record.** A browser session switches with
+- A browser session switches with
   `POST /api/account/switch` (`accountId: null` goes back to its own). A
   Bearer client sends `X-HealthLog-Account: <accountId>` on each request
   instead; the switch refuses it with `400` `sharing.switch.wrong_transport`,
   and the header next to a cookie is refused. The grant is read again on every
   request, so a revocation applies to the next call.
-- **What the caller holds.** `GET /api/auth/me` reports the active record and
+- `GET /api/auth/me` reports the active record and
   each entry of `accountAccess` with `level` (`read`, `write`, `manage`; branch
   on this), `canWrite`, `sections` (`null` is the whole record, `[]` is
   nothing) and `recordKind`. The older `access` field reports a manage grant
   as `write`. `modules` describe the active record and are masked to the
   grant; `moduleAccess` says why a module is off (`disabled`, `not_granted`,
   `unavailable`).
-- **One refusal.** An unknown account, an account that granted nothing, a
+- An unknown account, an account that granted nothing, a
   grant whose sections do not reach the route and a read grant on a write all
   answer the same `403` `sharing.access.denied`, so the answer reveals nothing
   about other accounts. A route that serves no shared record answers `403`
-  `sharing.not_permitted`, and so do the grant-management routes, exports and
-  share links while the caller acts on another record.
-- **The browser fence.** A switched browser session sends
+  `sharing.not_permitted`, and so do the grant-management routes, the FHIR
+  API, share links and the whole-record exports (full backup, encrypted and
+  JSON export) while the caller acts on another record. The health-record
+  export is the one export a manage-level grant reaches.
+- A switched browser session sends
   `X-HealthLog-Record-Epoch` and `X-HealthLog-Record-Scope`, adopted from
   `recordSession` on `GET /api/auth/me` or the switch. A stale epoch answers
   `409` `sharing.session.changed`: re-read `/api/auth/me`, adopt the new
   `recordSession`, retry once. Bearer traffic is never fenced.
-- **Browser only.** Offering a manage grant and every change to a
+- Offering a manage grant and every change to a
   [managed profile](/guides/managed-profiles/) need a fresh second factor,
   which only a browser session can give. A token gets `403`; send the person
   to the browser.
