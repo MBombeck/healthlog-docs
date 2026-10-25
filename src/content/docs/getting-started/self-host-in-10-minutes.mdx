@@ -175,6 +175,8 @@ services:
       HEALTHLOG_PROCESS_TYPE: "${HEALTHLOG_PROCESS_TYPE:-all}"
       SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-}"
       # … plus the backup, WHOOP, FHIR, deploy-webhook, and TLS-pin vars
+    volumes:
+      - backups:/var/lib/healthlog/backups   # nightly database dumps
     mem_limit: "${APP_MEMORY_LIMIT:-1536m}"
     depends_on:
       db:
@@ -201,6 +203,7 @@ services:
 
 volumes:
   postgres-data:
+  backups:
 ```
 
 :::note[`pull_policy: always` is load-bearing]
