@@ -31,17 +31,12 @@ add entries from a short, closed list. Manage lets them change and remove what
 is already recorded, including entries you made yourself, and read the insights
 generated from the record.
 
-What none of the three reaches is the account around the record: your login,
-your second factor, your connected services, your API tokens, where your
-notifications go, the module and threshold settings themselves, and who else has
-access. A delegate does see which parts of the record are switched on, because
-the navigation has to follow the record rather than their own account, and a
-scoped grant sees that only for the sections it opens.
-That line is drawn on the server, and it does not move with the level.
+None of the three reaches the account around the record (see
+[What a delegate cannot reach](#what-a-delegate-cannot-reach-at-any-level)).
 
 There is no way to raise a grant you already sent. Moving somebody up a level
-means ending the grant they have and inviting them again at the level you mean,
-which they accept again. Why a level is fixed at the invitation is explained in
+means ending the grant and inviting them again at the level you mean. Why is
+explained in
 [What a shared record is](/explanation/record-sharing/#it-is-a-grant-never-a-shared-login).
 :::
 
@@ -158,16 +153,12 @@ can otherwise add to. A screener also writes its total score as one point in
 the readings, so a grant scoped to Mood and mind adds a point to the owner's
 measurement series; the invitation screen says so.
 
-The document vault is the one section no grant writes to. Upload, filing,
-sharing and the AI verbs on a document stay with the owner at every level. Everything they do is recorded under their own name,
-with a verb that says what it was rather than "made a change".
+Everything a delegate does is recorded under their own name, with a verb that
+says what it was rather than "made a change".
 
-Two refusals hold at every level, manage included. A delegate cannot defer one
-of your reminders, even though that button sits next to the one that marks a
-dose. And a dose that already has a decision keeps it: re-sending the same
-decision is accepted (a second tap, or a phone catching up after no signal,
-looks like that), but turning your "taken" into a "skipped" is refused. The
-reasoning is in
+Two refusals hold at every level, manage included: a delegate cannot defer one
+of your reminders, and cannot turn a dose you marked "taken" into "skipped"
+(re-sending the same decision is accepted). See
 [Why write is a list rather than a permission](/explanation/record-sharing/#why-write-is-a-list-rather-than-a-permission).
 
 One entry needs two sections rather than a higher level. Planning the booster
@@ -201,63 +192,44 @@ There are eight sections.
 | Cycle | Cycle tracking. |
 | Documents | Everything stored in the document vault. |
 
-Two things the invitation screen says out loud rather than leaving you to work
-them out.
-
-**A section carries whatever was written in it.** Notes and names inside one
-section can mention the rest of your health, so sharing a section shares
-everything written in it. The vault is the sharpest case, because a document can
-contain anything at all; share that section only if the person may read all of
-it.
-
-**The whole-record views need the whole record.** The dashboard overview, the
-Health Score, the daily digest and every insight appear only when the entire
-record is shared, and not equally then: the digest and the dashboard's snapshot
-answer at read, the Health Score, the dashboard's summary and the insights need
-manage. A view inside one section that compares against another is trimmed
-rather than withheld: the cycle insights show the phase pattern to a grant
-scoped to the cycle, and add the weight, heart-rate, sleep, glucose and mood
-columns only for a grant that also opens Readings or Mood and mind. The
-[Body sites](/guides/checkups-and-practitioners/#body-sites) view under
-Checkups belongs to Health background and adds conditions only for a grant
-that also opens Illness.
-
-Three more properties worth knowing.
+The invitation screen says two things out loud. A section carries whatever was
+written in it, so notes inside one section can mention the rest of your health;
+the vault is the sharpest case. And the whole-record views (the dashboard
+overview, the Health Score, the daily digest and the insights) appear only when
+the entire record is shared: the digest and the dashboard's snapshot at read,
+the Health Score, the dashboard's summary and the insights at manage. A view
+inside one section that compares against another is trimmed rather than
+withheld: the cycle insights add the weight, heart-rate, sleep, glucose and
+mood columns only for a grant that also opens Readings or Mood and mind, and
+the [Body sites](/guides/checkups-and-practitioners/#body-sites) view adds
+conditions only for a grant that also opens Illness.
 
 - **Manage is always whole-record.** An invitation that names both a scope and
-  manage is refused rather than quietly narrowed.
+  manage is refused.
 - **A scope never grows.** A grant opens the sections it named when it was sent
   and nothing added in a later release; a new section takes a new invitation.
-- **A scope hides what it does not open.** The module map a delegate's client
-  reads is masked to the sections the grant names, so somebody scoped to your
-  readings does not learn whether you track your cycle, run the screeners, keep
-  an illness journal or log supplements. The cycle flag reads as off outside a
-  grant that opens it, whatever the record's own setting says.
-- **Every grant written before v1.37.0 opens the entire record** and is
-  untouched. Nobody has to agree to anything again.
+- **A scope hides what it does not open.** Somebody scoped to your readings
+  does not learn whether you track your cycle, run the screeners, keep an
+  illness journal or log supplements.
+- **A grant from before sections existed opens the entire record**, as it did
+  when it was accepted.
 
-The reasoning behind all three is in
+The reasoning is in
 [Why a scope can name sections but a manage grant cannot](/explanation/record-sharing/#why-a-scope-can-name-sections-but-a-manage-grant-cannot).
 
 ## What a delegate cannot reach at any level
 
-**Nothing about the account around the record.** Not the password, passkeys,
-second factor or recovery codes. Not the sessions or trusted devices. Not API
-tokens or the MCP connector. Not the connected services, so they cannot re-point
-a sync or feed their own wearable into your record. Not the notification
-channels, so your reminders cannot be redirected to another phone. Not the
-exports, the health-record archive or the clinician share links. Not the Coach,
-and not generating a fresh insight. Not sharing itself, so a delegate can
-neither invite a third person nor pass their access on.
+Nothing about the account around the record: not the password, passkeys,
+second factor or recovery codes, sessions or trusted devices, API tokens or the
+MCP connector, connected services, notification channels, the full exports and
+clinician share links, the Coach or a fresh insight, and not sharing itself, so
+a delegate can neither invite a third person nor pass their access on. Display
+preferences stay with the person at the keyboard.
 
-Display preferences stay with the person at the keyboard. Reading somebody
-else's record does not change your own theme, language or dashboard layout.
-
-These are refusals the server makes rather than screens that happen to be
-hidden. What the screens do is match them: a control the record will not accept
-is simply not drawn, so a delegate never fills in a form that was going to be
-turned down. The reasoning is written up in
-[What a shared record is](/explanation/record-sharing/).
+These are refusals the server makes, and the screens match them: a control the
+record will not accept is not drawn. The full list, and why each line is there,
+is in
+[Why the account is not part of the record](/explanation/record-sharing/#why-the-account-is-not-part-of-the-record).
 
 ## Whose entry is it
 
@@ -304,21 +276,12 @@ Notifications**. A dose you mark yourself never notifies you.
 
 ## Two tabs, one record
 
-Switching records moves the browser session, not the tab you clicked in. That is
-the right behaviour for the common case and it used to leave a stale tab behind:
-a second tab, left open on the record you had just left, went on reading and
-writing there until somebody reloaded it.
-
-Every request a browser makes now carries the record that tab believes it is in.
-A request naming a record the session has left is refused, and the tab recovers
-by re-reading who it is and re-rendering, which takes no interaction from you.
-The refusal is a reconciliation signal rather than an error, and nothing about it
-is shown as a failure.
-
-A session that has never opened somebody else's record is unaffected, and so is
-the phone app, which names the record on each request and never had a selector
-to go stale. Operators reading logs will find the same behaviour described from
-their side under
+Switching records moves the browser session, not the tab you clicked in. A
+second tab left open on the record you left notices on its next request,
+re-reads who it is and lands in the same record, with nothing shown as a
+failure. The phone app is unaffected. See
+[Why a request names the record it thinks it is in](/explanation/record-sharing/#why-a-request-names-the-record-it-thinks-it-is-in);
+operators find the log side under
 [Sharing shows a 409 in the logs](/self-hosting/troubleshooting/#sharing-shows-a-409-in-the-logs).
 
 ## End the access
@@ -337,9 +300,7 @@ checked against the database on every request, so there is no cached verdict to
 wait out. If their browser is sitting inside your record when you end it, that
 same browser lands back in their own account.
 
-What ending access cannot do is take back what was already read. Somebody who
-had access could have remembered it, screenshotted it, or written it down. The
-product can close the door and cannot reach through it, and the confirmation
+Ending access cannot take back what was already read, and the confirmation
 dialog says so.
 
 Ending access never deletes the record of it. The row stays with its dates and
@@ -377,7 +338,7 @@ time-boxed, passphrase-protected link for somebody with no account at all,
 which is what you hand a doctor at the desk.
 The two do not overlap, and a delegate cannot mint one of those links from
 inside your record. See
-[Sharing documents with a clinician](/guides/document-vault/#sharing-documents-with-a-clinician).
+[Clinician share links](/guides/document-vault/#clinician-share-links).
 
 ## For operators
 
@@ -385,29 +346,20 @@ Nothing to configure. Sharing is available on every instance, needs no
 environment variable to switch on, and does nothing until one account invites
 another.
 
-Four things are worth knowing before somebody asks.
+Worth knowing before somebody asks:
 
 - An invitation to a username nobody uses is refused by name, which tells the
-  caller that the name is free. The caller is already authenticated and is
-  limited to ten invitations an hour, which bounds how fast the surface could be
-  walked.
-- Deleting an account removes the grants it is party to. Audit rows naming that
-  account as the one who opened somebody's record stay and render as "a deleted
-  account".
-- Write and manage access raise what your audit retention is worth. Authorship
-  of a delegate's entry lives in the audit trail and nowhere else, so
-  `AUDIT_LOG_RETENTION_DAYS` is the window in which "who entered this" has an
-  answer. The entry itself is permanent; the name attached to it is not.
-  Shortening the retention on an instance where households share records is a
-  decision, not a tidy-up. See
+  caller the name is free. Invitations are limited to ten an hour per account.
+- Deleting an account removes the grants it is party to; audit rows naming it
+  stay and read "a deleted account".
+- Authorship of a delegate's entry lives only in the audit trail, so
+  `AUDIT_LOG_RETENTION_DAYS` (default 365) is how long "who entered this" has an
+  answer. See
   [Audit-trail retention](/reference/environment-variables/#audit-trail-retention).
-- A refusal a delegate earns carries no reason on the wire. Every case answers
-  with the same status and the same body: a record nobody shared, a section the
-  grant does not open, a write on a read grant. The reason reaches the record
-  owner's activity feed and your audit trail instead. See
-  [Why every refusal reads the same](/explanation/record-sharing/#why-every-refusal-reads-the-same).
+- Every refusal a delegate earns reads the same on the wire; the reason goes to
+  the owner's activity feed and your audit trail.
 
-Why each of these is the way it is, and what it asks of you, is in
+Why each of these is the way it is:
 [Operator obligations](/explanation/record-sharing/#operator-obligations).
 
 Backups do not carry grants. Restoring onto the same instance leaves shared

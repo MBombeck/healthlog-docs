@@ -5,11 +5,10 @@ sidebar:
   order: 7
 ---
 
-Since v1.36.0 one account on an instance can give another account access to its
-health record. Since v1.36.1 that access carries a level, and since v1.37.0
-there are three of them, an invitation can name the parts of the record it
-opens, and a record can exist for somebody who has no login at all. This page is
-the reasoning: what that connection is, what it deliberately is not, why the
+One account on an instance can give another account access to its health
+record, at one of three levels, over the whole record or named sections, and a
+record can exist for somebody who has no login at all. This page is the
+reasoning: what that connection is, what it deliberately is not, why the
 levels behave the way they do, and which of the instance's existing trust
 properties it leaves exactly as they were.
 
@@ -70,8 +69,8 @@ type it in, which is the part that fails on a bad evening.
 
 So write exists. What it is not is the mirror image of read. Read is a large
 surface because looking at a record cannot damage it. Write is a list of acts,
-enumerated once, and the list is closed; the seven entries on it are spelled
-out in the guide under
+enumerated once, and the list is closed; its entries are spelled out in the
+guide under
 [What each level may do](/guides/shared-access/#what-each-level-may-do).
 
 Every member of that list is a *create*. Nothing on it changes or removes
@@ -82,14 +81,6 @@ the delegate created ten seconds ago with a typo in the dose. A caregiver who
 mistypes tells the owner, and the owner fixes it. That is one awkward sentence
 in a kitchen, against a write-level delegate quietly rewriting history in
 somebody else's health record.
-
-One entry left that list in v1.37.0 rather than joining it. Logging a value on a
-metric the owner tracks themselves was named on the consent screen and had
-nothing behind it: the only form that records one sits on a page a shared record
-does not open, so nobody could ever have used it. A capability nobody can reach
-is worse than an absent one, because the consent screen was telling people they
-had granted something. The copy now lists what the level actually admits, and
-reading those values was never affected.
 
 Two absences are decisions rather than oversights, and both survive the third
 level.
@@ -132,8 +123,9 @@ Three properties make it something other than "full access".
 reaches the login, the second factor, provider connections, API tokens,
 notification routing, module and threshold configuration, or who else has
 access. That is the same line the other two levels stop at, and it is the line
-that makes a grant a grant instead of a shared account. The one thing that moved
-across it in v1.37.0 is the health background: allergies and family history live
+that makes a grant a grant instead of a shared account. The one thing on the
+record side of it that the interface files under Settings is the health
+background: allergies and family history live
 under Settings in the interface, but they are facts about a body rather than
 configuration of an account, so a manager may record them.
 
@@ -197,8 +189,8 @@ A stored scope never grows by release either. A grant written when the list held
 eight sections opens those of the eight it named, and nothing added later, since
 the scope is stored as the keys the owner ticked and a key that did not exist
 then cannot be in it. A new section is therefore a consent question rather than
-a schema question. Every grant written before v1.37.0 carries no scope at all,
-which means the entire record, which is what those owners consented to.
+a schema question. A grant written before sections existed carries no scope,
+which means the entire record, which is what its owner consented to.
 
 ## Why a record can exist without a login
 
@@ -211,12 +203,14 @@ problem this feature exists to avoid.
 So a managed profile is a record without credentials. No password, no passkey,
 no second factor, and no path to gaining one. The people who look after it hold
 manage grants with the profile as the grantor, which means everything already
-true of a grant is true here: live revocation, an audit trail under the actor's
-own name, and no reach into account configuration.
+true of a grant is true here: live revocation and an audit trail under the
+actor's own name. One line moves: because nobody else can, a guardian also
+keeps the profile's settings and connects its services (see
+[Connected services](/guides/managed-profiles/#connected-services)).
 
 Three consequences follow from a record with nobody behind it.
 
-**Creating one is a step-up act.** It mints a real record on the instance, and
+**Creating one is a step-up act** (a second factor or a passkey). It mints a real record on the instance, and
 the creator becomes its first guardian in the same transaction, so there is no
 instant where the record exists and nobody is looking after it.
 
@@ -281,13 +275,9 @@ and write says entries can be added but not changed or deleted. A person who
 cannot find the edit button reads the banner and knows why, without a chip on
 every control explaining itself.
 
-There is a moment before the answer arrives, and it is handled rather than
-tolerated. A control tapped while the app still does not know whose record is on
-screen used to strand somebody in a form the server was going to refuse. The
-capture sheet and the dashboard's quick-entry sheets now withdraw when the
-answer lands, which is what the measurements page and the medication wizard
-already did. Standing on a form that has become invalid is a worse outcome than
-closing it under somebody's hands.
+A control tapped while the app still does not know whose record is on screen
+withdraws its form when the answer lands, rather than leaving somebody on a
+form that has become invalid.
 
 ## Why the account is not part of the record
 
@@ -479,8 +469,8 @@ produces rollups and reminders like any other record, is covered by the same
 backups and the same instance key, and never appears in a sign-in log because it
 has no sign-in. Its reminders fan out to its guardians, so one dose-due event on
 a profile with three guardians becomes three notifications on three sets of
-channels. Creating one requires a second factor on the creating account, which
-is structural rather than a policy setting.
+channels. Creating one requires a second factor or a passkey on the creating
+account, which is structural rather than a policy setting.
 
 **Marking somebody's dose notifies them by default.** The event is on unless the
 owner turns it off, and it rides whichever channels they already enabled. On an
