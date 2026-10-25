@@ -21,8 +21,7 @@ Every event is one `POST` with `Content-Type: application/json`, the header
 you configured if any, to the URL exactly as you saved it. Redirects are not
 followed.
 
-**Generic JSON** is the default. This is what the Test button sends from
-v1.42.0 on:
+**Generic JSON** is the default. This is what the Test button sends:
 
 ```json
 {
@@ -45,12 +44,11 @@ v1.42.0 on:
 | `content` | Discord | Title and message on two lines, cut to 2000 characters with an ellipsis. |
 | `text` | Slack | Title and message on two lines, not cut. |
 | `allowed_mentions` | Discord | An empty list: Discord resolves no `@everyone`, `@here` or user mention in the text. |
-| `url` | relays, automations | Since v1.42.2. The page in HealthLog the notification leads to, as an absolute link. Present only when `APP_URL` is set and the event has a target. |
+| `url` | relays, automations | The page in HealthLog the notification leads to, as an absolute link. Present only when `APP_URL` is set and the event has a target. |
 
-The first four fields have kept their names, values and order since v1.18.4,
-so an existing Home Assistant or n8n rule keeps working. `content`, `text`
-and `allowed_mentions` were added in v1.42.0, `url` in v1.42.2. Each target
-ignores the fields meant for the others.
+The first four fields keep their names, values and order, so an existing
+Home Assistant or n8n rule keeps working. Each target ignores the fields meant
+for the others.
 
 **Gotify** sends the body Gotify's `POST /message` endpoint binds, with an
 integer priority:
@@ -67,7 +65,7 @@ integer priority:
 }
 ```
 
-Since v1.42.2 a notification with a target also carries
+A notification with a target also carries
 `extras["client::notification"].click.url`, so tapping it in the Gotify app
 opens the right page in HealthLog. Like the generic `url`, it needs
 `APP_URL`.
@@ -97,10 +95,6 @@ other reminders, which is the point.
 
 ## Discord
 
-Works from v1.42.0 on. Earlier versions sent a body without `content`, and
-Discord answered every test and every reminder with
-`400 {"message": "Cannot send an empty message", "code": 50006}`.
-
 1. In Discord, open the channel's settings (the gear next to the channel
    name), go to **Integrations → Webhooks**, and choose **New Webhook**.
 2. Give it a name and an avatar if you like, then **Copy Webhook URL**. It
@@ -113,9 +107,8 @@ The token in the URL is the only credential, so treat the URL like a
 password. Discord renders its own markdown in `content`, so an asterisk or
 underscore in a medication name can show up as emphasis.
 
-If you used a Discord webhook before v1.42.0, the failed deliveries may have
-turned the channel off: five failures in a row disable a webhook channel.
-After the update, switch it back on and press Test.
+Five failed deliveries in a row turn a webhook channel off. Once the cause is
+fixed, switch it back on and press Test.
 
 ## Slack
 
@@ -126,8 +119,7 @@ After the update, switch it back on and press Test.
 3. Paste it into **Webhook URL**, leave the header fields empty and the
    format on **Generic JSON**, save, and press Test.
 
-Slack reads `text` and ignores the other fields. Like Discord, this needs
-v1.42.0; earlier versions sent no `text`, which Slack refuses.
+Slack reads `text` and ignores the other fields.
 
 ## Gotify
 

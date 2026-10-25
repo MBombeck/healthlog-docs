@@ -21,9 +21,7 @@ instance-wide app is not workable. Each user pastes their own client ID and
 secret in Settings.
 
 :::note[Beta]
-The connection imports live data since v1.27.4; daily activity totals (steps,
-distance, floors, active energy) read correctly since v1.27.12. The Google
-Health API itself is young — individual values can still be missing or shift as
+The Google Health API itself is young — individual values can still be missing or shift as
 Google publishes more of the wire format.
 :::
 
@@ -99,7 +97,7 @@ only as a nightly deviation, so neither imports. Google may also ask you to
 reconnect from time to time — the connection shows a clear prompt when it does.
 
 Daily totals are stored at noon of their day in your own time zone, so they
-land on the right day wherever you live (since v1.39.3; see
+land on the right day wherever you live (see
 [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
 
 ## Sync cadence and backfill
@@ -119,7 +117,7 @@ history is loading in the background" until the backfill is done.
 ### The backfill runs in slices
 
 For a watch that records heart rate every minute, the history is a
-thousand-odd pages per year. Since v1.42.4 the backfill reads it in slices: a
+thousand-odd pages per year. The backfill reads it in slices: a
 slice reads for up to five minutes or 500 pages, writes what it read, notes
 how far it got and lets go of the account. The next slice starts a minute
 later where the last one stopped.

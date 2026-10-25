@@ -33,7 +33,7 @@ data (steps, active energy, distance, floors) arrives through the
 `user.activity` scope.
 
 Daily totals are stored at noon of their day in your own time zone, so they
-land on the right day wherever you live (since v1.39.3; see
+land on the right day wherever you live (see
 [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
 
 Some of these readings now depend on the Withings API plan of your developer
@@ -49,10 +49,7 @@ clinically cleared readings and a few body-composition extras now need the
 paid **Advanced Biomarkers** plan.
 
 Withings refuses a request that names anything outside the plan as a whole,
-with status 277. Before v1.42.3 HealthLog asked for every type in one
-request, so from 12 October no Withings reading arrived at all, and the
-connection could show "Reauthorisation required" although reconnecting did
-not help.
+with status 277.
 
 **Still synced on the free plan:** weight, fat mass and fat-free mass,
 muscle mass, bone mass, body water, blood pressure, heart rate, a manual
@@ -70,7 +67,7 @@ stages (duration, deep, light, REM, awake, wake-ups).
 - from the sleep summary: the sleep score, overnight HRV and overnight
   breathing rate
 
-HealthLog handles the plan on its own, from v1.42.3 on:
+HealthLog handles the plan on its own:
 
 - When Withings refuses a request with 277, HealthLog asks again without the
   types Withings lists as advanced. If that is refused too, it narrows the

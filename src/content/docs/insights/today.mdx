@@ -28,7 +28,7 @@ number comes from.
   never a greeting. With an AI provider it comes from the briefing prepared
   overnight; without one it is built from your own readings. See
   [The Today overview](#the-today-overview).
-- **A short "Today" list** (since v1.40.2). What is on today, in a few lines:
+- **A short "Today" list.** What is on today, in a few lines:
   medications taken so far, an appointment, last night, your vitals, the cycle
   day, Rest Mode.
 - **A "worth a look" rail.** A short list of priority items, each a single tap
@@ -49,8 +49,7 @@ never stack.
 
 ## The Today overview
 
-Since v1.40.2 the top of the card says what matters today instead of greeting
-you. It has three parts: a lead line, a short list headed **Today**, and the
+The top of the card says what matters today. It has three parts: a lead line, a short list headed **Today**, and the
 score ring.
 
 ### The lead line
@@ -83,7 +82,7 @@ day, always in this order:
 
 | Fact | Shows | When |
 | --- | --- | --- |
-| **Rest mode** | **Day 3** | An acute, recurring or flare episode is open and the Illness module is on. A chronic ongoing condition alone does not count (since v1.42.3) |
+| **Rest mode** | **Day 3** | An acute, recurring or flare episode is open and the Illness module is on. A chronic ongoing condition alone does not count |
 | **Medications** | **2 of 3 taken** | Something is scheduled today and the Medications module is on. On the day the clocks go back, the whole 25-hour day counts |
 | **Appointment** | **Today 14:30** or **Tomorrow 09:00**, with the practitioner or the kind of visit | A visit booked for today or tomorrow, nothing further out. Several on the same day read "+1". Left out when the worth-a-look rail already names that appointment |
 | **Last night** | **7 h 20 min, 40 min less than usual** | Last night's sleep is in and the Sleep module is on. Within 20 minutes of your usual it reads "close to your usual" |
@@ -152,9 +151,8 @@ calendar of your profile timezone.
 Which kinds may appear is chosen under **Settings → Arrangement → Dashboard**,
 **Today highlights**.
 
-Since v1.30.31 a dose appears on the rail **from the moment it is takeable**, not
-only once it is late — until then Today could report nothing needing attention
-while a dose was due. The two faces read differently: a due dose is a calm,
+A dose appears on the rail **from the moment it is takeable**, not only once
+it is late. The two faces read differently: a due dose is a calm,
 informational note, an overdue one keeps the warning, and a day with everything
 taken still shows the all-clear. Push reminders are unchanged — they still fire
 only once a dose is late.
@@ -199,8 +197,10 @@ reached — a separate, calmer primitive.
 A once-a-day morning notification carrying the day's read is available, **off by
 default** and opt-in per channel under Notifications. It carries the refreshed
 digest once sleep is in, never repeats within a day, and is a calm note — never
-an alert. Since v1.40.2 its text carries no number: no reading, dose or score
-appears on a locked phone. The figures stay in the app's own lead line. It rides the same [reminder channels](/guides/reminder-channels/) as
+an alert. By default its text carries no number, so no reading, dose or score
+appears on a locked phone; **Health figures in notifications** under Settings,
+Notifications adds them (see
+[Reminder channels](/guides/reminder-channels/#health-figures-in-notifications)). It rides the same [reminder channels](/guides/reminder-channels/) as
 the rest of the app.
 
 ## Dashboard tiles

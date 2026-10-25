@@ -66,8 +66,7 @@ Each episode takes one log per calendar day:
 
 ## Your own symptoms
 
-The catalog above belongs to a day log inside an episode. Since v1.40.0 you can
-also define up to eight symptoms of your own, such as aura, headache or neck
+The catalog above belongs to a day log inside an episode. You can also define up to eight symptoms of your own, such as aura, headache or neck
 tension, and log one whenever it happens, with or without an episode.
 
 Define them under **Your symptoms** on `/illness` with **New symptom**: a name
@@ -96,8 +95,8 @@ unwell" note instead of dropping, achievement streaks freeze rather than
 break, cadence nudges pause, and Today counts the days since onset. Rest mode
 carries only the label, type and onset; the note is never read.
 
-A chronic ongoing condition on its own does not start rest mode (since
-v1.42.3). It has no end date, so it would otherwise keep the account in rest
+A chronic ongoing condition on its own does not start rest mode. It has no
+end date, so it would otherwise keep the account in rest
 mode for good: the day counter would run from an onset years back, nudges
 would never resume and streaks could never break. The condition stays
 context. The Coach sees it, and a reading that moves while it is active is
@@ -140,7 +139,7 @@ the **Conditions & illnesses** table. When at least one of them has a body
 site, the table gains a **Body site** column after the condition; a report
 without any keeps its old layout. The clinician share page shows the site in
 the same section. Episodes are exported to FHIR as a Condition with a bounding
-Encounter. Since v1.39.3 the Condition carries the body site in
+Encounter. The Condition carries the body site in
 `bodySite.text`, with the side added in English words ("knee (left)"). The
 side is also coded: a `BodyStructure` contained in the Condition, reached
 through the core FHIR `bodySite` extension, holds it as a SNOMED CT laterality
@@ -163,14 +162,14 @@ and `POST .../day-logs`; `GET .../correlation` for the per-episode
 retrospective; and `GET /api/illness/insights?windowDays=` (30 to 1095 days,
 with `includeRecoveryGap=true` to compute gaps for up to 24 episodes).
 
-Since v1.39.2 an episode carries `bodySite` (text, or `null`) and `laterality`
+An episode carries `bodySite` (text, or `null`) and `laterality`
 (`LEFT`, `RIGHT`, `BOTH`, or `null` when not stated). Both are optional on
 `POST` and `PATCH`; `bodySite` is trimmed and at most 200 characters. On
 `PATCH` a field left out keeps its stored value, and `null` or a blank site
 clears it, so a client that does not know the fields never erases them. A side
 sent without a site is stored but shown nowhere in the app.
 
-Your own symptoms (since v1.40.0): `GET` and `POST /api/symptoms/definitions`
+Your own symptoms: `GET` and `POST /api/symptoms/definitions`
 (at most eight active, `{ label, icon? }`), `PATCH` and `DELETE
 /api/symptoms/definitions/{id}` (`DELETE` hides; `?purge=true` deletes the
 symptom and every entry), `GET` and `POST /api/symptoms/events`

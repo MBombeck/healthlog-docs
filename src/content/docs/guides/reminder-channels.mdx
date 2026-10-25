@@ -74,7 +74,7 @@ the topic **is** the access control — anyone who knows the string can read it,
 so treat it like a secret. Urgent events are published at ntfy's top priority
 (`5`) so they bypass batching and surface on the lock screen.
 
-Since v1.42.2 HealthLog publishes each message as JSON to the server's root
+HealthLog publishes each message as JSON to the server's root
 URL, with the topic in the body (ntfy's
 [publish as JSON](https://docs.ntfy.sh/publish/#publish-as-json)), so titles
 and button labels in any language arrive as written. If your own ntfy sits
@@ -116,13 +116,13 @@ choice existed keeps sending:
 ```
 
 `title` and `message` are plain text. `content` (for Discord, cut to 2000
-characters) and `text` (for Slack) repeat both on two lines; they and
-`allowed_mentions`, which stops Discord from resolving mentions, arrived in
-v1.42.0, so a Discord or Slack webhook URL works with the generic format. `eventType` is the event name for
+characters) and `text` (for Slack) repeat both on two lines, and
+`allowed_mentions` stops Discord from resolving mentions, so a Discord or
+Slack webhook URL works with the generic format. `eventType` is the event name for
 routing rules; with discreet cycle notifications on, a cycle event arrives
 as `reminder` with its title and message masked. `priority` is a word:
 `urgent` for an event flagged urgent, `high` for medication reminders,
-`default` for everything else. Since v1.42.2 the body also carries `url`, the
+`default` for everything else. The body also carries `url`, the
 page the notification leads to, when `APP_URL` is set (see
 [What tapping a notification opens](#what-tapping-a-notification-opens)).
 
@@ -178,7 +178,7 @@ Every webhook and ntfy target is resolved at send time and refused when the
 answer is a private, loopback, link-local or CGNAT address. That is the
 DNS-rebinding defence, and it applies to a public-looking name with a LAN A
 record (a Gotify behind a reverse proxy with a DNS-01 certificate) exactly as
-it applies to `http://192.168.1.20`. Since v1.38.17 the operator can open a
+it applies to `http://192.168.1.20`. The operator can open a
 target by listing its exact origin in `NOTIFICATION_PRIVATE_ORIGINS`, the
 same grammar as `NIGHTSCOUT_PRIVATE_ORIGINS`; the rules are on the
 [environment-variables reference](/reference/environment-variables/#notification-targets-on-a-private-network-optional).
@@ -233,7 +233,7 @@ no such step.
 
 ## Tap targets, content and quick answers
 
-Since v1.42.2 every notification leads somewhere, a setting decides how much
+Every notification leads somewhere, a setting decides how much
 it may say on a lock screen, and the mood reminder on ntfy can be answered
 from the notification.
 
@@ -272,8 +272,8 @@ How each channel carries it:
 - **Email**: a link line under the message.
 
 ntfy, Telegram, the webhook and email need an absolute link, built from
-`APP_URL` (or `NEXT_PUBLIC_APP_URL`). Without one those channels deliver as
-before, only without a link. Since v1.43.0 a notification about a profile
+`APP_URL` (or `NEXT_PUBLIC_APP_URL`). Without one those channels deliver
+without a link. A notification about a profile
 you look after as a guardian opens the dashboard rather than the profile's
 page, because your session opens on your own record and the record switcher
 lives there. A discreet notification opens the dashboard as well, so its link
@@ -352,7 +352,7 @@ hold:
   link carries its own short-lived credential, so the route needs no
   session. See [Reverse proxy](/guides/reverse-proxy/#a-sign-in-gateway-in-front-of-healthlog).
 
-Since v1.42.3 every refusal on that route writes a log line with the action
+Every refusal on that route writes a log line with the action
 `notification.action.refused` and a `reason`: `method_not_allowed` (a
 request other than `POST` arrived, which almost always means a redirect
 rewrote it; the answer is `405` with `Allow: POST`), `rate_limited`,
@@ -387,8 +387,7 @@ A client that manages its own local reminders can suppress server-side
 `MEDICATION_REMINDER` APNs by setting `clientManaged: true` on
 `PATCH /api/auth/me/notification-prefs`. Only the APNs send is skipped; every
 other enabled channel (Telegram, ntfy, webhook, email, Web Push) still
-delivers, and each skip is annotated
-(`medication_reminder_suppressed_client_managed`).
+delivers.
 
 `GET /api/auth/me` publishes the resolved preference as
 `notificationPrefs.medication.clientManaged`, so the medication notification
