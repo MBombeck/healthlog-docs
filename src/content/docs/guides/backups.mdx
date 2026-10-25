@@ -1,50 +1,203 @@
 ---
 title: Backups and restore
-description: Which backup covers which loss, restoring a database dump, moving to a new server, the weekly in-database copy and the encrypted nightly off-host copy.
+description: The nightly database dump that rebuilds a lost server, the account copies that roll one account back, the personal export, and how to restore each.
 sidebar:
   order: 9
 ---
 
-HealthLog has three kinds of backup. Two run by themselves; the database dump
-is yours to take. This page says which one covers which loss, then how to
-restore each.
+HealthLog makes three kinds of copy, and they do different jobs. Only the
+first one can bring back a server that is gone.
 
 ## Which backup covers what
 
-| Backup | What it holds | Covers | Does not cover |
+| Copy | What it holds | What it can do | What it cannot do |
 | --- | --- | --- | --- |
-| **Database dump** (`pg_dump`, or a snapshot of the database volume) | The whole instance: every account, the instance settings, sign-ins, tokens and grants | A failed update, a lost disk or host (when the file is kept off the host), a move to a new server | Nothing, as long as you keep the encryption key with it |
-| **Weekly copy in the database** (automatic) | One encrypted copy per account, inside the same database | A bad import or a mistaken delete in one account | A lost disk: it lives on the same disk |
-| **Nightly off-host copy** (optional, S3-compatible bucket) | One encrypted copy per account, every night | Bringing one account back to last night, on an instance where that account exists | Sign-ins, tokens, devices and sharing grants (see [below](#what-a-backup-does-not-carry)); a fresh instance, where the account does not exist yet |
+| **Database dump** (nightly and before every update, automatic) | The whole database: every account, sign-ins, passkeys, tokens, sharing grants, managed profiles, documents and the instance settings | Rebuild a lost server; go back to the state before an update | Bring back one account without the others |
+| **Account copies** (weekly in the database, before **Delete all data**, uploaded, and nightly in the off-host bucket) | One account's record and settings, without its credentials | Roll one account back on the same server, after a bad import or a mistaken delete | Rebuild a server: a restore refuses a copy whose account does not exist here |
+| **Personal export** (Settings → Export & import → **Full backup**) | One account's record as readable values; documents as metadata only | Give the person a portable copy of their own data | Restore documents: a restore refuses an export that lists documents, because it carries none of their content |
 
-The account copies restore one account at a time under **Admin → Backups**.
-An uploaded copy is refused when its account does not exist on the instance,
-so they cannot rebuild a lost host on their own. For that, restore the latest
-database dump first, then bring single accounts forward to a newer off-host
-copy if you need to.
-
-Every one of them is unreadable without its keys. Keep `ENCRYPTION_KEY` (or
+Every copy is unreadable without its keys. Keep `ENCRYPTION_KEY` (or
 `ENCRYPTION_KEYS` with `ENCRYPTION_ACTIVE_KEY_ID`), `API_TOKEN_HMAC_KEY` and,
-for the off-host copy, `BACKUP_ENCRYPTION_KEY` somewhere other than the server
-([why](/explanation/encryption-at-rest/#keep-a-copy-of-the-key)).
+for the off-host bucket, `BACKUP_ENCRYPTION_KEY` with any
+`BACKUP_ENCRYPTION_PREVIOUS_KEYS` somewhere other than the server. The
+[recovery kit](/explanation/encryption-at-rest/#the-recovery-kit) under
+**Admin → Encryption** lists each one by fingerprint.
 
-## Take a database dump
+## Recovery readiness
+
+The **Recovery readiness** card on the admin overview and at the top of
+**Admin → Backups** judges every copy in one place. Each signal reads **Ready**,
+**Needs attention** or **At risk**, and the worst one sets the card:
+
+| Signal | Needs attention | At risk |
+| --- | --- | --- |
+| Database dump | The last run failed, or dumps are switched off | No good dump for 36 hours, none ever, or nowhere to write one |
+| Weekly account copies | An account's newest copy is more than 9 days old | More than 14 days old |
+| Off-host copies | An account has had no off-host copy for two nights | |
+| Restore drill | | The last monthly drill failed |
+| Off-host backup | No bucket set up, 7 days after the first admin was created | |
+| Recovery kit | Not confirmed (after the same 7 days), or a key it now lists was not covered by the last confirmation | |
+
+The off-host copy and drill rows stay out of the verdict while no bucket is
+set up. A row that is not ready links to the page that fixes it.
+
+An hourly check sends every admin a **Backup health** notification when a
+signal turns to "needs attention" or "at risk", once a day while one stays at
+risk, and once when it is back to normal. Route it or turn it off per channel
+under **Notifications**; only admins see the row.
+
+## The nightly database dump
+
+| Dump | When | Where | Kept |
+| --- | --- | --- | --- |
+| Nightly | 01:30 Europe/Berlin (`DB_BACKUP_SCHEDULE`) | `DB_BACKUP_DIR`, the `backups` volume of the bundled compose file | the newest 7 (`DB_BACKUP_KEEP`) |
+| Before migrations | On start, when the new image brings migrations, before it applies them | the same directory | the newest 2 |
+| Off-host | Right after each nightly dump, when the [bucket](#off-host-copies) is set up | the bucket, under `database/`, sealed with `BACKUP_ENCRYPTION_KEY` | your bucket's lifecycle rule |
+
+A dump is `pg_dump --format=custom` of the whole database, written as two
+files: `healthlog-<UTC time>-<daily|pre-migration>.dump`, and a
+`.manifest.json` beside it with the app version, the newest applied
+migration, the Postgres version, the archive's size and SHA-256, the row count
+of every table, and the fingerprints (never the values) of the keys the
+database needs. The archive is written as `.partial`, read back with
+`pg_restore --list`, and renamed only after its manifest, so a failed run
+leaves nothing that looks good. **Admin → Backups** shows the newest good dump,
+where it is kept, and the newest failed run.
+
+Local dumps are not encrypted. They sit beside the database volume, where
+whoever can read one can read the other, and the columns HealthLog encrypts
+stay encrypted inside them. Keep a copy off the host; the bucket does that for
+you.
+
+When the pre-migration dump fails on a writable directory (a full disk, most
+often), the start stops before anything is migrated; free the space, or set
+`DB_BACKUP_BEFORE_MIGRATE=false` for one start without it. An install that
+runs the image without the `backups` volume has no writable directory: the
+nightly dump then goes to the bucket only, no dump is taken before
+migrations, and with no bucket either no dump is taken at all. The start log
+and the admin page say so.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DB_BACKUP_ENABLED` | on | `false` stops the nightly dump. |
+| `DB_BACKUP_DIR` | `/var/lib/healthlog/backups` | Where dumps are written and read. Change it only together with the volume mount. |
+| `DB_BACKUP_SCHEDULE` | `30 1 * * *` | Five-field cron, in Europe/Berlin time like every HealthLog schedule. |
+| `DB_BACKUP_KEEP` | `7` | Nightly dumps kept, at least 1. The two newest pre-migration dumps are kept besides. |
+| `DB_BACKUP_BEFORE_MIGRATE` | on | `false` starts an update without the dump before its migrations. |
+
+### Deleted accounts in the dumps
+
+A dump holds every account that existed when it was taken, including one
+deleted since. Dumps are not purged per account; a deleted account leaves them
+as they age out: after `DB_BACKUP_KEEP` nights on the server, and after your
+lifecycle rule in the bucket. Give that rule a prefix that covers `database/`
+too, or the dumps there, and the deleted accounts inside them, are kept
+forever; **Admin → Backups** says when no rule covers it. The deletion dialogs
+name this, and it is the retention period to state wherever you tell people
+that deleting their account deletes their data (see
+[GDPR for operators](/self-hosting/gdpr/#the-deletion-concept)).
+
+## Restore onto a new server
+
+1. Install Docker and take the `docker-compose.yml` of the version that wrote
+   the dump or a newer one. The manifest's `appVersion` names it; to run that
+   exact version set `HEALTHLOG_IMAGE_REF=:v<version>` in `.env`.
+2. Write `.env` with the keys from your records and a new
+   `POSTGRES_PASSWORD`. For a restore from the bucket, add the `BACKUP_S3_*`
+   variables and `BACKUP_ENCRYPTION_KEY` (with any
+   `BACKUP_ENCRYPTION_PREVIOUS_KEYS`) as on the old server.
+3. Start only the database. Do not run `docker compose up` yet: the app would
+   create an empty schema, and the restore only writes into a database with
+   no tables.
+
+   ```bash
+   docker compose up -d db
+   ```
+
+4. Restore. When the host is lost, its local dumps went with it, and the copy
+   is the one in the bucket:
+
+   ```bash
+   docker compose run --rm db-restore list --from-bucket
+   docker compose run --rm db-restore latest --from-bucket
+   ```
+
+   When the dumps survived in the `backups` volume (the database volume was
+   lost, the backups volume was not), run
+   `docker compose run --rm db-restore latest`. Name a dump instead of
+   `latest` to take an older one. With the files in hand instead (a `.dump`
+   with its `.manifest.json`, or both `.enc` files downloaded from the
+   bucket), put them in a directory such as `./restore`, make them readable
+   (`chmod a+r restore/*`) and name the dump:
+
+   ```bash
+   docker compose run --rm -v "$PWD/restore:/restore:ro" db-restore \
+     /restore/healthlog-20261024T233000Z-daily.dump
+   ```
+
+   Before it writes anything, the restore checks the archive against the
+   manifest's SHA-256, the keys in `.env` against the manifest's fingerprints
+   (naming each one that is missing or different), and that the database is
+   empty. It then restores in one transaction, gathers planner statistics and
+   counts every table against the manifest; a count that differs empties the
+   database again and fails. Wait for the line that starts with `Restored`.
+
+5. Start the stack, check `/api/health`, and sign in:
+
+   ```bash
+   docker compose up -d
+   curl -s http://localhost:3000/api/health
+   ```
+
+A different active encryption key stops the restore. `--ignore-key-mismatch`
+restores anyway; use it only when that key is lost for good, because
+everything encrypted stays unreadable. A missing `API_TOKEN_HMAC_KEY` loses no
+data, but every session, app token and share link stops working.
+
+If the address changes, set `APP_URL` and `NEXT_PUBLIC_APP_URL` to the new one,
+update the callback addresses registered at each connected provider, and expect
+passkeys to stop working: a passkey belongs to the domain it was created on.
+
+### Going back to before a migration
+
+```bash
+docker compose stop app
+# Keep the current state too, in case it is wanted later.
+docker compose exec -T db pg_dump -U healthlog -Fc healthlog > healthlog-current.dump
+docker compose exec db dropdb -U healthlog healthlog
+docker compose exec db createdb -U healthlog healthlog
+docker compose run --rm db-restore list
+docker compose run --rm db-restore healthlog-<time>-pre-migration.dump
+# Set HEALTHLOG_IMAGE_REF in .env to the version you ran before the update.
+docker compose up -d
+```
+
+### Test it
+
+The project restores a lost server in CI every night: it lets the scheduled
+job dump a seeded stack into a bucket, destroys every volume, and restores on
+a new stack from the bucket and the keys alone, then signs in and opens
+encrypted records. Test your own copies too: once, and after any change to how
+the server is run, restore last night's dump on a spare machine with the
+steps above. It is the only way to learn that a key is missing before you need
+it.
+
+## Dumps taken by hand
+
+The nightly dump needs nothing from you. A dump by hand is still useful as an
+extra copy, and it is the way for a database the app does not dump, such as a
+snapshot of the volume or dataset (ZFS, TrueNAS, Unraid) taken with the app
+stopped:
 
 ```bash
 docker compose exec -T db pg_dump -U healthlog healthlog \
   | gzip > healthlog-$(date +%F).sql.gz
 ```
 
-Run it before every update (see [Updates](/guides/updates-and-deploy/)) and on
-a schedule of your own, and copy the file off the host. With an
-[external Postgres](/self-hosting/external-postgres/), run `pg_dump` against
-that server. A snapshot of the database volume or dataset (ZFS, TrueNAS,
-Unraid) works too, taken with the app stopped or as an atomic snapshot.
+### Restore a database dump
 
-## Restore a database dump
-
-A restore replaces the whole database with the state in the file. Anything
-written after the dump is lost.
+A hand-made dump has no manifest, so `db-restore` does not take it. Load it
+with `psql`; anything written after the dump is lost.
 
 ```bash
 # 1. Stop the app (and app-worker, if you run one) so nothing writes.
@@ -72,25 +225,10 @@ key it starts but refuses to serve, with "HealthLog cannot open its data" (see
 A dump in Postgres' custom format (`pg_dump -Fc`) loads with `pg_restore
 --no-owner -d healthlog` instead of `psql`.
 
-## Move to a new server
-
-1. On the old server, note the running version (`/api/version`), stop the app
-   and take a dump as above.
-2. Copy the dump and the `.env` file to the new server. The `.env` carries the
-   keys the data needs: `ENCRYPTION_KEY` (or `ENCRYPTION_KEYS` and
-   `ENCRYPTION_ACTIVE_KEY_ID`), `API_TOKEN_HMAC_KEY` and, if you use it,
-   `BACKUP_ENCRYPTION_KEY` with any `BACKUP_ENCRYPTION_PREVIOUS_KEYS`. A new
-   `API_TOKEN_HMAC_KEY` signs everyone out and invalidates every API token.
-3. On the new server, clone the repository, put the `.env` in place and pin the
-   same version with `HEALTHLOG_IMAGE_REF`, so the move and an update do not
-   happen at once.
-4. Start only the database with `docker compose up -d db`, then follow
-   [Restore a database dump](#restore-a-database-dump) from step 2.
-5. Check `/api/version`, sign in, and only then update to a newer release.
-
-If the address changes, set `APP_URL` and `NEXT_PUBLIC_APP_URL` to the new one,
-update the callback addresses registered at each connected provider, and expect
-passkeys to stop working: a passkey belongs to the domain it was created on.
+To move a running server, stop the app on the old one, take a dump by hand,
+copy it and the `.env` to the new server, pin the same version there with
+`HEALTHLOG_IMAGE_REF`, start only `db`, and restore it as above from step 2.
+Update to a newer release only once the move has been checked.
 
 ## Backups kept in the database
 
@@ -98,7 +236,10 @@ The app keeps an encrypted copy of every account in its own database, under
 `ENCRYPTION_KEY` / `ENCRYPTION_KEYS`. The weekly run (Sunday 03:00
 Europe/Berlin, and **Backup now** on the admin backups page) replaces each
 account's weekly copy, and every file an admin uploads is kept as a copy of
-its own. These are the copies the console restores, previews and downloads.
+its own. **Delete all data** first stores the whole record as a copy shown as
+"Before all data was deleted", kept for the
+[deletion grace window](/account/data-deletion/#the-grace-window). These are
+the copies the console restores, previews and downloads.
 
 A copy is written as ordered pieces of about a megabyte, each encrypted on its
 own, so its size does not depend on the app's memory. A new copy is written in
@@ -273,7 +414,9 @@ S3-compatible bucket (Cloudflare R2, AWS S3, Backblaze B2, MinIO). It runs at
 02:30 Europe/Berlin from the process that runs the worker, and writes
 `<bucket>/YYYY-MM-DD/user-<userId>.json.enc`. Each object names the key that
 wrote it and is bound to its own object key, so a copy moved under another
-account's name or date does not decrypt.
+account's name or date does not decrypt. Accounts pending deletion are not
+uploaded. The [nightly database dump](#the-nightly-database-dump) goes into
+the same bucket under `database/`, sealed the same way.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
@@ -300,14 +443,18 @@ never the credentials.
 **Object Read & Write** token covers them. Add `GetLifecycleConfiguration` if
 you want the admin page to confirm your lifecycle rule. The app deletes
 objects only when an account's data goes (account deleted, managed profile
-deleted, **Delete all data**), retried every night while the bucket refuses,
-and its own connection-test object. The admin's global wipe deletes nothing in
+deleted, **Delete all data**), once the
+[grace window](/account/data-deletion/#the-grace-window) has ended, retried
+every night while the bucket refuses, and its own connection-test object. It
+never deletes a database dump in the bucket. The admin's global wipe deletes nothing in
 the bucket: those copies are how you get back from a wipe pressed by mistake.
 
 **Lifecycle.** The app does not expire copies by age. Set a lifecycle rule on
-the bucket (on R2 under the bucket's **Settings → Lifecycle**) and set
-`BACKUP_RETENTION_DAYS` to the same number. Without a rule every nightly copy
-is kept forever.
+the bucket (on R2 under the bucket's **Settings → Lifecycle**) that covers
+both the account objects and `database/`, for example one rule for the whole
+bucket, and set `BACKUP_RETENTION_DAYS` to the same number. Without a rule
+every nightly copy is kept forever, and so is every deleted account inside
+the dumps.
 
 ### Which account has no copy
 
@@ -317,7 +464,8 @@ one run produced nothing for that account, **stale** means two did not,
 **never** means no object has ever landed for it, and **no record yet** means
 no run has recorded the account so far. Stale rows sort first. The card also
 says when the bucket has no lifecycle rule, and lists deleted accounts whose
-copies the bucket refused to delete.
+copies the bucket refused to delete. Accounts pending deletion are not
+listed.
 
 ### Restore from the bucket
 
