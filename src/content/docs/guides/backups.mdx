@@ -1,24 +1,281 @@
 ---
 title: Backups and restore
-description: Enable encrypted nightly off-host backups to any S3-compatible bucket, and restore a user dump when you need it.
+description: Which backup covers which loss, restoring a database dump, moving to a new server, the weekly in-database copy and the encrypted nightly off-host copy.
 sidebar:
   order: 9
 ---
 
-HealthLog ships an optional daily off-host backup: every user's JSON dump,
-encrypted with AES-256-GCM under a **separate** key (`BACKUP_ENCRYPTION_KEY`),
-shipped to any S3-compatible bucket — Cloudflare R2, AWS S3, Backblaze B2, MinIO.
+HealthLog has three kinds of backup. Two run by themselves; the database dump
+is yours to take. This page says which one covers which loss, then how to
+restore each.
 
-The backup runs at **02:30 Europe/Berlin** daily from the worker container
-(queue `data-backup-offhost`). Object key layout:
+## Which backup covers what
 
+| Backup | What it holds | Covers | Does not cover |
+| --- | --- | --- | --- |
+| **Database dump** (`pg_dump`, or a snapshot of the database volume) | The whole instance: every account, the instance settings, sign-ins, tokens and grants | A failed update, a lost disk or host (when the file is kept off the host), a move to a new server | Nothing, as long as you keep the encryption key with it |
+| **Weekly copy in the database** (automatic) | One encrypted copy per account, inside the same database | A bad import or a mistaken delete in one account | A lost disk: it lives on the same disk |
+| **Nightly off-host copy** (optional, S3-compatible bucket) | One encrypted copy per account, every night | Bringing one account back to last night, on an instance where that account exists | Sign-ins, tokens, devices and sharing grants (see [below](#what-a-backup-does-not-carry)); a fresh instance, where the account does not exist yet |
+
+The account copies restore one account at a time under **Admin → Backups**.
+An uploaded copy is refused when its account does not exist on the instance,
+so they cannot rebuild a lost host on their own. For that, restore the latest
+database dump first, then bring single accounts forward to a newer off-host
+copy if you need to.
+
+Every one of them is unreadable without its keys. Keep `ENCRYPTION_KEY` (or
+`ENCRYPTION_KEYS` with `ENCRYPTION_ACTIVE_KEY_ID`), `API_TOKEN_HMAC_KEY` and,
+for the off-host copy, `BACKUP_ENCRYPTION_KEY` somewhere other than the server
+([why](/explanation/encryption-at-rest/#keep-a-copy-of-the-key)).
+
+## Take a database dump
+
+```bash
+docker compose exec -T db pg_dump -U healthlog healthlog \
+  | gzip > healthlog-$(date +%F).sql.gz
 ```
-<bucket>/YYYY-MM-DD/user-<userId>.json.enc
+
+Run it before every update (see [Updates](/guides/updates-and-deploy/)) and on
+a schedule of your own, and copy the file off the host. With an
+[external Postgres](/self-hosting/external-postgres/), run `pg_dump` against
+that server. A snapshot of the database volume or dataset (ZFS, TrueNAS,
+Unraid) works too, taken with the app stopped or as an atomic snapshot.
+
+## Restore a database dump
+
+A restore replaces the whole database with the state in the file. Anything
+written after the dump is lost.
+
+```bash
+# 1. Stop the app (and app-worker, if you run one) so nothing writes.
+docker compose stop app
+
+# 2. Replace the database with an empty one.
+docker compose exec -T db dropdb -U healthlog healthlog
+docker compose exec -T db createdb -U healthlog -O healthlog healthlog
+
+# 3. Load the dump and gather the planner statistics, which a dump does
+#    not carry.
+gunzip -c healthlog-2026-10-25.sql.gz \
+  | docker compose exec -T db psql -U healthlog -d healthlog -v ON_ERROR_STOP=1 -q
+docker compose exec -T db vacuumdb -U healthlog -d healthlog --analyze-in-stages
+
+# 4. Start the app. To go back to the release the dump came from, pin it
+#    first with HEALTHLOG_IMAGE_REF=:vX.Y.Z in .env.
+docker compose up -d app
+curl -s http://localhost:3000/api/version
 ```
 
-## Required env vars
+The app needs the encryption key the data was written with. With a different
+key it starts but refuses to serve, with "HealthLog cannot open its data" (see
+[Troubleshooting](/self-hosting/troubleshooting/#healthlog-cannot-open-its-data)).
+A dump in Postgres' custom format (`pg_dump -Fc`) loads with `pg_restore
+--no-owner -d healthlog` instead of `psql`.
 
-| Var | Required | Notes |
+## Move to a new server
+
+1. On the old server, note the running version (`/api/version`), stop the app
+   and take a dump as above.
+2. Copy the dump and the `.env` file to the new server. The `.env` carries the
+   keys the data needs: `ENCRYPTION_KEY` (or `ENCRYPTION_KEYS` and
+   `ENCRYPTION_ACTIVE_KEY_ID`), `API_TOKEN_HMAC_KEY` and, if you use it,
+   `BACKUP_ENCRYPTION_KEY` with any `BACKUP_ENCRYPTION_PREVIOUS_KEYS`. A new
+   `API_TOKEN_HMAC_KEY` signs everyone out and invalidates every API token.
+3. On the new server, clone the repository, put the `.env` in place and pin the
+   same version with `HEALTHLOG_IMAGE_REF`, so the move and an update do not
+   happen at once.
+4. Start only the database with `docker compose up -d db`, then follow
+   [Restore a database dump](#restore-a-database-dump) from step 2.
+5. Check `/api/version`, sign in, and only then update to a newer release.
+
+If the address changes, set `APP_URL` and `NEXT_PUBLIC_APP_URL` to the new one,
+update the callback addresses registered at each connected provider, and expect
+passkeys to stop working: a passkey belongs to the domain it was created on.
+
+## Backups kept in the database
+
+The app keeps an encrypted copy of every account in its own database, under
+`ENCRYPTION_KEY` / `ENCRYPTION_KEYS`. The weekly run (Sunday 03:00
+Europe/Berlin, and **Backup now** on the admin backups page) replaces each
+account's weekly copy, and every file an admin uploads is kept as a copy of
+its own. These are the copies the console restores, previews and downloads.
+
+A copy is written as ordered pieces of about a megabyte, each encrypted on its
+own, so its size does not depend on the app's memory. A new copy is written in
+one transaction, and the previous one stays readable until it is complete. A
+restore checks every piece before it deletes anything; a missing, altered or
+foreign piece stops it and leaves the account as it was. While a restore of an
+account is queued or running, backups skip that account and back up everyone
+else.
+
+### Limits
+
+| Limit | Value | What happens past it |
+| --- | --- | --- |
+| Stored copy of one account | `BACKUP_MAX_STORED_MB`, default `2048` MB of encrypted copy | That account's backup stops, its previous copy stays, the run continues with the other accounts. An upload is refused with `413` (`backup.upload.too_large`). |
+| Writing one account's copy | 90 minutes | That account's backup fails and its previous copy stays. |
+| The weekly run for all accounts | 2 hours | The run is marked failed ("job timed out"). Copies already written stay. |
+| An upload | 512 MB as sent; the page compresses a plain `.json` in the browser first | Refused with `413`. |
+| A restore | Two minutes, plus a second per 1,000 readings in the file and a second per 10,000 readings the account holds now, within 4.5 hours: roughly 14 million readings | Refused before anything is deleted. See [How long a restore may take](#how-long-a-restore-may-take). |
+
+For scale, an account with 2.6 million readings stores a copy of about 100 MB.
+To store larger copies, set `BACKUP_MAX_STORED_MB` in `.env` and run
+`docker compose up -d`. Keep room on the database volume for a second copy of
+that size, because the old copy stays until the new one is complete.
+
+### When a backup fails
+
+- **"The weekly backup has stopped" or "The last scheduled backup run
+  failed".** The first means the newest weekly copy is more than ten days old;
+  the second quotes the run's own reason. Press **Backup now** and check that
+  fresh rows appear.
+- **One account's row keeps an old date.** Its backup failed, or it was skipped
+  because a restore of it was running. The app log's `job.data_backup` line
+  names the reason per account. If it names `BACKUP_MAX_STORED_MB`, raise the
+  limit.
+- **A preview, download or restore answers `409` `backup_changed`.** The copy
+  was replaced by a newer one while it was being read. Nothing was changed;
+  start again.
+- **"A run stopped partway and never came back".** The process died under the
+  run, usually a restart or the container running out of memory. The page
+  names each account whose copy was started and not finished, and the next run
+  takes those accounts last. The same account showing up twice points at
+  memory: check the container's restart count and that `APP_MEMORY_LIMIT` is
+  at least the [supported floor](/getting-started/self-host-in-10-minutes/#requirements).
+
+In every case the account's previous copy is still there and can be restored.
+
+## Restore from the console
+
+Under **Admin → Backups**, pick a row, choose **Restore**, and type `RESTORE`.
+Before you confirm, the dialog shows what the copy contains: how many
+readings, medications, mood entries, lab results, documents, workouts and so
+on.
+
+To restore a file you hold (a copy from the restore script, or an export),
+upload it on the same page first; it becomes a row of its own. The upload
+takes a `.json` or `.json.gz` file of up to 512 MB as sent, and is refused when
+the account it belongs to does not exist on this instance.
+
+The restore runs in the background. The page shows which step it is on and how
+many readings it has written; you can leave or reload it. A restore never runs
+beside a backup or another large job such as an import; while it waits, the
+page says which of the two it is waiting for and since when. Only one restore
+per account runs at a time.
+
+While it runs, the account keeps showing its current data. The restore is
+written in one transaction, so a restore that fails leaves the account exactly
+as it was, and the page says why. The copy stays in the table, so you can start
+again from its row. A restore interrupted by a server restart before its data
+was written starts again by itself; if it stops a second time it is marked as
+failed, and the server most likely ran out of memory. A restore that stops
+while the charts are being rebuilt is not run again; the charts catch up by
+the next nightly run.
+
+Two things to know before you start one.
+
+**A restore replaces, it does not merge.** Every row the account gained after
+the copy was taken is removed, so a reading entered this morning is gone if
+the copy is from last night.
+
+**The instance settings stay put unless you ask.** **Also restore instance
+settings** is off by default. On, the restore also rewrites the instance-wide
+settings: registration, the second-factor requirement, the default language
+and time zone, module availability, notification and AI configuration, and the
+document size cap and quota. Tick it only when you are rebuilding a host.
+
+A copy the instance cannot open is refused straight away and nothing changes:
+`422` with `backup.payload.undecryptable` when the key that wrote the copy is
+no longer in `ENCRYPTION_KEYS` or the stored bytes were altered, and `422` with
+`backup.key.missing` naming the key id when the copy's encrypted fields need a
+key this server does not hold. Put the key back and the copy restores;
+[Key rotation](/guides/encryption-key-rotation/) explains how long to keep an
+old key. A file that would attach the account's records to another account's
+(`backup.foreign_reference`) is refused too.
+
+### How long a restore may take
+
+A restore deletes the readings the account holds now and writes the ones in the
+file, in one transaction. Writing is the slower half, because every reading
+goes into several indexes. Measured on an account of 1.89 million readings, a
+restore took about 3 minutes on a fast database host and about 15 minutes on
+one held to half a processor core and 40 MB/s of disk writes.
+
+The transaction gets its own time limit: two minutes, plus a second per 1,000
+readings in the file and a second per 10,000 readings the account holds now.
+A restore whose limit, plus ten minutes for rebuilding the charts, would run
+past 4.5 hours is refused before anything is deleted. On a disk that manages
+only a few hundred writes a second a restore of a million readings or more can
+still run out of time; the page then says so, and nothing is changed.
+
+Deleted readings stay in a backup until they are 75 days old, so a paired app
+that was offline can still learn about the deletion. A restore leaves out the
+older ones, which the nightly clean-up would remove anyway.
+
+### When the database refuses a restore
+
+The restore is rolled back whole, and the page names the cause:
+
+| The page says | What to do |
+| --- | --- |
+| The restore ran longer than the database allowed | Start again when the database host is quieter. The server log names the step |
+| The restore waited on records another process was changing | Start the restore again |
+| The database rejected a record in the backup | The server log names the table and the rule |
+| The database ran out of disk space or memory | Free up space on the database host, then start again |
+| The connection to the database was lost | Check that the database is running, then start again |
+
+The full error is in the server log and the audit log.
+
+### Paired apps after a restore
+
+An app that keeps its own copy of your data and catches up through the change
+feed holds a position in that feed, and a restore makes it meaningless. The
+server records when an account was restored, wiped with **Delete all data**,
+or cleared by the admin's global wipe, and an app asking with an older position
+is told to start over (`cursorExpired`). See
+[Sync](/reference/sync/#cursorexpired--clean-re-init).
+
+## What a backup carries
+
+Besides the record, an account copy carries how the account is set up: units,
+language, time zone, date and time format, modules, thresholds, layouts,
+notification and reminder preferences, health score configuration, source
+priority, AI choices without their keys, the profile (height, date of birth,
+name, picture, home location) and which imported documents were deleted, so an
+automatic import does not bring them back after a restore. Each value is
+checked the way the settings page checks it; a value this server does not
+accept is skipped, the account keeps its own, and the restore result names it.
+
+### What a backup does not carry
+
+Every credential-shaped row is left out on purpose: the password, passkeys,
+two-factor secrets, API tokens, integration tokens and connection state,
+trusted and known devices, single sign-on links, clinician share links, the
+Telegram bot connection, and the account grants behind
+[shared record access](/guides/shared-access/). Restoring data rolls a record
+back to a known state; restoring an authorization would bring a grant the
+owner revoked on Tuesday back to life out of Monday's file.
+
+- **Onto the same instance**, nothing changes: the restore replaces the
+  account's data and does not touch grants, tokens or devices.
+- **Onto another instance**, none of it comes with the file. Tokens have to be
+  issued again, devices trusted again, providers reconnected, and sharing set
+  up again by both people.
+
+A database dump is different: it carries all of this, because it is the whole
+database.
+
+## Off-host copies
+
+The optional nightly off-host backup writes every account's copy, encrypted
+with AES-256-GCM under a **separate** key (`BACKUP_ENCRYPTION_KEY`), to any
+S3-compatible bucket (Cloudflare R2, AWS S3, Backblaze B2, MinIO). It runs at
+02:30 Europe/Berlin from the process that runs the worker, and writes
+`<bucket>/YYYY-MM-DD/user-<userId>.json.enc`. Each object names the key that
+wrote it and is bound to its own object key, so a copy moved under another
+account's name or date does not decrypt.
+
+| Variable | Required | Notes |
 | --- | --- | --- |
 | `BACKUP_ENCRYPTION_KEY` | yes | 64 hex chars or 32-byte base64. **Must differ from `ENCRYPTION_KEY`.** |
 | `BACKUP_S3_ENDPOINT` | yes | e.g. `https://<account>.r2.cloudflarestorage.com` |
@@ -27,138 +284,48 @@ The backup runs at **02:30 Europe/Berlin** daily from the worker container
 | `BACKUP_S3_SECRET_KEY` | yes | |
 | `BACKUP_S3_REGION` | no | defaults to `auto` (Cloudflare R2) |
 | `BACKUP_RETENTION_DAYS` | no | Not read by the app. The number you set your bucket's lifecycle rule to. |
-| `BACKUP_ENCRYPTION_PREVIOUS_KEYS` | no | Retired off-host keys, comma-separated. Read only, never written with. See [Rotating the off-host key](#rotating-the-off-host-key). |
+| `BACKUP_ENCRYPTION_PREVIOUS_KEYS` | no | Retired off-host keys, comma-separated. Read only, never written with. |
 
-These are **all-or-none**: setting some but not all disables backups silently.
-The set is on the compose `environment:` whitelist. If you run a
-[web/worker split](/guides/updates-and-deploy/), the backup job runs in the
-worker, but the admin smoke test runs in the web container — set `BACKUP_*` on
-**both**. The web container needs them for deletion too: an account deleted
-there records its off-host copies for deletion only when it sees the backup
-configured.
+The set is all or none: with one missing, off-host backup is off. All are on
+the compose whitelist. With a [web/worker split](/self-hosting/scaling/), set
+them on both containers: the worker writes the copies, the web container runs
+the connection test and records deleted accounts' copies for deletion.
 
-## Wire format
+**Connection test.** `POST /api/admin/backup/test` (admin only) writes and
+reads back one byte and returns the endpoint, bucket, region and latencies,
+never the credentials.
 
-```
-magic   = "HLBK"           (4 bytes, ASCII)
-version = 0x04             (1 byte)
-keyIdLen, keyId            (1 byte + 12 ASCII hex: the first 12 hex digits of
-                            SHA-256 over the 32-byte key)
-iv      = 12 random bytes  (AES-GCM nonce)
-ciphertext = N bytes       (AES-256-GCM over gzip(JSON dump), key = BACKUP_ENCRYPTION_KEY,
-                            associated data = "healthlog/offhost-backup/v4|<object key>")
-authTag = 16 bytes         (AES-GCM tag, trailing)
-```
+**Bucket permissions.** The worker needs `PutObject`, `GetObject`,
+`ListBucket`, `DeleteObject` and `AbortMultipartUpload`; on Cloudflare R2 the
+**Object Read & Write** token covers them. Add `GetLifecycleConfiguration` if
+you want the admin page to confirm your lifecycle rule. The app deletes
+objects only when an account's data goes (account deleted, managed profile
+deleted, **Delete all data**), retried every night while the bucket refuses,
+and its own connection-test object. The admin's global wipe deletes nothing in
+the bucket: those copies are how you get back from a wipe pressed by mistake.
 
-Version `0x04` (v1.39.3) adds a key id and binds each object to its place in
-the bucket. The key id says which off-host key opens the object, so a server
-holding a retired key as well picks the right one. The object's own key,
-`YYYY-MM-DD/user-<id>.json.enc`, is authenticated with the ciphertext: an
-object copied under another account's name or another date no longer
-decrypts. The trailing tag is what lets the object be written as a stream: GCM
-only produces the tag once the last block is in, so a leading tag means the
-whole object has to exist before its first byte can be sent. Versions `0x01`
-(JSON encrypted directly), `0x02` (gzipped first, tag in front) and `0x03`
-(gzipped, tag trailing, no key id) are still read by trying each key the
-server holds, so older objects restore unchanged and the restore script needs
-no flag to tell them apart.
+**Lifecycle.** The app does not expire copies by age. Set a lifecycle rule on
+the bucket (on R2 under the bucket's **Settings → Lifecycle**) and set
+`BACKUP_RETENTION_DAYS` to the same number. Without a rule every nightly copy
+is kept forever.
 
-## Smoke test
+### Which account has no copy
 
-After deploying, hit `POST /api/admin/backup/test` (admin-only). It performs a
-1-byte PUT + GET round-trip and returns the endpoint, bucket, region, and PUT/GET
-latencies. Credentials are never returned.
+**Admin → Backups → Off-host copies** shows per account when this host last
+wrote its copy and how big it was: **fresh** is inside one run, **due** means
+one run produced nothing for that account, **stale** means two did not,
+**never** means no object has ever landed for it, and **no record yet** means
+no run has recorded the account so far. Stale rows sort first. The card also
+says when the bucket has no lifecycle rule, and lists deleted accounts whose
+copies the bucket refused to delete.
 
-```json
-{
-  "data": {
-    "endpoint": "https://...r2.cloudflarestorage.com",
-    "bucket": "healthlog-backups",
-    "region": "auto",
-    "putLatencyMs": 142,
-    "getLatencyMs": 38,
-    "ok": true
-  },
-  "error": null
-}
-```
+### Restore from the bucket
 
-## Which account has no copy
-
-The run reports counts, never names. An account whose object has failed every
-night for a month reads as `99 uploaded, 1 failed` each time, which looks like
-weather.
-
-**Admin → Backups → Off-host copies** answers it per account: when this host
-last put that account's encrypted copy in the bucket, how big it was, and how
-that compares with the nightly schedule. **Fresh** is inside one run, **due**
-means one run produced nothing for that account, **stale** means two did not,
-**never** means a run walked the account and no object has ever landed for it,
-and **no record yet** means no run has recorded the account at all (`unknown`
-on the wire). Stale rows sort first. On a host without `BACKUP_S3_*` the card
-says off-host backup is not configured and stops there.
-
-The ledger starts empty on the release that adds it, so on a host that has
-been uploading nightly for months every account reads **no record yet** until
-the first run after the upgrade. That is the ledger having no history, not the
-bucket being empty, which is why it is a separate word from **never**.
-
-Each verdict carries six hours of slack on top of the schedule's own 24 hours,
-for the DST fall-back night when two 02:30 Europe/Berlin runs are 25 hours
-apart and for a cohort walked one account at a time. Without it a healthy host
-would paint its whole cohort **due** once a year.
-
-The verdicts come from a ledger the worker writes when the object lands
-(`offhost_backup_state`), not from a listing of the bucket, so the card needs no
-bucket call to tell the truth. The row is wiped with the account and is not part of the
-backup itself: it describes this host's relationship with this bucket, and a
-restore elsewhere must not assert a copy that host never wrote.
-
-Since v1.39.3 the same card says two more things. It reads the bucket's
-lifecycle rule and tells you when there is none, which means every nightly
-copy is kept forever, or when the credential may not read it. And it shows
-deleted or wiped accounts whose copies are still in the bucket, with the
-bucket's answer when it refused to delete them.
-
-## Bucket permissions
-
-The worker needs `PutObject`, `GetObject`, `ListBucket`, `DeleteObject` and
-`AbortMultipartUpload`. On Cloudflare R2 the **Object Read & Write** token
-covers them. Add `GetLifecycleConfiguration` if you want the admin page to
-confirm your lifecycle rule. `DeleteObject` is new in v1.39.3.
-
-The app deletes objects only for these reasons:
-
-- **An account's data goes.** When an account is deleted, a managed profile is
-  deleted, or someone uses **Delete all data**, every copy of that account
-  (`YYYY-MM-DD/user-<id>.json.enc`) is deleted from the bucket right after, and
-  again at the next nightly pass (03:40) if the bucket was unreachable. A
-  nightly upload that finds the account deleted or wiped while it ran deletes
-  the copy it just wrote. If the bucket refuses the delete, the request is kept
-  and retried every night, and **Admin → Backups → Off-host copies** shows it.
-- **The connection test** deletes its own `_healthcheck/<ts>.bin`.
-
-The admin **Delete all data globally** (the Danger zone wipe) deletes nothing in
-the bucket. It is you clearing your own host, the bucket is yours, and its
-copies are how you get back from a wipe pressed by mistake. If you are handing
-the host on, empty the bucket yourself.
-
-## Bucket lifecycle
-
-The app does not expire copies by age, and nothing in it reads
-`BACKUP_RETENTION_DAYS`. Set a lifecycle rule on the bucket to the number of
-days you want the history to survive, and set the variable to the same number
-so the two agree on paper. Without a rule every nightly copy is kept forever.
-For Cloudflare R2, add it from the bucket's **Settings → Lifecycle**.
-
-## Restore
-
-Pick a key from the bucket and run the restore script with the same backup
-credentials and **the encryption key the backup was written under**. Never
-generate a fresh `BACKUP_ENCRYPTION_KEY` for a restore — a new key cannot
-decrypt any existing object. If you rotated the backup key, put the old one
-into `BACKUP_ENCRYPTION_PREVIOUS_KEYS` for the restore; objects written from
-v1.39.3 name the key they need.
+Decrypt an object with the restore script, from a checkout of the repository
+(the production image does not carry the script's dependencies), with the
+backup credentials and **the key the copy was written under**. A freshly
+generated key cannot decrypt anything; after a rotation, put the old key into
+`BACKUP_ENCRYPTION_PREVIOUS_KEYS`.
 
 ```bash
 BACKUP_S3_ENDPOINT=https://...r2.cloudflarestorage.com \
@@ -169,477 +336,29 @@ BACKUP_S3_REGION=auto \
 BACKUP_ENCRYPTION_KEY=<the key the backup was written under> \
 pnpm dlx tsx scripts/restore-backup.ts \
   2026-05-08/user-clx123.json.enc \
-  /tmp/restored.json
+  /tmp/restored.json.gz
 ```
 
-The script downloads the object, decrypts it, and writes the JSON dump to disk
-with owner-only permissions (`0600`), since the file is decrypted health data
-in plaintext (v1.37.33). An output name ending in `.gz` writes the dump
-compressed, which is the form to use for a large account: the JSON of 1.25
-million readings is about 660 MB, the compressed file about a tenth of that.
-To bring the dump back into an instance, upload it on the admin backups page
-and restore it from there, as described next.
+The file is decrypted health data, written with owner-only permissions; an
+output name ending in `.gz` writes it compressed. Upload it under
+**Admin → Backups** and restore it from its row as described
+[above](#restore-from-the-console).
 
-:::caution[Run the restore from a source checkout]
-The script imports the full application dependency graph, which the minimal
-production image does not carry, and the image strips `tsx` as well. Run it
-from a checkout of the repository with the backup variables exported, through
-`pnpm dlx tsx` as above, not inside the container.
-:::
-
-## Rotating the off-host key
+### Rotating the off-host key
 
 Put the new key into `BACKUP_ENCRYPTION_KEY`, move the old one into
-`BACKUP_ENCRYPTION_PREVIOUS_KEYS` (comma-separated if there are several), and
-restart. New copies are written under the new key and older copies stay
-readable. Remove the old key once your lifecycle rule has retired every copy
-written under it, which is `BACKUP_RETENTION_DAYS` after the restart. Keep a
-copy of every retired key somewhere durable for as long as its objects live.
-
-## Backups kept in the database
-
-Separate from the off-host copy, the app keeps an encrypted backup of every
-account in its own database, under `ENCRYPTION_KEY` / `ENCRYPTION_KEYS`. The
-weekly run (Sunday 03:00 Europe/Berlin, and **Backup now** on the admin
-backups page) replaces each account's weekly copy, and every file an admin
-uploads is kept as a copy of its own. These are the copies the console
-restores, previews and downloads. They live in the same database as the data
-they protect, so they cover a bad import or a mistaken delete, not a lost
-disk: that is what the off-host copy is for.
-
-### How a copy is stored
-
-From v1.39.2 a copy is written as ordered pieces of about a megabyte, each
-encrypted on its own. Writing and reading both go a piece at a time, so the
-size of a copy no longer depends on how much memory the app has. Each piece
-carries, inside its encryption, which copy it belongs to, its position and
-whether it is the last. Before a restore deletes anything, every piece is
-checked; a piece that is missing, altered, out of order or taken from another
-copy stops the restore and leaves the account as it was.
-
-A new copy is written in one transaction. Until it is complete, the previous
-copy stays in place and readable, so a run that fails halfway loses nothing.
-Two backups of the same account at the same time run one after the other:
-the second waits for the first, then replaces its copy, and neither leaves a
-partial copy behind. While a restore of an account's copy is queued or
-running, the weekly and manual backup leave that account alone, count it as
-skipped (`users_skipped_restoring`) and back up everyone else; the next run
-makes the copy.
-
-If a copy is replaced anyway while it is being read (a preview or download in
-progress when the weekly run finishes), the reader answers `409` with
-`backup_changed` and "The backup was replaced by a newer one while it was being
-read". A restore rolls back with nothing changed, and a download that was
-already sending stops partway. Start again to use the new copy.
-
-Copies written before v1.39.2 keep their old single-value form and still
-restore, preview and download. The next weekly run replaces the weekly copy in
-the new form, and a [key rotation](/guides/encryption-key-rotation/) converts
-every remaining one, uploaded copies included. Until then an old copy is read
-as one value, which takes the memory it took when it was written.
-
-### Limits
-
-| Limit | Value | What happens past it |
-| --- | --- | --- |
-| Stored copy of one account | `BACKUP_MAX_STORED_MB`, default `2048` MB of encrypted copy | That account's backup stops, its previous copy stays, the run continues with the other accounts. An upload is refused with `413` (`backup.upload.too_large`) and nothing of it is kept. |
-| Writing one account's copy | 90 minutes | That account's backup fails and its previous copy stays. |
-| The weekly run for all accounts | 2 hours | The run is marked failed ("job timed out"). Copies already written stay. |
-| An upload | 512 MB as sent; the page compresses a plain `.json` in the browser first | Refused with `413`. |
-| A restore | Two minutes, plus a second per 1,000 readings in the file and a second per 10,000 readings the account holds now; with ten minutes kept free for rebuilding the charts, this has to fit into 4.5 hours (three quarters of the job's six hours): roughly 14 million readings replacing an account of the same size | Refused before anything is deleted, with "too large to restore within the background job's time limit". See [How long a restore may take](#how-long-a-restore-may-take). |
-
-For scale: an account with 2.6 million readings stores a copy of about
-100 MB, so the default storage limit leaves a wide margin. The limit is there
-so a runaway copy fails with a clear message instead of filling the database
-volume.
-
-To store larger copies, set `BACKUP_MAX_STORED_MB` in `.env` and recreate the
-app container with `docker compose up -d`. The variable is on the compose
-`environment:` whitelist from v1.39.2 on; if you keep your own compose file,
-add `BACKUP_MAX_STORED_MB: "${BACKUP_MAX_STORED_MB:-}"` to it. Make sure the
-database volume has room for a second copy of that size while one is written,
-because the old copy stays until the new one is complete.
-
-### When a backup fails
-
-- **The backups page says "The weekly backup has stopped" or "The last
-  scheduled backup run failed".** The first means the newest weekly copy is
-  more than ten days old; the second quotes the run's own reason. Press
-  **Backup now** and check that fresh rows appear.
-- **One account's row keeps an old date while the others move on.** That
-  account's backup failed, or it was skipped because a restore of its copy was
-  running, and the run carried on. The app log names it: the
-  `job.data_backup` line carries a warning per failed account with the reason.
-  If the reason names `BACKUP_MAX_STORED_MB`, raise the limit as described
-  above. `data_backup_records_oversized` in the same line counts the accounts
-  that hit it.
-- **A preview, download or restore answers `409` `backup_changed`.** The copy
-  was replaced by a newer one while it was being read. Nothing was changed;
-  start again.
-- **A copy is refused with "This backup holds both a single stored value and
-  pieces".** An older version wrote to the row after v1.39.2 had, which only
-  happens after a downgrade. The row is not read; the next weekly backup
-  replaces it.
-- **The backups page names an account under "A run stopped partway and never
-  came back".** Since v1.40.1 both backup jobs report a heartbeat while they
-  run, so a run the process died under (a restart, or the container running
-  out of memory) is noticed within minutes instead of after two hours, and the
-  queue's retries take it from there. The page shows **Running since** for a
-  run in progress, and under the weekly and the off-host card it names each
-  account whose copy was started and never finished. The next run takes those
-  accounts last, so every other account gets its copy first. The same account
-  showing up there twice needs more memory than the container has; see
-  [Large accounts and memory](#large-accounts-and-memory).
-- **The run fails with "job timed out", or the app restarts during the run.**
-  Check the container's restart count and memory limit (see
-  [Large accounts and memory](#large-accounts-and-memory)). On v1.39.1 or
-  earlier, an account above about 1.75 million readings could not be backed up
-  at all; update to v1.39.2.
-
-In every case the account's previous copy is still there and can be restored.
-
-## Restore from the console
-
-The bucket object is the disaster path. The routine one is the backup table
-under `/admin/backups`, which holds each account's stored snapshots as database
-rows. Pick a row, choose **Restore**, and type `RESTORE`.
-
-Before you confirm, the dialog shows what the backup contains: how many
-readings, medications, mood entries, lab results, documents, workouts and so
-on. Since v1.39.6 these counts are worked out when the backup is made and kept
-with it, so the preview appears at once however large the account is. A backup
-made before v1.39.6 has no counts yet. The first time you open it, the server
-reads the whole copy once and keeps the counts, and from then on it opens
-instantly too. For a large account that first read can take longer than the
-dialog waits; it then says the backup was made by an earlier version and is
-still being read, and to open the dialog again in a few minutes. The restore
-itself does not depend on the preview.
-
-To restore a file you hold (a dump from the restore script, or an export),
-upload it on the same page first; it becomes a row of its own. The upload
-takes a `.json` or a `.json.gz` file. Since v1.39.1 the page compresses a
-plain JSON file in the browser before sending it and the server reads the file
-as a stream, so a file of several hundred megabytes goes up. The limit is 512
-MB as sent. A file whose encrypted copy is larger than `BACKUP_MAX_STORED_MB`
-is refused with `413` (`backup.upload.too_large`), and nothing of it is kept.
-
-Since v1.39.1 the restore runs in the background. Above the table the page
-shows which step it is on (checking the file, clearing the account's current
-data, writing the readings, writing the other records, rebuilding the charts)
-and how many readings it has written, then whether it finished. You can leave
-the page or reload it; the progress is still there when you come back. A large
-account takes a while, and the database host decides how long more than the
-app does: see [How long a restore may take](#how-long-a-restore-may-take).
-Because the request only starts the restore, a reverse proxy that closes
-requests after 60 seconds no longer shows an error for a restore that is still
-running.
-
-While it runs, the account keeps showing its current data. The restore is
-written in one go, so nothing changes for the account until the data is
-written, and a restore that fails before that leaves the account exactly as it
-was. Only one restore per account runs at a time; starting a second one while
-the first is queued or running is refused, and the page says a restore is
-already in progress.
-
-If a restore fails, the page says why and what to do: the file is incomplete,
-the backup was replaced by a newer copy while the restore waited, the file is
-too large to restore within the background job's time limit, the worker is not
-running, and so on. When the database itself refused the restore part-way, the
-page names the cause (see [When the database refuses a
-restore](#when-the-database-refuses-a-restore)). The backup stays in the table, so you can start the restore
-again from its row without uploading the file again. A restore interrupted by a
-server restart before its data was written starts again by itself once the
-server is back; if it stops a second time, it is marked as failed, and the
-server most likely ran out of memory. A restore that stops after the data was
-written, while the charts are being rebuilt, is never run again, so nothing
-written to the account since is lost. The page says the data was restored and
-that the charts may take until the next nightly run to catch up.
-
-Medications keep their creation date through a restore. A portable export
-written from v1.39.1 on carries it. An older portable export does not, so the
-restore dates each medication by the earliest thing the file records for it
-(its first dose, the start of its first schedule, its course start and the
-like), never later than the restore itself. Before, the restore date was used,
-and missed doses in the restored history dropped out of the adherence rate.
-
-Two things to know before you do.
-
-**A restore replaces, it does not merge.** Every row the account gained after
-the snapshot was taken is removed along with the rest of its class, so a reading
-entered this morning is gone if the snapshot is from last night. That is the
-point of the action, and it is why the typed confirmation is there.
-
-**The instance settings stay put unless you ask.** The checkbox beside the
-confirmation, **Also restore instance settings**, is off by default. Off, the restore
-touches one account's data. On, it also rewrites the singleton settings row:
-registration, the second-factor requirement, the default language and timezone,
-module availability, notification and AI configuration, and the document size
-cap and quota. Those apply to every account on the installation, so tick it only
-when you are rebuilding a host.
-
-A stored copy the instance cannot open is refused rather than reported as a
-crash. Restore, download and preview each answer `422` with
-`meta.errorCode: backup.payload.undecryptable` straight away, and nothing is
-changed. There are two ways to earn it: the key that wrote the copy is no
-longer in `ENCRYPTION_KEYS`, which is a rotation that dropped the legacy entry
-too early, or the stored bytes are not the ones that were written. For a copy stored in
-pieces, every piece is checked this way before the restore starts, so a piece
-that is missing, altered or out of order earns the same answer. A copy that
-decrypts and then fails its checks (the file is not a valid backup, its
-manifest names a section it does not carry, it belongs to another account) is
-reported on the page as a failed restore with the reason, and nothing is
-changed either.
-
-A copy can also open and still need a key you no longer have. Its content is
-the database's encrypted fields exactly as they were stored when the copy was
-taken, and a restore writes them back as they are. Since v1.39.3, if they were
-written under an `ENCRYPTION_KEYS` entry this server no longer has, or under an
-id whose key has changed, the preview and the upload refuse with `422` and
-`meta.errorCode: backup.key.missing` naming the key id, and a restore fails in
-the background with the same reason on the page. Nothing is changed. Put the
-key back and the copy restores. [Key rotation](/guides/encryption-key-rotation/)
-explains how long to keep an old key.
-
-On v1.40.0 that check could refuse a good backup with "the key material behind
-the id differs". It sampled one value from the server settings, an older value
-written before encrypted values carried a key prefix, misread it and concluded
-the key had changed, although the key opened every value in the backup. Since
-v1.40.1 such older values open correctly, and the check samples only the
-sections that count. A key that really differs is still refused. If a restore
-was refused this way, update and start it again from its row.
-
-A restore also refuses a file that would attach the account's records to
-records of another account on the same server (`backup.foreign_reference`), and
-nothing is written.
-
-### How long a restore may take
-
-A restore deletes the readings the account holds now and writes the ones in the
-file, all in one database transaction. Both halves take time: the account's
-readings include the ones the nightly clean-up has folded into hourly or daily
-values, which stay as deleted rows for 75 days, and writing is the slower half
-because every reading goes into many indexes. Measured on an account of 1.89
-million readings, most of them folded samples:
-
-| Database host | Restore |
-| --- | --- |
-| A fast host | about 3 minutes |
-| Held to half a processor core and 40 MB/s of disk writes | about 15 minutes |
-
-The transaction gets its own time limit: two minutes, plus a second per 1,000
-readings in the file and a second per 10,000 readings the account holds now.
-Since v1.39.4 every step inside it may run that long. Before, each step had
-the limit every database session carries (`DATABASE_STATEMENT_TIMEOUT_MS`, 60
-seconds by default), and on slower hardware deleting
-the old readings of a large account ran past it, so the restore rolled back
-while clearing the account. The same release adds two indexes that make
-deleting readings much faster, which also speeds up the nightly clean-up and
-account deletion. The upgrade builds them at start-up; see
-[Upgrading to v1.39.4](/guides/updates-and-deploy/#upgrading-to-v1394).
-
-A restore is refused before anything is deleted when its limit, plus ten
-minutes for rebuilding the charts, would run past three quarters of the
-restore job's six hours. That admits roughly 14 million readings replacing an
-account of the same size. On a disk that manages only a few hundred writes a
-second, writing is slower than the limit assumes, and a restore of a million
-readings or more can still run out of time; the page then says so, and nothing
-is changed.
-
-Two more things keep a large restore short:
-
-- **Old deletions are not written back.** A backup keeps readings you deleted,
-  and samples the nightly clean-up folded, as deleted rows until they are 75
-  days old, so a paired app that was offline can still learn about the
-  deletion. A restore leaves out every such row older than 75 days, which the
-  next nightly clean-up would remove anyway. Younger ones are restored. The
-  file itself is unchanged, and the restore summary counts the readings it
-  wrote. Since v1.39.6 that clean-up leaves an account alone while a restore
-  of it is running and removes that account's old deleted rows the next
-  night, instead of waiting on the restore's rows until it ran out of time.
-- **The charts are rebuilt with their own allowance.** After the data is
-  written, the restore rebuilds the summaries the charts read, with up to ten
-  minutes per step. Before v1.39.4 that step had the session limit too, and on
-  a slow disk the charts stayed empty until the app was
-  next restarted.
-
-### When the database refuses a restore
-
-A restore the database refuses part-way is rolled back whole, so the account
-stays exactly as it was. Since v1.39.4 the page says why instead of a general
-"the database refused the restore":
-
-| The page says | What to do |
-| --- | --- |
-| The restore ran longer than the database allowed | If the database host was busy, start the restore again when it is quieter. The server log names the step |
-| The restore waited on records another process was changing | Start the restore again |
-| The database rejected a record in the backup | The server log names the table and the rule |
-| The database ran out of disk space or memory | Free up space on the database host, then start the restore again |
-| The connection to the database was lost | Check that the database is running, then start the restore again |
-
-Anything else keeps the general message. The full error is in the server log
-and in the audit log, which also records the cause and the database's error
-code. The job's own record, which the page reads, carries only the cause,
-because the database's message can quote the rows involved.
-
-### Paired apps after a restore
-
-An app that keeps its own copy of your data and catches up through the change
-feed (`/api/sync/changes`) holds a position in that feed. After a restore, that
-position no longer fits: the restored readings keep their original dates, so
-they sit behind it, and the readings the restore removed leave nothing for the
-app to notice. Since v1.39.4 the server records when an account was restored,
-and it does the same for **Delete all data** and for the admin's global wipe.
-An app asking with a position from before that moment is told to start over
-(`cursorExpired`) and loads the account afresh. See
-[Sync](/reference/sync/#cursorexpired--clean-re-init).
-
-## Large accounts and memory
-
-An account with years of imported Apple Health data can hold millions of
-readings. Every backup path works a piece at a time, so a 1 GB app container is
-enough, and since v1.40.1 the weekly backup needs far less memory than before.
-The compose default is `1536m` since v1.40.1 (see
-[Scaling](/self-hosting/scaling/#memory)). Measured on an account with 2.6
-million readings, with the web server and the worker in one 1 GB container:
-
-| Step | Time |
-| --- | --- |
-| Weekly or manual backup | 87 seconds, stored copy about 100 MB |
-| Preview before a restore | 20 seconds |
-| Download (1.4 GB of JSON) | 25 seconds |
-| Restore | about 4.5 minutes, every reading back exactly |
-
-The container peaked at about 570 MB and did not restart. The full export is
-sent while it is being written, with or without a passphrase, and the off-host
-run continues with the accounts it had not reached when it is retried.
-
-**1 GB is the minimum for the container that runs the worker**, which is the
-`app` container unless you [split web and worker](/self-hosting/scaling/). A
-512 MB container cannot run a backup at all: the app alone leaves too little
-room in its heap, and a backup of any account, however small, runs out of
-memory. Raising the memory above 1 GB does not change what a backup can store;
-the storage limit above does.
-
-Up to v1.39.1 a stored copy was one value that had to pass through the app
-whole, which capped it at a fifth of the app's heap: 105 MB in a 1 GB
-container, reached at about 1.75 million readings. If you raised
-`APP_MEMORY_LIMIT` only to get such an account backed up, v1.39.2 no longer
-needs it.
-
-After a large Apple Health import, the account's reading count drops over
-the following nights, because a nightly clean-up folds old high-frequency
-samples into hourly or daily values. A backup keeps the replaced samples,
-marked as deleted, until they are removed 75 days later, so backups of such an
-account get smaller only then. See
-[why the reading count drops](/guides/import-apple-health/#why-the-reading-count-drops-after-an-import).
-
-## Account settings in a backup
-
-Since v1.39.7 a backup also carries how the account is set up, in a section of
-its own (`accountSettings`). A restore writes these back onto the account, so
-a record restored into a fresh account reads the way it did before instead of
-starting from the defaults.
-
-What comes back: the unit preference and the glucose unit, language, time
-zone, date and time format, the module selection, thresholds, the dashboard and
-list layouts, notification and reminder preferences, the health score
-configuration, source priority, and your AI choices (provider, model, order,
-timeout, privacy options, whether the Coach is on), but never the AI keys. The
-profile comes back too: height, date of birth, sex, name, insurance details,
-the profile picture, the home location, and how far the account got through
-setup, the tour and the disclaimer.
-
-What never comes back: the password, passkeys, two-factor secrets, API keys,
-integration keys and tokens, single sign-on links, and the state of a
-connection. The Telegram bot token and chat are credentials too, so Telegram
-reminders stay as the receiving account has them, which in a fresh account
-means off until you connect the bot again. A restored AI provider without its
-key reads as not configured until you enter one, the same as after removing a
-key in Settings. The account's role, sign-in name and the limits an operator
-set for it are never changed by a restore either.
-
-Each value from the file is checked the way the settings page checks it when
-you save it, because the file may come from another host, an older release or
-a text editor. A value this server will not take, such as an unknown language
-or time zone, a threshold out of range, or a local AI address this host does
-not allow, is skipped. The account keeps the value it had, and the restore
-result lists the column under **Account setting**, so a setting that did not
-come back is never reported as restored.
-
-A backup made before v1.39.7 has no settings section. It restores exactly as
-before, with the data and without the settings, and the account keeps its
-current ones. The instance-wide settings are a separate matter: they come back
-only when you tick **Also restore instance settings** (see
-[Restore from the console](#restore-from-the-console)).
-
-## Moving to a server with a different key
-
-A portable backup is meant to be restored on another server, which has its own
-encryption key. Since v1.40.0 cycle notes and labels, your own mood labels,
-visit and practitioner notes, vaccination notes and your own symptoms travel in
-it readable and are encrypted again with the new server's key on restore.
-Before, some of these travelled as the old server's ciphertext, so the restore
-failed or the text was lost. Your own mood tags also come back when the backup
-holds no mood entries. Text that the file still carries sealed under a key the
-server does not hold is skipped and named in the restore summary, and the entry
-it belongs to is kept without it.
-
-## What a backup does not carry
-
-Every credential-shaped row is left out, and this is a decision rather than an
-oversight: API tokens, trusted devices, step-up elevations, known devices,
-clinician share links, and the account grants behind
-[shared record access](/guides/shared-access/). Restoring data rolls a record
-back to a known state. Restoring an authorization is different in kind, because
-a grant the owner revoked on Tuesday would come back alive out of Monday's file
-with nobody deciding it and neither person told.
-
-What that means in practice depends on where you restore.
-
-- **Onto the same instance.** Nothing changes. The restore replaces the
-  account's data tables and does not touch grants, tokens or devices, so shared
-  access carries on exactly as it was, now over the restored data.
-- **Onto a fresh instance.** None of it comes with the file. Nobody has access
-  to anybody's record, every API token has to be reissued, every device
-  re-trusted, and both people have to invite and accept again before sharing
-  works. That is the fail-safe direction, and re-consenting is the right amount
-  of ceremony for handing somebody your health record a second time. Plan for it
-  rather than discovering it.
-
-The per-model reasoning lives in `src/lib/export/backup-plan.ts`, where every
-excluded model carries a written reason, and a new one cannot be left out
-without getting one.
-
-## Monthly restore drill (automatic)
-
-A pg-boss job (`data-restore-drill`, 04:11 on the 1st of each month) exercises
-the read path end to end: it fetches every backup object of the most recent
-date (one per account), decrypts each with the off-host keys the server holds
-(current and previous), JSON-parses it, and sanity-checks
-the payload shape. Before v1.40.1 it checked only one account's object. Each
-account is checked and reported on its own, the drill runs as one locked pass,
-and a failing account is reported once, by its object key, while the others are
-still read. It performs **no database restore** — it validates the
-artefact, not the import path. Outcomes:
-
-- **Success**: record counts, object age, and sizes land in the wide-event
-  meta (`job.restore_drill`).
-- **Stale chain**: the newest object is older than 3 days, so the nightly
-  uploader has stalled, or the lifecycle rule is too aggressive. The drill
-  pages via the worker error reporter.
-- **Failure**: empty bucket, fetch error, decryption failure, or malformed
-  JSON pages the same way. A decryption failure right after a
-  `BACKUP_ENCRYPTION_KEY` change means the old key is missing from
-  `BACKUP_ENCRYPTION_PREVIOUS_KEYS`.
-- **Content under a missing key** (since v1.39.3): the object opens, but the
-  drill decrypts the shortest value of each section under every application
-  key id it finds inside (since v1.40.1; one value per key before), and one of
-  them needs a key this server does not have. It pages with the key id.
-  Restoring that copy would bring back records nobody can read, so put the key
-  back first.
-- **Not configured**: deployments without the `BACKUP_S3_*` vars skip
-  silently.
-
-The drill needs `GetObject` and `ListBucket`, both in the worker's grant above.
-Since v1.39.3 it reads the whole listing, so it finds the newest copy in a
-bucket of any size.
+`BACKUP_ENCRYPTION_PREVIOUS_KEYS`, and restart. New copies use the new key and
+older ones stay readable. Remove the old key once your lifecycle rule has
+retired every copy written under it, and keep a copy of every retired key for
+as long as its objects live.
+
+### Monthly restore drill
+
+On the 1st of each month at 04:11 a job reads the newest copy of every account
+from the bucket, decrypts it with the keys the server holds and checks its
+shape. It restores nothing into the database. It reports through the worker's
+error reporting when the newest copy is older than three days (the nightly
+upload stalled or the lifecycle rule is too short), when the bucket is empty,
+when an object fails to decrypt (after a key change, the old key is missing
+from `BACKUP_ENCRYPTION_PREVIOUS_KEYS`), or when a copy needs an application
+key this server does not hold.
