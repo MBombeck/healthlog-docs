@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting & FAQ
-description: The problems self-hosters actually hit — login loops on plain HTTP, stale images despite an update, key-rotation mistakes, silent APNs, OAuth callbacks on the wrong host — and their fixes.
+description: The problems self-hosters hit most, with the cause and the fix: login loops on plain HTTP, stale images, key mistakes, memory, restores and OAuth callbacks.
 sidebar:
   order: 8
 ---
@@ -18,23 +18,21 @@ flag, and browsers silently drop `Secure` cookies on a plain-HTTP origin that
 is not `localhost`.
 
 **Fix.** Either put TLS in front of the instance (see
-[reverse proxy](/guides/reverse-proxy/)) or — only for a trusted LAN, Tailscale,
-or VPN-only deployment — set `SESSION_COOKIE_SECURE=false` in `.env` **and**
+[reverse proxy](/guides/reverse-proxy/)) or, only for a trusted LAN, Tailscale
+or VPN-only deployment, set `SESSION_COOKIE_SECURE=false` in `.env` **and**
 make sure it is listed in the compose `environment:` whitelist. Never disable it
 on a host that serves plain HTTP to the open internet.
 
 ## Signing in cannot complete on this page
 
-**Symptom.** Since v1.40.0 the login page shows "Signing in cannot complete on
-this page" before you type anything, and a sign-in attempt is refused.
+**Symptom.** The login page shows "Signing in cannot complete on this page"
+before you type anything, and a sign-in attempt is refused.
 
 **Cause.** The same as above, caught earlier. The server sets its session
 cookie with the `Secure` flag and the page was opened over `http://`, where the
-browser would drop it. Before v1.40.0 that went unnoticed until after the
-password was checked, and with two-factor sign-in on it used up your code and
-ended in "Invalid or expired challenge". Now the server refuses such a sign-in
-with `409` and `meta.errorCode` `auth.session.insecure_transport` before it
-checks a password or uses up a code, passkey challenge or ticket.
+browser would drop it. The server refuses such a sign-in with `409` and
+`meta.errorCode` `auth.session.insecure_transport` before it checks a password
+or uses up a code, passkey challenge or ticket.
 
 **Fix.** Open the `https://` address (behind a TLS proxy, make sure it forwards
 `X-Forwarded-Proto: https`), or set `SESSION_COOKIE_SECURE=false` for a server
@@ -48,7 +46,7 @@ warns there.
 answer `503` with `meta.errorCode` `encryption.key_mismatch`, and
 `/api/health` answers `503` with `reason: "encryption_key_mismatch"`.
 
-**Cause.** Since v1.40.0 the app checks at start that its encryption key opens
+**Cause.** At start the app checks that its encryption key opens
 the data already in the database. This server was started with a different key
 than the one its data was written with, typically after a reinstall or a move
 that generated a fresh `ENCRYPTION_KEY`. Nothing is served and no background
@@ -70,7 +68,7 @@ digest it has cached and never asks the registry whether a newer manifest
 exists.
 
 **Fix.** Keep the `pull_policy: always` line from the bundled
-`docker-compose.yml` — it is load-bearing, not a nicety. After any deploy,
+`docker-compose.yml`; it is load-bearing. After any deploy,
 verify with `curl -s localhost:3000/api/version`: it returns `version`,
 `buildSha`, and `builtAt`, which is the only trustworthy signal that the new
 image is actually running. See [updates and deploy](/guides/updates-and-deploy/).
@@ -86,7 +84,7 @@ then `docker compose up -d`. The
 [environment-variable reference](/reference/environment-variables/) marks which
 variables ship on the whitelist.
 
-Related: `NEXT_PUBLIC_*` toggles are inlined at **build time** — setting them at
+Related: `NEXT_PUBLIC_*` toggles are inlined at **build time**; setting them at
 runtime against the pre-built GHCR image has no effect at all.
 
 ## Decryption errors after rotating encryption keys
@@ -95,7 +93,7 @@ runtime against the pre-built GHCR image has no effect at all.
 on boot.
 
 **Cause.** A key was removed from the `ENCRYPTION_KEYS` map while rows encrypted
-under it still existed. HealthLog fails closed on an unknown key id — it will
+under it still existed. HealthLog fails closed on an unknown key id: it will
 never silently return plaintext or garbage.
 
 **Fix.** Restore the legacy key entry to the map (its id is embedded in each
@@ -112,7 +110,7 @@ Work through these in order:
 1. **All-or-none env set.** APNs needs `APNS_KEY_ID`, `APNS_TEAM_ID`,
    `APNS_BUNDLE_ID`, and the key itself. Missing any one disables APNs
    silently.
-2. **Use `APNS_KEY_B64`.** Paste the `.p8` as base64, not as a raw PEM body —
+2. **Use `APNS_KEY_B64`.** Paste the `.p8` as base64, not as a raw PEM body:
    deployment panels that write `env_file` entries mangle literal newlines, and
    a mangled key fails in non-obvious ways.
 3. **Key scope.** The `.p8` must be scoped **"Sandbox & Production"** in the
@@ -120,7 +118,7 @@ Work through these in order:
    `BadEnvironmentKeyInToken` on production builds.
 4. **Delivery ledger.** The admin notification diagnostic
    (`/api/admin/notifications/diagnostic`) shows the channel state and the last
-   20 delivery attempts for the calling user, with masked tokens — the
+   20 delivery attempts for the calling user, with masked tokens. It is the
    fastest way to see whether APNs is rejecting or simply not attempting.
 
 ## OAuth callbacks land on `localhost` or the wrong host
@@ -129,108 +127,50 @@ Work through these in order:
 `http://localhost:3000`, so every derived redirect URI does too.
 
 **Fix.** Set both to the public origin, restart, and make sure the redirect URI
-registered at the provider matches the app's callback path **exactly** — e.g.
+registered at the provider matches the app's callback path **exactly**, for example
 `/api/google-health/callback` for
 [Google Health](/guides/connect-google-health/), `/api/withings/callback` for
 [Withings](/guides/connect-withings/). A single trailing slash or an `http`
 scheme mismatch is enough for the provider to refuse the flow.
 
-Since v1.38.1 the integration cards under **Settings → Integrations** show a
-warning when the origin of the callback address differs from the address in the
-browser, and each setup guide on those cards shows the full callback address.
-Both values are the ones the server registers with the provider, resolved from
-`NEXT_PUBLIC_APP_URL` or the matching `*_REDIRECT_URI` override at request
-time. In v1.38.0 the check read the app address from the browser bundle, which
-the published image is built without, so on that version the warning never
-appeared and the guide showed only a path.
+The integration cards under **Settings → Integrations** warn when the origin
+of the callback address differs from the address in the browser, and each
+setup guide on those cards shows the full callback address the server
+registers with the provider.
 
 Leave `WITHINGS_REDIRECT_URI`, `FITBIT_REDIRECT_URI`,
 `GOOGLE_HEALTH_REDIRECT_URI`, `POLAR_REDIRECT_URI`, `OURA_REDIRECT_URI`,
 `WHOOP_REDIRECT_URI` and `STRAVA_REDIRECT_URI` unset unless the callback lives
-on a different address than `NEXT_PUBLIC_APP_URL`. Since v1.39.3 an empty or
-blank value counts as unset for all of them. Before, an empty Withings value
-was sent to Withings as an empty callback, and an empty Fitbit or Google Health
-value stopped the connection from starting.
+on a different address than `NEXT_PUBLIC_APP_URL`. An empty value counts as
+unset.
 
 ## The dashboard briefing / insights are empty
 
 The daily briefing and the comprehensive insight are **pre-generated
-overnight** by a budget-gated job — never on page visit. On a brand-new account
+overnight** by a budget-gated job, never on page visit. On a brand-new account
 (or before the first nightly run) the page shows a *preparing* state; that is
-by design, not a failure. Configure a provider under **Settings → AI** and give
+by design, not a failure. Configure a provider under **Settings → AI provider** and give
 the nightly job one cycle, or use the explicit generate button where offered.
 See [how AI insights work](/insights/how-it-works/).
 
 ## The app shows the wrong language
 
 The display language resolves in a fixed order: an explicit choice you made
-(**Settings → Account → Language**) wins everywhere and sticks permanently —
-it is persisted on your profile and in a server-set, year-long cookie. If you
+(**Settings → Account → Language**) wins everywhere and sticks permanently:
+it is saved on your profile and in a year-long cookie. If you
 never chose, the app is in **automatic** mode and follows the browser/system
-language. If the app used to revert to another language after about a week,
-that was a pre-v1.27.11 cookie-lifetime bug — update, pick the language once,
-and it holds.
+language.
 
-## Postgres migration errors on first boot
+## Sharing does not show what I expect
 
-The Postgres healthcheck can race the migration on slow disks. Migrations are
-idempotent — run `docker compose restart app` once the database has settled.
-
-## Someone I invited to my record still cannot see it
-
-**Symptom.** You sent an invitation from **Settings → Shared access** and the
-other person says nothing appeared, or that they can see the invitation but not
-the record.
-
-**Cause.** An invitation confers nothing until the person named on it accepts,
-and accepting is theirs to do. There is no way for you to accept on their
-behalf, by design.
-
-**Fix.** Ask them to open **Settings → Shared access** on their own account and
-choose **Accept** under "Records I can open". After that the record appears in
-their user menu under **Open a record**. If the invitation never arrived at all,
-check the name you typed: it has to be the username or e-mail they sign in with,
-and an account has to exist on this instance already. See
-[Give another account access to your record](/guides/shared-access/).
-
-## Pages refuse while I am inside somebody else's record
-
-**Symptom.** You are in a record that was shared with you and parts of the app
-say they are not part of shared access.
-
-**Cause.** Not a bug and not a rendering fault. Sharing covers the health record
-itself. The account around it stays with the person who owns it, so credentials,
-connected services, notification channels, exports, clinician share links and
-grant management are refused by the server rather than merely hidden. The full
-list and the reasoning are in
+An invitation confers nothing until the person named on it accepts it under
+**Settings → Shared access** on their own account. Inside somebody else's
+record, account surfaces (credentials, connected services, notification
+channels, exports, clinician share links, grant management) are refused by
+design, and controls the access level does not allow are not drawn at all.
+The banner across the top says which level applies. See
+[Give another account access to your record](/guides/shared-access/) and
 [What a shared record is](/explanation/record-sharing/).
-
-**Fix.** Use the button in the banner at the top, or **My own record** in the
-user menu, to go back to your own account. Those surfaces work there.
-
-## Buttons I expect are missing inside a shared record
-
-**Symptom.** You are in somebody else's record and there is no edit button, no
-delete button, or no way to add anything at all.
-
-**Cause.** By design, and the same design at every level. A control the record
-will not accept is not drawn rather than drawn and then refused, so nobody fills
-in a form that was always going to be turned down. At the read level nothing can
-be added. At the write level a short, closed list of entries can be added, and
-nothing already in the record can be changed or removed, including an entry the
-delegate added a minute ago. Only the manage level changes and removes what is
-already there. The banner across the top of every page says which one applies.
-
-An invitation can also open part of a record rather than all of it, so a
-destination that is missing altogether is a section that was never shared rather
-than a broken page.
-
-**Fix.** Nothing to fix if the banner says the record cannot be changed. If the
-missing control is an edit or a delete and the grant is read or write, that one
-belongs to the owner and no setting moves it. Moving somebody up a level means
-ending the grant they have and inviting them again at the level meant, which
-they accept again. See
-[What each level may do](/guides/shared-access/#what-each-level-may-do).
 
 ## Sharing shows a 409 in the logs
 
@@ -238,23 +178,14 @@ they accept again. See
 `meta.errorCode: sharing.session.changed` on accounts that use shared records.
 Nobody has reported a problem.
 
-**Cause.** Not an error, and not something to report upstream. A browser session
-that has entered somebody else's record asserts which record it is in on every
-request. When a person switches records with more than one tab open, the tabs
-that have not caught up yet name the record they were in a moment ago, and the
-server refuses those rather than serving the wrong record. The tab re-reads who
-it is and re-renders, which needs no interaction and shows nothing to the user.
+**Cause.** Not an error. A browser tab that has entered somebody else's record
+names that record on every request. After a person switches records with
+several tabs open, the tabs that have not caught up are refused rather than
+served the wrong record; they re-read and re-render without any interaction.
 
-**Fix.** Nothing. Treat these the way you treat a conditional-request `304`: a
-protocol answer rather than a failure. A session that has never opened another
-account's record is never fenced and never produces this, and neither is the
-phone app or any other client authenticating with a token.
-
-What is worth looking at is a `403` with `meta.errorCode: sharing.access.denied`
-arriving in a burst from one account, since that is a delegate whose access
-ended or was narrowed while they were using it. It is still not a fault, but it
-is the shape of somebody having a confusing minute. The record owner sees the
-reason in their own activity view, which is where the reason deliberately goes.
+**Fix.** Nothing. A burst of `403` with `meta.errorCode: sharing.access.denied`
+from one account is a delegate whose access ended or was narrowed while they
+used it; the record owner sees the reason in their own activity view.
 
 ## Background jobs fail with "job timed out"
 
@@ -262,56 +193,64 @@ reason in their own activity view, which is where the reason deliberately goes.
 clean-up or the backup, with "job timed out", usually on an account with a
 large imported history.
 
-**Cause.** A job either ran longer than its time limit or the app restarted
-while it ran, often because the container ran out of memory. Before v1.39.1 the
-nightly clean-up of heart-rate, HRV, blood-oxygen, step and energy samples
-loaded a type's whole history at once, and the backup built its whole copy in
-memory, so an account with more than a million readings could restart the app
-in a 1 GB container.
+**Cause.** A job ran longer than its time limit, or the app restarted while it
+ran, often because the container ran out of memory.
 
-**Fix.** Update to v1.39.2 or later. The clean-up works through the history
-one day at a time, stops cleanly when it runs short of time and continues where
-it left off. The backup is written and stored in pieces of about a megabyte, so
-its size no longer depends on memory; v1.39.1 still capped a stored copy at
-105 MB in a 1 GB container, which an account with about 1.75 million readings
-outgrew. The admin page says what the job's limit was, and the log names long,
-expired and cut-off jobs by queue; see [App logs](/guides/admin-overview/#app-logs).
-If jobs still time out, check the container's restart count and its memory
-limit: the container that runs the worker needs at least 1 GB, and 512 MB is
-not enough for a backup of any account.
+**Fix.** Check the container's restart count and that its memory limit is at
+least the [supported floor](/getting-started/self-host-in-10-minutes/#requirements).
+The admin page says what the job's limit was, and the log names long, expired
+and cut-off jobs by queue; see [App logs](/guides/admin-overview/#app-logs).
+A full-history import of a connected service may run for up to sixteen hours;
+a second start of the same import for the same account stops at once and says
+so in the log.
 
-The full-history import of a connected service (WHOOP, Fitbit, Google Health,
-Strava) had fifteen minutes before v1.39.6. A long heart-rate history takes
-hours, so the import was marked as timed out while it was still running, and
-its retry started beside it; the log could show the same import running
-several times at once. From v1.39.6 an import has sixteen hours, and a second
-start of the same import for the same account stops at once and says so in
-the log. The Google Health import stops by itself after twelve hours and is
-tried again later; the new attempt reads the history from the start and
-overwrites what the first one wrote, so nothing is doubled.
+## Admin says the server runs below the supported memory floor
+
+**Cause.** The app container's memory limit is below 1536 MB, usually a 1 GB
+limit from an older compose file. Node then gets a heap of about 524 MB, which
+a long-used account fills.
+
+**Fix.** Set `APP_MEMORY_LIMIT=1536m` (or more) in `.env` and run
+`docker compose up -d`. On a platform without the compose file, raise the
+container's memory limit there. See
+[Requirements](/getting-started/self-host-in-10-minutes/#requirements).
 
 ## The app restarts with "JavaScript heap out of memory"
 
 **Symptom.** The app log shows `FATAL ERROR: Reached heap limit Allocation
-failed - JavaScript heap out of memory`, the container restarts, and after the
-restart the log names jobs that were cut off (`worker.boot.jobs_cut_off`). A
-restore on the admin backups page says it was restarted after a server
-restart. `docker inspect` reports `OOMKilled` as `false`: the app hit its own
-heap limit, which in a 1 GB container is about 524 MB (about 792 MB at the
-compose default of `1536m` since v1.40.1), before Docker stepped in.
+failed - JavaScript heap out of memory` and the container restarts.
+`docker inspect` reports `OOMKilled` as `false`: the app hit its own heap
+limit before Docker stepped in.
 
-**Cause.** Before v1.39.5 two paths could hold more than that on a very large
-account. The Google Health import of a full history read a per-minute
-heart-rate stream into memory all at once, which on 1.3 million readings went
-past the limit within seconds. A restore kept the values of its last hundred
-database statements, a thousand readings each, for the whole time it wrote
-readings.
+**Fix.** First check the memory limit as in the entry above. If it is at the
+floor or higher and the error comes back, collect what the process logs before
+it dies: it writes `runtime.heap.sampled` lines, a `runtime.heap.pressure`
+report naming the work in flight at 85 % of the heap, and Node's own report
+with `"trigger": "OOMError"`:
 
-**Fix.** Update to v1.39.5 or later. The import writes one page at a time and
-the restore a hundred readings per statement. If you set
-`NODE_OPTIONS=--max-old-space-size=1536` as a stopgap, remove it again; if the
-error comes back without it, please open an issue with the log lines around
-it.
+```bash
+docker compose logs app --since 2h | grep -E '"runtime.heap.|"trigger": "OOMError"'
+```
+
+To capture what the heap is made of, set `HEALTHLOG_HEAP_SNAPSHOT=1` (and
+optionally `HEALTHLOG_DIAG_DIR`, default `/tmp`); the app then writes one heap
+snapshot at the first pressure report. A snapshot contains decrypted health
+data and keys: never attach it to an issue, and delete it when you are done.
+Turn the switch off again afterwards. Open an issue with the log lines.
+
+## A restore waits and does not start
+
+A restore never runs beside a backup or another large job, such as an import
+or a nightly pass. The admin backups page says which one it waits for; the
+restore starts about a minute after that job finishes.
+
+## AI features stop for a while after errors
+
+A provider that keeps failing is paused: after three failures in a row it is
+skipped for five minutes, and from five on for half an hour, doubling with
+each further failure up to a day. Background jobs leave it out while it is
+paused; interactive requests such as the Coach still try it last. Fix the cause (key, model, address) and save the AI settings, which
+ends the pause. See [AI providers](/guides/ai-providers/).
 
 ## A backup fails with a message naming `BACKUP_MAX_STORED_MB`
 
@@ -335,17 +274,12 @@ The previous copy is still there in the meantime. See
 **Symptom.** A restore on the admin backups page ends as failed, and the page
 says the restore ran longer than the database allowed, waited on records
 another process was changing, hit a record the database rejected, ran out of
-disk space or memory, or lost its connection to the database. Before v1.39.4
-all of these read "The database refused the restore part-way".
+disk space or memory, or lost its connection to the database.
 
 **Cause.** The database refused the restore transaction, so nothing was
-changed. On a large account on slower hardware the usual cause was time: up to
-v1.39.3 every step of the restore had the limit every database session
-carries (`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default), and deleting the account's old readings could take longer.
+changed.
 
-**Fix.** Update to v1.39.4 or later, which gives the restore its own time
-limit and makes deleting readings much faster. Then act on the cause the page
-names: start again when the database host is quieter, free up disk space on
+**Fix.** Act on the cause the page names: start again when the database host is quieter, free up disk space on
 it, or check that the database is running. For a rejected record, the server
 log names the table and the rule. The audit log records the cause and the
 database's error code. See
@@ -384,7 +318,7 @@ HealthLog sends nothing home, and only the operator can read an instance's
 logs. Three things make a bug report findable without exposing anything
 personal.
 
-**The error id.** Since v1.43.0, when the server fails (a 5xx answer), the
+**The error id.** When the server fails (a 5xx answer), the
 message shows **Error ID** with eight characters, for example `3f9a2c1b`, and
 a button that copies the full id. A page that fails to render shows one when
 the server has one to give. The id is the request id of the failing call;
@@ -432,10 +366,9 @@ them.
 
 ## Where to look when something else breaks
 
-- `docker compose logs -f app` — the app logs structured wide events; errors
-  carry a request id, the same id the web shows as **Error ID**.
-- `/api/version` — confirms exactly which build is serving.
-- The **admin panel** — worker status shows whether the pg-boss job worker is
-  alive; the audit log shows sensitive operations.
-- [GitHub issues](https://github.com/MBombeck/HealthLog/issues) — search first;
-  the classics above account for most reports.
+- `docker compose logs -f app`: the app logs structured events; errors carry a
+  request id, the same id the web shows as **Error ID**.
+- `/api/version` confirms which build is serving.
+- The **admin panel**: worker status shows whether the job worker is alive; the
+  audit log shows sensitive operations.
+- [GitHub issues](https://github.com/MBombeck/HealthLog/issues): search first.
