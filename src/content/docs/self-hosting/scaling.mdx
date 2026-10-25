@@ -45,8 +45,7 @@ container — set the `BACKUP_*` vars on **both** (see
 
 ## Document and lab-scan reads run on the worker
 
-Since v1.40.0 the AI read of a document or a lab report runs as a background
-job: reading a document for search, a document summary, filing suggestions,
+The AI read of a document or a lab report runs as a background job: reading a document for search, a document summary, filing suggestions,
 extracting facts from a stored document, and a lab scan. The request only
 queues the read and answers `202`, and the client polls the run until it ends,
 so a slow model is not cut off by a proxy timeout. When the enqueue itself
@@ -61,10 +60,9 @@ and its AI budget reservation is handed back. That sweep is itself a worker
 job, so with no worker running at all the run stays queued until one starts.
 
 **In a web/worker split, the worker must run the same version as the web
-containers.** Only a worker that knows the document read queue can execute it.
-A worker left on a pre-v1.40 image never takes these jobs, so every document
-read and lab scan waits and then fails, while everything else looks healthy.
-Deploy both from the same image tag and restart them together.
+containers.** A worker on an older image may not know a newer job queue, so
+those jobs wait and then fail while everything else looks healthy. Deploy both
+from the same image tag and restart them together.
 
 ## Healthchecks and liveness
 
@@ -97,10 +95,7 @@ ceiling consume all 100 slots and starve every other client (`psql`, backups,
 the Prisma CLI during a migration deploy).
 
 In the default single-container setup (`HEALTHLOG_PROCESS_TYPE=all`) the web
-requests and the background worker run in one process. Since v1.40.1 that
-process holds one database client instead of one per server bundle (three
-before, about 55 MB more memory and three pools each sized to the whole
-budget), so web pages and background jobs share the one pool of
+requests and the background worker run in one process and share one pool of
 `DB_CONNECTION_LIMIT` connections. A limit sized for the web traffic alone
 leaves the worker's jobs queueing for the same connections; keep the default of
 20 unless you have a reason to lower it.

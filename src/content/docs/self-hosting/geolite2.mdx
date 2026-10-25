@@ -29,15 +29,6 @@ decision made at release time, not one you control when you pull `:latest`.
 Two ways put the offline tier onto a stock self-host: let the app fetch the
 databases itself, or bring your own copy and mount it.
 
-:::note[Order matters, and it changed]
-From v1.18.10 until v1.37 the resolver asked the online provider first and
-used the local databases only as a fallback, while the documentation
-described it the other way round. A host that had mounted the databases to
-stop the egress was still sending every login IP out. Since v1.37.1 the
-databases are read first. If you are on an older release, only
-`IP_GEO_LOOKUP_DISABLED=1` stops the egress.
-:::
-
 ## Runtime fetch (one env var)
 
 Set a MaxMind licence key and the app downloads the databases itself. No
@@ -143,7 +134,7 @@ holding other people's health data is a reasonable place to make that trade.
 
 `IP_GEO_LOOKUP_URL` moves the online lookup to a different provider; it does
 not stop it. A plain-HTTP provider is refused unless `IP_GEO_ALLOW_INSECURE=true`
-is set as well. Since v1.42.0 a provider named here counts as your decision:
+is set as well. A provider named here counts as your decision:
 the geo row under **Admin, System status** shows green for it. Only the
 unconfigured default, with no databases mounted, still shows a warning. All of these variables are listed in
 [Environment variables](/reference/environment-variables/).

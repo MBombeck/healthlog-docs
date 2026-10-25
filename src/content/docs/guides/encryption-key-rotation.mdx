@@ -89,14 +89,14 @@ refuses to silently fall back to the active key and throws a clear error instead
    backup's outer layer, but not the content inside a backup: a restore writes
    that content back as it was stored, so a copy taken before the rotation
    still needs the old key. The same goes for every copy in the off-host bucket
-   and every backup file you downloaded. Since v1.39.3 **Admin → Encryption →
+   and every backup file you downloaded. **Admin → Encryption →
    Keys the backups still need** lists, per key id, the stored copies that need
    it with the oldest date, and when the last off-host copy that needs it
    expires under your bucket's lifecycle rule. The weekly copy replaces itself
    within a week; delete old uploaded copies you no longer want, and wait out
-   the off-host retention. Copies written before v1.39.3 did not record their
-   keys and are listed as such; treat them as needing every key that existed
-   when they were written. The coverage badge only says the old key is safe to
+   the off-host retention. Older copies that did not record their keys are
+   listed as such; treat them as needing every key that existed when they were
+   written. The coverage badge only says the old key is safe to
    drop when both the rows and the backups are clear.
 
    ```env

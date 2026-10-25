@@ -1,6 +1,6 @@
 ---
 title: Reverse proxy
-description: Front HealthLog with Caddy, Traefik, Nginx Proxy Manager, Coolify, or bare Nginx — TLS termination, forwarded headers, and unbuffered streaming.
+description: Front HealthLog with Caddy, Traefik, Nginx Proxy Manager, Coolify or bare Nginx: TLS termination, forwarded headers and unbuffered streaming.
 sidebar:
   order: 12
 ---
@@ -43,9 +43,9 @@ per request to defeat IP-based rate limits.
 A wrong count logs a one-shot stderr warning and collapses every anonymous
 caller into one shared rate-limit bucket. An empty value, which is what the
 shipped compose file passes when you leave the variable unset, means the
-default of `1` (since v1.39.3).
+default of `1`.
 
-`X-Real-IP` gets the same trust as `X-Forwarded-For` since v1.39.3. It is read
+`X-Real-IP` gets the same trust as `X-Forwarded-For`. It is read
 only when `TRUST_PROXY_HOPS` is `1` or more and the request carries no
 `X-Forwarded-For`, which covers a proxy that sets only `X-Real-IP`. With `0`
 neither header is believed, because without a proxy in front both come from
@@ -100,11 +100,11 @@ proxy_buffering off;
 The **Enable Websockets Support** toggle is harmless but not needed; the Coach
 streams Server-Sent Events, which only require buffering off.
 
-The 300-second read timeout matters for long-running insight generations —
+The 300-second read timeout matters for long-running insight generations:
 anything shorter cuts streamed responses mid-flight.
 
-It also sets the ceiling for a slow model. Since v1.39.9 every AI call waits as
-long as the response timeout set under Settings → AI (60 seconds by default, up
+It also sets the ceiling for a slow model. An AI call waits as long as the
+response timeout set under Settings → AI provider (60 seconds by default, up
 to 600), and the page waits with it. A proxy that ends requests sooner wins:
 reading a long document with a local model can take several model calls in one
 request. Raise the proxy's read timeout to match the setting you use. Cloudflare
@@ -112,8 +112,8 @@ ends a proxied request after 100 seconds on every plan below Enterprise, so
 behind Cloudflare keep the setting under that, or serve the instance without the
 orange cloud.
 
-A backup restore does not need it. Since v1.39.1 the restore request only
-starts a background job and answers within a second or two, and the admin page
+A backup restore does not need it. The restore request only starts a
+background job and answers within a second or two, and the admin page
 follows the progress with short requests.
 
 ## Coolify
@@ -124,8 +124,7 @@ follows the progress with short requests.
    secrets.
 3. **Pull policy:** `always`. The bundled compose declares this so Coolify
    re-checks the GHCR digest instead of reusing the cached `:latest` layer.
-4. **Deploy webhook:** point at `/api/internal/deploy-webhook` with
-   `X-Deploy-Webhook-Secret` = `DEPLOY_WEBHOOK_SECRET`.
+4. More in [Coolify deployment](/self-hosting/coolify/).
 
 :::caution[Do not set the build-time vars as runtime env]
 `NEXT_PUBLIC_APP_VERSION`, `NEXT_PUBLIC_APP_BUILD_SHA`, and
@@ -134,7 +133,7 @@ baked into the image. Setting them in Coolify's runtime env panel has zero
 effect and becomes a misleading artefact. If you see them there, delete them.
 :::
 
-Coolify-Tunnel adds one hop — pair with `TRUST_PROXY_HOPS=2` (or `3` behind
+Coolify-Tunnel adds one hop; pair it with `TRUST_PROXY_HOPS=2` (or `3` behind
 Cloudflare).
 
 ## Bare Nginx
@@ -170,7 +169,7 @@ uploads, because Nginx rejects the body before the app sees it otherwise.
 `proxy_buffering off` keeps streamed events flowing; the `Upgrade` headers are
 harmless boilerplate you can keep or drop.
 
-Since v1.39.3 the app sets its own limit behind the proxy: request bodies over
+The app sets its own limit behind the proxy: request bodies over
 1 MB are accepted only by the upload routes, and each of those checks who is
 sending before it reads the body. The upload routes are the Apple Health
 archive (user and admin), the backup upload, the document inbound upload, the
