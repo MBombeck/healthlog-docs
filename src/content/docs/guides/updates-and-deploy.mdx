@@ -1,6 +1,6 @@
 ---
 title: Updates and deploy verification
-description: Update HealthLog safely, know which releases need a step of their own, roll back with the dump, and verify the served build.
+description: Update HealthLog safely, know which releases need a step of their own, roll back with the pre-migration dump, and verify the served build.
 sidebar:
   order: 13
 ---
@@ -8,8 +8,8 @@ sidebar:
 HealthLog ships releases roughly weekly. Each release's notes, including its
 upgrade notes, are in the
 [CHANGELOG](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md).
-Read them before you pull, take a dump, and pin a tag if you want to choose
-when an update happens.
+Read them before you pull, and pin a tag if you want to choose when an update
+happens.
 
 ## The update sequence
 
@@ -17,11 +17,6 @@ Migrations land **before** the new app container takes traffic. On a
 single-instance host the sequence is:
 
 ```bash
-# 0. Dump the database first. A migration is not undone by going back to
-#    the previous image; the dump is the way back.
-docker compose exec -T db pg_dump -U healthlog healthlog \
-  | gzip > healthlog-before-update-$(date +%F).sql.gz
-
 # 1. Get the new compose file (git pull in your checkout) and pull the new
 #    image. If you pin a version with HEALTHLOG_IMAGE_REF, set it first.
 git pull
@@ -43,15 +38,20 @@ rather than a plain `docker run`: outside the stack's network `db` does not
 resolve, and the entrypoint gives up after thirty seconds with "Database not
 reachable".
 
-Keep the dump until the new version has run for a few days, and keep your
-encryption key with it: a dump without the key cannot be read. With an
-[external Postgres](/self-hosting/external-postgres/), run `pg_dump` against
-that server instead.
-
-Before it migrates, the container logs how many migrations are pending
-(`HealthLog: 2 database migrations pending. Back up the database before
-updating ...`) or `HealthLog: Database schema is up to date.` The line is a
-reminder and does not pause anything, which is why the dump comes first.
+A migration is not undone by going back to the previous image, so the way
+back is a dump taken before it, and the container takes that dump itself.
+When the new image brings migrations, the entrypoint first writes
+`healthlog-<time>-pre-migration.dump` into the `backups` volume (the two newest
+are kept) and logs `HealthLog: 2 database migrations pending. Unless
+DB_BACKUP_BEFORE_MIGRATE=false, a pg_dump of the database is written ...`, or
+`HealthLog: Database schema is up to date.` A dump that fails on a writable
+directory, usually a full disk, stops the start before anything is migrated.
+Without a volume at `DB_BACKUP_DIR` the dump lands inside the container and is
+lost when the container is next recreated; take one by hand first then.
+Restoring it is under
+[Going back to before a migration](/guides/backups/#going-back-to-before-a-migration).
+Keep the encryption key with your dumps: a dump without the key cannot be
+read.
 
 :::caution[Do not run the old and new image side by side]
 Some releases drop a column the previous image still reads (v1.44.0 and
@@ -141,14 +141,12 @@ The same steps are in the app repository as
 ## Rolling back
 
 Migrations are forward-only, and the previous image is not guaranteed to read
-the newer schema. Rolling back therefore means going back to the dump you took
-in step 0:
-
-1. Stop the app: `docker compose stop app`.
-2. Restore the dump into an empty database, as described in
-   [Restore a database dump](/guides/backups/#restore-a-database-dump).
-3. Pin the previous release with `HEALTHLOG_IMAGE_REF=:vX.Y.Z` in `.env` and
-   start it with `docker compose up -d`.
+the newer schema. Rolling back therefore means restoring the dump the
+container took before it migrated, with the previous image pinned; the steps
+are under
+[Going back to before a migration](/guides/backups/#going-back-to-before-a-migration).
+A dump you took by hand restores as described in
+[Restore a database dump](/guides/backups/#restore-a-database-dump).
 
 Anything written after the dump is lost, so roll back early or not at all.
 From v1.46.0 back to v1.45 the old Postgres 16 volume is the way back instead;

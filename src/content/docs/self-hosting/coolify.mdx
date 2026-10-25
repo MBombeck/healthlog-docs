@@ -65,7 +65,7 @@ From v1.46 the compose file runs Postgres 18 and moves an older Postgres 16 data
 
 ## Backups
 
-Take regular dumps or snapshots of the database volume and keep them off the host, and add the optional nightly off-host copy if you want per-account copies in a bucket. [Which backup covers what](/guides/backups/#which-backup-covers-what) says what each one protects against.
+The app dumps the whole database every night into its `backups` volume. Set up the optional off-host bucket so a copy of each dump, and of every account, leaves the host. [Which backup covers what](/guides/backups/#which-backup-covers-what) says what each one protects against.
 
 ## Logs and observability
 

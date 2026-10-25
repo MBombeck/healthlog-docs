@@ -55,7 +55,7 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | `ENCRYPTION_KEYS` | JSON map, e.g. `{"v1":"<hex>","v2":"<hex>"}`. |
 | `ENCRYPTION_ACTIVE_KEY_ID` | The key id new writes use, e.g. `v2`. |
 | `ENCRYPTION_KEY_CHECK` | `enforce` (default) refuses to serve when the key does not open the stored data; `warn` only logs it, reports it as a `warning` on `/api/health` and serves anyway. A last resort for a refusal you are certain is false; it disables a safety check. See [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check). |
-| `HEALTHLOG_PLATFORM` | Where this server's environment lives: `compose`, `truenas`, `coolify`, `unraid` or `portainer`. Opens the admin's key backup step on that platform's instructions; unset or unknown means `compose`. |
+| `HEALTHLOG_PLATFORM` | Where this server's environment lives: `compose`, `truenas`, `coolify`, `unraid` or `portainer`. Opens the admin's recovery kit on that platform's instructions; unset or unknown means `compose`. |
 
 ## Session, proxy & database pool
 

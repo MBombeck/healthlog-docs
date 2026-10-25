@@ -162,13 +162,13 @@ the connection rather than silently downgrading to an unverified one.
 
 ## What changes in operation
 
-**Backups.** The in-app backups, the weekly encrypted snapshot and the
-optional off-host copy, work the same against any database; they read
-through the application, not through the container. What changes is the
-database-level backup: the `pg_dump` commands in the
-[backups guide](/guides/backups/) address the bundled `db` service, so run
-the equivalent against your own instance as part of whatever backup you
-already have for it.
+**Backups.** Every backup the app makes works against your database too,
+because it reads through `DATABASE_URL`: the account copies, and the
+[nightly database dump](/guides/backups/#the-nightly-database-dump), whose
+`pg_dump` in the image handles Postgres 18 and older. The dump needs a
+writable `DB_BACKUP_DIR` (mount a volume there) or the off-host bucket. The
+hand-run `pg_dump` commands in the [backups guide](/guides/backups/) address
+the bundled `db` service; run the equivalent against your own instance.
 
 **Upgrades.** A new HealthLog release migrates the schema on start, as
 before. A PostgreSQL major-version upgrade is now yours to schedule; do it

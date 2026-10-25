@@ -71,11 +71,16 @@ you.
 
 When the pre-migration dump fails on a writable directory (a full disk, most
 often), the start stops before anything is migrated; free the space, or set
-`DB_BACKUP_BEFORE_MIGRATE=false` for one start without it. An install that
-runs the image without the `backups` volume has no writable directory: the
-nightly dump then goes to the bucket only, no dump is taken before
-migrations, and with no bucket either no dump is taken at all. The start log
-and the admin page say so.
+`DB_BACKUP_BEFORE_MIGRATE=false` for one start without it.
+
+Mount a volume at `DB_BACKUP_DIR`; the bundled compose file does. The
+directory also exists inside the image, so without a volume the dumps are
+written into the container and are gone the next time it is recreated, which
+every update does. The Unraid container template carries no such volume;
+add a path there, or set up the bucket. When the
+directory is not writable at all, the nightly dump goes to the bucket only, no
+dump is taken before migrations, and with no bucket either no dump is taken;
+the start log and the admin page say so.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
