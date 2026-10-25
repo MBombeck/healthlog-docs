@@ -1,6 +1,6 @@
 ---
 title: Push readings from your own hardware
-description: Mint a measurement or workout ingest token and post readings or workouts from a scale, a watch bridge, or a Home Assistant rule to your own record, with a worked rest_command and the error responses explained.
+description: Mint a measurement or workout ingest token and post readings or workouts from a scale, a watch bridge, or a Home Assistant rule to your own record, with a worked rest_command, room climate, Apple Health write-back and the error responses explained.
 sidebar:
   order: 21
 ---
@@ -20,7 +20,7 @@ For workouts, a bridge needs a token of its own; see
 
 ## Mint a token
 
-**Settings → API & Tokens → Measurement tokens.** Name it after the thing you
+**Settings → API & tokens → Measurement tokens.** Name it after the thing you
 are pasting it into, because that name is what you will be reading later when
 you decide whether to revoke it.
 
@@ -32,17 +32,13 @@ A token expires after a year unless you pick a shorter lifetime when minting
 list on the same page alongside every other credential on the account and is
 revoked there.
 
-Minting needs a browser session. `POST /api/tokens/measurements` accepts the
-session cookie only, so no API token can mint one of these, not even the
-wildcard token a native sign-in holds. The reason is lifetime rather than
-reach: the sign-in a phone holds lasts a day, and what it could mint here lasts a year, so a credential that
-leaked for an afternoon would leave behind one that outlives cancelling it.
-Unless you signed in within the last five minutes, HealthLog first asks you to
-[confirm it is you](/guides/sign-in-and-security/#confirming-it-is-you).
-Mints are limited to ten per minute, and if the operator has switched the API
-off in the admin panel the mint is refused with `403`. You may hold ten live
-tokens at once; the eleventh mint is refused with `409` and the remedy is to
-revoke one, not to wait.
+Minting needs a browser session: `POST /api/tokens/measurements` accepts the
+session cookie only, so no API token can mint one of these. Unless you signed
+in within the last five minutes, HealthLog first asks you to
+[confirm it is you](/guides/sign-in-and-security/#confirming-it-is-you). You
+may hold ten live tokens at once; the eleventh mint is refused with `409`
+until you revoke one. If the operator has switched the API off in the admin
+panel, the mint is refused with `403`.
 
 ## What the token can and cannot do
 
@@ -67,7 +63,7 @@ these tokens reaches. Use the web app for that.
 
 ## Readings are marked as coming from an external device
 
-Since v1.39.1, rows written with this token carry `source: EXTERNAL`. The
+Rows written with this token carry `source: EXTERNAL`. The
 measurements list shows them with an **External device** badge, and the source
 filter there can pick them out, so months later you can still tell which
 readings came off the scale and which you typed in yourself. Three things
@@ -87,12 +83,6 @@ follow from that:
   deduplication key the iOS app writes into, and a bridge borrowing it would
   corrupt the phone's sync rather than merely mislabel a row.
 
-Readings pushed before v1.39.1 keep the label `MANUAL`. Nothing recorded which
-of them arrived through a token, so they cannot be sorted out afterwards. If
-you push through the batch endpoint, a re-push of entries you had already sent
-before the upgrade can land a second copy, because a reading's identity
-includes its source. Delete the older one if you see pairs.
-
 `EXTERNAL` is on none of the [source priority](/guides/source-priority/)
 ladders. On a day where you both typed a reading in and had the same kind
 pushed in, and the metric's ladder ranks manual entries (the default ladders
@@ -105,6 +95,21 @@ pushed readings is unaffected.
 A push through this token also does not move the phone's sync checkpoint. That
 checkpoint records that your phone delivered what it was holding, and a scale
 advancing it could make the phone skip a window of its own samples.
+
+## Write readings to Apple Health
+
+A measurement token has a **Write readings to Apple Health** switch, on the
+mint form and on the token's row in the token list. With it on, the HealthLog
+app on your iPhone adds that token's readings to Apple Health, so a scale or
+a sensor that only talks to your automation still reaches the Health app. In
+HealthLog the readings keep their **External device** label, and the token
+still cannot read or change anything.
+
+The server decides which readings go to Apple Health and tells the app, so
+switching it on later also covers what the token already sent. Readings sent
+before HealthLog 1.46 are matched to a token only when the account has exactly
+one measurement token; the token list says so when older readings could not
+be matched. The switch takes effect with an iPhone app build that reads it.
 
 ## Home Assistant example
 
@@ -173,12 +178,46 @@ integration tends to have:
 | Sleep duration                 | `SLEEP_DURATION`         | minutes       |
 | Steps                          | `ACTIVITY_STEPS`         | count         |
 | Body temperature               | `BODY_TEMPERATURE`       | °C            |
+| Indoor CO₂                     | `INDOOR_CO2`             | ppm           |
+| Room temperature               | `INDOOR_TEMPERATURE`     | °C            |
+| Indoor relative humidity       | `INDOOR_HUMIDITY`        | %             |
 
 Units are derived server-side from the type, so send the number in the unit
 above and do not send a `unit` field. Each type also has a plausibility range
 (a respiratory rate of 200 is refused with `422`, for instance). The full enum
 is under `MeasurementType` in
-[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml).
+[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/v1.46.0/docs/api/openapi.yaml).
+
+## Room climate
+
+The three indoor types are kept apart from the body temperatures and from the
+outdoor weather the environment module pulls. Each push is stored as a
+reading, and the charts and daily views read the day's mean, low and high, so
+a push every 15 minutes is plenty. Track one room, the one you sleep in: the
+readings carry no room name, so a second room would land in the same series.
+
+Add a `rest_command` that takes a ready-made list, so one request carries all
+three readings:
+
+```yaml
+rest_command:
+  healthlog_room_climate:
+    url: "https://healthlog.example.com/api/measurements"
+    method: POST
+    headers:
+      Authorization: !secret healthlog_token
+      Content-Type: "application/json"
+    payload: "{{ readings | to_json }}"
+```
+
+Then import the
+[room climate blueprint](https://github.com/MBombeck/HealthLog/blob/v1.46.0/docs/integrations/blueprints/healthlog-room-climate.yaml)
+(Home Assistant 2024.10 or newer) under **Settings → Automations & scenes →
+Blueprints → Import blueprint** and create one automation from it. It asks for
+a CO₂, a temperature and a humidity sensor (each optional) and an interval of
+5 to 60 minutes. It leaves out a sensor that reports `unknown`, `unavailable`
+or no number, converts °F to °C, and stamps every reading with the current
+minute, so a repeated push is refused with `409` instead of written twice.
 
 ## Sending several readings at once
 
@@ -203,7 +242,7 @@ to retry. A batch of more than 500 entries is refused whole with `422`
 
 ## Sleep stages
 
-Since v1.39.1 a bridge can send each stage of a night by name, to the same
+A bridge can send each stage of a night by name, to the same
 `/api/measurements` address as every other reading. Send one request per
 stage, with the stage and its start and end:
 
@@ -224,89 +263,31 @@ curl -X POST https://healthlog.example.com/api/measurements \
 | `DEEP`       | Deep sleep              |
 | `REM`        | REM sleep               |
 
-If your automation knows when a stage ended and how long it lasted rather than
-when it started, send `measuredAt` (the end) and `value` (the length in
-minutes) instead of `startDate` and `endDate`. The stored entry is the same:
-a `SLEEP_DURATION` reading in minutes, dated at the end of the stage, exactly
-as the iPhone app's stages are stored. Sent with this token it carries the
-source `EXTERNAL`, like every other reading from it.
+Instead of `startDate` and `endDate` you can send `measuredAt` (the end of
+the stage) and `value` (its length in minutes). Either way the stage is stored
+as a `SLEEP_DURATION` reading in minutes, dated at its end, with the source
+`EXTERNAL`. HealthLog recognises a stage by its name, start and end, so
+sending it again answers `"status": "duplicate"`, and a corrected start
+answers `"status": "updated"`. A stage longer than 24 hours, one that ends
+before it starts and one that ends in the future are refused with `422`.
 
-You do not need an id. HealthLog recognises a stage by its name, start and
-end, so sending the same stage again answers `200` with `"status": "duplicate"`
-and keeps one entry, and sending it again with a corrected start answers
-`"status": "updated"` and replaces it. A new stage answers `201` with
-`"status": "inserted"`. If your source has its own record ids, you can add one
-as `externalId`; keep it the same for the same stage.
-
-A stage that lasts more than 24 hours, ends before it starts, or ends in the
-future is refused with `422` and a list of what was wrong. So is a `value`
-sent together with `startDate` and `endDate` that does not match them.
-
-### Several stages in one request
-
-To send a whole night in one call, use `/api/measurements/batch`, one entry
-per stage interval. The batch endpoint speaks the same format the iPhone app sends: every entry names the sleep
-category `HKCategoryTypeIdentifierSleepAnalysis`, carries the interval's length
-in minutes as its value, and says which stage it was with a number in
-`sleepStage`:
-
-| `sleepStage` | Stage                            |
-| ------------ | -------------------------------- |
-| `0`          | In bed                           |
-| `1`          | Asleep, stage not known          |
-| `2`          | Awake                            |
-| `3`          | Core (light) sleep               |
-| `4`          | Deep sleep                       |
-| `5`          | REM sleep                        |
-
-```bash
-curl -X POST https://healthlog.example.com/api/measurements/batch \
-  -H "Authorization: Bearer hlk_..." \
-  -H "Content-Type: application/json" \
-  -d '{ "entries": [
-        { "hkIdentifier": "HKCategoryTypeIdentifierSleepAnalysis", "sleepStage": 3,
-          "value": 60, "unit": "min",
-          "startDate": "2026-03-14T23:10:00Z", "endDate": "2026-03-15T00:10:00Z",
-          "externalId": "hc-sleep-3f2a-2026-03-14T23:10:00Z" },
-        { "hkIdentifier": "HKCategoryTypeIdentifierSleepAnalysis", "sleepStage": 4,
-          "value": 45, "unit": "min",
-          "startDate": "2026-03-15T00:10:00Z", "endDate": "2026-03-15T00:55:00Z",
-          "externalId": "hc-sleep-3f2a-2026-03-15T00:10:00Z" }
-      ] }'
-```
-
-`externalId` has to stay the same when you send the same interval again, so
-build it from the source record's id and the interval's start rather than from
-anything that changes between runs. A repeated interval then comes back as
-`duplicate` instead of a second row. The Sleep page puts the stages together
-into nights, and when you have more than one sleep source it shows one of them
-per night, following the order under [Settings, Source priority](/guides/source-priority/).
-
-Android's Health Connect numbers its stages differently. If you forward sleep
-sessions from Health Connect (with Tasker or a similar automation), translate
-them like this:
-
-| Health Connect stage            | By name  | Batch number |
-| ------------------------------- | -------- | ------------ |
-| `STAGE_TYPE_AWAKE` (1)          | `AWAKE`  | `2`          |
-| `STAGE_TYPE_AWAKE_IN_BED` (7)   | `AWAKE`  | `2`          |
-| `STAGE_TYPE_SLEEPING` (2)       | `ASLEEP` | `1`          |
-| `STAGE_TYPE_SLEEPING_LIGHT` (4) | `CORE`   | `3`          |
-| `STAGE_TYPE_SLEEPING_DEEP` (5)  | `DEEP`   | `4`          |
-| `STAGE_TYPE_SLEEPING_REM` (6)   | `REM`    | `5`          |
-| `STAGE_TYPE_UNKNOWN` (0)        | `ASLEEP` | `1`          |
-
-Leave out `STAGE_TYPE_AWAKE_OUT_OF_BED` (3): time out of bed is not part of the
-night. A session without any stages can go in as a single `ASLEEP` stage (or a
-batch entry with `sleepStage` `1`) covering the whole session.
+To send a whole night in one call, post one entry per stage to
+`/api/measurements/batch` in the format the iPhone app uses (the sleep
+category identifier with a numbered `sleepStage` and a stable `externalId`);
+the shape is in the
+[API spec](https://github.com/MBombeck/HealthLog/blob/v1.46.0/docs/api/openapi.yaml).
+Sleep forwarded from Android's Health Connect maps light sleep to `CORE`,
+deep to `DEEP`, REM to `REM`, both awake types to `AWAKE`, and sleeping or
+unknown to `ASLEEP`; leave out time out of bed. When you have more than one
+sleep source, the Sleep page shows one per night, following
+[Source priority](/guides/source-priority/).
 
 ## Retries and duplicates
 
 Both endpoints honour an `Idempotency-Key` header. Send a value your automation
 can reproduce for the same reading. A retry with the same key and the same body
-returns the original response instead of writing a second row. Since v1.40.0 a
-different body under the same key is a different reading and is written
-(before, it was answered with the first reading's response and dropped):
+returns the original response instead of writing a second row. A different
+body under the same key is a different reading and is written:
 
 ```yaml
 headers:
@@ -321,8 +302,8 @@ timestamp and source as an existing row is refused with `409`
 rather than a duplicated data point. A sleep stage sent by name is the
 exception: a repeat answers `200` with `"status": "duplicate"`. The batch
 endpoint reports such an entry as `duplicate` instead of failing the call;
-`skipped` means the entry did not pass validation. Since v1.39.1 an entry
-skipped as `value_out_of_range` also carries `convertedValue` (the value after
+`skipped` means the entry did not pass validation. An entry skipped as
+`value_out_of_range` also carries `convertedValue` (the value after
 conversion into the stored unit) and `range` (`min`, `max` and `unit`), so a
 body-fat percentage sent as a fraction is easy to spot.
 
@@ -330,7 +311,7 @@ body-fat percentage sent as a fraction is easy to spot.
 
 A measurement token does not cover workouts. A bridge that forwards sessions
 from a watch, or a script that replays an exported history, needs a workout
-token: **Settings → API & Tokens → Workout tokens**. Minting works like the
+token: **Settings → API & tokens → Workout tokens**. Minting works like the
 measurement token above. The token is shown once, lives a year unless you
 pick a shorter lifetime (1 to 365 days), needs a browser session and a recent
 confirmation that it is you, and appears in the same token list, where you
@@ -381,8 +362,8 @@ refused for that entry as `skipped` with the reason `unstable_external_id`,
 and the rest of the batch still lands. A body that fails validation is
 refused with `400` and `workout.batch.invalid`, and more than 100 workouts in
 one call with `400` and `workout.batch.too_large`. The endpoint allows 60
-calls a minute per account. Since v1.39.8 calls made with a workout token count
-in an allowance of their own, apart from the iPhone app's, so a bridge stuck
+calls a minute per account. Calls made with a workout token count in an
+allowance of their own, apart from the iPhone app's, so a bridge stuck
 retrying cannot hold up the app's workout sync. All workout tokens of one
 account share that allowance; minting a second token does not double it.
 
