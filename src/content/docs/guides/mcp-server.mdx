@@ -174,26 +174,18 @@ diagnostics go to stderr.
 
 ## Trust model
 
-The combination of a **remote** endpoint, **write** capability, and **OAuth**
-access is exactly the high-leverage surface to be careful with. HealthLog ships
-several structural limits, but the operator's choices still matter:
+The limits are structural; the reasoning is in
+[How the MCP surface is secured](/explanation/mcp-security/) and the one-line
+rules in the [MCP server reference](/reference/mcp/#security-and-write-model).
+What is left to you:
 
-- **Only enable the connector for clients you trust.** Anything holding a valid
-  token or a live OAuth connection reads your health record. Revoke connections
-  and tokens you no longer use under **Settings → MCP connector**. A connector reads the
-  record of the account that minted it and nothing else: it does not follow a
-  [shared-access grant](/guides/shared-access/) into another account's record,
-  even one you can open in the browser.
-- **Use a read-only token unless you need writes.** It is the default, and a
-  read-only session never even sees the write tools advertised.
-- **Writes are narrow by construction.** The only writes are append-only,
-  confirmed inserts of a single self-reported reading. There is no medication,
-  lab, schedule, delete, update, or data-export tool, and a `health:write` MCP
-  token is refused on every REST write.
-- **Admin is unreachable over MCP.** `requireAdmin()` is cookie-only and the MCP
-  wire carries no cookie, so no token — not even a `*` wildcard — can reach an
-  admin endpoint.
+- Connect only clients you trust. Anything holding a valid token or a live
+  OAuth connection reads your health record. Revoke connections and tokens you
+  no longer use under **Settings → MCP connector**.
+- Use a read-only token unless you need writes. It is the default, and a
+  read-only session never sees the write tools.
+- Confirm every write yourself. A write tool first shows the reading it
+  would store; a client that confirms on its own defeats that step.
 
-For the full tool, resource, and prompt catalogue and the write model, see the
-[MCP server reference](/reference/mcp/). For why the surface is shaped this way,
-see [How the MCP surface is secured](/explanation/mcp-security/).
+A connector reads the record of the account that minted it, never one you open
+through [shared access](/guides/shared-access/).

@@ -41,35 +41,18 @@ fetch with the matching tool or resource template.
 
 ### Module switches apply here too
 
-Since v1.30.23 a connected assistant honours the **module switches** under
-**Settings → Modules**. With a module off, its tools, resources and prompts stop
-returning that data — including the full doctor summary, which a connected
-assistant could previously read regardless. The same release closed the gap on a
-shared clinician link. Nothing is deleted; turning a module back on finds the
-history complete.
-
-Since v1.39.3 this holds for every tool and resource that reads conditions,
-documents, vaccinations, medications or labs. With one of those modules
-switched off, `search` and `fetch` neither search nor return its records
-(`fetch` answers with `metadata.reason: "module_disabled"`); `get_labs`,
+A connected assistant honours the **module switches** under
+**Settings → Modules**. With a module off, its tools, resources and prompts
+return none of its data; nothing is deleted. With conditions, documents,
+vaccinations, medications or labs switched off, `search` and `fetch` neither
+search nor return those records (`fetch` answers with
+`metadata.reason: "module_disabled"`); `get_labs`,
 `get_medication_schedule`, `get_medication_compliance` and the
 `healthlog://lab/{analyte}`, `healthlog://medication/{id}` and
 `healthlog://medications` resources answer
-`{ present: false, reason: "module_disabled" }` and list nothing; and
-`get_visits` withholds condition labels with
-`conditionsReason: "module_disabled"`. Visits belong to no module.
-
-### A read-only connector is refused at the write
-
-A connector token minted read-only is now refused **at the write itself**
-(v1.30.29), not merely by never being offered a write tool. The protection was
-real before, but it rested entirely on how the connection was assembled — a
-future change to that assembly could have opened writing with no test noticing.
-Any write added later inherits the check.
-
-The same release made the boundary around your own text explicit: names and free
-text read out of your records carry an explicit data boundary when handed to a
-connected assistant, matching what the app already does for its own coach.
+`{ present: false, reason: "module_disabled" }`; and `get_visits` withholds
+condition labels with `conditionsReason: "module_disabled"`. Visits belong to
+no module.
 
 ### Windows
 
@@ -106,9 +89,9 @@ operator finds the failure in the logs by that id.
 the JSON-in-text content), so a host that validates typed output — the ChatGPT
 Apps SDK in particular — gets a conforming shape. Every field except the
 presence anchor (`present` / `written`) is optional, so a `{ present: false }`
-miss and a full hit both validate. Since v1.41.2 every tool's real output is
-checked against its advertised schema under a strict JSON Schema 2020-12
-validator, so a client that validates strictly accepts every result.
+miss and a full hit both validate. Every tool's real output is checked against
+its advertised schema under a strict JSON Schema 2020-12 validator, so a client
+that validates strictly accepts every result.
 
 ## Read tools
 
@@ -140,8 +123,8 @@ analytics is computed at the wire.
 | `get_nutrients` | Synced micronutrient intake (water, caffeine, 24 vitamins/minerals) as day totals, with the EFSA dietary reference resolved against the user's profile. Gated on the nutrients module. |
 | `get_intraday_pulse` | The 10-minute heart-rate shape for one local day, with a cautious descriptive elevated-at-rest window when every confidence gate holds. Gated on the insights module. |
 | `get_ecg_recordings` | Metadata for stored ECG recordings — time, duration, average HR, lead, and the device's own rhythm classification. Never the waveform. Gated on the insights module. |
-| `get_day` | Since v1.42.0. One local calendar day (`date`, `YYYY-MM-DD` in the user's time zone): what ran through it (medications and courses with dose and day number, pauses, an illness, a cycle phase), the readings with the usual range of the 30 days before, what happened on it (intakes, dose changes, symptoms, labs, visits, vaccinations, check-ups, documents by kind, mood, workouts) and notable observations decided by fixed rules. Notes, document names and life events are never included, and the person's Coach exclusions apply. Each result carries `url`, the day in the app. |
-| `get_environment` | Since v1.42.0. The stored days of the environment module: weather, and while air quality is on, PM2.5, PM10, NO2, the ozone 8-hour high, the European AQI peak, UV, dust and six pollen kinds, plus coverage and a short summary. Modelled outdoor conditions, not personal exposure. No coordinates and no place names. Every result lists its attribution lines. Answers `module_disabled` when the environment module is off. |
+| `get_day` | One local calendar day (`date`, `YYYY-MM-DD` in the user's time zone): what ran through it (medications and courses with dose and day number, pauses, an illness, a cycle phase), the readings with the usual range of the 30 days before, what happened on it (intakes, dose changes, symptoms, labs, visits, vaccinations, check-ups, documents by kind, mood, workouts) and notable observations decided by fixed rules. Notes, document names and life events are never included, and the person's Coach exclusions apply. Each result carries `url`, the day in the app. |
+| `get_environment` | The stored days of the environment module: weather, and while air quality is on, PM2.5, PM10, NO2, the ozone 8-hour high, the European AQI peak, UV, dust and six pollen kinds, plus coverage and a short summary. Modelled outdoor conditions, not personal exposure. No coordinates and no place names. Every result lists its attribution lines. Answers `module_disabled` when the environment module is off. |
 | `search` | Free-text search over the user's record: metric domains, medications, lab analytes, and the clinical records (visits including procedures, conditions, documents, vaccinations). Ranked and deterministic; record results capped at 50. Returns `{ results: [{ id, title, url }], nextCursor? }`. |
 | `fetch` | Hydrate one record by the id `search` returned (`metric:weight`, `med:<id>`, `lab:LDL`, `visit:<id>`, `condition:<id>`, `document:<id>`, `vaccination:<id>`). Returns `{ id, title, text, url, metadata }` with a citation deep-link; clinical records carry their direct links. |
 
@@ -152,7 +135,7 @@ client can cite it.
 
 ### What search covers in the clinical record
 
-Since v1.39.3 `search` also finds:
+Beyond metrics, medications and lab analytes, `search` finds:
 
 - `visit:<id>`: by visit kind (a procedure also answers to "surgery" and
   "operation"), reason, outcome, body site and side, practitioner name and
@@ -201,7 +184,7 @@ registered for a read session — and the annotation merely advertises it.
 
 ### Clinical signals
 
-The v1.25 clinical-signals set — **grip strength**, **pain (0–10 NRS)**, **waist
+The clinical-signals set — **grip strength**, **pain (0–10 NRS)**, **waist
 circumference**, and **waist-to-height ratio** — is reachable through the
 rollup-backed reads `get_metric_baseline`, `compare_metric`, and
 `detect_changepoints` (pass the signal name, e.g. `grip strength` or
@@ -238,8 +221,7 @@ Three surfaces the connector reaches directly:
 
 ### Device-metric discovery
 
-A set of device metrics that were collected but previously unadvertised are now
-discoverable and can be **compared and baselined by name** through
+Further device metrics can be **compared and baselined by name** through
 `get_metric_baseline`, `compare_metric`, and `detect_changepoints`: wrist
 temperature, cardio recovery and load, day and workout strain, sleep score,
 breathing disturbances, fall count, the six-minute-walk distance, stair ascent
@@ -249,8 +231,7 @@ its unit and, where one applies, a population reference band.
 ### Heart-rate variability flavour
 
 HRV resolves whether the source records **SDNN** or **RMSSD**, so a ring- or
-strap-only account is no longer reported as having no HRV when it in fact records
-the other flavour.
+strap-only account that records RMSSD reads as having HRV.
 
 :::caution[Off the MCP surface by construction]
 The PHQ-9 / GAD-7 / WHO-5 / SCI mental-health screeners (item content and totals)
@@ -313,27 +294,21 @@ engine reads, never mutates. Most accept an optional `window`.
 
 ## Security and write model
 
-The MCP surface reuses the existing `hlk_` Bearer model from the
-[REST API](/reference/api-overview/) — there is no parallel identity store. A
-session is bound to `<user_id>:<token_id>`, so audit, annotation, and rate-limit
-buckets are keyed to the specific credential in use; a single leaked or shared
-token cannot drain the account's other tokens.
+The rules, one line each. The reasoning behind them is in
+[How the MCP surface is secured](/explanation/mcp-security/).
 
-**Read-only by default.** Only read tools are registered for a `health:read`
-session. The write tools are registered **only** for a `health:write`-scoped
-session (`ctx.canWrite`) — a read-only token never sees them advertised at all.
-The posture is structural, not a runtime flag a tool could flip.
-
-:::caution[Admin is unreachable over MCP]
-`requireAdmin()` is cookie-only and the MCP wire carries no cookie, so no token —
-including a `*` wildcard — can reach an admin endpoint over this surface. This
-mirrors the same structural boundary the REST API enforces.
-:::
-
-**Audience-bound writes.** A `health:write` MCP token is bound to the `/mcp`
-resource (RFC 8707). The REST resource-server guard refuses it on every REST
-write or delete, so it can never become a general REST write credential. It only
-admits the in-process write tools below.
+- The surface uses the `hlk_` Bearer model of the [REST API](/reference/api-overview/).
+  Each session is bound to `<user_id>:<token_id>`, so audit entries and rate
+  limits belong to the one credential in use.
+- Only read tools are registered for a `health:read` session. The write tools
+  exist only in a `health:write` session, and each one checks the scope again
+  when it runs.
+- No token, a `*` wildcard included, reaches an admin endpoint: `requireAdmin()`
+  is cookie-only and the MCP wire carries no cookie.
+- A `health:write` token is bound to the `/mcp` resource (RFC 8707) and refused
+  on every REST write or delete.
+- A connector reads the record of the account that minted it and never follows
+  a shared-access grant into another one.
 
 ### Write tools
 
@@ -363,6 +338,4 @@ Registered only for a write-scoped session. The remote `/mcp` wire is stateless
 Writes are **append-only, idempotent inserts of a single self-reported reading**
 and nothing more. There is deliberately no medication create/intake/edit, no
 schedule or dose change, no lab write, no clinical-threshold change, no
-delete/update of any existing row, and no data-export tool. Adding any of those
-is a security decision, not a feature one — see
-[How the MCP surface is secured](/explanation/mcp-security/).
+delete/update of any existing row, and no data-export tool.
