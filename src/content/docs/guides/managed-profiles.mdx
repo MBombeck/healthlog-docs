@@ -12,9 +12,14 @@ other half is the person who has no account to begin with: a
 child, or somebody you care for. A **managed profile** is a health record for
 exactly that person.
 
-It has no password, no passkey and no second factor of its own. The people who
-look after it are its **guardians**, and a guardian can switch into the record
-the way any shared record is opened. When the person is ready to sign in
+## Records with no login
+
+A managed profile has no password, no passkey and no second factor of its own.
+The people who look after it are its **guardians**, and a guardian can switch
+into the record the way any shared record is opened. Inside it, a guardian
+keeps readings, settings and reminders, and can connect Withings, WHOOP, Oura,
+Polar, Strava and Google Health for it (see
+[Connected services](#connected-services)). When the person is ready to sign in
 themselves, a guardian can [hand the profile over](#hand-the-profile-over) and
 it becomes an ordinary account, history included.
 
@@ -24,10 +29,10 @@ ordinary grant instead. See
 
 ## Create the profile
 
-Creating a managed profile asks for your second factor, so it happens in a
-browser rather than in the phone app. An account with no second factor enrolled
-is refused rather than waved through; set one up under **Settings → Security**
-first.
+Creating a managed profile asks you to confirm a second factor or a passkey
+within the last five minutes, so it happens in a browser rather than in the
+phone app. An account with neither is refused rather than waved through; add
+one under **Settings → Security** first.
 
 1. Open **Settings → Shared access**.
 2. Under **Records you look after**, choose **Create profile**.
@@ -40,7 +45,7 @@ first.
    who does not need it starts with the module off. Leave it empty and nothing
    is derived.
 6. Pick the **language of this record** and its **timezone**.
-7. Confirm your second factor.
+7. Confirm your second factor or passkey.
 
 The language and the timezone belong to the record rather than to you. They
 decide how text written into it is worded, when its days start and end, and how
@@ -129,9 +134,19 @@ turning a module off for the profile leaves your own record alone. The
 navigation follows the record's own map while you are in it, so you see the
 doors that record has open rather than the ones yours does.
 
-Connected services are the exception. Inside a managed profile they show a
-status and nothing else. Connecting, syncing and disconnecting a wearable on
-somebody else's behalf is not part of this release.
+## Connected services
+
+While you are switched into the profile, **Settings → Integrations** lists its
+connections. A guardian can connect Withings, WHOOP, Oura, Polar, Strava and
+Google Health there: each card says **Connect for** and the profile's name, and
+the data lands in the profile's record, not in yours. If the profile has no
+provider app of its own, it uses yours, so set the provider up under your own
+integrations first. A guardian can also disconnect a service; what was already
+imported stays.
+
+Syncing, the connection test and provider credentials stay out of the
+profile's page: once connected, the record syncs on its own schedule. Fitbit,
+Nightscout and Dawarich cannot be connected for a profile.
 
 ## Where its reminders go
 
@@ -195,7 +210,7 @@ somebody else and wait for them to accept, or delete the profile.
 ## Hand the profile over
 
 A child grows up, or somebody you cared for wants to look after their own
-record. Since v1.42.0 a guardian can turn the profile into a full account for
+record. A guardian can turn the profile into a full account for
 that person, without moving or copying any data: the record stays where it is
 and gains a login.
 
@@ -234,7 +249,7 @@ and a password under the instance's password rules.
 
 ### Through single sign-on
 
-Since v1.43.0 the person can claim the record through the instance's identity
+The person can claim the record through the instance's identity
 provider, also on an instance that allows only single sign-on. They pick a
 username and continue to the provider. When they come back, the provider
 identity is bound to the record in the same step as the rest of the claim.
@@ -284,9 +299,6 @@ Some limits:
 - The iOS app does not claim. The person claims in a browser, then signs in
   to the app as usual, with single sign-on through the app's own SSO sign-in.
 
-Before v1.43.0 the handover was not available on an instance with
-`OIDC_ONLY`.
-
 ## Delete the profile
 
 Deleting a managed profile takes everything recorded for it: readings,
@@ -320,11 +332,11 @@ gets the same "not found" answer.
 
 Three consequences worth knowing.
 
-- **Creating one requires a second factor on the creating account.** This is
-  structural rather than a policy toggle: the step-up resolves through the
-  browser session, so the phone app cannot create a profile at all and an account
-  with no second factor is refused rather than exempted. If your users cannot
-  find the button, check whether they have enrolled one.
+- **Creating one requires a second factor or a passkey on the creating
+  account.** This is structural rather than a policy toggle: the step-up
+  resolves through the browser session, so the phone app cannot create a
+  profile at all, and an account with neither is refused rather than exempted.
+  If your users cannot find the button, check whether they have enrolled one.
 - **A managed profile is a full record on your instance.** It counts against
   storage, it produces rollups and reminders like any other record, and it is
   covered by the same backups and the same encryption key. It has no login, so
