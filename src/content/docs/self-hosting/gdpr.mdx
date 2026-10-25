@@ -186,16 +186,32 @@ It is still not the way to answer a request for erasure: it keeps every
 account, and it wipes every account at once, which is the wrong scope for one
 person invoking Art. 17. Use the per-account paths above.
 
+Erasure waits out a grace window. Deleting an account or a managed profile
+locks it at once (signed out everywhere, sign-in refused, nothing runs for
+it) and erases it when `ACCOUNT_DELETION_GRACE_DAYS` has passed: 14 days by
+default, at most 30, `0` for immediately. Until then an admin can undo it,
+and **Delete all data** keeps a copy of the record an admin can restore for
+the same time. The window exists to recover a mistake; the ceiling keeps an
+erasure the person asked for from being delayed unduly. See
+[The grace window](/account/data-deletion/#the-grace-window).
+
 Backups go with the account too. In-database backup rows are deleted with the
 account, and deleting an account, deleting a managed profile or
 **Delete all data** also deletes every copy of that account from the off-host
-bucket, right after and again on the next nightly pass if the bucket was
-unreachable. The worker's credential needs `DeleteObject` for that; without it
+bucket once the window has ended, and again on the next nightly pass if the
+bucket was unreachable. The worker's credential needs `DeleteObject` for that; without it
 the deletion stays pending, is retried nightly, and **Admin → Backups →
 Off-host copies** says so. Copies kept elsewhere, such as a backup file an
 operator downloaded, are outside the app's reach and are yours to delete. The
 admin **Wipe all data** deletes nothing in the bucket, because it is the
 operator's own recovery path.
+
+The nightly database dumps are not purged per account. A deleted account
+stays in them until they age out: `DB_BACKUP_KEEP` nights on the server (7 by
+default), and your lifecycle rule for `database/` in the bucket. The grace
+window plus that retention is the period to state where you tell people that
+deleting their account deletes their data. See
+[Deleted accounts in the dumps](/guides/backups/#deleted-accounts-in-the-dumps).
 
 [Data deletion](/account/data-deletion/) enumerates each path model by model.
 
@@ -213,6 +229,8 @@ their own:
 | Notification delivery attempts | 90 days | fixed |
 | Host metrics | 7 days | `HOST_METRIC_RETENTION_DAYS` |
 | Off-host backup objects | as configured, and deleted with the account | Your bucket's lifecycle rule (`BACKUP_RETENTION_DAYS` records the number) |
+| A deleted account, before erasure | 14 days | `ACCOUNT_DELETION_GRACE_DAYS`, at most 30, `0` for immediately |
+| Database dumps, deleted accounts included | 7 nights on the server; in the bucket as configured | `DB_BACKUP_KEEP`; your lifecycle rule for `database/` |
 | Deleted entries (readings, lab results, visits and the other records with an undo) | 75 days, then purged | fixed |
 | Deleted documents | 30 days in Recently deleted, then purged | fixed |
 

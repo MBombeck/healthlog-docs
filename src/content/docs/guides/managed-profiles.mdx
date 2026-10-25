@@ -302,8 +302,11 @@ Some limits:
 ## Delete the profile
 
 Deleting a managed profile takes everything recorded for it: readings,
-medications, documents and notes. It cannot be undone, and the confirmation
-states how many people look after the record today and will lose it.
+medications, documents and notes. The confirmation states how many people look
+after the record today and will lose it. The profile leaves every guardian's
+view at once and is erased when the instance's
+[grace window](/account/data-deletion/#the-grace-window) ends, 14 days by
+default; until then only an admin can undo the deletion.
 
 This is also the legitimate ending when you are the last guardian. You may end
 the record. You may not leave it standing with nobody looking after it.

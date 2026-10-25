@@ -1,6 +1,6 @@
 ---
 title: "Data deletion: what gets removed"
-description: Exactly which models each of the three deletion paths removes, and what survives them.
+description: Exactly which models each of the three deletion paths removes, what survives them, and the grace window before an erasure is final.
 sidebar:
   order: 1
 ---
@@ -16,6 +16,17 @@ HealthLog has three distinct deletion paths, and they affect different sets of d
 | **Wipe all data** (admin only) | Every account's health data, instance-wide: the per-account plan minus one exemption | `/admin/danger-zone` → "Wipe all data" | `DELETE ALL` | Accounts and their sign-in credentials, instance configuration, and shared-access grants |
 
 The two per-account paths are the ones a user runs themselves under [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) (right to erasure), and they are the ones held against `prisma/schema.prisma` by a test. The instance-wide wipe is meant for refurbishing a self-hosted box; it derives from the same plan and is held by the same test.
+
+## The grace window
+
+Deleting an account, a guardian deleting a [managed profile](/guides/managed-profiles/) and **Delete all data** wait out a grace window before anything is erased for good. `ACCOUNT_DELETION_GRACE_DAYS` sets it: 14 days by default, at most 30 (a larger value is clamped), and `0` erases immediately, as releases before 1.46 did. The deletion dialogs and the Data & Privacy page state the configured number.
+
+- **Deleting an account or a managed profile** locks it at once. Every session, refresh token, API token, trusted device, connected assistant and clinician share link is revoked, and sign-in is refused with `403 auth.account.deletion_pending` and the erasure date. The record is locked for its guardians and delegates too, and nothing runs for it any more: no reminders, syncs, copies, scores or AI work. The record itself, its stored copies and its off-host objects stay exactly as they were. When the window ends, an hourly job erases the account as described [below](#what-delete-account-deletes) and asks the bucket to delete its off-host objects.
+- **Delete all data** first stores the whole record as an account copy of its own, shown as "Before all data was deleted" under **Admin → Backups**, then empties the record. An admin can [restore that copy](/guides/backups/#restore-from-the-console) until the window ends; then it is deleted. The off-host objects from before the wipe are kept until then too. A copy that cannot be written stops the wipe before anything is deleted (`503 data_wipe.copy_failed`).
+
+Until the window ends, an admin can **Undo deletion** under **Admin → Users**. The undo keeps the account and everything in it as it was, because nothing was touched. It does not bring back the credentials the lock revoked: the person signs in again, and API tokens, share links, trusted devices and connected assistants have to be set up again. A managed profile comes back to its guardians the same way.
+
+Database dumps are not purged per account. A deleted account stays in them until they age out; see [Deleted accounts in the dumps](/guides/backups/#deleted-accounts-in-the-dumps).
 
 ## What "Delete all data" deletes
 
@@ -55,15 +66,18 @@ Every survivor is one of three things:
 
 ## What "Delete account" deletes
 
-A user-initiated `DELETE /api/settings/account` with body `{ "confirm": "DELETE_ACCOUNT" }` removes the user's account and everything attached to it.
+A user-initiated `DELETE /api/settings/account` with body `{ "confirm": "DELETE_ACCOUNT" }` removes the user's account and everything attached to it. With a [grace window](#the-grace-window) the request locks the account and the erasure below runs when the window ends; with `ACCOUNT_DELETION_GRACE_DAYS=0` it runs in the request.
 
-The handler:
+The request:
 
 1. **Refuses last-admin deletion.** If the user is the only admin on the instance, the request fails with `400 The last admin account cannot be deleted` so you can never lock the instance out of its own admin panel.
 2. **Audit-logs the intent** as `user.account.delete` before doing anything destructive, so the trail predates the deletion.
-3. **Destroys every active session** for the user. The device that initiated the delete is signed out; every other browser, tab, and native client is signed out on the next request.
-4. **Explicitly purges the user's `AuditLog` rows** (IP addresses, login geo), which schema-level `onDelete: SetNull` would otherwise keep with a nulled `userId`.
-5. **Deletes the `User` row.** Postgres `ON DELETE CASCADE` then takes care of every model that holds a foreign key back to the user:
+3. **Revokes every credential** and stamps the erasure date (see [The grace window](#the-grace-window)). The device that initiated the delete is signed out; every other browser, tab, and native client is signed out on the next request.
+
+The erasure:
+
+1. **Explicitly purges the user's `AuditLog` rows** (IP addresses, login geo), which schema-level `onDelete: SetNull` would otherwise keep with a nulled `userId`.
+2. **Deletes the `User` row.** Postgres `ON DELETE CASCADE` then takes care of every model that holds a foreign key back to the user:
    - Passkeys, sessions, auth challenges
    - Measurements, mood entries
    - Medications, medication schedules, reminder phase configs, intake events, Telegram reminder messages
@@ -90,13 +104,14 @@ After the transaction commits, the deleting request's own wide event is annotate
 
 ## Backups and the right to be forgotten
 
-In-database `DataBackup` rows are deleted with the account. If the instance has [off-host backups](/guides/backups/) configured, deleting an account, deleting a managed profile or **Delete all data** also deletes every copy of that account from the bucket, right after the deletion and again at the next nightly pass if the bucket was unreachable. The admin "Wipe all data" does not; see above.
+In-database `DataBackup` rows are deleted with the account. If the instance has [off-host backups](/guides/backups/) configured, deleting an account, deleting a managed profile or **Delete all data** also deletes every copy of that account from the bucket once the [grace window](#the-grace-window) has ended, and again at the next nightly pass if the bucket was unreachable. The admin "Wipe all data" does not; see above. The nightly database dumps keep a deleted account until they age out: `DB_BACKUP_KEEP` nights on the server, and your bucket's lifecycle rule for `database/`.
 
 What is left for the operator when someone invokes Art. 17:
 
-1. Make sure the worker's bucket credential has `DeleteObject`, and that the `BACKUP_*` variables are set in the container that handles the deletion (both containers in a web/worker split). Without `DeleteObject` the deletion stays pending, is retried nightly, and **Admin → Backups → Off-host copies** shows it with the bucket's answer.
-2. Delete any backup file you downloaded or copied elsewhere yourself; the app cannot reach it.
-3. Note in your records that the deletion happened. Once the bucket holds nothing for the account, the server writes an `offhost.backup.purged` audit row with the reason and the number of copies deleted; for a deleted account the row does not name the account, because the account's audit history goes with it.
+1. State the grace window and how long the database dumps are kept in your privacy notice; together they are how long a deleted account can still be restored.
+2. Make sure the worker's bucket credential has `DeleteObject`, and that the `BACKUP_*` variables are set in the container that handles the deletion (both containers in a web/worker split). Without `DeleteObject` the deletion stays pending, is retried nightly, and **Admin → Backups → Off-host copies** shows it with the bucket's answer.
+3. Delete any backup file you downloaded or copied elsewhere yourself; the app cannot reach it.
+4. Note in your records that the deletion happened. Once the bucket holds nothing for the account, the server writes an `offhost.backup.purged` audit row with the reason and the number of copies deleted; for a deleted account the row does not name the account, because the account's audit history goes with it.
 
 ## Deleted entries and Recently deleted
 
