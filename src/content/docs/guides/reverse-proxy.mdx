@@ -126,8 +126,9 @@ another site. Modern browsers say so in `Sec-Fetch-Site`, and both
 subdomain that posts with the session cookie is refused too. For a browser that does not send that header,
 the `Origin` has to match `Host`, `X-Forwarded-Host`, `APP_URL` or
 `NEXT_PUBLIC_APP_URL`. Behind a proxy that rewrites `Host`, have it pass
-`X-Forwarded-Host`, or keep `APP_URL` on the public address. Requests with an
-`Authorization` header (the apps, API tokens) and the webhook endpoints are not
+`X-Forwarded-Host`, or keep `APP_URL` on the public address. Requests with
+`Authorization: Bearer` and no session cookie (the apps, API tokens), requests
+that carry neither header (a script), and the webhook endpoints are not
 affected.
 
 ## Caddy
