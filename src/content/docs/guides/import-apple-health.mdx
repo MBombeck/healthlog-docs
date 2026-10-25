@@ -29,7 +29,7 @@ SHA-256, so re-uploading the same archive merges instead of duplicating.
    The archive contains `apple_health_export/export.xml` (the canonical record
    stream) plus auxiliary files the importer ignores.
 
-2. **Upload to HealthLog.** Open **Settings → Export & Import** and drop the
+2. **Upload to HealthLog.** Open **Settings → Export & import** and drop the
    `export.zip` onto the Apple Health control. The browser streams the body
    directly to the server; nothing is buffered into memory on either side. A
    progress indicator polls the job until it reports imported / skipped counts.
@@ -61,7 +61,7 @@ each CSV file there is stored as a recording when you upload the ZIP.
 
 The iPhone app writes values into Apple Health: readings you enter in the app,
 and readings from other sources it mirrors there. An Apple Health export
-carries those back. Since v1.40.1 the import recognises them, by the marker the
+carries those back. The import recognises them, by the marker the
 app stamps on every sample it writes or, for samples from older app builds, by
 their HealthLog id, and leaves them out **when this account already holds
 them**. Cycle samples count too: they are left out when the account has a
@@ -94,7 +94,7 @@ cannot place is stored unconverted rather than rescaled on a guess.
 
 Archives imported before v1.38.14 folded walking distance as if the number were
 already metres, so a metric account reads a kilometre day as a couple of metres.
-Re-uploading the same `export.zip` on this release or later rewrites every
+Re-uploading the same `export.zip` on a current release rewrites every
 affected day; the fold UPSERTs the same rows, so nothing duplicates. For an
 account that no longer has its archive, the
 [walking-distance repair runbook](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/apple-health-distance-repair.md)
@@ -116,12 +116,11 @@ Two axes keep re-imports clean:
 The job result reports `recordsInserted` and `recordsUpdated` separately, so a
 monthly re-import shows fresh data merged without duplicates.
 
-A day on which your phone or watch installed an update counts in full since
-v1.39.3. Before, the import could treat the device before and after the update
-as two sources and count only the larger part of that day's steps. Uploading
-the same `export.zip` again does not correct it, because the file-level check
-returns the earlier job; export again from the iPhone and import the new
-archive.
+A day on which your phone or watch installed an update counts in full. An
+archive imported before 1.39.3 may have counted only part of such a day's
+steps. Uploading the same `export.zip` again does not correct it, because the
+file-level check returns the earlier job; export again from the iPhone and
+import the new archive.
 
 ### Why the reading count drops after an import
 
@@ -178,9 +177,6 @@ themselves.
 | Unsupported compression | `Unsupported ZIP compression method <n> for export.xml` | Same recovery — re-export from iOS, which always emits method 0 (stored) or 8 (deflate). |
 | Worker down | `503 Background worker is not running` | Check the `app-worker` (or `all`-mode `app`) container and restart. |
 | Rate-limited | `429 Too many import uploads` | The limit is three uploads per minute per user. The response says how long to wait in `Retry-After`, in whole seconds. |
-
-The wide-event line `import.apple-health.kickoff` captures every attempt with
-upload size, SHA-256, and the resolved `ImportJob` id.
 
 ## Garmin owners
 
