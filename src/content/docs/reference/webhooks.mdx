@@ -81,8 +81,15 @@ notification. It accepts two kinds of request:
   ISO-8601) must lie within five minutes of server time. The secret is never
   sent, and a captured request is useless once the window has passed.
 
-`DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP=true` accepts signed requests only. Use it
-when the sender, or a small relay in front of the app, can sign:
+Two settings tighten this:
+
+- `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP=true` requires a fresh
+  `X-Deploy-Webhook-Timestamp` on a request that uses the secret header; one
+  without it gets `401 {"status":"stale"}`. It keeps an old capture out, but
+  not someone who saw the secret and sends a new request with a new timestamp.
+- `DEPLOY_WEBHOOK_REQUIRE_SIGNATURE=true` accepts signed requests only; the
+  secret header alone gets `401`. This is the one that stops a replay. Use it
+  when the sender, or a small relay in front of the app, can sign:
 
 ```bash
 TS=$(date +%s)
@@ -96,8 +103,8 @@ curl -X POST https://<host>/api/internal/deploy-webhook \
   -d "$BODY"
 ```
 
-Before 1.46 the strict setting accepted the secret header with a fresh
-timestamp; such a sender now gets `401` and has to sign.
+Both may be set; a signed request satisfies both. A sender that relied on
+`DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP=true` before 1.46 keeps working unchanged.
 
 ## What does not exist
 

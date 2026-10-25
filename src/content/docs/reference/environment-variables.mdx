@@ -293,7 +293,8 @@ to it lives only in the audit trail. See
 | Variable | Purpose |
 | --- | --- |
 | `DEPLOY_WEBHOOK_SECRET` | Authenticates `POST /api/internal/deploy-webhook`. |
-| `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | `true` accepts only signed calls (`X-Deploy-Webhook-Signature`, see [Deploy-result webhook](/reference/webhooks/#deploy-result-webhook)). Before 1.46 it accepted the secret header with a fresh timestamp; such a sender now gets `401`. |
+| `DEPLOY_WEBHOOK_REQUIRE_TIMESTAMP` | `true` requires a fresh `X-Deploy-Webhook-Timestamp` (within 5 minutes) on a call that authenticates with the secret header; one without it gets `401`. Keeps a stale capture out, not a fresh forgery. Leave unset for Coolify's stock sender, which sends no timestamp. |
+| `DEPLOY_WEBHOOK_REQUIRE_SIGNATURE` | `true` accepts only signed calls (`X-Deploy-Webhook-Signature`, an HMAC over the timestamp and body, see [Deploy-result webhook](/reference/webhooks/#deploy-result-webhook)); the secret header alone gets `401`. The setting that stops a replay. Coolify's stock sender cannot sign. |
 | `DEPLOY_LOGS_URL` | Deployment-dashboard URL linked in failure notifications. |
 | `TLS_LEAF_SPKI_PINS` | Known-good served-leaf SPKI pins for the [server-side pin monitor](/security/certificate-pinning/#the-server-side-leaf-alarm); unset, the monitor logs the served pin but cannot alarm. |
 
