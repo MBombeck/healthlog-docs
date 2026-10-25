@@ -20,7 +20,7 @@ terminates trusted HTTPS on the tailnet with no extra container.
 | Variable | Required for | Notes |
 | --- | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | Every public absolute URL the UI emits | Must match the hostname the proxy serves |
-| `APP_URL` | Server-side absolute URLs from background jobs | Mirror of the above; both must match |
+| `APP_URL` | Server-side absolute URLs from background jobs, and the [origin a browser write may come from](#cross-site-writes) | Mirror of the above; both must match |
 | `TRUST_PROXY_HOPS` | `X-Forwarded-For` chain trust | Defaults to `1` |
 
 A mismatch between `NEXT_PUBLIC_APP_URL` and the address you actually use shows
@@ -35,7 +35,7 @@ per request to defeat IP-based rate limits.
 
 | Topology | Value |
 | --- | --- |
-| App internet-facing, no proxy | `0` (no forwarding header is trusted) |
+| App internet-facing, no proxy | `0` (the connection's own address) |
 | Single proxy (Caddy / Traefik / Nginx / Coolify) | `1` (default) |
 | Cloudflare → your proxy → app | `2` |
 | Cloudflare → Coolify-Tunnel → Coolify → app | `3` |
@@ -49,8 +49,44 @@ default of `1`.
 only when `TRUST_PROXY_HOPS` is `1` or more and the request carries no
 `X-Forwarded-For`, which covers a proxy that sets only `X-Real-IP`. With `0`
 neither header is believed, because without a proxy in front both come from
-the caller. If your proxy sets only `X-Real-IP` and you had set `0` for it, set
-`1` instead.
+the caller, and the address the connection came from is used. If your proxy
+sets only `X-Real-IP` and you had set `0` for it, set `1` instead.
+
+### Only a proxy on a private network is believed
+
+Forwarding headers are read only from a connection that could come from a
+proxy: loopback, a private or unique-local network, link-local, or CGNAT (a
+Tailscale address). A request that reaches HealthLog straight from a public
+address carries headers its sender wrote, so HealthLog ignores them, uses the
+connection's own address, and logs once that it did. A proxy on the same host
+or Docker network connects from a private address, so the setups on this page
+need nothing. A proxy that reaches HealthLog over a public address has to move
+onto a private network with it, such as a VPN or tailnet.
+
+The log line also appears when the published port is open to the internet
+beside the proxy. Bind it to `127.0.0.1` or the proxy's network then, which is
+the safer setup anyway: some Docker setups (rootless Docker, Docker Desktop,
+IPv6 through the userland proxy) hand the app a private gateway address for
+every connection, and a direct caller then looks like a proxy.
+
+`TRUST_CF_CONNECTING_IP=1` takes the client address from Cloudflare's
+`CF-Connecting-IP` header and skips this check, so set it only when the origin
+accepts connections from Cloudflare alone (a Cloudflare Tunnel, or a firewall
+limited to Cloudflare's address ranges). Otherwise anyone who reaches the origin
+can name their own address.
+
+### Cross-site writes
+
+A browser request that changes something (any method other than `GET`, `HEAD`
+or `OPTIONS`) is refused with `403` and `request.cross_site` when it comes from
+another site. Modern browsers say so in `Sec-Fetch-Site`, and both
+`cross-site` and `same-site` are refused, so a front end on a sibling
+subdomain that posts with the session cookie is refused too. For a browser that does not send that header,
+the `Origin` has to match `Host`, `X-Forwarded-Host`, `APP_URL` or
+`NEXT_PUBLIC_APP_URL`. Behind a proxy that rewrites `Host`, have it pass
+`X-Forwarded-Host`, or keep `APP_URL` on the public address. Requests with an
+`Authorization` header (the apps, API tokens) and the webhook endpoints are not
+affected.
 
 ## Caddy
 
@@ -195,7 +231,10 @@ From outside the host, hit `https://your-instance.example.com/api/version` and
 check `docker compose logs app`. The wide-event line should carry a non-null
 client IP matching your source address. A `null` IP or a single `unknown`
 rate-limit bucket means `TRUST_PROXY_HOPS` is higher than the real hop count, or
-the proxy is dropping `X-Forwarded-For`.
+the proxy is dropping `X-Forwarded-For`. A log line saying that "a connection
+from a public address sent X-Forwarded-For or X-Real-IP" means the request did
+not come through a proxy on a private network; see
+[Only a proxy on a private network is believed](#only-a-proxy-on-a-private-network-is-believed).
 
 ## Plain HTTP on a LAN
 
