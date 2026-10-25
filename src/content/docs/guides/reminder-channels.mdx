@@ -6,10 +6,12 @@ sidebar:
 ---
 
 HealthLog fans medication reminders and proactive coach nudges out to whichever
-channels a user has enabled. One dispatcher
-(`src/lib/notifications/dispatcher.ts`) drives the cascade, with a hard-reject
-classification and a `push_attempts` ledger that retains 90 days of delivery
-attempts per channel.
+channels a user has enabled. One dispatcher drives the cascade and keeps a
+record of every delivery attempt per channel for 90 days.
+
+Each user sets up their channels under **Settings → Integrations → Delivery
+channels** (`/settings/integrations#channels`). Which reminders exist is set
+under **Settings → Notifications**.
 
 The single message to take away: **you do not need an Apple Developer account
 or APNs to get push.** Five of the six channels are free and cover every
@@ -53,19 +55,19 @@ or email; only the lock-screen Live Activity is APNs-exclusive.
 
 ## Telegram
 
-Configured **per user** in notification settings: each user saves their own
+Configured **per user** under Delivery channels: each user saves their own
 bot token and chat id via `PUT /api/settings/telegram` (the token is stored
 encrypted in the database, not in `.env`). Setup: create a bot with
 **@BotFather** and copy the token, send `/start` to the bot so it can message
 you, read your chat ID from **@userinfobot**, and fill both into the Telegram
-card under `/settings/notifications`. One bot can serve every user on the
+card under **Settings → Integrations → Delivery channels**. One bot can serve every user on the
 instance; each user pairs their own chat ID. Telegram reminders carry inline
 action buttons (taken / snooze / skip); the button callback lands on
 `POST /api/telegram/webhook`, which is secret-authenticated.
 
 ## ntfy
 
-Self-hostable push. Configured per user in notification settings — point it at a
+Self-hostable push. Configured per user under Delivery channels. Point it at a
 public `ntfy.sh` topic or your own ntfy server. Good for a no-account,
 no-vendor push channel. Pick a hard-to-guess topic name: on public `ntfy.sh`
 the topic **is** the access control — anyone who knows the string can read it,
@@ -226,7 +228,7 @@ client the public key. Test a registration with
 On an iPhone, Safari supports Web Push only from **iOS 16.4** and only for a
 site installed to the Home Screen as a PWA — a regular Safari tab cannot
 subscribe. Share → **Add to Home Screen**, launch from the icon, then
-subscribe under `/settings/notifications`. Android and desktop browsers need
+subscribe under **Settings → Integrations → Delivery channels**. Android and desktop browsers need
 no such step.
 
 ## Tap targets, content and quick answers

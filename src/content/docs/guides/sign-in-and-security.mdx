@@ -9,9 +9,8 @@ You want to set up how you and the people on your instance sign in, and know
 what happens when something goes wrong. This page covers the password and
 passkey paths, second factors, the admin's enrolment policy, single sign-on
 through an OpenID Connect provider, the native app's sign-in leg, and password
-reset. The account-side controls all live under **Settings, Security**; the
-session, trusted-device and activity cards are under **Settings, Data &
-Privacy**.
+reset. The account-side controls, including the session, trusted-device and
+activity cards, all live under **Settings, Security**.
 
 ## Passwords
 
@@ -24,7 +23,7 @@ stored as Argon2id hashes. Sign-in accepts email or username, case-insensitive,
 and is limited to five attempts per 15 minutes per address. Failed attempts are
 audited without the typed identifier.
 
-Since v1.39.3 there is also a limit per account: after ten wrong passwords for
+There is also a limit per account: after ten wrong passwords for
 one account within fifteen minutes, password sign-in for that account pauses
 until the fifteen minutes are over, whichever networks the attempts came from.
 A passkey and single sign-on still work while it is paused, and entering the
@@ -47,10 +46,9 @@ session.
 ### Signing in over plain http
 
 With `SESSION_COOKIE_SECURE=true` (or unset in production), a browser on an
-`http://` address drops the sign-in cookie. Since v1.40.0 the sign-in page says
-so before you start ("Signing in cannot complete on this page"), and the server
-refuses such a sign-in before it checks a password or uses up a second-factor
-code, so a code is no longer burnt on a sign-in that could never stick. Use
+`http://` address drops the sign-in cookie. The sign-in page says so before you
+start ("Signing in cannot complete on this page"), and the server refuses such
+a sign-in before it checks a password or uses up a second-factor code. Use
 https, or set `SESSION_COOKIE_SECURE=false` for a server you only reach on your
 own network. See
 [Troubleshooting](/self-hosting/troubleshooting/#signing-in-cannot-complete-on-this-page).
@@ -130,7 +128,7 @@ so an app-only user who lost the authenticator uses the web.
 
 ### Confirming it is you
 
-Since v1.39.3 some actions ask you to confirm it is you even when no second
+Some actions ask you to confirm it is you even when no second
 factor is involved, because they hand your record, or a way into it, to
 someone else or change how you sign in:
 
@@ -156,7 +154,7 @@ passkey in the app, sign in again and repeat the action within five minutes.
 
 Every one of these confirmations, and the native app's step-up, shares one
 limit per account: five attempts in fifteen minutes. Each wrong attempt is
-recorded and shows in **Security activity** under Settings, Data & Privacy.
+recorded and shows in **Security activity** under Settings, Security.
 
 Changing the email address needs your current password unless you signed in,
 completed a second factor or confirmed within the last five minutes. The
@@ -206,7 +204,7 @@ additive: the button appears next to password and passkey sign-in.
 How identities are matched: the first SSO sign-in either provisions a new
 account (subject to the registration setting) or links to an existing account
 with the same email, and only when the provider asserts
-`email_verified: true`. Since v1.39.3 an existing account is never linked on
+`email_verified: true`. An existing account is never linked on
 the email alone, because HealthLog never verified the address on it: anyone
 could have registered with it or typed it into their profile. Instead the
 sign-in page explains that the account exists, and the person signs in to it
@@ -242,7 +240,7 @@ is not the boundary. Before turning it on:
   the account the provider's email matched. An account that has only a
   passkey cannot be confirmed while `OIDC_ONLY` is on; turn it off for the
   first sign-in or have an operator link it.
-- Since v1.43.0 a managed profile can still be handed over: the person claims
+- A managed profile can still be handed over: the person claims
   it through the provider, and the password claim is refused. The claim binds
   only a provider identity that no account on the instance holds yet, and
   takes the provider's address only when it is verified and not already
@@ -279,9 +277,9 @@ the app works from then on. Device setup is in [Connect the iOS app](/getting-st
 ## Sessions, devices and activity
 
 Web sessions last 30 days and slide: after a day of use the expiry is
-extended back to a full 30 days. Under Settings, Data & Privacy you can see
+extended back to a full 30 days. Under Settings, Security you can see
 every session with device label, masked IP, location and last activity, sign
-one out, or use **Sign out everywhere else**. Since v1.39.3 that ends every way
+one out, or use **Sign out everywhere else**. That ends every way
 into your account except the device you press it on:
 
 - every other browser and phone sign-in, with the native app's refresh
@@ -323,8 +321,3 @@ There is no self-service "forgot password" flow. Recovery paths are:
   username or email case-insensitively and must resolve to exactly one user;
   the password must be at least 12 characters. Prefer the prompt over passing
   the password as a second argument, which would land in shell history.
-
-  The script ships in the image from v1.39.3. On v1.39.2 and earlier the
-  command fails with "Cannot find module"; update first, or run it from a
-  source checkout of the same release (after `pnpm install`) with
-  `DATABASE_URL='postgres://…' node scripts/reset-password.mjs <username-or-email>`.
