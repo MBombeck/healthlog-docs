@@ -5,17 +5,11 @@ sidebar:
   order: 1
 ---
 
-HealthLog exposes a REST API over JSON. The machine-readable **OpenAPI 3.1**
-contract lives at
-[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml)
-in the main repository — it is the source of truth for any client codegen
-(Swift, Kotlin, OpenAPI Generator) and the contract the native iOS client speaks
-against. The spec carries the version of the release it ships with; CI fails the
-build on drift between the Zod schemas and the YAML, so the contract stays
-honest.
-
-This page documents the cross-cutting conventions. For the endpoint groups, see
-[Endpoints](/reference/api-endpoints/).
+HealthLog exposes a REST API over JSON. Every route, field and error code is
+in the generated **OpenAPI 3.1** document; [API endpoints](/reference/api-endpoints/#the-openapi-spec)
+links the copy that matches your server's version, says what each kind of
+token reaches and maps the endpoint groups to their guides. This page holds the
+conventions every route follows.
 
 ## Base URL
 
@@ -34,14 +28,9 @@ Two methods, with a hard structural boundary between them:
 
 - **Session cookies** are Postgres-backed with a sliding 30-day expiry,
   HttpOnly + SameSite. The cookie path can elevate to admin via
-  `requireAdmin()`. Since v1.30.33 the cookie carries a purpose-generated
-  32-byte random secret (`hls_<hex>`) and only its HMAC-SHA256 hash is stored,
-  so the value in the browser exists nowhere on the server. It used to be the
-  session row's own primary key — an identifier built for collision resistance,
-  not for unguessability, and one that appeared wherever that row was
-  referenced. Sessions created before that release keep working and are simply
-  not renewed, so they run out their normal 30 days: the change signs nobody
-  out.
+  `requireAdmin()`. The cookie carries a random 32-byte secret (`hls_<hex>`)
+  and only its HMAC-SHA256 hash is stored, so the value in the browser exists
+  nowhere on the server.
 - **Bearer tokens** are HMAC-SHA256-hashed under `API_TOKEN_HMAC_KEY` before
   storage — there is no plaintext path, and the raw `hlk_<hex>` value is shown
   exactly once at creation. Tokens are scoped. The scopes in use are
@@ -49,23 +38,20 @@ Two methods, with a hard structural boundary between them:
   `health:write` for the [MCP connector](/guides/mcp-server/),
   `medication:ingest` for one medication's own intake endpoint,
   `measurements:write` for
-  [pushing readings from your own hardware](/guides/ingest-token/), and
-  `documents:write` (since v1.39.2) for
-  [importing documents](/guides/import-documents/), and `workouts:write`
-  (since v1.39.6) for [pushing workouts](/guides/ingest-token/#push-workouts).
-  Only the
-  login, passkey and refresh paths mint a wildcard (`["*"]`) token; every
+  [pushing readings from your own hardware](/guides/ingest-token/),
+  `documents:write` for [importing documents](/guides/import-documents/), and
+  `workouts:write` for [pushing workouts](/guides/ingest-token/#push-workouts).
+  No mint produces `fhir:read` yet. Only sign-in (password, passkey and the
+  native sign-in handoffs) and refresh mint a wildcard (`["*"]`) token; every
   user-facing mint endpoint hardcodes one narrow scope. The measurement-token,
   document-token and workout-token mints additionally accept the session cookie
   only, so no API token, wildcard included, can mint one.
 
-:::caution[Bearer scope is fail-closed since v1.30.17]
+:::caution[Bearer scope is fail-closed]
 A route accepts a narrow-scope token only if it **names** the scope it accepts.
 `requireAuth()` with no argument admits a cookie session or a wildcard token
-only; a narrow token is refused with `403` and an audit row. Before v1.30.17 a
-token minted for one purpose reached every Bearer-accepting endpoint, including
-the full backup export. **Revoke and re-issue any token you handed to a third
-party**, and treat it as having had that reach for its whole lifetime.
+only; a narrow token is refused with `403` (`auth.scope.insufficient`) and an
+audit row. Adding a route therefore never widens what an existing token reaches.
 :::
 
 :::caution[Admin is cookie-only]
@@ -77,37 +63,15 @@ runtime check future code can soften.
 `userId` is never a request-body field. It is always narrowed from the session
 or the Bearer token and feeds the Prisma `where` clause directly.
 
-:::note[Acting on a shared record since v1.36.0]
-A caller can hold access to another account's record, and on the routes that
-allow it the `userId` in the `where` clause is then the record owner's rather
-than the caller's. That substitution never comes from the request body either.
-It comes from an account selector the caller names, checked against a live grant
-row on **every** request, and it only happens on a route that has declared which
-mode it serves under a grant. Both declared sets are frozen by a structural
-test; every other route refuses with `403`
-(`meta.errorCode: sharing.not_permitted`) rather than falling back to the
-caller's own record, because answering with the wrong person's health record is
-worse than refusing.
-
-Since v1.36.1 a grant carries a level, so the substitution can apply to a write
-as well as a read. Twelve route modules declare write, out of 131 that serve a
-shared record at all, and at write level every one of them creates a row rather
-than changing one. Since v1.37.0 a third declared set serves `MANAGE`-level
-grants, which do edit and delete entries (see
-[Shared access](/reference/api-endpoints/#shared-access) for the level and
-scope model). The row belongs to the record owner exactly as if they had
-entered it themselves; authorship of the write rides the audit row, not the
-data row. An
-unsafe method on a route that declared itself readable counts as a write
-whatever the route intended, so a read-level grant refuses it (`403`,
-`meta.errorCode: sharing.access.denied`) and a route cannot widen itself by
-gaining a verb.
-
-Cookie clients name the account with `POST /api/account/switch`; Bearer clients
-send the `X-HealthLog-Account` header per request and are refused by the switch
-endpoint, because a token must keep meaning one person for as long as it exists.
-See [Shared access](/reference/api-endpoints/#shared-access) and
-[What a shared record is](/explanation/record-sharing/).
+:::note[Acting on a shared record]
+A caller that holds a [shared-access grant](/guides/shared-access/) can act on
+another account's record, on the routes that declare it. The owner's id then
+goes into the `where` clause in place of the caller's. It never comes from the
+request body: the caller names the account, and a live grant is checked on
+every request. Any other route refuses with `403` rather than falling back to
+the caller's own record.
+The wire rules are in [Shared access](/reference/api-endpoints/#shared-access),
+the model in [What a shared record is](/explanation/record-sharing/).
 :::
 
 ## Response envelope
@@ -158,16 +122,16 @@ Where an answer depends on rules, the server publishes the resolved value and
 clients render it rather than working it out again, so the web app and the
 native app cannot disagree. Examples: the `ai` block on `GET /api/auth/me`
 (whether each AI feature is available, and why not); `courseStatus` and
-`intakeActionable` on the medication reads (since v1.39.4: where today sits in
-the course, and whether taken and skip are offered); and `cursorExpired` on
-`GET /api/sync/changes` (the client's position no longer holds, since v1.39.4
-also after a restore or a data wipe). The OpenAPI document describes each
-field.
+`intakeActionable` on the medication reads (where today sits in the course, and
+whether taken and skip are offered); the trend verdicts on the series and the
+dashboard; `appleHealthMirror` on measurement rows; and `cursorExpired` on
+`GET /api/sync/changes` (the client's position no longer holds). The OpenAPI
+document describes each field.
 
-Text the server writes for a person is written in that person's units. Since
-v1.39.7 the health score's glycaemia labels, the Coach's tables of values and
-the metric status texts follow the reader's glucose unit and metric or imperial
-preference, so a client shows them as they come rather than converting them.
+Text the server writes for a person is written in that person's units: the
+health score's labels, the Coach's tables of values and the metric status texts
+follow the reader's glucose unit and metric or imperial preference, so a client
+shows them as they come rather than converting them.
 
 ## Idempotency
 
@@ -178,17 +142,18 @@ honours it. The first request runs and the response is cached; a replay with
 the same key returns the cached response with `X-Idempotent-Replay: true`
 instead of re-running the mutation.
 
-Since v1.40.0 a key replays only the **same request**: the cache stores a
+A key replays only the **same request** within 24 hours: the cache stores a
 SHA-256 fingerprint of the method, the path and the body (JSON compared with
-its keys sorted, so key order does not matter; a multipart boundary ignored, so
-a rebuilt form still matches). A different body under the same key is executed
-and saved, not answered with the first one's response. Use **one key per
-write**. Before, a client that sent two different writes under one key, as the
-iPhone app did with the two halves of a blood pressure reading, had the second
-silently answered with the first's cached response.
+its keys sorted, a multipart boundary ignored). A different body under the same
+key is executed and saved, not answered with the first one's response. Use
+**one key per write**: two halves of one reading sent as two requests need two
+keys.
 
 - Keys are **user-scoped** — a composite unique index by
   `userId_key_method_path` means a client cannot replay another user's key.
+- `401`, `403`, `408`, `429` and every `5xx` are not cached, so a retry runs
+  again. A `422` is cached, so a broken retry does not reach the database
+  twice.
 - The cache refuses to persist a response body containing secret-shaped patterns
   (`hlk_`, `hlr_`, `sk-`) even if a future caller wraps an auth endpoint by
   mistake.
@@ -199,7 +164,37 @@ This is what makes the native client's retries safe over flaky mobile networks.
 
 ## Rate limits
 
-A `429` the rate limiter produced carries four headers:
+Limits live in Postgres (one atomic upsert per check), so they hold across
+several app instances. Authenticated buckets are keyed on the acting account,
+anonymous ones on the client IP as the trusted proxy reports it (see
+[`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).
+
+| Surface | Limit | Per |
+| --- | --- | --- |
+| `POST /api/auth/login` | 5 in 15 minutes | client IP |
+| `POST /api/auth/refresh` | 10 in 15 minutes | client IP |
+| Every other authenticated write (`POST`, `PUT`, `PATCH`, `DELETE`) | 300 a minute, shared | acting account |
+| `POST /api/measurements/batch`, `/api/mood-entries/bulk`, `/api/medications/intake/bulk`, `/api/nutrients/batch`, `/api/cycle/day-logs/bulk` | 60 a minute each | account |
+| `POST /api/workouts/batch` | 60 a minute; `workouts:write` tokens share a second 60 | account |
+| `POST /api/insights/ecg` | 600 a minute | account |
+| `GET /api/sync/changes` | 120 a minute | account |
+| The Coach stream (`POST /api/insights/chat`) | 20 messages a minute | account |
+| `POST /api/search` | 20 a minute | account |
+| `POST /api/ingest/medication` | 60 a minute | token |
+| `POST /api/documents/inbound` | 60 an hour; 120 an hour per `documents:write` token (`DOCUMENT_UPLOAD_LIMIT_PER_HOUR`) | account or token |
+| Full backup and health-record export | 10 an hour, shared | account |
+| `/api/fhir/*` | 120 an hour | account |
+| `/mcp` | 120 a minute; writes 60 in 5 minutes | connector token |
+
+The shared write bucket covers every write that is not in a row of its own. It
+is charged after authentication and before the body is read, so a client
+looping on a `422` spends its allowance too. A delegate spends their own
+allowance and cannot collect a fresh one by switching records. If the bucket
+cannot be read, the write goes ahead: the bucket stops runaway loops, it does
+not decide who may write. Its `429` carries `meta.errorCode:
+record_write.rate_limited`, which is how a client tells it from a route's own.
+
+A `429` from one of these buckets on an `/api` route carries four headers:
 
 | Header | Meaning |
 | --- | --- |
@@ -208,37 +203,10 @@ A `429` the rate limiter produced carries four headers:
 | `X-RateLimit-Remaining` | Requests left in the current window, `0` on a refusal |
 | `X-RateLimit-Reset` | ISO-8601 instant the window rolls over, not epoch seconds |
 
-Back off on `Retry-After` rather than guessing, which is what an offline queue
-that tripped a cap needs. Every limited route carries the four, the batch
-endpoints, `/api/sync/changes` and `/api/auth/refresh` among them. A `429` that
-did not come from one of these buckets carries none of them, because there is no
-bucket to describe: a daily AI budget and a provider's own refusal relayed
-onward both look like that.
-
-Every authenticated write (`POST`, `PUT`, `PATCH`, `DELETE`) shares one bucket
-per acting account, 300 requests a minute, except on the routes that keep a
-bucket of their own (the bulk sync endpoints, ECG ingest and the chat
-streams). If the bucket itself cannot be read, the write goes ahead: it fails
-open, because it cuts off runaway loops and does not decide who may write. The
-check runs after
-authentication and before the body is read, so a client looping on a 422 spends
-its allowance too, and it is keyed on the caller rather than the record, so a
-delegate burns their own allowance and cannot collect a fresh one by switching
-records. Its 429 carries the four headers and, uniquely among the limiter's
-refusals, `meta.errorCode: record_write.rate_limited`, which is how a client
-tells the shared bucket from a route's own. The batch endpoints keep their own
-60-a-minute buckets; on `/api/workouts/batch` a `workouts:write` token counts in
-a separate one, shared by all such tokens of the account (since v1.39.8).
-`POST /api/insights/ecg` allows 600 recordings a minute per account.
-
-The Coach stream allows 20 messages a minute per account. A tapped follow-up
-suggestion is a message too, including one answered from a stored table
-without a model call.
-
-Limits live in Postgres (a single atomic SQL
-upsert), so multi-instance correctness is structural. The bucket key is
-`<surface>:<identifier>` — `userId` for authenticated routes, the trusted-proxy
-IP for anonymous ones (see [`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).
+Back off on `Retry-After` rather than guessing; an offline queue should drain
+slower rather than retry the one request. A `429` without these headers did not
+come from a bucket: a daily AI budget and a provider's own refusal relayed
+onward both look like that, and there is no window to wait out.
 
 ## HTTP status codes
 
@@ -252,16 +220,23 @@ IP for anonymous ones (see [`TRUST_PROXY_HOPS`](/guides/reverse-proxy/)).
 | `401` | Not authenticated |
 | `403` | Forbidden |
 | `404` | Not found |
+| `405` | Method not allowed |
+| `409` | Conflict, for example a duplicate or a stale shared-record session |
+| `410` | The route was retired; see below |
 | `413` | Payload too large (per-route body cap) |
 | `422` | The body parsed but failed the schema; `details.issues` names every field. One route, `PUT /api/auth/me/health-score-config`, answers a non-JSON body with 422 too, because its published contract promised that |
 | `429` | Rate limit exceeded |
 | `500` | Internal error |
+| `503` | Unavailable, for example `encryption.key_mismatch` or `auth.session.unavailable` |
 
 ## Error codes
 
-Every `meta.errorCode` the server emits is enumerated, grouped by the surface
-that emits it, in the `ErrorEnvelope` description of the
-[OpenAPI document](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml):
+Every error envelope carries `meta.requestId` (the same value as the
+`x-request-id` header; the operator finds the event by it) and
+`meta.errorCode`. A route that names no code of its own gets the generic one
+for its status, such as `http.not_found` or `http.rate_limited`. Every code the
+server emits is enumerated, grouped by surface, in the `ErrorEnvelope`
+description of the [OpenAPI document](/reference/api-endpoints/#the-openapi-spec).
 The list cannot drift from the server: a code the server can emit is in it, and
 a code no longer emitted leaves it. Four spellings coexist (`dot.case`, bare
 `snake_case`, a `camelCase` segment, a hyphen) and none is renamed, because a
@@ -282,23 +257,24 @@ sentence beside it may be reworded or localised at any time.
 | `auth.token.invalid` | `401` | Unknown, revoked, or the owning account is gone. Discard the credential; retrying will not help |
 | `auth.mfa.code_invalid` | `401` | A second factor presented on a step-up flow did not verify. Re-prompt for a code and keep the session |
 | `auth.stepup.required` | `401` | The route needs a fresh factor. Re-prove and retry |
-| `auth.reproof.required` | `401` | Since v1.39.3: the route needs a recent sign-in or confirmation. `meta.methods` lists what the account can use; confirm at `POST /api/auth/reproof` and retry |
+| `auth.reproof.required` | `401` | The route needs a recent sign-in or confirmation. `meta.methods` lists what the account can use; confirm at `POST /api/auth/reproof` and retry |
 | `auth.reproof.too_weak` | `422` | The method offered at `POST /api/auth/reproof` does not count for this account (a password on an account with a second factor) |
 | `auth.reproof.failed` | `401` | The confirmation did not verify. Re-prompt; attempts share the step-up budget |
 | `auth.scope.insufficient` | `403` | The credential is valid but its scope does not reach this route, which includes any Bearer token against an admin surface |
 | `auth.admin.required` | `403` | A cookie session that is not an admin's |
 
-Two further codes can meet a client before any route body runs. Since v1.40.0
-a server whose encryption key cannot open its data answers every route except
+Further codes can meet a client before any route body runs. A server whose
+encryption key cannot open its data answers every route except
 `/api/health` and `/api/version` with `503` `encryption.key_mismatch`; show it
 as a server configuration problem, not as offline. And the browser sign-in
 routes refuse with `409` `auth.session.insecure_transport` when the web client
-reports a plain `http://` page while the server sets `Secure` cookies.
+reports a plain `http://` page while the server sets `Secure` cookies. A
+session that could not be checked because the session store was unreachable
+answers `503` `auth.session.unavailable`: keep the credential and retry.
 
 A route that checks a credential of its own, meaning sign-in, the MFA challenge
-exchange or a password confirmation, may still answer `401` with prose and no
-code. A missing `meta.errorCode` there means the route refused the credential it
-was handed, not that the response is malformed.
+exchange or a password confirmation, answers `401` with the generic
+`http.unauthenticated`: the route refused the credential it was handed.
 
 ## Retired and deprecated routes
 

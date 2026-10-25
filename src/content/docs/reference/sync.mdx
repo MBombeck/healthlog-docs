@@ -41,8 +41,8 @@ imported and hand-entered readings, false for Apple Health's own and for the
 other provider syncs, and for a reading pushed with a
 [measurement token](/guides/ingest-token/) whatever that token's
 **Write readings to Apple Health** switch says. When the switch changes, the
-token's earlier readings come through `measurementMirror` as `{ id,
-appleHealthMirror }` pairs keyed on the server `id`; the reading itself did
+token's earlier readings come through `measurementMirror` as
+`{ id, appleHealthMirror }` pairs keyed on the server `id`; the reading itself did
 not change and is not sent again. A client mirrors exactly the rows that say
 true. The iPhone app acts on this from the build that reads the field; an older
 build keeps mirroring Withings, imported and hand-entered readings as before.

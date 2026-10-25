@@ -1,972 +1,159 @@
 ---
 title: API endpoints
-description: The HealthLog REST API by endpoint group — measurements, medications, insights, cycle, integrations, FHIR, admin — with the OpenAPI spec as the full contract.
+description: Where the full HealthLog API contract lives and which version to read, what each token reaches, the rules the spec cannot express, and a map of the endpoint groups to the guides that describe them.
 sidebar:
   order: 2
 ---
 
-The API has over 400 routes. Rather than hand-maintain every one here (which
-would drift), this page documents the **groups** with representative endpoints
-and examples. The authoritative, machine-readable contract is
-[`docs/api/openapi.yaml`](https://github.com/MBombeck/HealthLog/blob/main/docs/api/openapi.yaml)
-— generate clients from it, and treat it as canonical when this page and the spec
-disagree.
+The API has more than 400 routes. This page does not list them. It says where
+the full contract is, what each kind of credential reaches, the few rules a
+schema cannot express, and which guide describes each area. The conventions
+every route follows (authentication, the envelope, paging, idempotency, rate
+limits, error codes, retired routes) are on [API overview](/reference/api-overview/).
 
-Since v1.37.25 the spec is complete in a way it was not before. Every route the
-application serves is either published there or listed in the repository with a
-reason for its absence, and a test fails the build if a new route is neither.
-Before that release the spec described 262 paths while the application answered
-on 410: the drift check compared the spec against the schemas and never against
-the routes, so a route that was never registered raised no complaint. The same
-release added the `security` declaration the spec had always been missing, so a
-generated client now wires the Bearer token or the session cookie instead of
-treating every operation as public.
+## The OpenAPI spec
 
-All mutations require [authentication](/reference/api-overview/); responses use
-the `{ data, error }` envelope.
+The contract is the OpenAPI 3.1 document `docs/api/openapi.yaml` in the app
+repository. It is generated from the server's own request and response
+schemas, and CI fails a build where the two drift, so it is the reference for
+every route, field and error code, and the source for generated clients. Every
+route the server answers is in it, apart from a few internal ones the
+repository names with a reason. Each operation declares its security, so a
+generated client sends the session cookie or the Bearer token.
 
-## Changes in v1.43.0
+Read the spec at the release tag that matches your server. `GET /api/version`
+returns the running `version`; for 1.46.0 the file is:
 
-What a client written against v1.42 has to know. New routes are in the
-OpenAPI document and in the tables further down.
+- [openapi.yaml at v1.46.0](https://github.com/MBombeck/HealthLog/blob/v1.46.0/docs/api/openapi.yaml), to read on GitHub
+- [the raw file](https://raw.githubusercontent.com/MBombeck/HealthLog/v1.46.0/docs/api/openapi.yaml), for a client generator or a viewer such as Swagger UI
 
-### Request timestamps need seconds
+For another release, replace `v1.46.0` in the link with `v` and your
+version. The copy on `main` can describe routes your server does not have yet.
 
-Every instant a request sends must carry seconds:
-`2026-10-16T06:15:00Z`, `2026-10-16T06:15:00.000Z` and
-`2026-10-16T06:15:00+02:00` pass, `2026-10-16T06:15Z` is refused with `422`.
-The issue message says what is missing:
-`Invalid ISO datetime: seconds are required (YYYY-MM-DDTHH:mm:ssZ)`. Each
-such refusal is counted on the request's wide event as
-`validation.datetime.no_seconds`, so an operator sees a client that still
-sends minute precision. Fields that always required `Z` still do. Responses
-are unchanged.
+## What each credential reaches
 
-### Legacy integration status fields
-
-The fields that `health` replaced in v1.42.4 are deprecated and are removed
-in v1.44: `state`, `lastError`, `consecutiveFailuresByKind`, `syncHealth`,
-`tokenExpired`, `needsReauth`, `hasActivityScope`, `planUnavailable` and
-`scopeReconnect`. They are marked `deprecated: true` in the OpenAPI document
-and still served in v1.43. Read `health` on every integration status
-response. See [Integration status and problems](/guides/integrations/).
-
-### Nullable fields in OpenAPI
-
-The OpenAPI 3.1 document now writes a nullable field as a type array
-(`type: [string, "null"]`) instead of the older form. The wire is unchanged;
-a client generator that read the old form may produce different optional
-types after regenerating.
-
-### Error ids
-
-Every error envelope carries `meta.requestId`, the same value as the
-`x-request-id` response header. Show it to the person, or log it; the operator
-finds the event behind it under Admin, App logs. See
-[Report a problem with an error id](/self-hosting/troubleshooting/#report-a-problem-with-an-error-id).
-
-### Feature flags
-
-`GET /api/auth/me` reports four new entries under `features`, each true on a
-v1.43 server. Send the matching request form only when it is true; an older
-server refuses it.
-
-| Flag | Means |
+| Credential | Reaches |
 | --- | --- |
-| `cumulativeHourBuckets` | `POST /api/measurements/batch` takes hourly `stats:<HK>:<YYYY-MM-DD>T<HH>` rows for steps, active energy, walking and running distance and flights climbed |
-| `syncTriggerBackfill` | `syncTrigger: "backfill"` on the batch routes |
-| `biomarkerMerge` | `POST /api/biomarkers/{id}/merge` and aliases on the marker routes |
-| `lifeCircumstances` | the life-circumstance routes |
-
-An hourly `stats:` row carries the sum of one local hour in the account's
-zone, with `startDate` at the start of that hour. It never becomes a
-measurement and never changes the day total; it feeds the intraday profile
-behind the same-time baseline, and a day with at least four posted hours is
-built from them. A re-post overwrites it (`updated`). A refused row comes
-back `skipped` with `hour_bucket_misaligned`, `hour_bucket_unsupported_type`
-or `hour_bucket_too_old` (more than 400 days back). A batch with
-`syncTrigger: "backfill"` moves only `syncProgress` and the per-type
-`lastBackfillAt` in `GET /api/integrations/healthkit`, never the fields that
-say when data last arrived.
-
-### Values the server resolves
-
-Clients render these and never compute them themselves:
-
-- **Direction verdicts.** The dashboard snapshot and summary, the targets and
-  the measurement series carry a `TrendVerdict`: `direction` (`up-good`,
-  `up-bad`, `hold`, `neutral`), `targetPosition` (`below`, `inside`,
-  `above` or null) and `basis` (`personal_target`, `profile_default`,
-  `metric_default`). A delivered change carries a `TrendSentiment`
-  (`positive`, `negative`, `neutral`), the colour to paint. The rule is in
-  [Settings overview](/guides/settings-overview/#targets).
-- **Chart reference lines** on the series: `value`, `kind` (`lower` or
-  `upper`), `source` (`personal` or `clinical`) and `appliesTo` (`value`, or
-  `secondary` for the diastolic value).
-- **Personal records** carry `benchmark`, the cited age- and sex-aware band
-  for the age the record was set at, or null.
-- **Mood patterns.** `GET /api/mood/insights` carries `patterns`, cut to the
-  same `?days` window as `stability`; see
-  [Mood and wellbeing](/knowledge/mood/#what-changes-it).
-- **Cycle.** A period start answers `absorbed`: a later start within the
-  period length that this one folded in, or null. A day-log edit that clears
-  the flow on a start day answers `restored`: the starts it gave back.
-- **Related records.** Six detail reads carry `related[]`; see
-  [Link related records](/guides/related-records/#for-api-clients).
-
-### New routes
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `POST` / `DELETE` | `/api/medications/{id}/links` | Link or unlink conditions (`conditionEpisode`), documents and visits (`encounter`). `{ targetKind, targetIds }`, at most 100 ids; answers `{ changed, unknown }`. Own account only |
-| `POST` / `DELETE` | `/api/labs/{id}/links` | The same for a lab result, with `document` and `encounter` |
-| `POST` / `DELETE` | `/api/encounters/{id}/links` | Takes `medication` and `vaccination` as new target kinds |
-| `PUT` | `/api/medications/{id}/ingredients` | Replace a supplement's composition per unit (`{ ingredients: [{ nutrient, amount, unit }], source }`). Converts to the catalogue unit and keeps the entered pair. Needs the nutrients module; delegable with manage access; honours `Idempotency-Key` |
-| `POST` | `/api/medications/{id}/ingredients/extract` | Read a label photo (multipart `file`: JPEG, PNG, WebP or PDF, up to 10 MB). Answers `202` with an AI run of kind `SUPPLEMENT_LABEL_EXTRACT`; the result is a proposal, nothing is stored. Own account only, six an hour, not offered at the frugal usage level. HEIC is refused |
-| `GET` | `/api/nutrients/catalog` | Every nutrient with its canonical unit, label, whether HealthKit may send it, input units with their factor, and the upper limit with its `scope`, `form` and `source`, or null |
-| `GET` | `/api/nutrients` · `/api/nutrients/daily` | Each day now carries `bySource` and `aboveUpperLimit` (`null` where the nutrient has no limit); the overview carries `latestBySource` and `upperLimit` |
-| `GET` | `/api/anamnesis/life-circumstances` | The six sections with their answers, AI switches, review state, derived values, screening hints and AUDIT-C with its wording in the account language (`validatedLocale: false` where the English original is shown) |
-| `PATCH` | `/api/anamnesis/life-circumstances/ai-sections` | Switch life-circumstance sections in or out of what the AI may read |
-| `POST` | `/api/anamnesis/life-circumstances/confirm` | Mark a section "still true" |
-| `POST` | `/api/anamnesis/audit-c` · `DELETE /{id}` | Save or remove an AUDIT-C entry |
-| `PUT` | `/api/auth/me/ai-usage` | `{ level: "frugal" \| "standard" \| "full" \| null }`, `null` follows the instance default. Above the ceiling `422` `ai.usage.aboveCeiling`. 30 an hour. `GET /api/auth/me` publishes the resolved state as `ai.usage` |
-| `POST` | `/api/biomarkers/{id}/merge` | Fold up to ten `sourceIds` into the marker in the path. `dryRun: true` answers the same result and writes nothing. A unit without a known conversion refuses the whole merge (`422` `labs.biomarker.merge.unitMismatch`). No undo. Manage access; honours `Idempotency-Key` |
-| `PUT` | `/api/biomarkers/{id}` | Takes `aliases`, the marker's whole set of other names. A name another marker holds is refused with `labs.biomarker.alias.taken` |
-| `POST` | `/api/dawarich/connect` · `/test` · `/sync` · `/disconnect` | Connect, check, fetch the last seven days, disconnect; `deleteData: true` on the disconnect removes the stored days as well |
-| `GET` | `/api/dawarich/status` · `/places` | State and stored day count; the live place list for picking home |
-| `PATCH` | `/api/dawarich/settings` | Home place (an id on the Dawarich instance) and home country (ISO 3166-1 alpha-2). A new home country re-judges the stored travel days; a new home place fetches the stored days again in the background, up to a year |
-| `GET` / `POST` | `/api/environment/travel/suggestions` · `/{id}/dismiss` | Runs of travel days no location period covers yet; dismiss one |
-| `POST` | `/api/auth/claim/sso` | Start claiming a managed profile through single sign-on; see [Managed profiles](/guides/managed-profiles/#through-single-sign-on) |
-| `GET` | `/api/admin/support-report` | The redacted support report. Cookie only |
-| `GET` | `/api/admin/app-logs` | Takes `requestId` (8 to 64 characters, matched by prefix) and `ring=problems` for the buffer of the last 1,000 warnings and errors |
-| `GET` / `POST` | `/api/admin/maintenance/pulse-day-mean` | Read the method and last dry run, or start `dry_run`, `apply` (needs a dry run from the last seven days, else `409` `maintenance.pulseDayMean.dryRunRequired`) or `rebuild`. Answers `202`; `409` `maintenance.pulseDayMean.busy` while a run is active. Cookie only |
-
-## Measurements & health data
-
-The core ingest and read surface. Batch endpoints power the native client.
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `GET` | `/api/measurements` | List (paginated, filterable by type / source / date) |
-| `POST` | `/api/measurements` | Create one measurement, or up to five in an array, or since v1.39.1 one sleep stage by name (`sleepStage`: `IN_BED`, `ASLEEP`, `AWAKE`, `CORE`, `DEEP`, `REM`). Also accepts a `measurements:write` token |
-| `POST` | `/api/measurements/batch` | Bulk ingest, up to 500 entries; see the overwrite note below. Also accepts a `measurements:write` token |
-| `DELETE` | `/api/measurements/by-external-ids` | Soft-delete rows by external id (HealthKit deletion reconciliation) |
-| `POST` | `/api/measurements/bulk-delete` | Tombstoned bulk delete |
-| `GET` | `/api/analytics/range` | Trend summaries over a window |
-| `GET` | `/api/measurements/series` | One kind as a time series with summary `stats`; see the bucketing note below. Since v1.40.0 pulse, HRV and SpO2 read the [source-priority](/guides/source-priority/) ladder's source per day; types without a ladder (glucose) keep every source |
-| `GET` | `/api/sleep/night` · `/api/workouts` | Sleep nights, workouts (with `/batch`) |
-| `POST` | `/api/workouts/batch` | Workout ingest, up to 100 per call, 60 calls a minute per account. Also accepts a `workouts:write` token (since v1.39.6), whose calls count in a separate allowance (since v1.39.8) |
-| `POST` | `/api/workouts/batch` (`manual:` ids) | Since v1.40.0 a changed resubmit of a hand-entered workout (`manual:` `externalId`, `source: "MANUAL"`) updates it and reports `"updated"` |
-| `DELETE` | `/api/workouts/{id}` | Delete a workout the account entered by hand (`source: "MANUAL"`, since v1.39.9). A synced workout answers `409` with `workout.delete.synced_source`, since the next sync would bring it back; any other id `404`. Cookie session or a full-access token only |
-| `GET` | `/api/devices` | Registered device list |
-| `POST` | `/api/mood-entries` · `/bulk` | Mood entries. Since v1.39.7 a write reports `droppedTagKeys` and `droppedFactorKeys`, each present only when non-empty: the submitted tag or factor keys that were not stored (unknown, archived or the wrong kind). The entry itself is stored. `PUT /api/mood-entries/{id}` reports them the same way |
-| `POST` | `/api/insights/ecg` | One ECG recording from the iPhone app. Since v1.39.7 `averageHeartRate` and `samplingFrequency` may carry a fraction; the server rounds both before storing. Since v1.39.8 it allows 600 requests a minute per account (60 before). See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive) |
-| `POST` | `/api/labs/ocr/extract` | Read lab values from a photo or PDF. Since v1.39.7 a PDF longer than the page cap carries `pageCoverage` (`read`, `total`): only the first `read` pages were read. Since v1.40.0 it always answers `202` with a run id; `GET /api/ai-runs/{id}` serves the proposed rows (see [Background document reads](/reference/native-clients/#background-document-reads)) |
-| `POST` | `/api/labs` · `PUT /api/biomarkers/{id}` | Since v1.40.0 a numeric reading in another unit than its marker's is never stored under the marker's unit. Since v1.42.3 it is converted when the pair is known and answers `201` with `converted: true`; otherwise it is refused with `422` `labs.unit.mismatch` (`meta.markerUnit`, `meta.readingUnit`, `meta.reason`; spelling is forgiven). A marker's unit cannot change while it has readings (`422` `biomarkers.unit.locked`). The scan commit skips a refused row with `reason: "unit_mismatch"`. See [Lab results in another unit](#lab-results-in-another-unit) |
-| `GET` / `POST` | `/api/symptoms/definitions` · `/events` | Since v1.40.0, your own symptoms and their entries; `PATCH` / `DELETE` on `/{id}`. Gated on the Illness module. See [Your own symptoms](/guides/illness/#your-own-symptoms) |
-
-:::note[Batch overwrite contract]
-`POST /api/measurements/batch` recognises `externalId` values starting with
-`stats:` (e.g. `stats:HKQuantityTypeIdentifierStepCount:YYYY-MM-DD`) as
-**overwrites** — a re-post replaces value, unit, measuredAt, externalSourceVersion,
-deviceType and sleepStage. Every
-other externalId prefix keeps first-write-wins immutability, because each sample
-is a canonical reading. The per-entry status is `"updated"` for an overwrite vs
-`"inserted"` for a fresh row.
-:::
-
-Since v1.39.1 a batch refused as a whole names its reason in `meta.errorCode`:
-`measurement.batch.invalid` (the body failed validation),
-`measurement.batch.too_large` (more than 500 entries) or
-`measurement.batch.source_not_permitted`. All three are permanent for the batch
-as sent. An entry skipped as `value_out_of_range` carries `convertedValue` and
-`range` (`min`, `max`, `unit`). In the nutrient upload (`POST /api/nutrients/batch`) and the cycle bulk upload
-(`POST /api/cycle/day-logs/bulk`), an entry skipped as `upsert_failed` was not
-written because of a server-side failure and should be sent again; such a
-response is not stored for `Idempotency-Key` replay, so a retry under the same
-key writes again. See
-[Push readings from your own hardware](/guides/ingest-token/#sleep-stages) for
-sleep stages by name.
-
-`GET /api/measurements/series` sends `pulse` and `glucose` as buckets where
-raw readings would be too many: one point per local day beyond 90 days
-(`id` starting with `day:`), and inside 90 days one point per local hour
-(`id` starting with `hour:`) when the window holds more than 10,000 readings.
-A bucket's `value` is the mean; a `pulse` bucket also carries `valueMin` and
-`valueMax`, and a `glucose` bucket is converted to the user's unit like a raw
-reading. `stats` always counts every reading, never the buckets. Hourly pulse
-buckets exist since v1.39.5 and hourly glucose buckets since v1.39.6, so a
-continuous glucose sensor now arrives hourly inside 90 days while a
-fingerstick meter stays far under the threshold and keeps its raw points. The
-doctor report keeps glucose raw inside 90 days.
-
-Since v1.39.7 heart-rate variability (`heartRateVariability`) and blood oxygen
-(`oxygenSaturation`) follow the same rule, because watches and rings write them
-every few minutes overnight. They can return `day:` and `hour:` points under
-the same thresholds, with the mean as `value`.
-
-`GET /api/measurements?type=SLEEP_DURATION` lists one row per night and reads
-at most one year, ending at `to` (or now). An earlier `from` narrows that year
-but never widens it, and older nights are reached by moving `to` back. Since
-v1.39.7, when `from` reached further back than the year, `meta.windowFrom`
-says where the window actually started, so a client can tell a cut window
-from an empty history.
-
-The two `POST` endpoints are the only routes a `measurements:write` token can
-reach. Such a token writes on its owner's own record only (a request carrying
-the account selector is refused with `403` before any sharing grant is read),
-its rows are attributed `EXTERNAL` (since v1.39.1; `MANUAL` before), a body or
-entry that names any `source` is refused with `422`, and a batch from it does
-not move the phone's sync checkpoint. See
-[Push readings from your own hardware](/guides/ingest-token/).
-
-`POST /api/workouts/batch` is the only route a `workouts:write` token can
-reach, and a `measurements:write` token is refused there with `403`. Rows it
-writes are attributed `EXTERNAL`, a batch in which any entry names a `source`
-is refused with `422` (`workout.batch.source_not_permitted`), and a re-sent
-`externalId` comes back as `duplicate`. Since v1.39.8 its batches count in an
-allowance of their own, 60 a minute shared by all workout tokens of the
-account, so a bridge stuck retrying cannot use up the iPhone app's. See
-[Push workouts](/guides/ingest-token/#push-workouts).
-
-### Lab results in another unit
-
-Since v1.42.3 `POST /api/labs`, the lab scan commit and the document commit
-convert a numeric reading into its marker's unit when the marker's analyte
-is known and the unit pair is in the conversion registry, or when the two
-units differ only by a power of ten. The response is `201` with
-`converted: true`. A pair that cannot be converted still answers `422`
-`labs.unit.mismatch`, now with `meta.reason`: `unknown_analyte` (the marker
-is not identified, or its analyte has no conversion for that pair),
-`unknown_unit` or `not_finite`.
-
-A lab result carries these fields for it:
-
-| Field | Meaning |
-| --- | --- |
-| `converted` | `true` when the stored `value` was converted into the marker's `unit` |
-| `sourceValue`, `sourceUnit` | The value and unit the report printed, full precision. `null` for a reading stored as stated |
-| `sourceReferenceLow`, `sourceReferenceHigh` | The report's own range. For a converted reading, converted with the value and in the marker's `unit` |
-| `sourceReferenceText` | The printed range text, verbatim. `null` for a converted reading, because the text is in another unit |
-| `printedReferenceText` | For a converted reading, the printed range text in `sourceUnit`. `null` otherwise |
-
-A biomarker carries `analyteKey`: the analyte its name and unit were
-recognised as (a catalog slug such as `fasting-glucose`, `ldl` or `hdl`, or
-a registry key such as `urea` or `uric-acid`), or `null`. It is derived,
-never sent: set on create and derived again, or cleared, when an update
-changes the name or the unit. Editing a converted reading keeps its
-conversion record unless the value changes. See
-[Unit conversion](/guides/labs/#unit-conversion).
-
-## Medications
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `GET` / `POST` | `/api/medications` | List / create. Since v1.39.1 a medication carries `trackIntake`; see [Keep a medication as a record](/guides/track-medications/#keep-a-medication-as-a-record). Since v1.39.4 each medication read also carries `courseStatus` and `intakeActionable`; see [When Taken and Skip appear](/guides/track-medications/#when-taken-and-skip-appear) |
-| `GET` / `PUT` / `DELETE` | `/api/medications/{id}` | Read / update / delete. The read carries `courseStatus` and `intakeActionable` too |
-| `POST` | `/api/medications/{id}/intake` | Log a take / skip |
-| `GET` | `/api/medications/{id}/compliance` | Cadence-aware rate. `applicable: false` with `notApplicableReason: "INTAKE_NOT_TRACKED"` for a medication kept as a record |
-| `GET` | `/api/medications/{id}/cadence` | Read the cadence; schedule edits go through `PUT /api/medications/{id}` |
-| `POST` | `/api/medications/extract` | Parse a label into a draft |
-| `POST` | `/api/medications/intake/bulk` | Native bulk intake |
-| `GET` / `POST` | `/api/medications/{id}/glp1` | GLP-1 titration log. `POST` honours `Idempotency-Key` |
-| `GET` / `POST` | `/api/medications/{id}/courses` | Since v1.40.0. The medication's courses / start one (`{ startsOn, endsOn?, note? }`). The medication's own `startsOn` and `endsOn` follow the latest course. Owner only |
-| `PATCH` / `DELETE` | `/api/medications/{id}/courses/{courseId}` | Edit or delete one course. Deleting the only course makes the medication continuous again. Owner only |
-| `GET` / `POST` | `/api/medications/categories` | Since v1.40.0. Your own categories, hidden ones included, each with its medication count / create one (`{ label }`), at most 20. A category's key is `custom:<id>` |
-| `PATCH` / `DELETE` | `/api/medications/categories/{key}` | Rename, reorder, hide or delete one. `DELETE` moves its medications to `OTHER` and reports how many. Owner only |
-
-Since v1.40.0 a medication read carries `courses[]`, `courseCount`,
-`previousCourseEndedOn`, `canStartCourse` and `categoryLabel`, and `category`
-can be `custom:<id>`. An update from a native client that sends `OTHER` over a
-custom category keeps the custom one. Errors are `medications.category.*` and
-`medications.course.*`.
-
-Since v1.42.2 a medication carries `autoMarkTaken` and `autoMarkTakenSince`
-(when the option was last switched on), and list and detail reads carry the
-resolved `remindersActive`, which is false for a medication that records its
-doses automatically and once a course has ended. Intakes, including those in
-the sync feed, carry `autoRecorded`. See
-[Record doses automatically](/guides/track-medications/#record-doses-automatically).
-
-The compliance numbers come from the dose ledger — see
-[Medication compliance](/explanation/medication-compliance/).
-
-Adding a medication (`POST /api/medications`), logging a side effect
-(`POST /api/medications/{id}/side-effects`), registering a supply container
-(`POST /api/medications/{id}/inventory`) and, since v1.38.16, logging a GLP-1
-titration step (`POST /api/medications/{id}/glp1`) honour `Idempotency-Key`. A
-replay after a lost response returns the first answer with
-`X-Idempotent-Replay: true` instead of creating a second row, which is what the
-native client's offline queue relies on.
-
-## Insights & coach
-
-The largest group. Per-metric status endpoints, the comprehensive payload, the
-SSE coach stream, and the self-context surface.
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `GET` | `/api/insights/comprehensive` | Aggregated insight payload |
-| `POST` | `/api/insights/generate` | Regenerate (rate-limited per hour) |
-| `GET` | `/api/insights/blood-pressure-status` | One per metric (pulse, weight, bmi, mood, …) |
-| `GET` | `/api/insights/correlations` · `/derived` | Correlations, derived metrics (with `/batch`) |
-| `GET` / `PATCH` | `/api/user/ai-provider` | Your AI provider settings. Since v1.40.0 they carry `localReasoningEffort` and `compatReasoningEffort` (`none`, `low`, `medium`, `high`, or `null` for Default) |
-| `GET` / `PUT` | `/api/insights/provider-chain` | The fallback chain. Since v1.40.0 a Local or OpenAI-compatible entry may carry `reasoningEffort`; see [Reasoning](/guides/ai-providers/#reasoning) |
-| `GET` | `/api/dashboard/snapshot` | Single-cell above-the-fold hydration |
-| `POST` | `/api/insights/chat/...` | SSE coach stream + message feedback. The web no longer shows the feedback thumbs since v1.40.2; the route stays |
-| `GET` | `/api/insights/chat/{id}/messages/{messageId}/results` | Since v1.39.4: the tables of values one Coach answer read, decrypted for their owner. A data read, served while the Coach is unavailable |
-| `GET` | `/api/insights/chat/{id}/messages/{messageId}/trail` | Since v1.41.0: the text of one answer's trail (screened reasoning titles and summaries, the remembered things the turn recalled, a pending memory proposal), decrypted for the owner. Fetch it when the person opens the trail; see below |
-| `GET` / `POST` / `DELETE` | `/api/insights/coach/facts` | What the Coach remembers. Since v1.41.0 each fact carries `source`, `sourceMessageId` and `lastUsedAt`, and `POST { messageId }` saves one of the caller's own messages (the remember button) |
-| `PATCH` / `DELETE` | `/api/insights/coach/facts/{id}` | Since v1.41.0 `PATCH { fact }` rewrites one fact (3 to 160 characters) |
-| `GET` / `PUT` | `/api/coach/about-me` | Encrypted self-context + follow-up questions |
-| `GET` / `PUT` | `/api/auth/me/coach-prefs` | Coach preferences. Since v1.40.2 `defaultWindow` is the lookback limit and gains `lastYear`; see below. Since v1.41.0 `reasoning` (`off`, `low`, `medium`, `high`; absent means `medium`) |
-| `GET` | `/api/daily/digest` | The dashboard's daily digest. Since v1.40.2 it carries the Today overview; see below |
-| `GET` / `PATCH` | `/api/auth/me/disable-coach` | Coach kill switch |
-
-### Coach tables, suggestions and questions (since v1.39.4)
-
-The Coach stream adds four frames: `step` (a source the Coach is reading, with
-its window and a count, never a value), `result` (a table of the values it
-read, sent only to the owner), `followUps` (up to three suggestions under the
-latest answer) and `clarification` (the choices for a clarifying question).
-None carries a top-level key an older client decodes, so an older client
-drops them whole. A request taps a suggestion with
-`followUp: { messageId, id }` and answers a question with
-`clarification: { messageId, choiceId? }`; the server reads what the
-suggestion or choice means from the stored message, never from the request.
-
-A stored message carries the descriptions of its tables on `metricSource`
-(`results`, plus `steps`, `method`, `followUps` and `clarification`), never
-their values. The values come from the results route above, in the order of
-`metricSource.results`: each entry is the table, or `{ ref, withheld }` with
-`module_disabled` when the table's module is now off for the record (the table
-is not decrypted) or `unavailable` when the stored tables cannot be read. A
-conversation the caller does not own answers `404`. A suggestion answered from
-a stored table is persisted with `providerType: "reuse"` and uses no model.
-Frame order, shapes and limits are in the OpenAPI document; the behaviour is
-described in [Coach conversations](/guides/coach-conversations/).
-
-### Coach reasoning, trail and memory (since v1.41.0)
-
-Everything here is additive; a client that ignores it keeps working.
-
-**Reasoning.** `GET /api/auth/me` carries `coachReasoning`, resolved on the
-server. Render from it rather than working it out yourself:
-
-| Field | Meaning |
-| --- | --- |
-| `level` | The level a Coach turn runs at now, every limit applied |
-| `preference` | What the person picked, `medium` when they never did |
-| `maxLevel` | The highest level to offer; `off` when the operator switched reasoning off |
-| `available` | `false` when the operator switched reasoning off or the provider cannot reason |
-| `offIsReal` | `false` when the provider cannot switch thinking off; label the lowest option "Minimal" then |
-| `source` | Why `level` is what it is: `user`, `job`, `admin_off`, `admin_cap`, `cost_cap` or `unsupported` |
-
-The operator's controls are `aiReasoningEnabled` and `aiReasoningMaxEffort`
-(`low`, `medium`, `high`) on `PUT /api/admin/settings/assistant-flags`, read
-back as `reasoning: { enabled, maxEffort }`. A turn the operator pays for runs
-at `medium` at most.
-
-**The stream.** The frame order is now `(activity | step)*`, `token*`,
-`provenance`, `result*`, `suggestion?`, `suggestedAction?`, `memoryNote?`,
-`planProposal?`, `clarification?`, `followUps?`, `done`. `result` frames
-with `interim: true` may arrive among the `activity` frames while the turn still
-runs; a turn blocked after that sends `withheldResults: true` on `done`, and the
-client removes them.
-
-| Frame / field | Meaning |
-| --- | --- |
-| `activity` | One trail entry: `phase` (`thinking`, `memory`, `fetch`, `digest`, `checkpoint`, `remember`, `plan`, `asking`, `stop`, `answer`), `status`, a server-rendered `label`, optional `count`, `durationMs`, `stepRef` and `stop`. `title` and `text` are screened model text, owner only. Ids `a1` to `a99` |
-| `memoryNote` | A fact the turn saved (`proposal: false`, undo deletes `factId`) or proposes (`proposal: true`, answer with `memoryDecision`) |
-| `planProposal` | A proposed plan: `planId`, `metric`, `reviewInDays` (7 to 56), `ifCue`, `thenAction`, optional `target`. Answer with `planDecision` |
-| `done.stop` | `{ reason, rounds }` when the Coach answered before it was done reading: `budget`, `time`, `cap` or `no_progress` |
-| `provenance.assumptions` | Up to two assumptions the answer made instead of asking; the `followUps` frame carries `change_assumption` chips that pick another reading |
-
-The chat request accepts `memoryDecision: { messageId, proposalId, accept }` and
-`planDecision: { messageId, planId, accept }`. A decision is read against what
-the server stored for that message, never from the request. Clarifications
-gain the kinds `comparison`, `goal` and `anchor`; result ids now run `r1` to
-`r8` and step ids `s1` to `s48`. A `compare` chart joins the chart kinds.
-
-A stored answer carries the trail's structure on `metricSource.activity` and
-no model text; `GET …/messages/{messageId}/trail` serves the text. While the
-Coach's text may not be shown, `entries` is empty and the `ai` state rides
-beside it, but recalled facts and a pending proposal are still served, since
-they are the person's own data. A foreign or unknown id is a 404.
-
-**Memory.** `GET /api/insights/coach/facts` lists confirmed facts with
-`source` (`user`, `coach`, `extracted` for the background pass and every fact
-from before v1.41.0, or `pattern`), `sourceMessageId` and `lastUsedAt`; a health fact
-still waiting for the person is not listed. `POST` with `{ messageId }` saves
-one of the caller's own user messages and returns `created: false` when the
-fact was already there. `PATCH /api/insights/coach/facts/{id}` with `{ fact }`
-rewrites the text and files it again by its wording; an edited health fact
-counts as confirmed. These are data routes: they work while the Coach is off.
-
-**Usual-range line.** `GET /api/insights/coach-read` adds `latestDate` and
-`latestIsToday` to the baseline, so a client names the date of a latest reading
-that is not from today, and `basis: "sameHours"` when a day still in progress
-(blood glucose) is compared with the same hours of earlier days.
-
-### Coach lookback (since v1.40.2)
-
-`defaultWindow` in the Coach preferences is `last7days`, `last30days`,
-`last90days`, `lastYear` (new) or `allTime`, the default. It used to set only
-the window the Coach started from; it is now a limit on everything the Coach
-reads in every answer: the snapshot, every retrieval tool and the summaries.
-`allTime` is no limit. When a Coach tool finds readings that all lie beyond the
-limit, the model is told `outside_reach` and gets no figure from them (no count,
-date or value); in the stream's `step` frames such a read shows as empty with
-the reason `outside_window`. Preferences are parsed field by
-field, so one invalid value no longer resets the others to their defaults.
-MCP tools are not affected; they keep their own window arguments.
-
-Rolling a server back to v1.40.1 or earlier after an account saved `lastYear`
-makes the older server read that account's whole Coach preference blob as
-defaults, metric exclusions included, until it is saved again.
-
-### Today overview in the daily digest (since v1.40.2)
-
-`GET /api/daily/digest` gains five additive fields:
-
-| Field | Meaning |
-| --- | --- |
-| `lead` | The lead line, resolved: `{ text, source }` with `source` `reaction` or `briefing` (cached model text, only while that capability is available) or `signal` (a deterministic sentence about the day's strongest signal: a vital outside its personal range, an unusual night, vitals in range, last night). `null` when there is nothing to say. When the `signal` sentence is built from a fact, that fact is left out of `today` |
-| `today[]` | Up to 5 facts in priority order, never padded: `{ kind, label, value, href, moduleKey? }` with `kind` one of `rest_mode`, `medications`, `appointment`, `sleep`, `vitals`, `cycle`. `label` and `value` are localised on the server. A fact about a switched-off module is absent. A narrow surface shows the first 4. A fact never asks the reader to do anything; the rail is the only place that does |
-| `restMode` | `{ day }`, the 1-based day of the open illness episode on the reader's calendar, while the Illness module is on; else `null` |
-| `score.steadyWeeks` | Whole weeks the score has held in the same band and within two points, computed the same way, read off the stored daily scores. `null` under two weeks, when the stored record does not reach today, or when the score on screen differs from the newest stored day. Shown in place of a delta, never beside one |
-| `score.steadyAtLeast` | `true` when the run reaches back past the 120 days the read covers: `steadyWeeks` is then a lower bound, said as "at least". Absent on older cached digests |
-
-The push and lock-screen `line` carries no number any more (no reading, dose or
-score); the in-app `lead` keeps its figures. `briefingLead` now skips a greeting
-and a sentence that only repeats the score, and is `null` when no sentence
-qualifies. See [The Today overview](/insights/today/#the-today-overview).
-
-### AI availability (since v1.39.0)
-
-Routes that serve data never refuse for an AI reason. `GET /api/auth/me` carries
-an `ai` block next to `modules`, resolved for the record the session is in:
-`ai.capabilities` maps each AI feature (`coach`, `briefing`, `periodNarrative`,
-`statusText`, `workoutInsights`, `reactionLines`, `aboutMeQuestions`,
-`documentAi`, `labsOcr`, `medicationExtract`) to `{ available, reason,
-onDeviceAllowed }`, and `ai.provider` says whether a provider is configured and
-who manages it. `reason` is one of `check_failed`, `operator_disabled`,
-`not_permitted_for_record`, `module_disabled`, `user_disabled`, `no_provider` or
-`consent_required`, and only the outermost one is reported. Read it; do not
-work it out again on the client.
-
-Reads that mix data with model text answer `200`, set the model text to `null`
-and add an `ai` object with the reason: `GET /api/insights/comprehensive`,
-`/derived`, `/narrative`, the per-metric status routes, `/api/workouts/{id}`,
-`/api/daily/digest` and `/api/dashboard/snapshot` among them. `hasProvider` on
-the status routes means only that a provider is set up. Every card from
-`GET /api/insights/cards` says `provider: "rules"`.
-
-Actions that call a model refuse with one shape: `meta.errorCode` plus
-`meta.capability`, `meta.reason` and, where it applies, `meta.module`. Existing
-codes keep their meaning: `assistant.disabled.<switch>` for an operator switch
-(`coach`, `briefing`, `insightStatus`, `documentAi`, or `enabled` for the master
-on `POST /api/ai/test`), `module.disabled`, and `consent.ai.required`, all
-`403`. New are `ai.record.notPermitted` (`403`), `ai.provider.none` (`422`;
-`POST /api/medications/extract` keeps its `503`, and the document and lab scan
-routes keep their own provider codes) and
-`ai.unavailable` (`503`, the switches could not be read).
-`GET` and `POST /api/insights/generate` now refuse by the briefing's switch
-(`assistant.disabled.briefing`), and a missing provider is `422`
-`ai.provider.none`.
-
-`GET /api/consent/ai/latest` includes the `ai_extraction` kind (document
-reading), and `DELETE` without a kind revokes it too. A revoke that leaves no
-consent for AI analysis also deletes the regenerable notes.
-
-`GET /api/feature-flags` still answers, with a `Deprecation` header and a `Link`
-to `/api/auth/me`, and no longer has `correlations`. It will be removed in the
-first release after the iOS build that reads `ai` ships.
-
-## Cycle (menstrual tracking)
-
-A dedicated group (day logs, periods, calendar, predictions, insights, profile,
-prefs). Cycle data has its own threat model; see the main repo's
-`docs/security/cycle-data-threat-model.md`. Day logs, the period marker and,
-since v1.38.16, a custom symptom (`POST /api/cycle/symptoms/custom`) honour
-`Idempotency-Key`.
-
-## Auth & account
-
-Registration, password and passkey login, refresh-token rotation, profile,
-avatar, source priority, and the Codex device-OAuth flow.
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `POST` | `/api/auth/login` · `/api/auth/passkey/login-verify` | Password / passkey login |
-| `POST` | `/api/auth/refresh` | Per-device refresh-token rotation |
-| `POST` | `/api/auth/codex/device-start` · `/device-poll` · `/disconnect` | ChatGPT device-OAuth |
-| `GET` / `PATCH` | `/api/user/profile` · `/api/auth/me/*` | Profile and prefs. Since v1.39.1 `timezone` on `/api/user/profile` is the zone the server uses, as on `/api/auth/me`: the instance default when the stored value is not a usable zone name |
-| `GET` / `POST` | `/api/auth/reproof` | Since v1.39.3. Confirm it is you on the web; see [Fresh proof on the web](#fresh-proof-on-the-web) |
-| `DELETE` | `/api/auth/me/sessions` | Sign out everywhere else. Since v1.39.3 it ends every other sign-in, every AI-assistant connection, every token except the caller's own and, unless `keepShareLinks=1` is sent, every clinician share link. The answer carries `sessionsRevoked`, `accessTokensRevoked`, `connectorsRevoked` and `shareLinksRevoked` |
-
-### Fresh proof on the web
-
-Since v1.39.3 `GET /api/export/full-backup`, `POST /api/export/encrypted`,
-`POST /api/share-links`, `POST /api/mcp/tokens`,
-`POST /api/tokens/measurements`, `POST /api/tokens/documents`,
-`POST /api/tokens/workouts` (since v1.39.6) and the admin
-backup download, upload and restore, `DELETE /api/admin/data` and
-`POST /api/admin/users/{id}/reset-password` answer a browser session that has
-not signed in or re-proved within five minutes with `401`
-`auth.reproof.required`. On an account with a second factor, only a sign-in
-that included it (or a passkey sign-in) counts. `meta.methods` lists what the
-account can use: `password` and `passkey` without a second factor; `totp`,
-`webauthn` and `passkey` with one. An empty list means the account has nothing
-to re-prove in place and has to sign in again.
-
-`POST /api/auth/reproof` takes the body `POST /api/auth/step-up` takes
-(`{ "method": "password", "password": ... }`, `{ "method": "totp", "code": ... }`,
-or a passkey or security-key assertion begun at
-`POST /api/auth/passkey/register-options` with `{ "method": "passkey" }` or
-`{ "method": "webauthn" }`). A method the account cannot use here is `422`
-`auth.reproof.too_weak`; a proof that does not verify is `401`
-`auth.reproof.failed`; attempts share the five-per-fifteen-minutes budget of
-the step-up mint. `GET /api/auth/reproof` answers `200` when the session's
-proof is recent and the same `401` otherwise, so a client can ask before a
-large upload.
-
-On a Bearer token: `GET /api/export/full-backup` needs an `X-Step-Up`
-elevation (a second-factor one on an account with a second factor);
-`POST /api/export/encrypted` needs a second-factor elevation on an account with
-a second factor and nothing more on one without. The measurement and document
-token mints refuse Bearer outright. Share links and connector tokens are not
-yet asked for more than the token.
-
-### Onboarding (the needs-based flow)
-
-Server side since v1.38.16, the screens since v1.38.18: `/onboarding` asks
-the questions and these three routes carry them. See
-[First steps](/getting-started/first-steps/#answer-the-setup-questions) for
-what the screens do.
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `PATCH` | `/api/onboarding/answers` | One step at a time: `{ step, answer }` or `{ step, status: "skipped" }`, never both; `who` has no skip arm. Idempotent by construction. The `units` step also writes `glucoseUnit` and `unitPreference` on the account, in one transaction with the answer. Own record only; refuses under a switch with `403 sharing.not_permitted`. 120 writes per ten minutes, `onboarding.answers.rateLimited` |
-| `POST` | `/api/onboarding/complete` | Stamps the account past the first run and, for a record that finished the questions, derives the module map from the answers exactly once: on for what they name, an explicit off for the rest, never a module switched on by hand and never one whose section already holds rows. Seeds the dashboard order from the answers while the layout is unset. An empty body is the welcome screen's **Skip for now**: the stamp, and nothing derived. `managedRecordId` applies the derived map to a managed profile the caller guards instead of the caller's own record; `404 onboarding.complete.recordNotFound` when it is not one, `422 onboarding.complete.recordTargetMismatch` when the first answer was not `someone-else` |
-| `POST` | `/api/onboarding/restart` | Re-asks the questions with the answers kept as prefill, clears the completion stamp, the once-only latch and the first result, and writes no module state. Ten a ten-minute window, `onboarding.restart.rateLimited` |
-| `POST` | `/api/onboarding/disclaimer` · `/api/onboarding/tour` | The one-time disclaimer acknowledgement and the tour progress; unchanged |
-
-All five are actor-only and on the demo allowlist. The state rides on
-`GET /api/auth/me` as `onboarding`: the nine ordered steps (`who`, `areas`,
-`medication`, `sources`, `visit`, `units`, `confirm`, `first-result`, `done`)
-with `pending | done | skipped` each, the answers as given under `needs`,
-`completedAt` (distinct from `onboardingCompletedAt`, which stays the
-first-run redirect's gate) and `firstResult`, the one task the flow offered
-(`connect-source`, `add-medication` or `log-reading`, its target, and when it
-produced its result). `units` reads `done` for an account that already holds
-both unit preferences even though nobody answered it. A record that never
-entered the flow reads as nine pending steps, so branch on the statuses, not
-on the field's presence.
-
-The five-step wizard is gone with v1.38.18: `POST /api/onboarding/step`, the
-six goal slugs and the `users.onboarding_step` / `users.onboarding_goals`
-columns (migration `0339_retire_wizard_columns`). The native client never
-called the route or read the columns. See
-[Updates and deploy](/guides/updates-and-deploy/#migration-0339-in-v13818)
-before upgrading.
-
-## API tokens
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `GET` | `/api/tokens` | The account's tokens with their scopes and expiry |
-| `POST` | `/api/tokens/measurements` | Mint a `measurements:write` token. Cookie only, with [fresh proof](#fresh-proof-on-the-web) since v1.39.3; the raw `hlk_` value is in this one response and nowhere else. Expires after 365 days unless a shorter `expiresInDays` is given; ten mints a minute |
-| `POST` | `/api/tokens/documents` | Mint a `documents:write` token (since v1.39.2). Same rules as the measurement mint: cookie only, raw value in this one response, 365 days unless a shorter `expiresInDays`, ten mints a minute, at most ten live document tokens (`409` beyond that) |
-| `POST` | `/api/tokens/workouts` | Mint a `workouts:write` token (since v1.39.6). Same rules as the measurement mint: cookie only with fresh proof, raw value in this one response, 365 days unless a shorter `expiresInDays`, ten mints a minute, at most ten live workout tokens (`409` with `tokens.workouts.ceiling_reached` beyond that) |
-| `DELETE` | `/api/tokens/{id}` | Revoke one token |
-
-MCP connector tokens have their own list and mint under `/api/mcp/tokens`
-(see [the MCP reference](/reference/mcp/)), and a medication's intake token is
-minted from that medication's own API endpoint card.
+| Browser session cookie | Everything the account may do. Admin routes too, for an admin account |
+| Full-access Bearer token (`["*"]`) | Every route except `/api/admin/*` and the few acts that need a browser session (token mints, a manage invitation, managed-profile changes). Minted only by sign-in, passkey sign-in, refresh and the native sign-in handoffs; see [Native API clients](/reference/native-clients/) |
+| `measurements:write` | `POST /api/measurements` and `POST /api/measurements/batch` on its owner's own record. Rows are attributed `EXTERNAL`; a body that names a `source` is refused with `422` |
+| `workouts:write` | `POST /api/workouts/batch`, rows attributed `EXTERNAL` |
+| `documents:write` | `POST /api/documents/inbound` and `GET /api/documents/inbound/source` |
+| `medication:ingest` | `POST /api/ingest/medication` for the one medication it was minted for |
+| `health:read`, `health:write` | `/mcp` only; see the [MCP server reference](/reference/mcp/) |
+| `fhir:read` | `/api/fhir/*`, but no mint produces it yet; use a session or a full-access token |
+
+A narrow token sent anywhere else gets `403` with `auth.scope.insufficient`.
+The measurement, document and workout tokens are minted at
+`POST /api/tokens/measurements`, `/documents` and `/workouts`: cookie only,
+with fresh proof (below), ten mints a minute, 365 days unless a shorter
+`expiresInDays` is given, and the raw `hlk_` value in that one response only.
+A measurement token also takes `mirrorToAppleHealth` (default `false`), which
+lets the iPhone app write its readings into Apple Health; change it later with
+`PATCH /api/tokens/{id}` (cookie only; any other kind of token answers `422`
+`tokens.mirror.not_measurement_token`). `GET /api/tokens` lists the account's
+tokens and `DELETE /api/tokens/{id}` revokes one. Setup for each is in
+[Push readings from your own hardware](/guides/ingest-token/) and
+[Import documents](/guides/import-documents/).
+
+## Fresh proof on the web
+
+Acts that copy the whole record out or leave a standing way into it ask a
+browser session for a sign-in or a re-proof within the last five minutes: the
+exports (full backup, encrypted export, JSON export, health-record export,
+FHIR `Patient/$everything`), minting a token or a share link, approving an MCP
+connection, offering shared access, and the admin backup, restore, wipe and
+password-reset routes. Without it they answer `401` `auth.reproof.required`
+with `meta.methods`, the methods the account can use. Confirm at
+`POST /api/auth/reproof` (same body as `POST /api/auth/step-up`) and retry;
+`GET /api/auth/reproof` answers `200` while the proof is fresh. On an account
+with a second factor only a sign-in or proof that included it counts. Bearer
+callers follow the rules each route's spec entry names.
+
+## Batch writes
+
+`POST /api/measurements/batch` takes up to 500 entries and answers a status
+per entry: `inserted`, `updated`, `duplicate`, `skipped` (with a reason) or
+`failed`.
+
+- An `externalId` that starts with `stats:` (for example
+  `stats:HKQuantityTypeIdentifierStepCount:2026-10-01`) is a running total and
+  is **overwritten** by a re-post: value, unit, `measuredAt`,
+  `externalSourceVersion`, `deviceType` and `sleepStage` are replaced, and the
+  entry answers `updated`.
+- Every other `externalId` is first-write-wins: a re-post answers `duplicate`,
+  because a sample is a recorded fact.
+- A batch refused as a whole names the reason in `meta.errorCode`
+  (`measurement.batch.invalid`, `measurement.batch.too_large`,
+  `measurement.batch.source_not_permitted`). All three are permanent for the
+  batch as sent.
+
+Every instant a request sends must carry seconds (`2026-10-16T06:15:00Z`);
+`2026-10-16T06:15Z` is refused with `422`. How a client keeps a local copy in
+step is the [offline sync contract](/reference/sync/).
 
 ## Shared access
 
-One account's standing permission on another's record, at `READ`, `WRITE` or
-`MANAGE`, over the whole record or over named sections. See
-[Give another account access to your record](/guides/shared-access/).
+A caller that holds a [shared-access grant](/guides/shared-access/) can act on
+another account's record, on the routes that declare it. The model is in
+[What a shared record is](/explanation/record-sharing/); the wire rules are
+these.
 
-| Method | Endpoint | Notes |
+- **Naming the record.** A browser session switches with
+  `POST /api/account/switch` (`accountId: null` goes back to its own). A
+  Bearer client sends `X-HealthLog-Account: <accountId>` on each request
+  instead; the switch refuses it with `400` `sharing.switch.wrong_transport`,
+  and the header next to a cookie is refused. The grant is read again on every
+  request, so a revocation applies to the next call.
+- **What the caller holds.** `GET /api/auth/me` reports the active record and
+  each entry of `accountAccess` with `level` (`read`, `write`, `manage`; branch
+  on this), `canWrite`, `sections` (`null` is the whole record, `[]` is
+  nothing) and `recordKind`. The older `access` field reports a manage grant
+  as `write`. `modules` describe the active record and are masked to the
+  grant; `moduleAccess` says why a module is off (`disabled`, `not_granted`,
+  `unavailable`).
+- **One refusal.** An unknown account, an account that granted nothing, a
+  grant whose sections do not reach the route and a read grant on a write all
+  answer the same `403` `sharing.access.denied`, so the answer reveals nothing
+  about other accounts. A route that serves no shared record answers `403`
+  `sharing.not_permitted`, and so do the grant-management routes, exports and
+  share links while the caller acts on another record.
+- **The browser fence.** A switched browser session sends
+  `X-HealthLog-Record-Epoch` and `X-HealthLog-Record-Scope`, adopted from
+  `recordSession` on `GET /api/auth/me` or the switch. A stale epoch answers
+  `409` `sharing.session.changed`: re-read `/api/auth/me`, adopt the new
+  `recordSession`, retry once. Bearer traffic is never fenced.
+- **Browser only.** Offering a manage grant and every change to a
+  [managed profile](/guides/managed-profiles/) need a fresh second factor,
+  which only a browser session can give. A token gets `403`; send the person
+  to the browser.
+
+## Endpoint groups
+
+| Area | Paths | Described in |
 | --- | --- | --- |
-| `GET` / `POST` | `/api/account/grants` | List grants in both directions / invite by username or e-mail |
-| `POST` | `/api/account/grants/{id}/accept` | The delegate accepts. Until this lands, the grant confers nothing |
-| `POST` | `/api/account/grants/{id}/renounce` | The delegate hands the access back |
-| `DELETE` | `/api/account/grants/{id}` | The owner withdraws. Stamps the row, never deletes it |
-| `GET` | `/api/account/activity` | Day-coalesced record of who opened the caller's record, and what they did in it. Owner-only, never served under a grant |
-| `POST` | `/api/account/switch` | Point this browser session at a record, or back at its own with `accountId: null`. Cookie transport only |
-
-`POST /api/account/grants` takes `identifier` (the invitee's username or e-mail,
-matched case-insensitively, the same identifier they sign in with), an optional
-`access` of `READ`, `WRITE` or `MANAGE` defaulting to `READ`, an optional
-`scope`, and an optional `expiresAt`. Omitted or `null` `expiresAt` means the
-grant runs until somebody ends it.
-
-### Levels
-
-`access` is fixed at the invitation. No endpoint raises, lowers or otherwise
-edits a live grant's level, and none is planned: anything above read is two
-consents meeting once at acceptance, so moving somebody between levels means
-ending their grant and inviting them again at the level you mean.
-
-- `READ` reads the record and changes nothing.
-- `WRITE` additionally **adds** entries: readings, results, observations, a
-  medication, a marked dose. It still edits and deletes nothing, including its
-  own.
-- `MANAGE` additionally changes and removes entries, including ones the owner
-  wrote, reads the generated insights, and records the record's own health
-  background (allergies, family history).
-
-The boundary is record content against account configuration. `MANAGE` never
-reaches login, the second factor, provider connections, API tokens, notification
-routing, module and threshold configuration, or who else has access.
-
-Offering `MANAGE` is step-up gated and the step-up resolves through the session
-cookie, so a Bearer caller is refused `403`
-(`meta.errorCode: sharing.invite.manage_browser_only`) before anything else
-happens. Accepting one carries no transport restriction.
-
-### Scope
-
-`scope` narrows a `READ` or `WRITE` grant to named sections. Omitted or `null`
-is the entire record, which is what every grant written before v1.37.0 carries.
-The vocabulary is closed: `measurements`, `medications`, `labs`, `profile`,
-`illness`, `mind`, `cycle`, `documents`.
-
-An empty array, an unknown key, and any `scope` at all beside `access: MANAGE`
-are each `422`. Management is whole-record by construction.
-
-A stored scope never grows by release. A grant opens the sections it named at
-the moment it was written and nothing added afterwards, because the scope is
-stored as the keys the owner ticked.
-
-### What the account payload reports
-
-`/api/auth/me` reports the active record and every entry in `accountAccess`
-with:
-
-| Field | Values | Meaning |
-| --- | --- | --- |
-| `access` | `read` \| `write` | The legacy union, unchanged. A `MANAGE` grant serialises here as `write` |
-| `level` | `read` \| `write` \| `manage` | The canonical level. Branch on this |
-| `canWrite` | boolean | Always equals `level !== "read"` |
-| `sections` | `null`, or an array of section keys | `null` is the entire record. `[]` is **nothing**: the stored scope could not be parsed and the server failed closed |
-| `recordKind` | `self` \| `shared` \| `managed` | Presentation metadata, resolved server-side, never an authorization input |
-
-`access` keeps two members on purpose. A client compiled against v1.36.0 decodes
-it as a closed set and would fail on a third case, so `MANAGE` does not go
-there. `GET /api/account/grants` reports the level on every row.
-
-Two fields on the payload describe the **record** rather than the caller, and
-everything else on it describes the caller. `modules` and `cycleTrackingEnabled`
-report the active record's state, because every surface they gate shows the
-record's data, and under a scoped grant both are masked to the sections the
-grant opens. With no active switch, which is every Bearer request, the two are
-the same account and nothing is masked. Beside the booleans, `moduleAccess`
-carries one of `enabled`, `disabled`, `not_granted` or `unavailable` per module.
-Precedence runs highest first: `unavailable` (the operator switched the module
-off for the whole instance) beats `not_granted` (the grant's sections do not
-open it) beats `disabled` (the record turned it off) beats `enabled`.
-`modules[key]` is exactly `moduleAccess[key] === "enabled"` for every key, so
-the reason is extra information and never a second gate. `notificationPrefs`
-carries the resolved preferences, including
-`notificationPrefs.medication.clientManaged`. `onboarding` is a third
-record-scoped field since v1.38.16: it describes the active record's setup
-state, the same record `modules` and the counts describe, and under a scoped
-grant its answers come back empty for the reason the module map is masked. It
-is required on the payload, so a strict decoder built from an older spec should
-treat it as optional until regenerated.
-
-The record's own module map is read and written at `GET` and
-`PATCH /api/record-settings/modules` while the browser is switched into it, so a
-guardian changes the child's modules without touching their own.
-
-### One refusal, everywhere
-
-Every one of these answers `403` with `meta.errorCode: sharing.access.denied`,
-byte for byte:
-
-- a selector naming an account that does not exist;
-- a selector naming an account that granted nothing;
-- a grant whose sections do not reach this surface;
-- a read grant on a request that writes;
-- a fenced browser session sending no record assertion.
-
-A distinguishable refusal would be an account-enumeration oracle for anybody
-with a login on the instance. The reason reaches the record owner's activity
-feed and the operator's audit trail instead. On this code: stop using the
-selector, re-read `/api/auth/me`, render what it now says.
-
-A route that declared nothing refuses outright with `403`
-(`meta.errorCode: sharing.not_permitted`), and so do the six grant-management
-operations, which are never delegable. The canonical intake route carries two
-further refusals that are not level failures at all: deferring a reminder, and
-overturning a dose decision that is already recorded, are the owner's whatever
-the grant says. Both file an audit row under the owner, so a refused attempt is
-visible to them rather than silent. Re-sending an identical dose decision is
-admitted, because a retry and a second tap look exactly like that.
-
-### Activity
-
-`GET /api/account/activity` carries two fields beside the entries, and a client
-should show both.
-
-- `retentionDays` is how far back the feed can see, resolved from the instance's
-  audit retention setting rather than a constant. The query is bounded to it, so
-  it is the real limit of the list. `GET /api/account/grants` carries it too, so
-  a client ending an access can state the window in the same breath. See
-  [Audit-trail retention](/reference/environment-variables/#audit-trail-retention).
-- `truncated` is true when the read reached its row ceiling, meaning `entries`
-  is the most recent activity inside the window rather than all of it.
-
-Per entry, `actor` is `null` when that account has since been deleted; render
-that as a deleted account rather than as a blank, which would read as the owner
-having done it themselves. `accesses` is a per-day count on a coalesced read row
-and `null` on everything else, so the numbers are not additive.
-
-Neither endpoint is delegable. A grant is not an introduction to the other
-people in the household.
-
-:::note[Naming the record on each transport]
-`POST /api/account/switch` is a browser-session feature. A Bearer caller gets
-`400` (`meta.errorCode: sharing.switch.wrong_transport`) and instead sends
-`X-HealthLog-Account: <accountId>` on each request it wants scoped to that
-record. A token never accumulates switch state, because the credential has to
-keep meaning "this person" for as long as it exists. That header is Bearer only;
-sending it alongside a cookie is refused rather than ignored, and `/api/auth/me`
-refuses it outright with `403` (`meta.errorCode: sharing.not_permitted`).
-
-A browser session that has entered another record also asserts it on every
-request, through `X-HealthLog-Record-Epoch` and `X-HealthLog-Record-Scope`. Both
-are adopted from the `recordSession` object in the body of exactly two
-responses, `GET /api/auth/me` and `POST /api/account/switch`. A mismatching
-epoch answers `409` with `meta.errorCode: sharing.session.changed`, which is a
-reconciliation signal rather than a refusal of access: re-read `/api/auth/me`,
-adopt the `recordSession` it returns, retry once. A session that has never
-entered another record is served without either header and is unaffected.
-Bearer traffic is never fenced and `recordSession` is `null` for it.
-
-Every endpoint in this group except the switch refuses while the caller is
-already acting on another account (`403`,
-`meta.errorCode: sharing.not_permitted`). A delegate cannot invite, widen,
-transfer or end anybody's access from inside a record they were given. The
-switch endpoint stays reachable because it is the way back out. So do the three
-operations that act on the whole of an account and name no record:
-`DELETE /api/settings/data`, `DELETE /api/settings/account` and
-`POST /api/export/encrypted` refuse the same way. They always did, because the
-fresh-factor gate opens with the plain authentication that refuses any switch;
-since v1.38.16 the contract says so, byte-identical to the refusal above, and a
-test drives each through a live whole-record manage switch and asserts that
-neither record moved and no archive rode along with the 403.
-:::
-
-## Managed profiles
-
-A health record for somebody with no login of their own. A guardian relationship
-is a `MANAGE` grant with the profile as the grantor. See
-[Records with no login of their own](/guides/managed-profiles/).
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `POST` | `/api/managed-profiles` | Create a profile and become its first guardian, in one transaction. Cookie only, unconditional fresh second factor, ten an hour |
-| `GET` | `/api/managed-profiles/{id}` | The record's identity as it stands, the read an edit form fills itself from. Cookie only, an actor surface, no step-up |
-| `PATCH` | `/api/managed-profiles/{id}` | Change the record's identity. Cookie only, unconditional fresh second factor, ten an hour |
-| `DELETE` | `/api/managed-profiles/{id}` | End the record and everything in it. Cookie only, unconditional fresh second factor. This is the documented way out of the last-guardian floor |
-| `GET` | `/api/managed-profiles/{id}/guardians` | Who looks after this record now. Cookie only, no step-up. An actor surface: it answers from a guardian's own account |
-| `POST` | `/api/managed-profiles/{id}/guardians` | Invite another guardian. Ten an hour per caller |
-| `DELETE` | `/api/managed-profiles/{id}/guardians/{grantId}` | End somebody else's guardianship |
-
-There is deliberately no list endpoint. The profiles a guardian looks after are
-the `recordKind: "managed"` entries of `accountAccess.accounts` on
-`/api/auth/me`, so re-read the account payload after any change in this family.
-
-`POST /api/managed-profiles` takes `displayName`, `locale` and `timezone`, plus
-an optional `dateOfBirth` and an optional `gender` (`MALE`, `FEMALE`, `OTHER`
-or null), and answers with the record as it now stands:
-`{ id, displayName, dateOfBirth | null, gender | null, locale, timezone, recordKind }`.
-`locale` and `timezone` belong to the record rather than to the guardian reading
-it: they decide how the profile's own reminders are worded and when its day
-starts. `dateOfBirth` is an optional `YYYY-MM-DD` and is never synthesised from
-a year. `gender` is what the cycle module derives its default from, so a record
-created for somebody who does not need it starts with the module off.
-
-`GET /api/managed-profiles/{id}` answers with that same shape, and
-`PATCH /api/managed-profiles/{id}` takes the same five fields, every one
-optional and at least one required: an empty body is a `422` rather than a no-op
-that audits a change nobody made. Absence leaves a field alone, and an explicit
-null on `dateOfBirth` or `gender` clears it. A value the route will not take
-refuses the whole body with a `422` naming every issue, so a save never lands
-half-applied.
-
-A guardian row carries five fields and no more: `grantId`, `account`
-(`{ id, username, displayName }`, never an e-mail address), `state`
-(`PENDING` or `ACTIVE`), `invitedAt`, and `acceptedAt`. There is no `access` or
-`scope`, because both are constants for a guardian grant, and no `expiresAt`,
-because an expiry bounds one invitation rather than describing who looks after
-the record. Ended grants are absent rather than listed with a state. The `201`
-from the invitation answers with the same shape, which is why it echoes no
-`expiresAt` even when the caller supplied one.
-
-**Count the `ACTIVE` rows to know whether a removal is possible.** The
-last-guardian floor counts accepted, unexpired `MANAGE` grants, so a `PENDING`
-row does not satisfy it.
-
-`DELETE .../guardians/{grantId}` answers `{ grantId, revokedAt }`. Nothing is
-deleted; the row survives as the consent record. Its `404` covers four
-situations the caller cannot tell apart, including **the target grant being the
-caller's own**, so do not offer that control on the caller's own row. A guardian
-leaves through `POST /api/account/grants/{id}/renounce`, which is where the
-floor refusal (`409`, `meta.errorCode: managed_profile.guardian.required`)
-actually arrives, along with the owner's revoke, guardian account deletion and a
-data wipe.
-
-:::caution[Resolve `meta.errorCode` before the status here]
-`POST /api/managed-profiles/{id}/guardians` answers five ways, and one status
-appears twice:
-
-| Status | `meta.errorCode` | Means |
-| --- | --- | --- |
-| `429` | none | Rate limit, ten invitations an hour per caller |
-| `404` | none | No account on this instance carries that identifier |
-| `404` | `managed_profile.not_found` | No such profile, or the caller is not one of its guardians |
-| `409` | `managed_profile.guardian.duplicate` | That account already holds a live grant |
-| `422` | `managed_profile.guardian.managed_invitee` | A record with no self cannot look after another one |
-
-A client branching on the status first tells somebody to check a spelling when
-the real answer is that they no longer administer the record. A route's own
-rate-limit refusal carries no `errorCode` here or on `POST /api/account/grants`,
-which answers an unknown identifier with a bare `404` too, so the two codeless
-arms match their siblings rather than their neighbours. The one 429 that does
-carry a code is the shared single-record write bucket, described on the
-[API overview](/reference/api-overview/#rate-limits).
-
-Inviting yourself lands on the duplicate `409`, because a guardian grant's
-grantor is the profile and never the caller, so naming yourself names an account
-that already has access.
-:::
-
-## Search and notification actions
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `POST` | `/api/search` | Since v1.42.2. Searches your own record, with the query in the body so it never appears in a URL. Read access, one search at a time per account, 20 a minute. Reports `truncated` when a limit stopped a source. See [Search your record](/guides/search/) |
-| `POST` | `/api/notifications/action/{token}` | Since v1.42.2. The mood quick answers on ntfy. The signed token is the only credential; it names one account and one answer, lasts six hours and works once per reminder. See [Quick answers](/guides/reminder-channels/#quick-answers-on-the-mood-reminder) |
-
-Since v1.42.2 the notification preferences
-(`PATCH /api/auth/me/notification-prefs`) take `content.detail`, `generic` by
-default or `detailed`, and every visible APNs push carries `url`, the path
-the notification opens. See
-[Tap targets, content and quick answers](/guides/reminder-channels/#tap-targets-content-and-quick-answers).
-
-## Integrations
-
-Connect / sync / test / resume for Withings, WHOOP, Oura, Polar, Strava and
-Google Health/Fitbit over OAuth, plus the inbound webhooks. Nightscout is not an
-OAuth provider: `POST /api/nightscout/connect` takes a URL and a token and
-encrypts both at rest, and `/api/nightscout/{sync,status,test,disconnect}`
-complete the set. All five are in the OpenAPI document, so a client generating
-from the contract finds them.
-
-Since v1.42.3 the integration status (`GET /api/integrations/status`) carries two lists. `planUnavailable`
-(Withings) names the readings the connection's Withings API plan withholds;
-the sync skips them and the list refreshes with the weekly re-check.
-`scopeReconnect` (Oura) names the data types the stored grant does not cover;
-it is not a failure, and one reconnect asks for the missing scopes. Both are
-empty when nothing is missing. See the integration guides
-([Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
-[Google Health](/guides/connect-google-health/)) and
-[Webhooks](/reference/webhooks/).
-
-## Documents
-
-The vault's list, detail, file, preview and AI routes live under
-`/api/documents/inbound` and take a browser session or a wildcard token. Two
-routes also accept a `documents:write` token (since v1.39.2), and they are the
-only ones it reaches:
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `POST` | `/api/documents/inbound` | Store a document: multipart with `file` and optional `title`, `kind`, `documentDate` (`YYYY-MM-DD`), `aiRead=defer`, and a source key `sourceSystem` (`PAPERLESS`, `PAPRA`, `OTHER`) plus `sourceId` (up to 128 printable characters), as form fields or in the query string. A known key answers `200` without storing anything, also for a document the owner deleted (`deleted: true`). A token caller gets a receipt, `{ id, duplicate }`, instead of the stored document. Token uploads draw on their own hourly allowance, `DOCUMENT_UPLOAD_LIMIT_PER_HOUR`, and every upload whose file is read counts, duplicates included; a known query-string key is answered before that and counts on the lookup allowance instead. The same file under more than 20 extra source ids is refused with `409` (`documents.inbound.sourceAliasLimit`) |
-| `GET` | `/api/documents/inbound/source` | `?sourceSystem=…&sourceId=…`: whether that source key is already held, `{ known, id, deleted }`. 5,000 lookups an hour per token, shared with the upload's query-string check; `429` beyond |
-
-`403` with `meta.errorCode: module.disabled` means the Documents module is off.
-`413` carries `meta.reason`: `quotaExceeded` when the storage quota is reached,
-`fileTooLarge` when the file is over the per-file cap. `429` is either the
-hourly allowance (`documents.inbound.rateLimited`) or two uploads of the
-account already in progress (`documents.inbound.uploadBusy`, `Retry-After: 1`).
-See
-[Import documents](/guides/import-documents/#writing-your-own-importer).
-
-The AI reads of a stored document take a session or a wildcard token:
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `POST` | `/api/documents/inbound/{id}/index` · `/summary` · `/suggest` · `/extract` | Since v1.40.0 each accepts `Prefer: respond-async` and then answers `202` with a run id; without the header they answer as before. See [Background document reads](/reference/native-clients/#background-document-reads) |
-| `GET` | `/api/ai-runs/{id}` | Since v1.40.0. Status and result of a background read the caller queued; `404` `aiRuns.notFound` an hour after it ends |
-
-The document kind `SICK_NOTE` is new in v1.40.0.
-
-The archive's list and its filter choices take a session or a wildcard token:
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `GET` | `/api/documents/inbound/usage` | Quota, limits and filter choices. `linkedEpisodes` lists the conditions with a linked document; since v1.40.2 `linkedProcedures` lists the visits of kind procedure that carry at least one linked document, newest first (`encounterId`, `occurredAt`, `reason`, `bodySite`, `laterality`, `practitionerName`). Empty when a sharing grant does not cover visits |
-| `GET` | `/api/documents/inbound` | The archive list. `encounterId` filters to the documents linked to that visit; the procedure filter passes a `linkedProcedures` entry's `encounterId`. An id that is not one of the caller's visits matches nothing |
-
-## Export, FHIR & clinician links
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `POST` | `/api/export/health-record` | PDF + FHIR R4 bundle, selectable |
-| `GET` | `/api/fhir/{Patient,Observation,MedicationStatement,...}` | Read-only FHIR R4, `fhir:read` scope |
-| `GET` / `POST` / `DELETE` | `/api/share-links` · `/{id}` | Scoped clinician share links. Creating one needs [fresh proof](#fresh-proof-on-the-web) on the web since v1.39.3 |
-
-See the [FHIR read API](/reference/fhir-api/). These are for handing a record to
-somebody with no account on the instance. Giving another *account* read access is
-[Shared access](#shared-access), a separate surface. None of the three endpoints
-above is reachable while acting on a shared record: a delegate can neither export
-nor mint a link, because a link would be a door that survives their own
-revocation.
-
-## Sync (offline clients)
-
-`GET /api/sync/state` and `GET /api/sync/changes` provide a paginated,
-opaque-cursor delta feed with measurement tombstones so native and offline
-clients reconcile incrementally. Since v1.39.4 `/api/sync/changes` also answers
-`cursorExpired: true` to a cursor issued before the account was restored from
-a backup or had all its data deleted; see
-[Sync](/reference/sync/#cursorexpired--clean-re-init).
-
-## Admin (cookie-only)
-
-User management, invites, notification diagnostics, backup test, audit log,
-shared AI config. Bearer tokens cannot reach any of these.
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `GET` / `POST` / `DELETE` | `/api/admin/invites` · `/{id}` | [Invite links](/guides/invites/) |
-| `GET` | `/api/admin/notifications/diagnostic` | Masked tokens + last 20 attempts |
-| `POST` | `/api/admin/notifications/reminder-check` | Run the medication-reminder sweep. Instance-wide with no body; send `userId` to sweep one account |
-| `POST` | `/api/admin/backup/test` | S3 round-trip probe |
-| `POST` | `/api/admin/backups/upload` | Store a backup file as a new row without restoring it. The raw body is JSON or gzip-compressed JSON up to 512 MB; a `multipart/form-data` body with one `file` field is limited to 10 MB. `413` with `meta.errorCode: backup.upload.too_large` when the encrypted copy is larger than `BACKUP_MAX_STORED_MB` (default 2048 MB) |
-| `POST` | `/api/admin/backups/{id}/restore` | Since v1.39.1, queue the restore of one stored snapshot over its owner's record and answer `202` with `jobId` and `statusUrl` (before, `200` with the result). Takes `confirm: "RESTORE"` and an optional `restoreInstanceSettings` (default false). Honours `Idempotency-Key`. A copy that cannot be decrypted is still refused straight away with `422`; `409` with `meta.errorCode: backup.restore.active` while another restore of the same account is queued or running |
-| `GET` | `/api/admin/backups/restores` · `/{jobId}` | Restore jobs: the queued and running ones and those from the last day, or one job. Each has its status (`queued`, `running`, `succeeded`, `failed`), its current step (`validating`, `clearing`, `measurements`, `sections`, `rebuilding`) and counts, and either the result the old synchronous answer carried or a failure with a stable `code` and a message |
-| `GET` | `/api/admin/encryption/key-backup` | Since v1.40.0. The key backup step's state: active key id, fingerprint, whether a confirmation is due, the platform hint. Never the key |
-| `POST` | `/api/admin/encryption/key-backup/verify` | "Check my copy": `{ encryptionKey }`, compared and discarded, never stored or logged. 5 a minute per admin |
-| `POST` | `/api/admin/encryption/key-backup/confirm` | Record the backup confirmation for the active key id and fingerprint |
-| `GET` | `/api/admin/backups/{id}/download` · `/summary` | Read a stored snapshot. Download, upload and restore need [fresh proof](#fresh-proof-on-the-web) since v1.39.3 |
-
-## Meta & health
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| `GET` | `/api/version` | Public — `version` + `buildSha` + `builtAt`, no auth |
-| `GET` | `/api/health` | Public. `200` with `status: "ok"`, or `503` with `status: "degraded"`. Since v1.40.0 a key that cannot open the data adds `reason: "encryption_key_mismatch"`; under `ENCRYPTION_KEY_CHECK=warn` the same finding shows as `warning` without failing |
-| `GET` | `/api/meta/capabilities` | Feature/capability flags for clients |
-
-`/api/version` is what you assert against after a deploy — see
-[deploy verification](/guides/updates-and-deploy/#verify-the-served-version).
+| Measurements and series | `/api/measurements*`, `/api/analytics/*`, `/api/sleep/*`, `/api/workouts*`, `/api/activity/*`, `/api/custom-metrics/*` | [Push readings](/guides/ingest-token/), [Custom metrics](/guides/custom-metrics/), [Source priority](/guides/source-priority/) |
+| Imports | `/api/import/*` (CSV, labs and medications CSV, Apple Health and Health Connect exports) | [CSV import](/guides/import-csv/), [Apple Health](/guides/import-apple-health/), [Health Connect](/guides/import-health-connect/) |
+| Medications | `/api/medications/*`, `/api/ingest/medication` | [Track medications](/guides/track-medications/), [Compliance](/explanation/medication-compliance/) |
+| Mood and mental health | `/api/mood*`, `/api/mood-entries/*`, `/api/mental-health/*` | [Mood and wellbeing](/knowledge/mood/) |
+| Labs | `/api/labs/*`, `/api/biomarkers/*` | [Labs](/guides/labs/) |
+| Clinical record | `/api/encounters/*`, `/api/practitioners/*`, `/api/vaccinations/*`, `/api/allergies/*`, `/api/family-history/*`, `/api/illness/*`, `/api/symptoms/*`, `/api/anamnesis/*` | [Check-ups and practitioners](/guides/checkups-and-practitioners/), [Vaccinations](/guides/vaccinations/), [Structured records](/guides/structured-records/), [Illness](/guides/illness/), [Life circumstances](/guides/life-circumstances/), [Related records](/guides/related-records/) |
+| Cycle | `/api/cycle/*` | [Cycle tracking](/guides/cycle-tracking/) |
+| Nutrients and environment | `/api/nutrients/*`, `/api/environment/*`, `/api/dawarich/*` | [Nutrients](/guides/nutrients/), [Environment](/explanation/environmental-module/), [Dawarich](/guides/connect-dawarich/) |
+| Insights and Coach | `/api/insights/*`, `/api/coach/*`, `/api/daily/*`, `/api/dashboard/*`, `/api/day/*`, `/api/ai-runs/*` | [How insights work](/insights/how-it-works/), [Coach conversations](/guides/coach-conversations/), [Today](/insights/today/), [AI providers](/guides/ai-providers/) |
+| Documents | `/api/documents/inbound/*` | [Document vault](/guides/document-vault/), [Import documents](/guides/import-documents/) |
+| Search | `/api/search` | [Search your record](/guides/search/) |
+| Integrations | `/api/integrations/*`, `/api/withings/*`, `/api/whoop/*`, `/api/oura/*`, `/api/polar/*`, `/api/strava/*`, `/api/google-health/*`, `/api/fitbit/*`, `/api/nightscout/*` | [Integrations](/guides/integrations/), [Webhooks](/reference/webhooks/) |
+| Notifications | `/api/notifications/*`, `/api/devices`, `/api/auth/me/notification-prefs` | [Reminder channels](/guides/reminder-channels/) |
+| Account and sign-in | `/api/auth/*`, `/api/user/*`, `/api/profile/*`, `/api/settings/*`, `/api/record-settings/*` | [Sign-in and security](/guides/sign-in-and-security/), [Native API clients](/reference/native-clients/) |
+| Sharing | `/api/account/*`, `/api/managed-profiles/*`, `/api/share-links/*` | [Shared access](/guides/shared-access/), [Managed profiles](/guides/managed-profiles/), [Share link](/guides/document-vault/#sharing-documents-with-a-clinician) |
+| Export and FHIR | `/api/export/*`, `/api/fhir/*` | [Backups](/guides/backups/), [FHIR read API](/reference/fhir-api/) |
+| Sync | `/api/sync/state`, `/api/sync/changes` | [Offline sync contract](/reference/sync/) |
+| Tokens and MCP | `/api/tokens/*`, `/api/mcp/*`, `/mcp` | [Ingest token](/guides/ingest-token/), [MCP server](/reference/mcp/) |
+| Admin (cookie only) | `/api/admin/*` | [Admin overview](/guides/admin-overview/) |
+| Meta | `/api/version`, `/api/health`, `/api/meta/capabilities` | [Verify the served version](/guides/updates-and-deploy/#verify-the-served-version) |
+
+On `GET /api/integrations/status`, read `health` on each entry: it is the one
+resolved connection state. The older fields beside it (`state`, `lastError`,
+`syncHealth`, `needsReauth`, `planUnavailable`, `scopeReconnect` and others)
+are deprecated in the spec and still served; no removal release is set.
