@@ -119,21 +119,19 @@ Rules of thumb:
 ## Memory
 
 The compose file caps the app container with `mem_limit: ${APP_MEMORY_LIMIT:-1536m}`.
-Node sizes its heap from that cap: `1536m` gives about 792 MB, `1g` about
-524 MB. Before v1.40.1 the default was `1g`, and a long-used account filled
-that heap in normal operation, so garbage collection stalled requests for
-seconds and a weekly backup could end the process.
+Node sizes its heap from that cap: `1536m` gives about 792 MB. That is the
+supported floor ([Requirements](/getting-started/self-host-in-10-minutes/#requirements)):
+at `1g` (about 524 MB of heap) a long-used account fills the heap in normal
+operation, garbage collection stalls requests for seconds and a large import
+can restart the app. Below the floor the boot log, the support report and
+**Admin → System status** say so.
 
-- **A host with 2 GB of memory or less.** Set `APP_MEMORY_LIMIT=1g` in `.env`,
-  so Postgres and the system keep enough room. Do not go below 1 GB (see
-  [Large accounts and memory](/guides/backups/#large-accounts-and-memory)).
-- **A busy instance.** Raise it.
-- **A split worker.** The worker example in the compose file carries its own
-  `WORKER_MEMORY_LIMIT`, with the same `1536m` default.
+On a busy instance, raise it. Never lower it to fit a small host; give the host
+more memory instead. A split worker has its own `WORKER_MEMORY_LIMIT` in the
+compose example, with the same default and the same floor.
 
-If you set `APP_MEMORY_LIMIT` yourself already, the update to v1.40.1 changes
-nothing. The Unraid Community Applications template and the TrueNAS app set no
-memory limit, so this does not apply to them. The Portainer app template and
+The Unraid Community Applications template and the TrueNAS app set no memory
+limit, so this applies to them only if you add one. The Portainer app template and
 Unraid's Compose Manager deploy the project's `docker-compose.yml` and get the
 same default; set `APP_MEMORY_LIMIT` as a stack environment variable there.
 

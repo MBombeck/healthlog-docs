@@ -12,24 +12,28 @@ working first user. Budget about ten minutes if Docker is already installed,
 longer if you also want a TLS-fronted public hostname (see
 [Reverse proxy](/guides/reverse-proxy/) for that).
 
-## Prerequisites
+## Requirements
 
-- **Docker 24+ with Compose v2.** The bundled `docker-compose.yml` pulls a
-  multi-arch image from GitHub Container Registry (`linux/amd64` +
-  `linux/arm64`), so a Raspberry Pi 5 or an x86 VPS both work unchanged.
-- **2 GB RAM, 10 GB free disk.** The Postgres data volume grows with history.
-  The app container is capped at `mem_limit: ${APP_MEMORY_LIMIT:-1536m}` in the
-  compose file (`1g` before v1.40.1), which gives Node a heap of about 792 MB.
-  On a 2 GB host that leaves too little for Postgres and the system, so set
-  `APP_MEMORY_LIMIT=1g` in `.env` there (a heap of about 524 MB); a long-used
-  account then runs closer to that heap. 1 GB is also the floor: below it the
-  app cannot run a backup
-  (see [Large accounts and memory](/guides/backups/#large-accounts-and-memory)),
-  so do not lower it to 512 MB. A larger cap is not needed for an Apple Health
-  import either: the uploaded `export.zip` (up to 1.5 GB) and the `export.xml`
-  unpacked from it are streamed to `/tmp` on the container's disk and parsed
-  as a stream. Budget disk instead, several gigabytes free while a large
-  export is imported.
+- **Docker 24+ with Compose v2.** The image is multi-arch (`linux/amd64` and
+  `linux/arm64`), so an x86 VPS, a NAS or a Raspberry Pi 5 with 4 GB or more
+  all work unchanged.
+- **Memory: 3 GB of RAM, 4 GB recommended.** The app container is capped by
+  `APP_MEMORY_LIMIT`, `1536m` by default, which gives Node a heap of about
+  792 MB. 1536 MB is the supported floor. Do not lower it to fit a smaller
+  host: below it a long-used account or a large import fills the heap, requests
+  stall and the app restarts. The app still starts, but the boot log, the
+  support report and **Admin → System status** say it runs below the floor. On
+  a busy instance, raise it. Postgres and the system need the rest.
+- **Disk: 10 GB free to start.** The database grows with your history. An Apple
+  Health import streams the uploaded `export.zip` (up to 1.5 GB) and the
+  unpacked `export.xml` through `/tmp` in the container, so keep several
+  gigabytes free while it runs. Moving to a new Postgres major needs free space
+  about the size of the database (see
+  [Moving to Postgres 18](/self-hosting/postgres-upgrade/)).
+- **CPU.** Any 64-bit CPU runs the app. On x86-64 CPUs without AVX2
+  (Celeron and Atom class NAS CPUs) the document renderer switches itself off:
+  no thumbnails, and scanned PDFs are read as text only (`NATIVE_CANVAS` in the
+  [environment reference](/reference/environment-variables/)).
 - **Outbound HTTPS** to `ghcr.io` for image pulls, plus whichever integration
   endpoints you enable later.
 - **Optional but recommended:** a reverse proxy that terminates TLS in front of
@@ -211,15 +215,15 @@ The compose `environment:` block is a **whitelist**: variables not listed there
 never reach the container even when `.env` defines them. This is intentional;
 when a guide tells you to set a new variable, it also tells you to add it to the
 whitelist. `HEALTHLOG_IMAGE_REF` lets you pin a release instead of `:latest`
-(`HEALTHLOG_IMAGE_REF=:v1.38.1` or an `@sha256:…` digest), and
-`APP_MEMORY_LIMIT` sets the app container's memory cap (`1536m` by default,
-`1g` on a host with 2 GB of memory or less).
+(`HEALTHLOG_IMAGE_REF=:v1.46.0` or an `@sha256:…` digest), and
+`APP_MEMORY_LIMIT` sets the app container's memory cap (`1536m` by default, the
+supported floor; see [Requirements](#requirements)).
 
 Out of the box the server makes three small requests of its own, none carrying
 health data: a password breach check when a password is set, an update check
 for the version badge, and a location lookup for sign-in addresses. Set
 `PASSWORD_BREACH_CHECK_DISABLED`, `UPDATE_CHECK_DISABLED` or
-`IP_GEO_LOOKUP_DISABLED` to `1` to switch any of them off (v1.39.3 and later);
+`IP_GEO_LOOKUP_DISABLED` to `1` to switch any of them off;
 [Security and privacy](/security/overview/#what-leaves-the-instance) says what
 each one sends.
 

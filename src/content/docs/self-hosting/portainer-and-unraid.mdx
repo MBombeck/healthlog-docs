@@ -163,10 +163,10 @@ Apply, open `http://tower:3000`, and register the first account.
 The Community Applications template sets no memory limit, so the container
 may use what the host has. The Portainer template and the Compose Manager path
 use the project's `docker-compose.yml`, which caps the app at
-`APP_MEMORY_LIMIT`, `1536m` since v1.40.1. On a host with 2 GB of memory or
-less, add `APP_MEMORY_LIMIT=1g` to the stack's environment variables (Portainer)
-or to the stack's `.env` (Compose Manager). See
-[Scaling](/self-hosting/scaling/#memory).
+`APP_MEMORY_LIMIT`, `1536m` by default. That is the supported floor: raise it
+on a busy instance (stack environment variables in Portainer, the stack's
+`.env` in Compose Manager), never lower it. See
+[Requirements](/getting-started/self-host-in-10-minutes/#requirements).
 
 ## Updates
 
