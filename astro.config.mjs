@@ -28,6 +28,10 @@ export default defineConfig({
 		'/api/sync/': '/reference/sync/',
 		'/admin/backups/': '/guides/backups/',
 		'/settings/ai-providers/': '/guides/ai-providers/',
+		// Links the app itself opens (Garmin note, guardian note, README).
+		'/integrations/garmin/': '/guides/connect-google-health/#garmin-owners',
+		'/self-hosting/account-sharing/': '/guides/managed-profiles/',
+		'/self-hosting/': '/getting-started/self-host-in-10-minutes/',
 		// The introduction now lives at the site root.
 		'/getting-started/introduction/': '/',
 	},
