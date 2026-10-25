@@ -1,105 +1,50 @@
 ---
 title: Connect Fitbit (classic Web API)
-description: Link a Fitbit account through the classic Fitbit Web API with your own dev.fitbit.com app — and know that this path sunsets in September 2026.
+description: The classic Fitbit connection stops on 30 October 2026, when Google turns the Fitbit Web API off. Move to Google Health; everything already imported stays.
 sidebar:
   order: 4
 ---
 
-import { Steps } from '@astrojs/starlight/components';
+The classic Fitbit connection reads a Fitbit account through the Fitbit Web
+API with a per-user app from [dev.fitbit.com](https://dev.fitbit.com). Google
+turns that API off on **30 October 2026**.
 
-HealthLog's classic Fitbit connection reads a Fitbit account through the
-Fitbit Web API with a per-user app registered at
-[dev.fitbit.com](https://dev.fitbit.com). It coexists with the newer
-[Google Health connection](/guides/connect-google-health/) — same devices,
-different API.
-
-:::caution[New registrations are closed; the API retires in September 2026]
-Fitbit has **discontinued self-serve app registration** — the form at
-`dev.fitbit.com/apps/new` is disabled for new applications — and Google
-retires the classic Fitbit Web API in **September 2026**. An app you
-registered before the shutdown keeps working until the sunset, and this page
-still applies to it. Connecting Fitbit data for the first time? Use the
-[Google Health connection](/guides/connect-google-health/) instead — Fitbit
-devices sync into Google's health stack, which HealthLog reads directly.
+:::caution[Move to Google Health]
+Google Health reads the same Fitbit and Pixel devices. Connect it with the
+[Google Health guide](/guides/connect-google-health/). Google asks for your
+consent once more, because a Fitbit connection cannot be carried over.
+Everything the Fitbit connection already imported stays in HealthLog.
 :::
 
-## Set it up (existing app holders)
+## What happens on 30 October
 
-<Steps>
+Until the date, the Fitbit card shows a **Shutting down** badge with a link to
+the Google Health card. From the start of 30 October (midnight UTC, still the
+evening before in the Americas) HealthLog makes no further Fitbit call: no
+sync, no backfill, no token refresh and no new connection. The badge then
+reads **Retired**. The connection stops counting as broken, so the watchdog
+does not report it and nobody is asked to reconnect.
 
-1. **Check your existing Fitbit app.** Sign in at
-   [dev.fitbit.com](https://dev.fitbit.com/apps) and open the application you
-   registered before the shutdown. The **Personal** OAuth application type is
-   the right one for a single-person self-host — it only ever sees the
-   owner's own Fitbit account and gets intraday (per-minute) heart-rate and
-   steps automatically. **Server** (or **Client**) is only needed when the
-   instance connects other people's accounts; intraday access is then granted
-   case by case via Fitbit's Intraday Data Access request form.
+Self-serve app registration at dev.fitbit.com is already closed, so no new
+Fitbit connection can be set up in the meantime either.
 
-   - **Redirect URL** — copy it exactly, with your own hostname:
+## Until then (existing app holders)
 
-     ```
-     https://your-instance.example.com/api/fitbit/callback
-     ```
+An app you registered earlier keeps working until the date:
 
-   The path is pinned: HealthLog refuses to start the flow if the resolved
-   redirect URI does not target exactly `/api/fitbit/callback`. The app's
-   settings page shows its **Client ID** and **Client Secret**.
-
-2. **Paste the credentials in Settings.** Sign in as the target user, open
-   **Settings → Integrations → Fitbit**, and paste the client ID and secret.
-   They are stored AES-256-GCM-encrypted — there are no
-   `FITBIT_CLIENT_ID` / `FITBIT_CLIENT_SECRET` env vars.
-
-   A common mistake: the field wants a **Fitbit** Client ID (a short numeric
-   id from dev.fitbit.com), **not** a Google Cloud client id ending in
-   `.apps.googleusercontent.com`. A Google Cloud client fails at the Fitbit
-   consent screen with `unauthorized_client — Invalid client_id`, because
-   Fitbit and Google Cloud are separate client registries.
-
-3. **Connect.** Click **Connect Fitbit**. The flow uses Authorization Code
-   with PKCE and requests these read scopes:
-
-   ```
-   activity cardio_fitness heartrate oxygen_saturation profile respiratory_rate sleep weight
-   ```
-
-   The `temperature` scope is deliberately omitted — Fitbit exposes skin
-   temperature only as a nightly deviation, not an absolute reading. On
-   success, a full-history backfill is queued.
-
-</Steps>
-
-## Sync behaviour
-
-There is **no webhook**: the classic connection polls hourly, staggered
-against the other integrations, and a manual sync button lives on the
-Settings card. The Web API's rate budget (~150 requests per hour per user)
-paces the backfill. Values import in metric units regardless of the Fitbit
-account's display locale. Classic Fitbit refresh tokens rotate (one-time
-use); HealthLog replaces the stored token on every refresh, so the connection
-stays healthy without re-authorising.
-
-Daily totals are stored at noon of their day in your own time zone, so they
-land on the right day wherever you live (since v1.39.3; see
-[the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
-Weigh-ins are read in your time zone as well.
-
-## Redirect URI override
-
-Only when the callback origin differs from `NEXT_PUBLIC_APP_URL`:
-
-```env
-FITBIT_REDIRECT_URI="https://your-instance.example.com/api/fitbit/callback"
-```
-
-This variable is already on the compose `environment:` whitelist — set it in
-`.env` and restart. The Withings and Google Health overrides are there too.
-
-The integration card can warn about a callback origin that differs from the address in the browser; [troubleshooting](/self-hosting/troubleshooting/#oauth-callbacks-land-on-localhost-or-the-wrong-host) says when that check works.
+- Its redirect URL must be exactly
+  `https://your-instance.example.com/api/fitbit/callback`.
+- Paste the Fitbit **Client ID** (a short numeric id, not a Google Cloud id)
+  and **Client Secret** on the Fitbit card under
+  **Settings → Integrations**. They are stored encrypted; there are no
+  `FITBIT_CLIENT_ID` / `FITBIT_CLIENT_SECRET` env vars.
+- The connection polls hourly and has a manual sync button. There is no
+  webhook.
+- `FITBIT_REDIRECT_URI` overrides the callback only when its origin differs
+  from `NEXT_PUBLIC_APP_URL`.
 
 ## Related
 
-- [Connect Google Health (Fitbit & Pixel)](/guides/connect-google-health/) — the successor path
+- [Connect Google Health (Fitbit & Pixel)](/guides/connect-google-health/), the successor
+- [Integrations](/guides/integrations/)
 - [Source priority across devices](/guides/source-priority/)
-- [Environment variables](/reference/environment-variables/)
