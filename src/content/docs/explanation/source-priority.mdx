@@ -33,9 +33,8 @@ reliable reading" means something different for each.
 
 Weight, blood pressure, pulse, body fat, SpO₂, VO₂ max: these are spot readings.
 The right answer is the most accurate instrument. A dedicated scale outranks a
-wrist estimate; a cuff leads blood pressure. The default ladders open with
-`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL` and continue through the other connected
-sources (Fitbit, Google Health, Oura, Polar) per metric. When two devices
+wrist estimate; a cuff leads blood pressure. The default orders are listed in
+[Set source priority](/guides/source-priority/#the-default-ladders). When two devices
 report the same point metric on the same source, an optional device-type
 tie-break resolves it.
 
@@ -47,12 +46,11 @@ Withings ScanWatch report 8,000 steps, the user did not walk 16,000. So for
 cumulative metrics HealthLog picks exactly **one source per day** and ignores the
 others for that day. The defaults split this class in two. For the activity
 metrics (steps, active energy, distance, flights) HealthKit leads, because iOS
-already fuses watch and phone motion sensors into one canonical daily stream —
+already fuses watch and phone motion sensors into one canonical daily stream:
 it has done the fusion for you. For the overnight recovery inputs (sleep, HRV,
-resting heart rate) the worn straps lead instead: WHOOP, then Fitbit, Google
-Health, Oura, and Polar, ahead of the iPhone-relayed HealthKit summary and the
-Withings nightly summary, because a strap worn all night samples the night at
-higher resolution than a relayed summary.
+resting heart rate) the worn straps and rings lead instead, because a device
+worn all night samples the night at higher resolution than a relayed
+summary.
 
 ### Weeks, months and years are built from days
 
@@ -60,13 +58,12 @@ The source choice is made per day, also when you look at a week, a month or a
 year. A month in which you typed in your blood pressure by hand on twenty days
 and a cuff synced one reading counts all twenty-one days, each with its own
 source. A month of steps in which you moved from one tracker to another counts
-every day of both. Up to v1.39.2 the choice for a week, month or year was made
-once for the whole period, so such a month counted the days of only one source.
+every day of both.
 
 ## Losing rows survive
 
-A reading that loses the priority contest is never deleted. It stays in the
-`Measurement` table tagged with its source and simply drops out of the active
+A reading that loses the priority contest is never deleted. It stays stored,
+tagged with its source, and simply drops out of the active
 display and analytics. This matters for two reasons:
 
 1. **Auditability.** You can always see what every device reported.

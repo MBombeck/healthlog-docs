@@ -5,16 +5,20 @@ sidebar:
   order: 0
 ---
 
-Every connection under **Settings, Integrations** uses the same card since
-v1.42.4: Withings, WHOOP, Oura, Polar, Strava, Google Health, Fitbit,
-Nightscout and Apple Health, and since v1.43.0
-[Dawarich](/guides/connect-dawarich/). The card answers whether the connection works,
+Every connection under **Settings, Integrations** uses the same card:
+Withings, WHOOP, Oura, Polar, Strava, Google Health, Fitbit, Nightscout, Apple
+Health and [Dawarich](/guides/connect-dawarich/). The card answers whether the connection works,
 what that means in one sentence, and what you can do about it. The server
 decides the state and the sentence; the web app and the iOS app only show
 it, so both always agree.
 
 The same card appears inside a [managed profile](/guides/managed-profiles/),
-read-only.
+where a guardian can connect and disconnect services for the profile (see
+[Connected services](/guides/managed-profiles/#connected-services)).
+
+Which source a chart uses on a given day, when several deliver the same
+metric, is shown on **Where values come from**; see
+[Source priority](/guides/source-priority/#where-values-come-from).
 
 ## The card
 
@@ -31,14 +35,14 @@ From top to bottom:
 
 A connection you have not set up shows "Not connected." with a **Connect**
 button and a link to its setup guide. Where you bring your own developer
-credentials, the credentials form comes first, as before.
+credentials, the credentials form comes first.
 
 ## The four states
 
 | Badge | What it means | Button |
 | --- | --- | --- |
 | **Working** | Data is arriving. While an older history still loads, the sentence says so. | none |
-| **Limited** | Data is arriving, but some types are missing: your Withings API plan does not include them, or the permission for them was not granted (Withings activity and sleep, Oura SpO2 and heart health). The sentence names up to three, the details list them all. | **Reconnect** when a permission is missing, otherwise none |
+| **Limited** | Data is arriving, but some types are missing: your Withings API plan does not include them, or the permission for them was not granted (Withings activity and sleep; Oura SpO2, heart health, resilience, workouts and heart rate). The sentence names up to three, the details list them all. | **Reconnect** when a permission is missing, otherwise none |
 | **Delayed** | Something is late or failing, and HealthLog keeps trying. The provider is not answering reliably, the server has not synced for a while, no new data has come in, or a source that normally delivers every day has gone quiet. | none |
 | **Action needed** | Data will not arrive until you act: the connection has expired or was revoked, or it was paused after failing repeatedly. | exactly one: **Reconnect** or **Resume** |
 
@@ -46,6 +50,15 @@ credentials, the credentials form comes first, as before.
 failing, HealthLog retries on its own; if no new data has arrived from Apple
 Health, the sentence asks you to open HealthLog on the iPhone once, because
 iOS only delivers in the background when it chooses to.
+
+### Fitbit: Shutting down and Retired
+
+Google turns the Fitbit Web API off on 30 October 2026. Until then the Fitbit
+card carries a **Shutting down** badge; from that day it reads **Retired** and
+the connection no longer syncs. The card explains the move and links to the
+Google Health card (**Go to Google Health**). Everything already imported
+stays, and the watchdog does not report a retired Fitbit connection. See
+[Connect Fitbit](/guides/connect-fitbit/).
 
 ## The three-dot menu
 
@@ -118,9 +131,7 @@ one line per slice; see
 
 ## The watchdog (for the instance admin)
 
-A connection that fails quietly used to stay unnoticed until somebody looked
-at the card. Since v1.42.4 a watchdog checks every connection on the
-instance once an hour, with a deeper pass once a day, and tells the instance
+A watchdog checks every connection on the instance once an hour, with a deeper pass once a day, and tells the instance
 admin when something needs attention.
 
 It watches for three things:
@@ -158,10 +169,9 @@ Every account with the admin role gets the message on its own
 
 No message contains a token, a measured value or the provider's error text.
 
-The first watchdog run after the update records every incident that is
-already standing without sending anything, so an update does not page once
-for every connection that has been broken for months. From then on only new
-incidents are sent.
+The watchdog's first run records every incident that is already standing
+without sending anything, so it does not page once for every connection that
+has been broken for months. From then on only new incidents are sent.
 
 The users themselves see the same state on their card. They get no message
 from the watchdog.

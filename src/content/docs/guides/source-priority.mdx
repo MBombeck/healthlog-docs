@@ -17,48 +17,35 @@ the two-ladder design, see
 ## The default ladders
 
 HealthLog ranks sources differently depending on the metric class, because the
-right answer differs. The defaults are per metric and wearable-aware; a few
-representative ones:
+right answer differs. The main defaults, highest first:
 
-- **Point measurements from a dedicated sensor** (weight, blood pressure, body
-  fat, body temperature) put the primary device first. Weight defaults to
-  **`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL ≻ WHOOP ≻ FITBIT ≻ GOOGLE_HEALTH`**; blood
-  pressure to **`WITHINGS ≻ APPLE_HEALTH ≻ MANUAL`**. A dedicated cuff or scale
-  outranks a wrist estimate.
-- **Cumulative activity metrics** (steps, active energy, distance, flights) pick
-  exactly **one source per day** so they are never double-counted. Weekly,
-  monthly and yearly figures add up those days; they never pick one source for
-  the whole period. Steps default
-  to
-  **`APPLE_HEALTH ≻ WITHINGS ≻ FITBIT ≻ GOOGLE_HEALTH ≻ OURA ≻ POLAR ≻ STRAVA ≻ MANUAL`**:
-  HealthKit folds multiple sensors into one canonical daily stream, so it is the
-  most complete cumulative source.
-- **Recovery inputs** (sleep, HRV, resting heart rate, respiratory rate) are led
-  by the worn-all-night wearables:
-  **`WHOOP ≻ FITBIT ≻ GOOGLE_HEALTH ≻ OURA ≻ POLAR ≻ APPLE_HEALTH ≻ WITHINGS`**.
-- **SpO₂** ranks the ScanWatch pulse-ox first, then the straps and rings:
-  **`WITHINGS ≻ WHOOP ≻ FITBIT ≻ GOOGLE_HEALTH ≻ OURA ≻ POLAR ≻ APPLE_HEALTH ≻ MANUAL`**.
+| Metric | Default order |
+| --- | --- |
+| Weight | Withings, Apple Health, Health Connect, manual, then your own pushes (token, MCP, Telegram), WHOOP, Fitbit, Google Health |
+| Blood pressure | Withings, Apple Health, Health Connect, manual, then your own pushes |
+| Pulse | Withings, Apple Health, Fitbit, Google Health, Oura, Polar, manual, then your own pushes |
+| SpO₂ | Withings, WHOOP, Fitbit, Google Health, Oura, Polar, Apple Health, Health Connect, manual, then your own pushes |
+| Steps | Apple Health, Health Connect, Withings, Fitbit, Google Health, Oura, Polar, Strava, manual, then your own pushes |
+| Sleep, HRV | WHOOP, Fitbit, Google Health, Oura, Polar, Apple Health, Withings |
+| Resting heart rate, breathing rate | WHOOP, Fitbit, Google Health, Oura, Polar, Apple Health, Health Connect, Withings |
+| Recovery | WHOOP, Oura, Polar, the computed proxy |
 
-A source that is not listed in a metric's ladder is never silently dropped: when
-none of the colliding sources appear in the ladder, every row is kept. The full
-per-metric defaults live in `src/lib/validations/source-priority.ts`.
+"Your own pushes" are readings from a [measurement token](/guides/ingest-token/)
+(source `EXTERNAL`), from an assistant through MCP, and replies to a Telegram
+reminder, in that order. Active energy and distance follow the steps order
+without Strava; body fat and body temperature follow the weight order.
 
-Readings pushed with a [measurement token](/guides/ingest-token/) carry the
-source `EXTERNAL`, which no default ladder lists. On a day that has only pushed
-readings they are all kept. On a day where a ranked source such as `MANUAL`
-also has a reading, the ranked one counts and the pushed one stays stored
-beside it.
+Cumulative activity metrics (steps, active energy, distance, flights) pick
+exactly **one source per day** so they are never double-counted. Weekly,
+monthly and yearly figures add up those days; they never pick one source for
+the whole period. The pulse, heart rate variability and blood oxygen charts
+follow the ladder per day too, and the blood pressure chart takes both values
+of a day from the same source. Glucose has no priority setting and keeps all
+its sources.
 
-Since v1.40.0 the pulse, heart rate variability and blood oxygen charts follow
-the ladder as well. With Apple Health and a second provider they used to blend
-the two and could show a reading twice; now they take the source your priority
-picks for each day, like every other chart. Glucose has no priority setting and
-keeps all its sources.
-
-Since v1.40.1 the blood pressure chart picks one source per day for both
-values, the one your priority ranks first, so a reading is never paired from a
-systolic value of one device and a diastolic value of another. The same holds
-for the blood pressure series the API returns.
+A source that a metric's ladder does not name ranks below every source it
+does name. When none of the colliding sources appear in the ladder, every row
+is kept.
 
 ## Adjust the ladder
 
@@ -72,10 +59,22 @@ metric class) you can:
 Changes are per user and audit-logged. The API surface is
 `GET` / `PUT /api/auth/me/source-priority`.
 
+## Where values come from
+
+**Where values come from** (`/insights/sources`) shows what the ladder decides,
+day by day. Open it from **Settings → Source priority** or from the **Where
+these values come from** link on a metric page. Pick a metric and a day to see
+every source that delivered a reading that day, how many readings and from
+which devices, which source the charts use, and why (the only source, highest
+in your order, or a tie broken by name). **Compare two sources** lines up two
+sources over a range: the days both have, the average from each, and the
+average difference. The source is chosen per day from midnight to midnight
+UTC, the same way the charts choose it.
+
 ## What happens to the losing rows
 
-Nothing is deleted. A reading that loses the priority contest stays in the
-`Measurement` table tagged with its source and drops out of the active display
+Nothing is deleted. A reading that loses the priority contest stays stored,
+tagged with its source, and drops out of the active display
 and analytics. If you later disconnect the winning source or reorder the ladder,
 the previously-hidden rows resurface — no data was lost.
 
