@@ -111,7 +111,7 @@ from `NEXT_PUBLIC_APP_URL`.
 | `WITHINGS_REDIRECT_URI` | Callback override for [Withings](/guides/connect-withings/). |
 | `WHOOP_REDIRECT_URI` | Callback override for [WHOOP](/guides/connect-whoop/). |
 | `WHOOP_WEBHOOK_SECRET` | Path segment + HMAC body-signature key for the WHOOP webhook. |
-| `FITBIT_REDIRECT_URI` | Callback override for [classic Fitbit](/guides/connect-fitbit/), whose API ends on 30 October 2026. |
+| `FITBIT_REDIRECT_URI` | Callback override for [classic Fitbit](/guides/connect-fitbit/), whose API was switched off on 30 October 2026. |
 | `GOOGLE_HEALTH_REDIRECT_URI` | Callback override for [Google Health](/guides/connect-google-health/). |
 | `GOOGLE_HEALTH_BACKFILL_HORIZON_YEARS` | How many years back a Google Health history import reads, a whole number from 1 to 100. Default `20`. A data type whose history goes further back ends there, and the integration card names the date. |
 | `OURA_CLIENT_ID` / `OURA_CLIENT_SECRET` | Shared [Oura](/guides/connect-oura/) app; per-user Settings values win. |
@@ -333,7 +333,7 @@ reaches the container.
 | `AI_SYNC_REGEN_GAP_HOURS` | Minimum hours between two refreshes of a status card after a sync, for accounts at the standard [AI usage level](/guides/ai-providers/#ai-usage-levels). Default `6`, whole hours from 1 to 48. A reading entered by hand keeps a one-hour gap. The value set under Admin, Coach, AI usage levels wins over this one. |
 | `LABS_OCR_LIMIT_PER_HOUR` | Per-user hourly ceiling for lab-report scans (photo or PDF and browser-OCR text share one bucket). Default `6`, clamped to 1–1000. A scan that fails before the AI provider is called does not count. |
 | `ADMIN_AI_BASE_URL_ALLOWLIST` | Extra hosts the **admin-configured** AI base URL may point at, on top of the built-in public providers. Comma-separated bare hostnames. It widens the admin setting only; per-user BYO keys keep the pinned public-host posture either way. |
-| `CODEX_MODEL` / `CODEX_MODEL_FALLBACK_CHAIN` | ChatGPT sign-in model slugs. The first pins one slug ahead of the built-in chain, which starts at `gpt-5.6-terra`; the second replaces the chain outright, comma-separated. Reach for them only when the provider rotates a slug and requests start failing with 503. An override set only to get past rejected older models can be removed. |
+| `CODEX_MODEL` / `CODEX_MODEL_FALLBACK_CHAIN` | ChatGPT sign-in model slugs. Left unset, each sign-in picks from the models its account is offered, with a built-in order as the fallback. The first pins one slug ahead of that; the second replaces the order outright, comma-separated, and the account's list is then not read. Reach for them only when requests keep failing with 503. An override set only to get past retired models can be removed. See [ChatGPT OAuth](/guides/ai-providers/#chatgpt-oauth-codex). |
 | `COACH_EXPERIMENT_VERDICT` | `1` surfaces reviewed n-of-1 experiment outcomes in the Coach snapshot. Off by default; the review worker records outcomes either way. |
 
 ## Documents (optional)

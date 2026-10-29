@@ -13,7 +13,7 @@ first one can bring back a server that is gone.
 | Copy | What it holds | What it can do | What it cannot do |
 | --- | --- | --- | --- |
 | **Database dump** (nightly and before every update, automatic) | The whole database: every account, sign-ins, passkeys, tokens, sharing grants, managed profiles, documents and the instance settings | Rebuild a lost server; go back to the state before an update | Bring back one account without the others |
-| **Account copies** (weekly in the database, before **Delete all data**, uploaded, and nightly in the off-host bucket) | One account's record and settings, without its credentials | Roll one account back on the same server, after a bad import or a mistaken delete | Rebuild a server: a restore refuses a copy whose account does not exist here |
+| **Account copies** (weekly in the database, before **Delete all data**, uploaded, and nightly in the off-host bucket) | One account's record and settings, without its credentials | Roll one account back on the same server, after a bad import or a mistaken delete; put the record of an erased account into a new or empty account | Rebuild a server |
 | **Personal export** (Settings → Export & import → **Full backup**) | One account's record as readable values; documents as metadata only | Give the person a portable copy of their own data | Restore documents: a restore refuses an export that lists documents, because it carries none of their content |
 
 Every copy is unreadable without its keys. Keep `ENCRYPTION_KEY` (or
@@ -311,8 +311,9 @@ on.
 
 To restore a file you hold (a copy from the restore script, or an export),
 upload it on the same page first; it becomes a row of its own. The upload
-takes a `.json` or `.json.gz` file of up to 512 MB as sent, and is refused when
-the account it belongs to does not exist on this instance.
+takes a `.json` or `.json.gz` file of up to 512 MB as sent. When the account it
+belongs to no longer exists on this instance, the page asks where the records
+should go; see [Restoring an erased account](#restoring-an-erased-account).
 
 The restore runs in the background. The page shows which step it is on and how
 many readings it has written; you can leave or reload it. A restore never runs
@@ -349,6 +350,39 @@ key this server does not hold. Put the key back and the copy restores;
 [Key rotation](/guides/encryption-key-rotation/) explains how long to keep an
 old key. A file that would attach the account's records to another account's
 (`backup.foreign_reference`) is refused too.
+
+### Restoring an erased account
+
+Once an account is erased, after its [grace window](/account/data-deletion/#the-grace-window)
+ended and the hourly purge ran, its copies on this server and in the bucket are
+gone. A file you kept may still hold the record: a copy fetched from the bucket
+before it expired, or the person's own full backup. Since v1.46.3, uploading
+such a file in **Admin → Backups** no longer ends in a refusal. The page offers
+two places for it:
+
+- **A new account.** Type a username. The account is created as an ordinary
+  account with the user role, without a password or email, so nobody can sign
+  into it yet. Before handing it over, set its first password with **Reset
+  password** under **Admin → Users**. The person can then change it, add an
+  email and enrol a passkey. If the file is refused, the new account is
+  removed again.
+- **An existing account**, for someone who has signed up again. Pick the
+  account and type its username to confirm. It must hold no records yet,
+  because a restore replaces and does not merge. What sign-up and the setup
+  questions leave behind does not count, but a reading or medication entered
+  on the last setup screen does, and the page names the kinds of records in
+  the way. Admin accounts, managed profiles and accounts pending deletion are
+  not offered.
+
+The file is stored as a copy of the chosen account, and **Restore** on its
+row brings the records back under that account. The erased account's id is
+not kept, neither in the copy nor in the audit trail. A copy whose own
+account still exists can only go back into that account.
+
+A file goes into one account only. Its records keep the ids they had, so
+restoring the same file into a second account is refused with an explanation
+(`backup.restore.rows_exist_elsewhere`) and nothing changes in either account.
+To move the record, delete the first account or its records first.
 
 ### How long a restore may take
 

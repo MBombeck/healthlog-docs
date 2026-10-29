@@ -24,7 +24,7 @@ there. See [When AI is not available](#when-ai-is-not-available).
 | OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `gpt-4o` | `api.openai.com/v1` | Context sent to OpenAI |
 | Anthropic | [console.anthropic.com](https://console.anthropic.com/settings/keys) | `claude-sonnet-4-6` | Anthropic default | Context sent to Anthropic |
 | Local | none (your endpoint) | your model | OpenAI-compatible URL you control | Stays on your network |
-| ChatGPT OAuth | sign in with your ChatGPT account | `gpt-5.6-terra`, then a built-in fallback list | `chatgpt.com` Codex backend | Via your ChatGPT subscription |
+| ChatGPT OAuth | sign in with your ChatGPT account | chosen from the models your account is offered, with a built-in list as the fallback | `chatgpt.com` Codex backend | Via your ChatGPT subscription |
 | OpenAI-compatible gateway | the credential your gateway issues, if it wants one | your model | the gateway URL you configure | Context sent to your gateway |
 
 The model is overridable per provider in `/settings/ai` — e.g. a lighter
@@ -182,14 +182,28 @@ enter the short code). Tokens land AES-256-GCM-encrypted; refresh runs
 automatically. The wire protocol is documented in the repo's
 `docs/codex-protocol-spec.md`.
 
-The ChatGPT backend accepts only some model names, and it changes them without
-notice. HealthLog tries a built-in list in order, starting at `gpt-5.6-terra`,
-then the gpt-6 models, and remembers the first one that answers. An operator
-can steer this in the container environment: `CODEX_MODEL` puts one model
-ahead of the list, and `CODEX_MODEL_FALLBACK_CHAIN` (comma-separated) replaces
-the list. Use them when every model is rejected after the backend changed
-again. An override set only to get past the models rejected in October 2026
-can be removed; the built-in list covers that.
+The ChatGPT backend accepts only some model names, and OpenAI retires them
+without notice. Since v1.46.3 each ChatGPT sign-in asks the backend which
+models its account is offered, the way the Codex CLI does, and picks from that
+list in HealthLog's order of preference: `gpt-5.6-terra` and the gpt-6 models
+first when the account has them, then the account's other models. The read
+carries no health data. A retirement therefore no longer takes Codex down
+until a HealthLog update ships a new list. Whether a model may read images
+comes from the same list.
+
+The model that answers is remembered per sign-in for an hour: your own
+connection and the operator's shared one each keep their own, so two accounts
+on different plans do not overwrite each other's choice. A connection
+reconnected to another ChatGPT account starts fresh. A model the backend
+refused moves to the end of that sign-in's line for six hours. When the list
+cannot be read, HealthLog falls back to its built-in order and tries again
+later.
+
+An operator can still steer this in the container environment. `CODEX_MODEL`
+puts one model ahead of everything else. `CODEX_MODEL_FALLBACK_CHAIN`
+(comma-separated) replaces the order outright, and the account's list is then
+not read at all. An override set only to get past retired models can be
+removed.
 
 ## Operator-shared subscription access
 
@@ -249,10 +263,11 @@ checked like an answer and stored encrypted.
 No model list has to be kept up to date. A model name HealthLog does not
 recognise gets the request as if it could reason. If the endpoint answers with
 a 400 that names one of the reasoning parameters, the request is sent again
-without it and the answer arrives as usual. The server remembers that for an
-hour, per provider, endpoint and model, so the next request goes out without
-the parameter straight away, and after the hour it tries again in case the
-endpoint learned it. Only such a 400 teaches anything: an authentication
+without it and the answer arrives as usual. The server remembers that for a
+day, per provider, endpoint and model, so the next request goes out without
+the parameter straight away, and after the day it tries again in case the
+endpoint learned it. Until v1.46.3 it was an hour, which on a gateway running
+the briefings unattended cost a few refused requests a day. Only such a 400 teaches anything: an authentication
 error, a rate limit or a server error never does, and neither does an error
 about the reasoning handed back between rounds.
 

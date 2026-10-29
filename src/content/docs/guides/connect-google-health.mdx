@@ -9,8 +9,8 @@ import { Steps } from '@astrojs/starlight/components';
 
 HealthLog reads Fitbit and Pixel data through the **Google Health API**
 (`health.googleapis.com`), the successor to the classic Fitbit Web API. Google
-turns that older API off on **30 October 2026**, so this connection is the path
-forward for Fitbit and Pixel Watch accounts. A Fitbit connection cannot be
+switched that older API off on **30 October 2026**, so this connection is the
+path forward for Fitbit and Pixel Watch accounts. A Fitbit connection cannot be
 carried over: connect Google Health and consent once more. Data the Fitbit
 connection already imported stays. See [Connect Fitbit](/guides/connect-fitbit/).
 
@@ -121,6 +121,12 @@ Only one sync runs per account at a time. While the backfill that follows a
 connect is running, **Sync now** says that a sync is already in progress and
 shows its progress instead of starting a second one. The card says "Older
 history is loading in the background" until the backfill is done.
+
+The first sync also reads the whole sleep history. Before v1.46.3 a few years
+of sleep could stall it: the clean-up of re-scored nights handed each night
+the segment ids of the entire fetch, which made more than a thousand oversized
+database queries that each failed and kept the server busy for many minutes.
+Each night now looks only at its own segments.
 
 ### The backfill runs in slices
 

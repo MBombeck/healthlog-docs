@@ -1,13 +1,13 @@
 ---
 title: Connect Fitbit (classic Web API)
-description: The classic Fitbit connection stops on 30 October 2026, when Google turns the Fitbit Web API off. Move to Google Health; everything already imported stays.
+description: The classic Fitbit connection stopped on 30 October 2026, when Google switched the Fitbit Web API off. Move to Google Health; everything already imported stays.
 sidebar:
   order: 4
 ---
 
 The classic Fitbit connection reads a Fitbit account through the Fitbit Web
 API with a per-user app from [dev.fitbit.com](https://dev.fitbit.com). Google
-turns that API off on **30 October 2026**.
+switched that API off on **30 October 2026**.
 
 :::caution[Move to Google Health]
 Google Health reads the same Fitbit and Pixel devices. Connect it with the
@@ -16,31 +16,31 @@ consent once more, because a Fitbit connection cannot be carried over.
 Everything the Fitbit connection already imported stays in HealthLog.
 :::
 
-## What happens on 30 October
+## What happened on 30 October
 
-Until the date, the Fitbit card shows a **Shutting down** badge with a link to
-the Google Health card. From the start of 30 October (midnight UTC, still the
+Until the date, the Fitbit card showed a **Shutting down** badge with a link to
+the Google Health card. Since the start of 30 October (midnight UTC, still the
 evening before in the Americas) HealthLog makes no further Fitbit call: no
-sync, no backfill, no token refresh and no new connection. The badge then
+sync, no backfill, no token refresh and no new connection. The badge now
 reads **Retired**. The connection stops counting as broken, so the watchdog
 does not report it and nobody is asked to reconnect.
 
-Self-serve app registration at dev.fitbit.com is already closed, so no new
-Fitbit connection can be set up in the meantime either.
+Self-serve app registration at dev.fitbit.com closed before that, so no new
+Fitbit connection could be set up in the last months either.
 
-## Until then (existing app holders)
+## Before 30 October (existing app holders)
 
-An app you registered earlier keeps working until the date:
+For reference, this is how an app registered earlier worked until the date:
 
-- Its redirect URL must be exactly
+- Its redirect URL had to be exactly
   `https://your-instance.example.com/api/fitbit/callback`.
-- Paste the Fitbit **Client ID** (a short numeric id, not a Google Cloud id)
-  and **Client Secret** on the Fitbit card under
-  **Settings → Integrations**. They are stored encrypted; there are no
-  `FITBIT_CLIENT_ID` / `FITBIT_CLIENT_SECRET` env vars.
-- The connection polls hourly and has a manual sync button. There is no
+- The Fitbit **Client ID** (a short numeric id, not a Google Cloud id) and
+  **Client Secret** went on the Fitbit card under **Settings → Integrations**.
+  They are stored encrypted; there are no `FITBIT_CLIENT_ID` /
+  `FITBIT_CLIENT_SECRET` env vars.
+- The connection polled hourly and had a manual sync button. There was no
   webhook.
-- `FITBIT_REDIRECT_URI` overrides the callback only when its origin differs
+- `FITBIT_REDIRECT_URI` overrode the callback only when its origin differed
   from `NEXT_PUBLIC_APP_URL`.
 
 ## Related
