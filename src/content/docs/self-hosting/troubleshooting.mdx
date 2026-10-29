@@ -204,6 +204,22 @@ A full-history import of a connected service may run for up to sixteen hours;
 a second start of the same import for the same account stops at once and says
 so in the log.
 
+## Dashboard cards stay empty on a very large account
+
+**Symptom.** On an account with years of minute-by-minute heart rate the
+dashboard cards stay empty or reads answer `500`, the log shows
+`rollup-full-backfill` failing with Postgres error `57014` (`canceling
+statement due to statement timeout`), and the admins get a push that the job
+keeps failing.
+
+**Cause.** The summary tier for that account is incomplete, and the reads that
+fall back to the raw readings run into the 60 second statement limit.
+
+**Fix.** Usually nothing: the backfill works through the history one year at a
+time with a longer limit of its own and hands what is left to a follow-up run.
+Do not raise `DATABASE_STATEMENT_TIMEOUT_MS` first; see
+[Large accounts](/self-hosting/scaling/#large-accounts) for when that helps.
+
 ## Admin says the server runs below the supported memory floor
 
 **Cause.** The app container's memory limit is below 1536 MB, usually a 1 GB
@@ -293,7 +309,8 @@ account, the admin status page or a fresh export shows far fewer.
 
 **Cause.** Expected. The nightly clean-up folds heart-rate, HRV and
 blood-oxygen samples older than 90 days into hourly means, and other
-high-frequency types into daily values.
+high-frequency types into daily values. Heart rate from Google Health and Oura
+is folded into hourly means the same way.
 
 **Fix.** Nothing. See
 [why the reading count drops](/guides/import-apple-health/#why-the-reading-count-drops-after-an-import).

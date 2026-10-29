@@ -60,8 +60,10 @@ password at sign-in and counts as a satisfied second factor for the session it
 creates. Add one under Settings, Security. Before the browser can start the
 enrolment you must re-prove an existing factor: a password, a code from an
 authenticator you have already confirmed, or an existing passkey or security
-key. Re-proving with a password
-authorises that one enrolment only; re-proving with a strong factor also
+key. An account linked to single sign-on without a second factor can instead
+sign in once more at its identity provider
+(see [Confirming it is you](#confirming-it-is-you)). Re-proving with a
+password or through the identity provider authorises that one enrolment only; re-proving with a strong factor also
 refreshes the session's step-up window. Removing a passkey asks for a fresh
 factor as well, and the last passkey on an account with no password cannot be
 removed.
@@ -146,11 +148,22 @@ to confirm first:
 - With a second factor turned on, use your authenticator code, your security
   key or a passkey. Your password alone is not enough, just as it is not
   enough to sign in.
-- Without a second factor, enter your password or use a passkey.
+- Without a second factor, enter your password or use a passkey. An account
+  linked to single sign-on can also choose **Identity provider**: the browser
+  goes to the provider, which asks you to sign in again, and comes straight
+  back to the page you were on. Then repeat the action. This is the way for
+  an account created through single sign-on with no password or passkey in
+  the app, and it is how such an account adds its first passkey.
 
 One confirmation covers five minutes, so a download followed by a share link
-asks once. If you signed in through single sign-on and have no password or
-passkey in the app, sign in again and repeat the action within five minutes.
+asks once.
+
+The confirmation through the identity provider counts only when the provider
+says you signed in within the last five minutes and names the identity linked
+to the account you are signed in with. It creates no new session and does not
+switch accounts. Like a password it never stands in for a second factor, so it
+is not offered once a second factor is on, and it is offered only while single
+sign-on is configured on the server.
 
 Every one of these confirmations, and the native app's step-up, shares one
 limit per account: five attempts in fifteen minutes. Each wrong attempt is

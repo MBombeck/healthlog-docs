@@ -22,7 +22,7 @@ HealthLog reads the Oura v2 user collections and maps:
 - **Cardiovascular age**: Oura's daily estimate, stored as vascular age.
 - **Daily resilience**: the resilience level, encoded on a 1 to 5 scale.
 - **Workouts**: each Oura workout, recorded or auto-detected, becomes a workout. The same walk from another source is shown once, by your [source priority](/guides/source-priority/).
-- **Heart rate through the day**: the ring's readings every few minutes, stored as pulse readings.
+- **Heart rate through the day**: the ring's readings every few minutes, stored as pulse readings. Readings older than 90 days are folded into one mean per hour of your local day, as Apple Health's are, and a later sync does not bring the folded readings back.
 - **Cycle phases**: a best-effort import of `daily_cycle_phases` for Cycle Insights, where the ring provides it.
 
 Imported rows are tagged `source = OURA` and pass through the [source-priority](/explanation/source-priority/) resolver. Naps are kept distinct from the main sleep so a nap's segments never collide with the night's. Periods you dismissed in the Oura app (Oura marks them as `rest`) and periods you deleted are not imported: they are not sleep. Daily totals are stored at noon of their day in your own time zone, so they land on the right day wherever you live (see [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).

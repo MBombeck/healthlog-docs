@@ -1,6 +1,6 @@
 ---
 title: Scaling
-description: Split the web and worker processes into separate containers so each scales independently, and where the dedicated backup and key-rotation runbooks live.
+description: Split the web and worker processes into separate containers so each scales independently, size memory, handle accounts with tens of millions of readings, and where the dedicated backup and key-rotation runbooks live.
 sidebar:
   order: 4
 ---
@@ -132,6 +132,65 @@ same default; set `APP_MEMORY_LIMIT` as a stack environment variable there.
 
 The Postgres service deliberately carries no `mem_limit`, so under memory
 pressure the app is stopped before the database.
+
+## Large accounts
+
+An account that holds tens of millions of readings, most often a
+full-history Google Health backfill of minute-by-minute heart rate, runs into
+the per-statement limit the app sets on every database connection: 60
+seconds, from [`DATABASE_STATEMENT_TIMEOUT_MS`](/reference/environment-variables/)
+(unset means 60000, `0` turns the limit off).
+
+### What it looks like
+
+- Dashboard cards stay empty, or `/api/daily/digest` and other reads answer
+  `500`.
+- The log shows `job.run.failed` for `rollup-full-backfill` with
+  `consecutiveFailures` counting up, and Postgres error `57014`:
+  `canceling statement due to statement timeout`.
+- **Admin → System status** lists `rollup-full-backfill` under failing
+  background jobs, and every admin gets a
+  [push about it](/guides/admin-overview/#failing-background-jobs).
+
+### What the app does about it
+
+- The full rollup backfill runs at boot for any account whose summary tier is
+  incomplete, and after a release that adds a column to it. It works through
+  the five-year window one calendar year at a time. Every statement of it runs
+  under its own limit of five minutes, whatever `DATABASE_STATEMENT_TIMEOUT_MS`
+  says, and a run that reaches its time budget hands the remaining years to a
+  follow-up job instead of starting over. Finding the accounts that need it
+  does not read every reading. The reads that fall back to the raw readings
+  while the tier is incomplete are fast again once it has finished.
+- Heart rate older than 90 days is folded into one mean per hour, for Apple
+  Health, Health Connect, Google Health and Oura alike. The day summaries keep
+  the figures taken from the raw samples, and a later backfill or full sync
+  does not write the folded samples back. On an account with a dense history
+  the first fold works through the backlog over a few nights, one day per
+  transaction, and leaves an account alone while its summary tier is still
+  being rebuilt. Postgres reuses the freed table pages for new rows; to give
+  the index space back to the disk, run the
+  [index rebuild](/self-hosting/database-maintenance/#rebuild-the-table-afterwards)
+  from **Admin → System status** once the backlog is through.
+
+### When to raise the limit
+
+Normally never: the long background passes bring their own limits. If you
+raised `DATABASE_STATEMENT_TIMEOUT_MS` to get a large account through, you can
+set it back. Raise it only when request reads still time out on a large
+account after the backfill has finished (the failing-jobs card is empty), or
+when something between the app and Postgres sets a lower limit. In that case
+also run `SHOW statement_timeout;` as the database role HealthLog connects
+with: a limit set on the role or the database, or by a pooler, applies too.
+The compose file passes the variable through from `.env`; recreate the
+container after changing it so every connection picks it up:
+
+```sh
+# .env
+DATABASE_STATEMENT_TIMEOUT_MS=180000   # three minutes
+
+docker compose up -d
+```
 
 ## Related operations runbooks
 

@@ -28,8 +28,9 @@ shows a retry rather than an empty state.
 The fine-grained 10-minute detail is kept for the most recent **90 days**. Older
 days fall back to a coarser **hourly** shape — the per-sample rows are folded to
 one mean per local hour rather than pretending an old day still carries
-10-minute resolution. The chart labels which resolution a day was drawn at, so a
-folded older day is never mistaken for a dense recent one.
+10-minute resolution. This applies to heart rate from Apple Health, Health
+Connect, Google Health and Oura. The chart labels which resolution a day was
+drawn at, so a folded older day is never mistaken for a dense recent one.
 
 ## A day of pulse
 

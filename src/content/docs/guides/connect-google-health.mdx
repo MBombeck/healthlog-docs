@@ -100,6 +100,14 @@ Daily totals are stored at noon of their day in your own time zone, so they
 land on the right day wherever you live (see
 [the timezone model](/explanation/timezone-model/#cumulative-daily-aggregates)).
 
+Heart rate is kept sample by sample for the last 90 days. Older heart rate is
+folded into one mean per hour of your local day, as Apple Health's is, and a
+later sync or backfill does not bring the folded samples back. Day figures
+keep what was computed from the raw samples. After a backfill of several years
+the first fold works through the backlog over a few nights; see
+[Large accounts](/self-hosting/scaling/#large-accounts) for what an operator
+sees on a very large history.
+
 ## Sync cadence and backfill
 
 - **Hourly poll.** A background job walks every connected account once an hour

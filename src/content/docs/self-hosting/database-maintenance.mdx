@@ -19,6 +19,16 @@ wrong value once its samples are gone. On an instance that synced Apple Health
 for a while the measurements table shrinks a lot, and the rebuild below gives
 the space back.
 
+## After a large heart-rate fold
+
+Heart rate from Google Health and Oura that is older than 90 days is folded
+into one mean per hour, as Apple Health's is. On an account with years of
+minute-by-minute heart rate the first fold works through the backlog over a
+few nights, one day per transaction, and leaves the account alone until its
+summaries are rebuilt. The folded rows leave the same empty index pages
+behind, so run the rebuild below once the backlog is through. See
+[Large accounts](/self-hosting/scaling/#large-accounts).
+
 ## Rebuild the table afterwards
 
 The cleanup leaves the indexes full of empty pages, and only a rebuild gives
@@ -95,7 +105,8 @@ not need it.
 ## Session settings: work_mem and PgBouncer
 
 Every app connection sets three things when it opens: the statement timeout
-(`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default), `work_mem` from
+(`DATABASE_STATEMENT_TIMEOUT_MS`, 60 seconds by default; see
+[Large accounts](/self-hosting/scaling/#large-accounts) before raising it), `work_mem` from
 `DATABASE_WORK_MEM` (16MB by default), and the time zone, `TimeZone=UTC`. Sorts and aggregates
 larger than `work_mem` spill to disk; each sort step of each pooled connection
 may use that much memory, so raise it with the pool size in mind.

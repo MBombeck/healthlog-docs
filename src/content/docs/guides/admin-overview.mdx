@@ -25,7 +25,8 @@ A few admin actions also require a fresh second factor (confirmed within the
 last five minutes); those are marked "step-up" below. The actions that move or
 replace data ask the admin to confirm it is them unless they
 signed in within the last five minutes: downloading, uploading or restoring a
-backup, wiping all data, and setting another account's password. An admin with
+backup, wiping all data, setting another account's password and deleting
+another account. An admin with
 a second factor confirms with it; one without uses the password or a passkey.
 See [Confirming it is you](/guides/sign-in-and-security/#confirming-it-is-you).
 
@@ -82,6 +83,26 @@ run was still busy at the time. See
   <img src={adminSystemStatus.src} alt="Admin System Status page: a two-hour host-load chart plotting load average against memory, then a status card with database connected, the process start time, one user, 4,141 measurements, no active API tokens, one active session, the job worker running, and a geo-data row advising that GeoLite2 databases be mounted" />
   <figcaption>The runtime card an operator checks first. The geo-data row is amber here because no offline database was mounted on the captured instance.</figcaption>
 </figure>
+
+### Failing background jobs
+
+You do not have to watch the card. When a background job of the instance has
+failed three times in a row, every admin gets a system alert on their own
+[notification channels](/guides/reminder-channels/), in their language:
+
+- **One message** when the streak is reached, naming the job and its last
+  error, with a link to this page.
+- **A reminder at most once a day** while it keeps failing. A one-off job,
+  such as a backfill at boot, that failed and does not run again is announced
+  once and then left to the card.
+- **One message** when it works again.
+
+Retries of one run count once. A job that runs per account counts per
+account, so one account in trouble is reported once and not every hour,
+and another account's success does not count as a recovery. Only jobs
+without a status of their own count: a regular integration sync shows on the
+account's integration card and has its own
+[admin alerts](/guides/integrations/#what-the-admin-receives).
 
 ## General
 
@@ -233,14 +254,25 @@ narrows the query only and never the authorisation. Channel setup for users is i
 
 ## Users
 
-The account table with role and status, and three actions per row: edit
+The account table with role and status, and four actions per row: edit
 (username, email, document quota, and the per-user second-factor override),
-reset password, and force logout. A password reset sets a new password that
+reset password, force logout, and delete account. A password reset sets a new password that
 must pass the strength and breach checks, then destroys the user's sessions,
 API tokens, refresh tokens, trusted devices, connected assistants and share
 links in one transaction, and writes an audit row. None of these actions is
-step-up gated; the password reset asks the admin to confirm it is them. See
+step-up gated; the password reset and the deletion ask the admin to confirm it
+is them. See
 [Sign-in and security](/guides/sign-in-and-security/#password-reset).
+
+**Delete account** takes the same path as deleting your own account: with a
+[grace window](/account/data-deletion/#the-grace-window) the account is locked
+at once (signed out everywhere, sign-in refused) and erased when the window
+ends; with `ACCOUNT_DELETION_GRACE_DAYS=0` it is erased right away, and the
+dialog says that it cannot be undone. The admin confirms it is them first.
+Refused for your own account (delete that from your account settings), the
+last admin who can sign in, a managed profile (its guardians delete it), the
+last guardian of a managed profile, or an account already pending deletion.
+Each deletion is written to the audit log for the admin and for the account.
 
 An account or managed profile whose deletion is pending shows its erasure
 date and **Undo deletion**. Undoing keeps the account and everything in it as
