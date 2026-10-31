@@ -24,3 +24,8 @@ npm run preview
 
 - [Starlight](https://starlight.astro.build/) -- Astro's documentation framework
 - [Astro](https://astro.build/) -- Static site generator
+
+## Secret scanning
+
+Commits are checked for secrets with [gitleaks](https://github.com/gitleaks/gitleaks): locally via the pre-commit hook
+(enable once per clone: `git config core.hooksPath .githooks`) and in CI (`.github/workflows/gitleaks.yml`, new commits only).
