@@ -58,9 +58,9 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
 				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
 				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://docs.healthlog.dev/og-image.png' } },
-				// Rybbit analytics, loaded only after the visitor agrees: the consent
-				// script injects the tracker on Accept (public/analytics-consent.js).
-				{ tag: 'script', attrs: { src: '/analytics-consent.js', defer: true } },
+				// Visit counting with the self-hosted Rybbit server, no consent banner:
+				// nothing is stored on the device (public/analytics.js).
+				{ tag: 'script', attrs: { src: '/analytics.js', defer: true } },
 			],
 			components: {
 				Footer: './src/components/Footer.astro',

@@ -49,7 +49,7 @@
 	line-height: 1.5;
 }
 
-/* Analytics consent (public/analytics-consent.js, src/components/Footer.astro). */
+/* Visit-counting panel (public/analytics.js, src/components/Footer.astro). */
 .hl-consent {
 	position: fixed;
 	z-index: 60;
