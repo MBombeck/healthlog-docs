@@ -1,0 +1,87 @@
+---
+title: Connect Garmin
+description: Connect Garmin Connect through Garmin's Personal API with a key you create yourself, what comes through, how key expiry works, and how to add Training Readiness and training load from Home Assistant.
+sidebar:
+  order: 5
+---
+
+HealthLog reads Garmin Connect directly through Garmin's **Personal API**. You create a key for your own account in Garmin Connect, paste it into HealthLog, and the server pulls your data every hour. Garmin pushes nothing, and HealthLog writes nothing back.
+
+The Personal API covers your own data only. Each person on an instance creates and pastes their own key. There is no shared app to register and nothing for the operator to set up.
+
+## Create a key
+
+1. Open [Garmin Connect → Settings → Personal API](https://connect.garmin.com/app/settings/personalApiToken).
+2. Create a key and choose how long it stays valid: 30, 90 or 180 days, or one year.
+3. Copy it right away. Garmin shows the key only once.
+
+## Connect
+
+1. Open **Settings → Integrations → Garmin**.
+2. Paste the key.
+3. Pick the service your account lives on. That is **Garmin Connect (global)** for almost everyone, or **Garmin Connect China** for accounts registered there. The key is only ever sent to the service you pick.
+4. Pick the validity you chose in Garmin Connect.
+5. Select **Connect**.
+
+HealthLog checks the key with Garmin before it stores anything, so a mistyped or revoked key is refused on the spot. The key is stored encrypted at rest and is never shown again, logged, or sent anywhere except to Garmin.
+
+The last 30 days arrive within a minute, and the rest of your history follows in the background. Until it is done, the card says that older history is still loading.
+
+## Key expiry
+
+Garmin keys expire and cannot be extended. Garmin does not report when a key ends, so HealthLog works it out from the validity you picked. In the key's last day it switches to the date Garmin's own tokens reveal.
+
+- From seven days before the end, the card says when the key expires.
+- When the key has expired, or you revoked it in Garmin Connect, syncing stops and the card asks for a new key. Create one, open **Replace key** in the card's menu and paste it. Nothing already imported is lost.
+- If you did not pick a validity, open **Key validity** in the card's menu to set it, together with the day you created the key, without pasting the key again.
+- If Garmin turns a key down, HealthLog asks again once a day, so a refusal that passes on its own clears without you doing anything.
+
+## What comes through
+
+| Garmin data | HealthLog metric |
+| --- | --- |
+| Steps, step distance, floors, active calories | Steps, walking and running distance, flights climbed, active energy |
+| Resting heart rate | Resting heart rate |
+| All-day average stress | Stress level (Garmin's own, 0–100) |
+| Body Battery, the day's high | Body Battery (0–100) |
+| Sleep stages and sleep score | Sleep (light, deep, REM, awake) and sleep score |
+| Overnight SpO₂ and breathing rate | Oxygen saturation, respiratory rate |
+| Overnight HRV | HRV (RMSSD) |
+| Weigh-ins | Weight, BMI, body fat, body water, muscle and bone mass, visceral fat |
+| Activities | Workouts |
+| Logged period days | [Cycle tracking](/guides/cycle-tracking/) |
+
+A few details:
+
+- Garmin's HRV is RMSSD. It is kept apart from the SDNN value Apple Health reports, because the two measures are not interchangeable.
+- Stress and Body Battery are Garmin's own scores and get metrics of their own. They are never mixed into HealthLog's computed stress score.
+- Days you did not wear the watch import nothing rather than zeros.
+- Period days are added only on days you have not logged yourself. Your own entries are never changed, and cycles Garmin only predicts are not imported.
+- Weigh-ins are read back to the start of your Garmin Connect account, including from before your first watch, so a scale-only account gets its whole history.
+- A night you delete in Garmin Connect, or that Garmin turns into a nap, is removed on the next sync.
+- If Garmin has no data of a kind for your account, for example no cycle summary because you do not track one there, HealthLog skips it without counting an error. The card lists it under **Details for a bug report**.
+- When the same data also arrives through Apple Health or Health Connect, [source priority](/guides/source-priority/) decides which one a chart shows. Garmin ranks with the other watches.
+
+## Training Readiness and training load
+
+Training Readiness, Training Status, acute training load and recovery time are not part of the Personal API. If you already read them elsewhere, for example through a Home Assistant integration, push them to HealthLog with an [ingest token](/guides/ingest-token/) that has the `measurements:write` scope. HealthLog has two metrics for them:
+
+- `TRAINING_READINESS`, a score from 0 to 100
+- `ACUTE_TRAINING_LOAD`, Garmin's load figure without a unit
+
+Both show on the recovery page next to Body Battery. Rows pushed this way are marked as coming from an external source, so they never mix with readings you typed in.
+
+## Limits
+
+- Garmin decides how many requests a key may make. HealthLog reads one kind of data at a time and ends the hour's run at Garmin's first rate-limit answer. The history backfill waits as long as Garmin asks before it carries on.
+- Disconnecting removes the key from HealthLog. The key stays valid at Garmin until you revoke it there.
+
+## Without a key
+
+Garmin Connect also writes to Apple Health on iOS and to Health Connect on Android, so [Apple Health](/guides/import-apple-health/) and [Health Connect](/guides/import-health-connect/) keep working if you would rather not create a key. Body Battery, Garmin's stress level and its sleep score only come through the Personal API.
+
+## Related
+
+- [Integrations overview](/guides/integrations/)
+- [Push readings from your own hardware](/guides/ingest-token/)
+- [Source priority](/explanation/source-priority/)
