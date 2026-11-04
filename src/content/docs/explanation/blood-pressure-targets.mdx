@@ -40,6 +40,27 @@ BP-based grades.)
   <figcaption>How the bands reach the reader: the current value against the reference scale, the verdict, and a link to the guideline the bands come from.</figcaption>
 </figure>
 
+## By time of day
+
+Since v1.47.0 the blood pressure page has a card with the morning, midday and
+evening averages side by side, each with its count and pulse, and the morning
+minus evening difference once both parts have at least three readings. Morning
+runs 04:00 to 11:59, midday 12:00 to 17:59 and evening 18:00 to 03:59, in your
+time zone. The windows are wide on purpose: home measurement guidance ties the
+two readings to waking and to bedtime rather than to a clock, so a waking
+reading and a late bedtime reading land in the right part.
+
+A reading counts as a pair: a systolic with the diastolic of the same source
+within five minutes, from the source your
+[source priority](/guides/source-priority/) picks for the day, the same rule
+the blood pressure chart follows.
+
+A control under the card narrows the chart to one part of the day. The choice
+is kept in the URL, and the stat strip names the part while the chart is
+narrowed. The server computes the split, so a native client can show the same
+numbers (`GET /api/measurements/blood-pressure/time-of-day`, and `partOfDay`
+on the daily series).
+
 ## Why guidelines differ
 
 The US [2017 ACC/AHA guideline](https://www.acc.org/Latest-in-Cardiology/Articles/2024/02/05/11/43/2023-ESH-Hypertension-Guideline-Update)

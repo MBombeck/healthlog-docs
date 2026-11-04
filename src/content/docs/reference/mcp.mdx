@@ -108,7 +108,7 @@ analytics is computed at the wire.
 | `get_sleep` | Per-night asleep + stage minutes plus the sleep-rhythm summary (sleep debt + chronotype). |
 | `get_workouts` | Most recent sessions (sport, duration, energy, distance, avg/max HR) plus a per-sport rollup over the window. |
 | `get_medication_compliance` | Cadence-aware adherence: dose-weighted compliance rate, expected vs taken/missed, current-cycle status, any GLP-1 titration context. |
-| `get_labs` | Latest reading per biomarker over the last 12 months (optionally one analyte). With `history:true` + an analyte, that analyte's paginated reading trajectory. |
+| `get_labs` | Latest reading per biomarker over the last 12 months (optionally one analyte). With `history:true` + an analyte, that analyte's paginated reading trajectory. Each reading carries its `labresult:<id>` and the documents and visits it is linked to; the linked records are listed once per answer, not on every reading of the same report. |
 | `get_illness_recovery` | Rest mode, active and recently-resolved illnesses (with the body site and side when the user named one), recovery / strain composites, and the illness retrospective (recovery-gap, nadir, red flags). |
 | `get_cycle` | Menstrual-cycle context: phase + day-of-cycle, next predicted event, headline phase-correlation. Gated on cycle tracking; descriptive only. |
 | `get_correlations` | FDR-controlled day-to-next-day driver pairs between behaviours and outcomes, each with direction, lag, sample size, and a descriptive (never causal) note. |
@@ -126,7 +126,7 @@ analytics is computed at the wire.
 | `get_day` | One local calendar day (`date`, `YYYY-MM-DD` in the user's time zone): what ran through it (medications and courses with dose and day number, pauses, an illness, a cycle phase), the readings with the usual range of the 30 days before, what happened on it (intakes, dose changes, symptoms, labs, visits, vaccinations, check-ups, documents by kind, mood, workouts) and notable observations decided by fixed rules. Notes, document names and life events are never included, and the person's Coach exclusions apply. Each result carries `url`, the day in the app. |
 | `get_environment` | The stored days of the environment module: weather, and while air quality is on, PM2.5, PM10, NO2, the ozone 8-hour high, the European AQI peak, UV, dust and six pollen kinds, plus coverage and a short summary. Modelled outdoor conditions, not personal exposure. No coordinates and no place names. Every result lists its attribution lines. Answers `module_disabled` when the environment module is off. |
 | `search` | Free-text search over the user's record: metric domains, medications, lab analytes, and the clinical records (visits including procedures, conditions, documents, vaccinations). Ranked and deterministic; record results capped at 50. Returns `{ results: [{ id, title, url }], nextCursor? }`. |
-| `fetch` | Hydrate one record by the id `search` returned (`metric:weight`, `med:<id>`, `lab:LDL`, `visit:<id>`, `condition:<id>`, `document:<id>`, `vaccination:<id>`). Returns `{ id, title, text, url, metadata }` with a citation deep-link; clinical records carry their direct links. |
+| `fetch` | Hydrate one record by the id `search` returned (`metric:weight`, `med:<id>`, `lab:LDL`, `labresult:<id>`, `visit:<id>`, `condition:<id>`, `document:<id>`, `vaccination:<id>`). Returns `{ id, title, text, url, metadata }` with a citation deep-link; clinical records carry their direct links. |
 
 `search` + `fetch` are the de-facto two-tool retrieval convention and the
 **only** tools ChatGPT calls in its default (non-Developer) mode. Each result
@@ -157,6 +157,22 @@ words count, and each search reads at most the newest 500 records of each
 kind (documents are also found by title, file name and indexed text beyond
 that). An empty query lists the newest ten of each kind, visits only once they
 have taken place.
+
+A lab has two ids. `lab:<analyte>` is the analyte view and answers with that
+marker's latest reading. `labresult:<id>` (since v1.47.0) is one reading: its
+value or text result, unit, reference range, status, date, and its own links
+(the report it was read from, the visits it is filed against). Every link to a
+lab result, from a document, a visit, a condition or a medication, uses the
+reading id, so following a report's link lands on the reading that report
+holds rather than on a later draw.
+
+Since v1.46.6 the reads follow their links as well. `fetch lab:` and
+`get_labs` list the documents and visits a reading is linked to; `fetch med:`
+and `get_medication_schedule` list a medication's; `fetch document:` also names
+the lab results and medications filed against it. The rows of `get_visits`,
+`get_medication_schedule` and `get_illness_recovery` carry an id `fetch` takes.
+An imported document names its source system and id, never the address of the
+instance it came from.
 
 `fetch` on one of these returns its key fields, with anything never recorded as
 `null`, and `metadata.links`: the records it is directly linked to, each with an
@@ -198,7 +214,7 @@ The **longevity lab panel** (ApoB, Lp(a), hs-CRP, HbA1c, fasting glucose,
 fasting insulin, eGFR, GGT, ferritin, omega-3 index) is reached like any other
 biomarker: `get_labs` (latest per analyte or, with `history:true`, a paginated
 trajectory), the `healthlog://lab/{analyte}` resource template, and `search` →
-`fetch` (`lab:<analyte>`). Reference bounds come from the curated biomarker
+`fetch` (`lab:<analyte>` for the latest reading, `labresult:<id>` for one reading). Reference bounds come from the curated biomarker
 catalogue.
 
 ### Nutrition, intraday pulse, and ECG

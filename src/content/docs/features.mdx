@@ -200,7 +200,8 @@ appears in the doctor-report PDF as a visit list you can leave out.
 
 [Withings](/guides/connect-withings/), [WHOOP](/guides/connect-whoop/),
 [Oura](/guides/connect-oura/), [Polar](/guides/connect-polar/) and
-[Strava](/guides/connect-strava/) sync over OAuth2; [Fitbit and Pixel](/guides/connect-google-health/) connect through
+[Strava](/guides/connect-strava/) sync over OAuth2; [Garmin](/guides/connect-garmin/) syncs
+hourly with a Personal API key from your own Garmin account; [Fitbit and Pixel](/guides/connect-google-health/) connect through
 Google Health (the [classic Fitbit API](/guides/connect-fitbit/) was switched
 off on 30 October 2026); a
 [Nightscout](/guides/connect-nightscout/) instance streams
@@ -270,6 +271,10 @@ than fabricating a value.
 A doctor-report PDF rendered on your own server (in your UI language), a read-only
 [HL7 FHIR R4 API](/reference/fhir-api/), and scoped, time-limited share links you
 revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
+The doctor report embeds an open Unicode font family covering Latin, Greek,
+Cyrillic and, when the report needs it, Korean, so it prints in every app
+language and a medication name or note in another of those scripts prints as
+written. Chinese, Japanese and Arabic text are not covered yet.
 
 ## Shared access between accounts
 
@@ -297,8 +302,8 @@ and saying no health figure on the lock screen unless you
 [allow it](/guides/reminder-channels/#health-figures-in-notifications);
 a [search](/guides/search/) in the command palette (⌘K or Ctrl K) that reaches
 into your own visits, documents, lab results, medications and notes; a sub-second dashboard on years of imported history;
-gamification achievements; nine display languages (English, German, Spanish,
-French, Italian, Polish, Korean, Dutch and Brazilian Portuguese) end to end; an
+gamification achievements; ten display languages (English, German, Spanish,
+French, Italian, Polish, Korean, Dutch, Brazilian Portuguese and Russian) end to end; an
 explicit language choice sticks everywhere, and the automatic setting follows
 your system language. Invite links with QR codes for closed
 registration. Light and dark themes share one token system, so both stay
