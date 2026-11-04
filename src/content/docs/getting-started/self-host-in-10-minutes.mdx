@@ -15,8 +15,9 @@ longer if you also want a TLS-fronted public hostname (see
 ## Requirements
 
 - **Docker 24+ with Compose v2.** The image is multi-arch (`linux/amd64` and
-  `linux/arm64`), so an x86 VPS, a NAS or a Raspberry Pi 5 with 4 GB or more
-  all work unchanged.
+  `linux/arm64`) and built on the official Node 22 image (Debian slim, glibc),
+  so an x86 VPS, a NAS or a Raspberry Pi 4 or 5 with 4 GB or more all work
+  unchanged.
 - **Memory: 3 GB of RAM, 4 GB recommended.** The app container is capped by
   `APP_MEMORY_LIMIT`, `1536m` by default, which gives Node a heap of about
   792 MB. 1536 MB is the supported floor. Do not lower it to fit a smaller
@@ -30,9 +31,13 @@ longer if you also want a TLS-fronted public hostname (see
   gigabytes free while it runs. Moving to a new Postgres major needs free space
   about the size of the database (see
   [Moving to Postgres 18](/self-hosting/postgres-upgrade/)).
-- **CPU.** Any 64-bit CPU runs the app. On x86-64 CPUs without AVX2
-  (Celeron and Atom class NAS CPUs) the document renderer switches itself off:
-  no thumbnails, and scanned PDFs are read as text only (`NATIVE_CANVAS` in the
+- **CPU.** Any 64-bit CPU runs the app. The document renderer (thumbnails,
+  PDF pages as images) runs on every arm64 board, the Pi 4 included, and on
+  x86-64 CPUs with AVX2. On older x86-64 CPUs (Celeron and Atom class NAS
+  chips) it switches itself off: no thumbnails, and an AI provider that cannot
+  take PDF files reads a PDF by its text layer, so a scanned PDF needs a
+  provider that takes PDFs directly (Anthropic) or photos of its pages
+  (`NATIVE_CANVAS` in the
   [environment reference](/reference/environment-variables/)).
 - **Outbound HTTPS** to `ghcr.io` for image pulls, plus whichever integration
   endpoints you enable later.

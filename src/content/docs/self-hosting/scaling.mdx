@@ -64,10 +64,23 @@ containers.** A worker on an older image may not know a newer job queue, so
 those jobs wait and then fail while everything else looks healthy. Deploy both
 from the same image tag and restart them together.
 
+## Database role
+
+Both containers run the entrypoint, and both set up the
+[database role](/self-hosting/database-role/) the app connects as. They take
+turns on an advisory lock and derive the same password from
+`API_TOKEN_HMAC_KEY` and the database's name, which the shared environment
+block gives both, so a worker that starts after the web container changes
+nothing the web container relies on. Rotating `API_TOKEN_HMAC_KEY` changes
+that password: restart all containers together.
+
 ## Healthchecks and liveness
 
 - The **web** container's healthcheck polls `/api/health` every 30 seconds
-  (`/api/version` is the deploy-verification endpoint, not the liveness probe).
+  with a `node -e` fetch (`/api/version` is the deploy-verification endpoint,
+  not the liveness probe). A forked compose file that still probes with
+  `wget` keeps working on v1.47.0 and later: the image carries a small `wget`
+  that answers health checks and nothing else.
 - The **worker** exposes no port, and its liveness is in-process state only:
   the reminder worker updates an in-memory status that `/api/admin/status`
   (and the admin panel's worker-status card) reads from the same process. In a

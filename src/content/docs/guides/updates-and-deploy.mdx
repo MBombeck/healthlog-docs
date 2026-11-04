@@ -68,12 +68,37 @@ Most releases need nothing beyond the sequence above. These do:
 
 | Release | What to do |
 | --- | --- |
+| v1.47.0 | The image is built on the official Node 22 image (Debian slim) instead of Alpine; see [The v1.47.0 image](#the-v1470-image) for what that changes inside the container. The app and the worker now connect to Postgres as a restricted role of their own on Postgres 17 or later when the `DATABASE_URL` user may create roles (the bundled compose file's user may). Nothing needs setting; on Postgres 16, without `CREATEROLE` or with `DB_APP_ROLE=off` the app runs as before and says why at start. See [The app's database role](/self-hosting/database-role/). One migration (Garmin). With a [web/worker split](/self-hosting/scaling/), stop the old web and worker containers before the new ones start. |
+| v1.46.6 | Nothing required, no migration. A Google Health connection whose account id the v1.46.4 update cleared reads its real id back on its next clean sync. |
+| v1.46.5 | Nothing required, no migration. An OpenAI-compatible gateway pointed at an Azure OpenAI reasoning deployment now works without a workaround (see [Azure OpenAI](/guides/ai-providers/#azure-openai)). |
+| v1.46.4 | Nothing required. One migration clears the placeholder Google account id stored on existing Google Health connections; a profile that was turned away as "already connected to another HealthLog profile" connects with its next attempt. |
 | v1.46.3 | Nothing required, no migration. An override in `CODEX_MODEL` or `CODEX_MODEL_FALLBACK_CHAIN` set only to get past retired models can be removed: each ChatGPT sign-in now picks from the models its account is offered (see [ChatGPT OAuth](/guides/ai-providers/#chatgpt-oauth-codex)). While `CODEX_MODEL_FALLBACK_CHAIN` is set, that list is not read. A kept backup file of an erased account can now be [restored into a new or empty account](/guides/backups/#restoring-an-erased-account). |
 | v1.46.2 | Nothing required. If you raised `DATABASE_STATEMENT_TIMEOUT_MS` to get a large account through, you can set it back (see [Large accounts](/self-hosting/scaling/#large-accounts)). On an instance with years of Google Health or Oura heart rate, start the [index rebuild](/self-hosting/database-maintenance/#rebuild-the-table-afterwards) once the first hourly fold has worked through the backlog. Lab values confirmed from a document that were filed under the day of the confirmation move once to the report date; the server log says how many. |
 | v1.46.0 | The compose file moves the bundled database to Postgres 18 on the first `docker compose up -d`. Needs free disk about the size of the database. See [Moving to Postgres 18](/self-hosting/postgres-upgrade/). Also check: a proxy that reaches the app from a public address has to be listed in [`TRUSTED_PROXY_CIDRS`](/guides/reverse-proxy/#trusted_proxy_cidrs), or every user shares one sign-in rate limit; deletions now wait 14 days before they are final (`ACCOUNT_DELETION_GRACE_DAYS=0` keeps them immediate, see [The grace window](/account/data-deletion/#the-grace-window)). |
 | v1.45.0 | With a web/worker split, start the new worker first and the web containers after its log shows `"reminder_worker": "started"`. Add `stop_grace_period: 45s` to a forked compose file. |
 | v1.43.0 | Run v1.42.x first and let it finish its location backfill. A host that skips it stops at migration 0409; see [below](#migration-0409-stops-the-upgrade). |
 | v1.42.0 | The database container restarts once (it now loads `pg_stat_statements`). Background jobs repair and clean up folded Apple Health data; afterwards start the maintenance run (see [Database maintenance](/self-hosting/database-maintenance/)). Behind PgBouncer set `DATABASE_SESSION_OPTIONS_DISABLED=1` first. |
+
+### The v1.47.0 image
+
+v1.47.0 moves the app image from Alpine to the official Node 22 image on
+Debian slim. The runtime is glibc now, and the native page renderer, password
+hashing and the Prisma engine run their glibc builds. The published arm64
+image renders PDF pages on a Raspberry Pi 4 again. Node security releases
+reach the image with the official Node image, usually within days. Inside the
+container:
+
+- **No package manager.** npm, npx, corepack and yarn are removed. The
+  operator scripts still run with `node`, for example
+  `docker compose exec app node scripts/reset-password.mjs <username-or-email>`.
+- **No `psql` in the app container.** Run it in the `db` container:
+  `docker compose exec db psql -U healthlog`. `pg_dump` and `pg_restore` are
+  still in the app image, at PostgreSQL 18.6, the bundled database's version.
+- **Health checks.** The current `docker-compose.yml` probes `/api/health`
+  with Node directly. A compose file copied before this release, or a platform
+  template, that still health-checks with `wget` keeps working: the image
+  carries a small `wget` that answers health checks and nothing else. Switch
+  to the probe in the current compose file when you next update yours.
 
 ### Migration 0409 stops the upgrade
 

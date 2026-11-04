@@ -217,6 +217,13 @@ allowed to use:
   reports, letters) become searchable this way; a scan or a photo waits until
   something reads it.
 
+On a server without the page renderer (an x86-64 CPU without AVX2, see
+`NATIVE_CANVAS` in the [environment reference](/reference/environment-variables/)),
+a provider that takes pages as images cannot be sent a PDF's pages. Since
+v1.47.0 a PDF with a text layer is then read as text, and a scan says plainly
+that this server cannot turn its pages into images. A PDF that fails to render
+on a capable server is reported as that, not as a provider problem.
+
 Documents brought in by the import script are held back from AI reading by
 default, and the switch does not reach them later. How to read them is in
 [AI reading of imported documents](/guides/import-documents/#ai-reading-of-imported-documents).

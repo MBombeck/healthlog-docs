@@ -206,9 +206,14 @@ dataset (ZFS, TrueNAS, Unraid), taken with the app stopped, works as well.
 The dump:
 
 ```bash
-docker compose exec -T db pg_dump -U healthlog healthlog \
+docker compose exec -T db pg_dump -U healthlog --no-owner --no-privileges healthlog \
   | gzip > healthlog-$(date +%F).sql.gz
 ```
+
+`--no-owner --no-privileges` leaves out the grants to the app's own database
+role (since v1.47.0, see [The app's database role](/self-hosting/database-role/)),
+so the dump also loads on a server where that role does not exist yet. The
+next start of the app grants the role again.
 
 ### Restore a database dump
 
@@ -239,7 +244,8 @@ The app needs the encryption key the data was written with. With a different
 key it starts but refuses to serve, with "HealthLog cannot open its data" (see
 [Troubleshooting](/self-hosting/troubleshooting/#healthlog-cannot-open-its-data)).
 A dump in Postgres' custom format (`pg_dump -Fc`) loads with `pg_restore
---no-owner -d healthlog` instead of `psql`.
+--no-owner --no-privileges -d healthlog` instead of `psql`; without the two
+flags it fails on a database where the app's role does not exist.
 
 To move a running server, stop the app on the old one, take a dump by hand,
 copy it and the `.env` to the new server, pin the same version there with

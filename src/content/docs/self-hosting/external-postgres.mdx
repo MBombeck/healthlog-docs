@@ -35,6 +35,19 @@ CREATE DATABASE healthlog OWNER healthlog;
 Two things this deliberately does not grant: `SUPERUSER`, and `CREATEDB`.
 Neither is used.
 
+**`CREATEROLE`, if you want the restricted app role.** Since v1.47.0, on
+Postgres 17 or later and with a `DATABASE_URL` user that may create roles, the
+app and the worker connect as a role of their own that reads and writes rows
+but cannot change the schema; the migrations stay with the owner. Without
+`CREATEROLE`, or on Postgres 16, the app runs as the `DATABASE_URL` user as
+before and the start log says why. A `pg_hba.conf` that lists users by name
+needs a line for that role as well. See
+[The app's database role](/self-hosting/database-role/).
+
+```sql
+ALTER ROLE healthlog CREATEROLE;
+```
+
 If the database already exists and is owned by another role, the equivalent
 grants are `CREATE` on the database (for the `pgboss` schema) and `ALL` on the
 `public` schema, plus ownership of the tables the migrations create. Ownership

@@ -140,6 +140,18 @@ itself, an administrator can read the database directly, which is why
 [what a shared record is](/explanation/record-sharing/) treats "who can read it
 on that hardware" as a separate question from "what leaves the host".
 
+**What a bug inside the container can reach.** Since v1.47.0 the app and the
+worker connect to Postgres as a
+[role of their own](/self-hosting/database-role/) that reads and writes rows but
+cannot change or drop tables, create functions, read server files or create
+roles; the migrations and restores run as the database owner. That needs
+Postgres 17 or later and a database user that may create roles, which the
+bundled compose file provides; elsewhere the start log says why it is not in
+place. The image
+carries no package manager (npm, npx, corepack and yarn are removed). Code
+that a compromised dependency ran inside the app would find a connection that
+can reach the rows, not one that can rewrite the schema.
+
 A worked example of the same reasoning applied to the most sensitive category in
 the app is the
 [cycle-data threat model](https://github.com/MBombeck/HealthLog/blob/main/docs/security/cycle-data-threat-model.md).
