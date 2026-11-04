@@ -297,6 +297,15 @@ per-user Settings card.
 - If Google Health and another source both supply the same vital, the
   per-metric [source priority](/guides/source-priority/) decides which reading
   is canonical.
+- One Google account connects to one HealthLog profile per instance. From
+  v1.44.0 to v1.46.3 every connection stored the same placeholder as its
+  Google account id, so a second profile on the same instance was turned away
+  with "This Google account is already connected to another HealthLog
+  profile", even on a reconnect. Since v1.46.4 the connect stores the
+  account's real id, and the update cleared the placeholder; a profile that
+  was turned away connects with its next attempt. Since v1.46.6 a connection
+  whose id the update cleared reads its real id back after a clean sync, so
+  the one-account-per-profile check covers it again.
 
 ## Disconnect
 
@@ -305,25 +314,19 @@ connection. Previously synced measurements stay in the database.
 
 ## Garmin owners
 
-There is no direct Garmin connector for a self-hosted instance, and there
-cannot be one: Garmin's data-sharing program is business-partner-only —
-approval-gated and not the "register your own app, paste a key" model the
-other wearable integrations rely on. Instead, HealthLog reads Garmin data
-through the phone health platform the Garmin already feeds:
+Since v1.47.0 HealthLog reads Garmin Connect directly through Garmin's
+Personal API, with a key you create in your own Garmin account; see
+[Connect Garmin](/guides/connect-garmin/). It brings in more than the phone
+platforms carry, Body Battery, Garmin's all-day stress level and its sleep
+score included.
 
-- **Android:** since Garmin Connect 5.14.1 (July 2025) the app writes to
-  **Google Health Connect**, so this integration is how Garmin data reaches
-  HealthLog on Android.
-- **iOS:** Garmin Connect writes to Apple Health automatically — use the
-  [Apple Health import](/guides/import-apple-health/).
-
-Everything Garmin shares with the platform flows in: steps, heart rate, sleep
-stages, calories, distance, weight and body composition, cadence, and —
-partially — blood-oxygen saturation. Garmin's **proprietary scores** (Body
-Battery, HRV Status, VO₂ max, Training Load / Training Effect, Recovery Time,
-Intensity Minutes, Stress score, running dynamics) are not shared with Apple
-Health or Health Connect, so no self-hosted integration can obtain them — they
-remain visible only inside Garmin Connect itself.
+The phone route still works. Since Garmin Connect 5.14.1 (July 2025) the app
+writes to **Google Health Connect**, so this integration brings Garmin data in
+on Android, and on iOS Garmin Connect writes to Apple Health, which the
+[Apple Health import](/guides/import-apple-health/) and the iOS app read. When
+both routes deliver the same vital, the per-metric
+[source priority](/guides/source-priority/) decides which reading is
+canonical.
 
 ## Related
 
