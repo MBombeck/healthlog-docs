@@ -172,6 +172,21 @@ URL must additionally be allowed via `ADMIN_AI_BASE_URL_ALLOWLIST` in the
 container environment. The user-level Local provider does not read that
 variable — it is governed by the SSRF guard above.
 
+### Azure OpenAI
+
+Point the gateway at the resource's v1 endpoint,
+`https://<resource>.openai.azure.com/openai/v1`, and put the deployment name
+in Model. A reasoning model (gpt-5 on, the o-series) takes
+`max_completion_tokens` and no `temperature`, the same as on `api.openai.com`.
+HealthLog sends that from the first request when the deployment is named after
+its model (`gpt-6-luna-eu`, for example). A deployment with a name of its own
+(`prod-chat`) gets the usual `max_tokens` once; Azure refuses it, and the
+request goes out again with `max_completion_tokens`. HealthLog remembers that
+for the endpoint and deployment until the container restarts. Any other
+gateway that refuses `max_tokens` the same way is handled the same way. GPT-4
+deployments and other gateways keep the request shape they had (since
+v1.46.5).
+
 ## ChatGPT OAuth (Codex)
 
 Routes generations via the `chatgpt.com/backend-api/codex/responses` endpoint the

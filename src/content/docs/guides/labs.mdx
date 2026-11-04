@@ -30,7 +30,9 @@ also offered). A result has:
   qualitative tests. Exactly one of the two.
 - **Unit.** A reading in another unit than its marker's is converted where
   the conversion is well defined and refused otherwise; see
-  [One unit per marker](#one-unit-per-marker).
+  [One unit per marker](#one-unit-per-marker). A ratio or index without a
+  unit takes the explicit **No unit** choice; see
+  [Values without a unit](#values-without-a-unit).
 - **Sample date and time.**
 - Optionally a **panel** label, the **reference range printed on the report**,
   and a **note**. The note is encrypted at rest.
@@ -129,6 +131,21 @@ conversion is well defined and refused where it is not. That holds on every
 path that writes a lab value: the form, a scan, a document from the vault,
 the CSV import and the API.
 
+### Values without a unit
+
+Ratios and indices such as INR, cholesterol/HDL or albumin/globulin have no
+unit. Manual entry, the scanned-report rows and the document review offer an
+explicit **No unit** choice for them, stored as the UCUM unity `"1"`, and the
+CSV import reads `1` in the unit column the same way. An empty unit is still
+refused, so a unit the reading lost is not mistaken for none, and a document
+read that answers "no unit" by itself is held for review. Such a value shows
+as the number alone, a marker kept in a real unit refuses it, and the FHIR
+export codes it as UCUM `1` (since v1.46.6).
+
+A marker created from a text result ("see note") has no unit yet. While it
+holds only text readings, its first number sets the unit, a unitless ratio
+included (since v1.47.0).
+
 ### Unit conversion
 
 Two kinds of pairs are converted:
@@ -187,7 +204,11 @@ conversion.
 
 The scan review marks such a row before you save ("This marker is tracked
 in mg/dL. Change the unit if the report was misread, or deselect this
-reading."); the other rows are saved. The API answers `422`
+reading."); the other rows are saved. In the review of a document from the
+vault, a value that **Finish review** refused,
+such as a ratio printed without a unit or a unit that disagrees with the
+marker, offers the same **Check** control as a low-confidence value, so it can
+be corrected instead of only discarded. The API answers `422`
 `labs.unit.mismatch` with a reason.
 
 A marker's unit cannot be changed while it has readings, because the stored

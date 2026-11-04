@@ -256,7 +256,9 @@ the Labs or Medications module has to be on.
 
 **Lab results** map marker, result, unit, date and optionally time, reference
 range (as one column or a low and a high), panel and note. A result can be a
-number or a text such as `negative`; a number needs a unit. Markers are
+number or a text such as `negative`; a number needs a unit, and a ratio or
+index without one takes `1` in the unit column (see
+[Values without a unit](/guides/labs/#values-without-a-unit)). Markers are
 matched to the ones you already track and units converted where the
 conversion is known, by the same rules as a scan (see
 [One unit per marker](/guides/labs/#one-unit-per-marker)); a name you do not
