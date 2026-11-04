@@ -6,7 +6,7 @@ sidebar:
 ---
 
 HealthLog pulls from Withings, WHOOP, Fitbit, Oura, Polar and Strava over
-OAuth. A local sensor has no such door: a Bluetooth scale, a Garmin bridge or a
+OAuth, and from [Garmin](/guides/connect-garmin/) with a key you create. A local sensor has no such door: a Bluetooth scale, a Garmin bridge or a
 Zigbee thermometer lives in your own automation platform and has to push. This
 page covers that path, a token you mint yourself and the two endpoints it
 reaches.
@@ -181,6 +181,37 @@ integration tends to have:
 | Indoor CO₂                     | `INDOOR_CO2`             | ppm           |
 | Room temperature               | `INDOOR_TEMPERATURE`     | °C            |
 | Indoor relative humidity       | `INDOOR_HUMIDITY`        | %             |
+
+Garmin's Personal API does not carry Training Readiness or the acute
+training load. If Home Assistant reads them, for example through a Garmin
+Connect integration, push them with their own types:
+
+| What the sensor reports    | `type`                | Unit expected |
+| -------------------------- | --------------------- | ------------- |
+| Garmin Training Readiness  | `TRAINING_READINESS`  | score 0–100   |
+| Garmin acute training load | `ACUTE_TRAINING_LOAD` | load, no unit |
+
+Both change about once a day and appear on the recovery page next to Body
+Battery. An automation that pushes Training Readiness whenever the sensor
+changes, through the `healthlog_measurement` command above:
+
+```yaml
+automation:
+  - alias: "HealthLog: Garmin training readiness"
+    triggers:
+      - trigger: state
+        entity_id: sensor.garmin_training_readiness
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.to_state.state | is_number }}"
+    actions:
+      - action: rest_command.healthlog_measurement
+        data:
+          type: TRAINING_READINESS
+          value: "{{ trigger.to_state.state | float }}"
+```
+
+The acute load is the same with its own sensor and type.
 
 Units are derived server-side from the type, so send the number in the unit
 above and do not send a `unit` field. Each type also has a plausibility range

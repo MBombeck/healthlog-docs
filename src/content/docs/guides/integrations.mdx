@@ -6,8 +6,9 @@ sidebar:
 ---
 
 Every connection under **Settings, Integrations** uses the same card:
-Withings, WHOOP, Oura, Polar, Strava, Google Health, Fitbit, Nightscout, Apple
-Health and [Dawarich](/guides/connect-dawarich/). The card answers whether the connection works,
+Withings, WHOOP, Oura, Polar, [Garmin](/guides/connect-garmin/), Strava, Google
+Health, Fitbit, Nightscout, Apple Health and
+[Dawarich](/guides/connect-dawarich/). The card answers whether the connection works,
 what that means in one sentence, and what you can do about it. The server
 decides the state and the sentence; the web app and the iOS app only show
 it, so both always agree.
@@ -69,8 +70,8 @@ row of buttons. What it offers depends on the provider:
 - **Sync all data**, the full history, with a confirmation
 - **Test connection**
 - a link to the data, for example **View your measurements**
-- **Change credentials** (bring-your-own providers), or **Change address and
-  token** (Nightscout)
+- **Change credentials** (bring-your-own providers), **Change address and
+  token** (Nightscout), or **Replace key** and **Key validity** (Garmin)
 - **Setup guide**
 - **Disconnect**, with a confirmation. Data already synced stays.
 
@@ -139,7 +140,7 @@ It watches for three things:
 - **A source that goes silent.** This applies only to sources that deliver
   around the clock and have delivered on most days of the last two weeks.
   Silence counts after 24 hours for Fitbit, Google Health, Polar and
-  Nightscout, and after 48 hours for Apple Health, Oura and WHOOP. Oura and
+  Nightscout, and after 48 hours for Apple Health, Garmin, Oura and WHOOP. Oura and
   WHOOP upload only when their phone app is opened, and iOS sometimes holds
   background delivery back for a day, so a single quiet day is ordinary for
   them. Scales, blood-pressure cuffs and Strava never count as silent: not
