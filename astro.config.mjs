@@ -111,6 +111,7 @@ export default defineConfig({
 						{ slug: 'guides/vaccinations' },
 						{ slug: 'guides/illness' },
 						{ slug: 'guides/cycle-tracking' },
+						{ slug: 'guides/cycle-calendar-feed' },
 						{ slug: 'guides/custom-metrics' },
 						{ slug: 'guides/checkups-and-practitioners' },
 						{ slug: 'guides/related-records' },

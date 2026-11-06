@@ -257,6 +257,49 @@ and the batch routes the app uses for measurements, workouts, ECG recordings,
 mood entries, medication intakes and cycle day logs. A client that posts a
 larger body anywhere else is refused, whatever the proxy allows.
 
+## Credentials in the URL path
+
+A few HealthLog URLs carry their credential in the path, because the caller
+cannot send a header: the [cycle calendar feed](/guides/cycle-calendar-feed/)
+(`/api/cycle/feed/hlf_…`, fetched by Google, Apple or Outlook), the clinician
+share view (`/c/hls_…`) and the provider webhooks. HealthLog removes these
+segments from its own logs and error reports. It cannot reach your proxy's
+access log, which records the full path of every request by default, so
+anyone who can read that log can read a live feed link.
+
+Either skip those requests in the access log or log a redacted path. For
+Caddy:
+
+```caddyfile
+your-instance.example.com {
+    @credential_paths path /api/cycle/feed/* /c/*
+    log_skip @credential_paths
+    reverse_proxy app:3000
+}
+```
+
+For Nginx, log a redacted path instead of `$request`:
+
+```nginx
+map $request_uri $redacted_uri {
+    ~^/api/cycle/feed/  /api/cycle/feed/[REDACTED];
+    ~^/c/               /c/[REDACTED];
+    default             $request_uri;
+}
+log_format redacted '$remote_addr - [$time_local] "$request_method $redacted_uri" '
+                    '$status $body_bytes_sent "$http_user_agent"';
+access_log /var/log/nginx/access.log redacted;
+```
+
+Traefik's access log has no filter per path. Turn `accessLog` off, or keep it
+on a host only you can read. If a feed link has ended up in a log you do not
+control, rotate it in the app: the old link stops working on the provider's
+next fetch.
+
+The feed answers with `Cache-Control: private, no-cache` and an `ETag`. A
+caching proxy in front has to pass `If-None-Match` through instead of caching
+the body for everyone.
+
 ## A sign-in gateway in front of HealthLog
 
 If Authelia, Authentik, Cloudflare Access or another forward-auth layer
@@ -267,6 +310,10 @@ token in the path is the only credential it needs. Add a bypass rule for
 `POST /api/notifications/action/*`, and make sure `APP_URL` is the exact
 public https address so no redirect turns the `POST` into a `GET`. See
 [When a quick answer does nothing](/guides/reminder-channels/#when-a-quick-answer-does-nothing).
+
+Calendar apps cannot sign in either. If you use the cycle calendar feed, add a
+bypass for `GET /api/cycle/feed/*` as well. The token in the path is its
+credential, and an unknown or revoked token gets a plain 404.
 
 ## Verify the chain
 

@@ -258,6 +258,29 @@ catalog is managed under **Settings → Modules → Labs**, together with **Read
 scans on this device**. View mode and sort order are under **Settings →
 Arrangement → Labs**.
 
+## Group by category
+
+A long list of markers is easier to read in groups. Under **Settings →
+Arrangement → Labs**, set **Grouping** to **By category** and the list sorts
+your markers under their panel, such as Lipids, Liver or Thyroid. Each group
+header says whether all its latest values are in range or how many are
+outside it. A value outside its range is information, not an alarm, so the
+header carries no warning colour.
+
+- A marker's category is its panel. Catalog panels are recognised in every
+  language, so "Lipide" and "Lipids" end up in one group.
+- A panel you typed yourself becomes a group of its own.
+- A marker without a panel goes into the catalog panel its name belongs to,
+  if the catalog knows it, and otherwise into **Other**.
+- **Open on load** decides which groups start open: all of them, only those
+  with a value outside range, or none.
+- Your sort order applies inside each group.
+
+With fewer than two groups, or with everything under **Other**, the list
+stays flat. The panel field on a marker suggests the catalog panels and the
+ones you already use, and a merge hands a panel to the kept marker when it
+had none. Grouping is off by default.
+
 ## Merge markers and other names
 
 The same test can arrive under two names from two labs, and then sits in the

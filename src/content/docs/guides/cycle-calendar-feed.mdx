@@ -1,0 +1,93 @@
+---
+title: Subscribe to your cycle in a calendar
+description: Publish your cycle forecast as a calendar subscription for Google, Apple or Outlook, what the feed shows and leaves out, discreet titles, rotating or turning off the link, and what a self-hoster should do about access logs.
+sidebar:
+  order: 34
+---
+
+HealthLog can publish your cycle forecast as a calendar subscription, so your
+next periods show up in the calendar app you already use. HealthLog builds the
+feed each time your calendar app asks for it and stays the only place your
+cycle log is kept. Setting up cycle tracking itself is covered in
+[Track your cycle](/guides/cycle-tracking/).
+
+Your calendar provider stores what it fetches on its own servers, and turning
+the subscription off later does not delete copies it already has. That is the
+trade, and the reason the subscription is off until you turn it on.
+
+## Turn it on
+
+1. Open **Cycle**, then **Settings**, and find **Calendar subscription**.
+2. Read the note on the card, then select **Turn on subscription**.
+3. Confirm it is you with your password or a passkey.
+4. Copy the link, or select **Open in calendar app**.
+
+The link is shown only this once. If you lose it, rotate it to get a new one.
+The card shows when a calendar app last fetched the feed, and which one.
+
+Only you can turn it on for your own record. A guardian can turn it on for a
+managed profile, such as a child's record. Someone you share your record with
+cannot, at any access level, because the feed puts your dates in their
+calendar provider's cloud. The subscription is managed on the web, and the
+iOS app shows where to find it.
+
+## Add it to your calendar
+
+- **Google Calendar:** Other calendars, From URL, then paste the link. Google
+  refreshes subscriptions on its own schedule, roughly every 12 to 24 hours.
+- **Apple Calendar:** on a Mac, File, New Calendar Subscription. On iPhone,
+  Settings, Calendar, Accounts, Add Account, Other, Add Subscribed Calendar.
+  Apple lets you choose how often it refreshes.
+- **Outlook:** Add calendar, Subscribe from web, then paste the link. Outlook
+  refreshes every few hours.
+
+## What the feed shows
+
+- **The next period.** Once three cycles are logged, also the ones after it:
+  three by default, up to six under **Cycles ahead**. Each event spans the
+  whole window the period may start in, and the window gets wider the further
+  ahead it is. The feed stops on its own where a date would be more guess than
+  estimate, beyond about ten days either way or half a cycle.
+- **Past cycles**, if you want them, up to twelve. None by default.
+- **The fertile window** of the next cycle, offered only when your goal is
+  trying to conceive. It is an estimate, not a contraceptive method.
+
+Titles are discreet by default. Each event is a dot (●) and the calendar is
+called "HealthLog". Under **Event titles** you can switch to descriptive
+titles, which say "Period (estimate)" or "Period (logged)". Events never carry
+symptoms, notes, flow, temperatures, test results or anything else from your
+log.
+
+When a period is later than its window, the feed shows no forecast until you
+log it, instead of guessing a new date. With predictions switched off, the
+feed only shows past cycles, if you chose to include them.
+
+## Rotate or turn off
+
+**Rotate link** gives you a new link, and calendars using the old one stop
+updating. **Turn off** ends the link. Either way, also remove the old
+subscribed calendar in your calendar app. What it has already fetched stays
+there until you do.
+
+Changing your password, or deleting your account, turns the subscription off
+as well.
+
+## For self-hosters
+
+The link is the credential, so it sits in the URL path
+(`/api/cycle/feed/hlf_…`). HealthLog keeps it out of its own logs, but your
+reverse proxy's access log records every path by default. Skip or redact
+those requests as described in
+[Credentials in the URL path](/guides/reverse-proxy/#credentials-in-the-url-path).
+If a forward-auth gateway guards the instance, let `GET /api/cycle/feed/*`
+through, because calendar apps cannot sign in.
+
+An unknown, rotated or revoked link gets a plain 404, the same answer for
+every case. The feed sends an `ETag`, so a calendar app that asks again
+without changes gets a short 304.
+
+## Related
+
+- [Track your cycle](/guides/cycle-tracking/)
+- [Menstrual cycle](/knowledge/menstrual-cycle/)
+- [Managed profiles](/guides/managed-profiles/)
