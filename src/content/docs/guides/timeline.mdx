@@ -7,8 +7,8 @@ sidebar:
 
 The timeline puts the years side by side: conditions, allergies, medications,
 vaccinations, doctor visits and procedures, labs and documents on one time
-axis, with up to six of your values and your chosen lab markers running
-underneath. It arrived in v1.42.0 as a module of its own.
+axis, with up to six of your values, your chosen lab markers and your own symptoms
+running underneath. It arrived in v1.42.0 as a module of its own.
 
 ## Switch it on
 
@@ -87,6 +87,26 @@ converted to the marker's unit are left out, and the timeline says how many.
 Your choice is remembered on the device like the other value lines. On a
 phone the same menu sits in the toolbar, and the chronicle lists a lab day's
 readings.
+
+### Your own symptoms
+
+Since v1.47.1 the values menu also has a **Symptoms** section with every
+[symptom of your own](/guides/illness/#your-own-symptoms) you have logged at
+least once. A symptom you hid is offered too, marked as hidden, because hiding
+keeps its history. Up to 24 symptoms can be shown at once.
+
+A symptom line sits on a fixed scale from 0 to 10, so two symptoms and a
+measurement line underneath can be read against each other. A day counts with
+the highest intensity you logged on it, so three entries of a headache on one
+afternoon are one day at its worst. Each point is the mean of those days in
+the week, month or quarter the zoom shows, and says how many days it rests
+on. A point resting on fewer than three days is drawn hollow. A day without an
+entry is left out rather than counted as zero, because nothing written down is
+not the same as nothing felt.
+
+The lines belong to the Illness module, like the symptoms themselves: with the
+module off, the section is not shown. On a shared record they appear only
+when the share covers illness.
 
 ## Life events
 
