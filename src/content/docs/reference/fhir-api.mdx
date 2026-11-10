@@ -92,7 +92,10 @@ for step length, walking speed, walking asymmetry and VO₂ max with its
 HealthKit identifier, rather than under a code that means something else; this
 covers mood, estimated A1C and average cycle and period length. Resting heart
 rate and pulse-oximetry SpO₂ also carry the codes the R4 vital-signs profiles
-require. A medication's ATC coding carries no display, since your name for it
+require. Blood ketone readings are laboratory observations under LOINC
+`104816-4` (beta-hydroxybutyrate in blood, mmol/L); the glucose-ketone index
+is worked out when it is read and has no observation of its own. A
+medication's ATC coding carries no display, since your name for it
 is not the ATC name; the name stays in the text. Mood is a survey finding, not
 part of the vital-signs panel.
 
