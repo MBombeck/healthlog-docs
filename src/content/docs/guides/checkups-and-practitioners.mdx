@@ -58,21 +58,35 @@ Push, webhook) as the measurement-reminder type, which is on by default; see
 ### When a reminder is due
 
 A reminder notifies at its notify hour on the day it falls due. What happens
-after that depends on how often it repeats:
+after that depends on how it repeats:
 
-- **Less often than once a week** (a yearly blood panel, a PHQ-9 every 14
-  days, a booster), and a rule-based reminder on its last date: it stays due
-  after the notification, and from the next day reads as overdue, on the
-  checkups page, the dashboard card and the
-  [start page](/insights/today/#the-worth-a-look-rail). It stays there until
-  you log the reading, fill in the questionnaire or mark it done (a lab result
-  also completes a free-text reminder), skip it, or snooze it to another day.
-  While it stays open it is reminded again at most once a week. For a rule,
-  "less often than once a week" means its next two dates are more than seven
-  calendar days apart.
-- **Once a week or more often** (a weekly weigh-in, a daily blood-pressure
-  course): it moves on to its next date after the notification, because that
-  date brings the next reminder anyway.
+- **An interval** (a preset, or a custom "every N days"), a rule that repeats
+  less often than once a week (`FREQ=YEARLY`, a fortnightly questionnaire),
+  and a rule on its last date: it stays due after the notification, and from
+  the next day reads as overdue, on the checkups page, the dashboard card and
+  the [start page](/insights/today/#the-worth-a-look-rail). It stays there
+  until you log the reading, fill in the questionnaire or mark it done (a lab
+  result also completes a free-text reminder), skip it, or snooze it to
+  another day. While it stays open an interval is reminded again every N
+  days, never more than a week apart, and a rule once a week, each time at
+  its usual notify hour. For a rule, "less often than once a week" means its
+  next two dates are more than seven calendar days apart.
+- **A rule that repeats within a week** (a weigh-in every Monday,
+  `FREQ=WEEKLY;BYDAY=MO`, or a twice-daily blood-pressure course): it moves
+  on to its next date after the notification, because that date brings the
+  next reminder anyway.
+
+Since v1.47.2 this holds for every interval, short ones included. Before, an
+interval of a week or less, such as blood pressure every two days, moved on
+by its interval as soon as its reminder went out, so a missed reading read
+"In 2 days" every evening and never showed as due or overdue. A reminder that
+had already moved on that way corrects itself at its next notification.
+
+On the start page a reminder on a cycle longer than a week (an interval of
+more than seven days, or a rule whose dates lie more than a week apart) shows
+from the morning of its due day and keeps its place when the rail is full. A
+shorter one appears once its notify hour has come, and if it is missed it
+stays there, overdue, until it is done.
 
 Marking a reminder done or skipping it sets the next date from that moment:
 an interval starts again there, a rule takes its next occurrence. A snooze, or the **Later** button on a
@@ -84,8 +98,9 @@ its interval, its rule or its first due date (compared by calendar day, so
 saving the same date again changes nothing) works out the due date again.
 Changing only the notify hour keeps the due day and moves the time on it; a
 reminder already sent that day is not sent a second time at the later hour.
-Switching a reminder off and on again keeps an open due date for a reminder
-that stays due; a weekly or more frequent one is scheduled from that moment.
+Switching a reminder off and on again keeps an open due date, overdue or
+not, for every reminder that stays due, intervals included; only a rule that
+repeats within a week is scheduled from that moment.
 
 ## Practitioners
 
