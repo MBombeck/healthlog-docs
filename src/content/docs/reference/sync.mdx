@@ -147,6 +147,22 @@ curl -s "https://your-instance.example.com/api/sync/changes?cursor=<opaque>&limi
 returned `cursor` advances every domain that returned rows. When `hasMore` is
 `false` the client is caught up as of `serverNow`.
 
+A caught-up page holds its cursor back: in every row domain except
+`measurementMirror`, a watermark later than one minute before `serverNow` is
+set to that point, so the next pull reads the last minute again. The reason is
+a long write. An import from Garmin or Withings writes a batch in one
+transaction and stamps its rows before it commits them, so a quick write that
+commits in between could otherwise carry the watermark past rows that were not
+yet visible, and the keyset would never return them. A page with
+`hasMore: true` is not held back, so a busy minute still drains. The overlap
+means a client receives some rows twice, so its upserts must be idempotent,
+keyed on the domain's identity key.
+
+`start=now` asks for a position instead of a page: it answers empty change sets
+and a cursor one minute before `serverNow` in every domain, in the same opaque
+format, for a client that only wants what changes from then on. It cannot be
+combined with `cursor` (`422`).
+
 The delta feed is **incremental only** — it is a catch-up mechanism, never a
 substitute for the first-pair backfill. A freshly paired client must do the
 backfill through the list + batch endpoints first.
