@@ -124,9 +124,14 @@ native app cannot disagree. Examples: the `ai` block on `GET /api/auth/me`
 (whether each AI feature is available, and why not); `courseStatus` and
 `intakeActionable` on the medication reads (where today sits in the course, and
 whether taken and skip are offered); the trend verdicts on the series and the
-dashboard; `appleHealthMirror` on measurement rows; and `cursorExpired` on
-`GET /api/sync/changes` (the client's position no longer holds). The OpenAPI
-document describes each field.
+dashboard; `appleHealthMirror` on measurement rows; the glucose-ketone index,
+computed on each read and never stored, as `kind=glucoseKetoneIndex` on
+`GET /api/measurements/series` (unit `ratio`, each point naming the ketone and
+glucose readings it came from; `kind=ketones` is the readings themselves, in
+`mmol/L`) and as `glucoseKetoneIndex` on `GET /api/day/{date}`; `categories`
+on `GET /api/labs/overview`, already in the person's category order; and
+`cursorExpired` on `GET /api/sync/changes` (the client's position no longer
+holds). The OpenAPI document describes each field.
 
 Text the server writes for a person is written in that person's units: the
 health score's labels, the Coach's tables of values and the metric status texts
