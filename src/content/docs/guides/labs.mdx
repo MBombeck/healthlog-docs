@@ -146,6 +146,17 @@ A marker created from a text result ("see note") has no unit yet. While it
 holds only text readings, its first number sets the unit, a unitless ratio
 included (since v1.47.0).
 
+### A "(calc)" note is not a unit
+
+Some reports print a note beside a value the lab calculated rather than
+measured, and a document read could copy it into the unit, so one report
+gave "g/dL (calc)" and the next plain "g/dL". A document read now drops a
+trailing `(calc)`, `(calculated)`, `(computed)`, `(berechnet)` or `(ber.)`
+from the unit, in any letter case. A unit that was only the note counts as no
+unit. Every unit comparison ignores the note as well, so a marker already
+saved in "g/dL (calc)" accepts a plain "g/dL" reading. Any other text in
+brackets still counts as part of the unit (since v1.47.2).
+
 ### Unit conversion
 
 Two kinds of pairs are converted:
@@ -280,6 +291,24 @@ With fewer than two groups, or with everything under **Other**, the list
 stays flat. The panel field on a marker suggests the catalog panels and the
 ones you already use, and a merge hands a panel to the kept marker when it
 had none. Grouping is off by default.
+
+### Category order
+
+While grouping is on, the same page has a **Category order** card. Until you
+move a category, the catalog panels come in a fixed order (lipids, glucose,
+thyroid, iron, vitamins, inflammation, renal, liver, electrolytes, blood
+count), your own panels follow alphabetically, and **Other** comes last. Move
+a category with its handle or its arrows; the whole order is saved after each
+move.
+
+- A category that turns up later, such as a new panel you type, joins the end
+  of your order.
+- **Other** stays last as long as you left it there. Move it up and it keeps
+  the place you gave it.
+- The order is saved with your account and the server applies it, so a
+  client reading the labs overview shows the categories in the same order
+  (`GET /api/labs/overview` answers `categories` in that order; the labs list
+  layout accepts `categoryOrder`).
 
 ## Merge markers and other names
 
