@@ -146,6 +146,24 @@ A marker created from a text result ("see note") has no unit yet. While it
 holds only text readings, its first number sets the unit, a unitless ratio
 included (since v1.47.0).
 
+### A "(calc)" note is not a unit
+
+Some reports print a note beside a value the lab calculated rather than
+measured, and a document read could copy it into the unit, so one report
+gave "g/dL (calc)" and the next plain "g/dL". A document read now drops a
+trailing `(calc)`, `(calculated)`, `(computed)`, `(berechnet)` or `(ber.)`
+from the unit, in any letter case. Every unit comparison ignores the note as
+well, so a marker already saved in "g/dL (calc)" accepts a plain "g/dL"
+reading. Any other text in brackets still counts as part of the unit (since
+v1.47.2).
+
+A unit that was only the note counts as no unit. Such a value does not create
+a marker: it is held in the document review, and it can be saved only once you
+set its unit there or choose **No unit**, so a person decides whether the
+value really has none. A marker already saved in just "(calc)" keeps that
+unit. Like any marker with readings, its unit cannot be changed on the
+marker while it holds them.
+
 ### Unit conversion
 
 Two kinds of pairs are converted:
@@ -280,6 +298,49 @@ With fewer than two groups, or with everything under **Other**, the list
 stays flat. The panel field on a marker suggests the catalog panels and the
 ones you already use, and a merge hands a panel to the kept marker when it
 had none. Grouping is off by default.
+
+### Category order
+
+While grouping is on, the same page has a **Category order** card. Until you
+move a category, the catalog panels come in a fixed order (lipids, glucose,
+thyroid, iron, vitamins, inflammation, renal, liver, electrolytes, blood
+count), your own panels follow alphabetically, and **Other** comes last. Move
+a category with its handle or its arrows; the whole order is saved after each
+move.
+
+- A category that turns up later, such as a new panel you type, joins the end
+  of your order.
+- **Other** stays last as long as you left it there. Move it up and it keeps
+  the place you gave it.
+- The order is saved with your account and the server applies it, so a
+  client reading the labs overview shows the categories in the same order
+  (`GET /api/labs/overview` answers `categories` in that order; the labs list
+  layout accepts `categoryOrder`).
+
+## Search and filter the list
+
+The labs list has a search field beside its filter rail. It finds a marker by
+its name or its panel, ignoring letter case and accents, so "hamoglobin"
+finds "Hämoglobin". Press `/` anywhere on the page to jump into the
+field, unless you are already typing somewhere or a dialog or menu is open.
+
+The rail filters by:
+
+- **Last measured**: a from and to date for the marker's newest reading.
+  Older readings are not looked at, so a marker measured inside the range and
+  again after it drops out.
+- **Status**: **Out of range** (below or above), **In range**, **Below
+  range** or **Above range**, read from the latest value.
+- **Category**: one category, shown once there are at least two.
+
+The rail counts the markers that match, and **Reset** clears every filter
+at once. The search and the filters live in the page address, so a filtered
+view survives a reload and the back button, and a link to it opens the same
+view. While a filter is on, every category group that still holds a match is
+open, whatever **Open on load** says, and its header sums up only the
+matching markers; the groups return to how you left them when the filter is
+cleared. The list has no sort control of its own: the sort order under
+**Settings → Arrangement → Labs** applies to the filtered list as well.
 
 ## Merge markers and other names
 

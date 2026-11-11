@@ -87,6 +87,7 @@ cell.
 | `BLOOD_PRESSURE_SYS`, `BLOOD_PRESSURE_DIA` | `mmHg` | |
 | `PULSE`, `RESTING_HEART_RATE` | `bpm` | |
 | `BLOOD_GLUCOSE` | `mg/dL` | `mmol/L`, `mmol` |
+| `BLOOD_KETONES` | `mmol/L` | |
 | `BODY_FAT`, `OXYGEN_SATURATION` | `%` | |
 | `SLEEP_DURATION` | `minutes` | |
 | `ACTIVITY_STEPS` | `steps` | |
@@ -104,8 +105,14 @@ takes its canonical unit and nothing else. The full type list is the
 
 Conversion happens before the plausibility check, so a weight of `180 lb` is
 range-checked as `81.6 kg`. Each type has such a range: weight 1 to 500 kg,
-systolic 40 to 300 mmHg, pulse 20 to 300 bpm, glucose 20 to 800 mg/dL, oxygen
-saturation 50 to 100 percent. A value outside it is skipped rather than stored.
+systolic 40 to 300 mmHg, pulse 20 to 300 bpm, glucose 20 to 800 mg/dL, blood
+ketones 0 to 10 mmol/L, oxygen saturation 50 to 100 percent. A value outside
+it is skipped rather than stored.
+
+A `BLOOD_KETONES` row needs no glucose row beside it. Where one exists at the
+same `measuredAt`, or within 15 minutes of it, the two pair for the
+[glucose-ketone index](/features/#health-metrics) by the same rule as
+readings typed into the form.
 
 ## The glucose context column
 

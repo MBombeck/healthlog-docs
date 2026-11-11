@@ -44,17 +44,28 @@ iOS app shows where to find it.
 ## What the feed shows
 
 - **The next period.** Once three cycles are logged, also the ones after it:
-  three by default, up to six under **Cycles ahead**. Each event spans the
-  whole window the period may start in, and the window gets wider the further
-  ahead it is. The feed stops on its own where a date would be more guess than
-  estimate, beyond about ten days either way or half a cycle.
+  three by default, up to six under **Cycles ahead**. The feed stops on its own
+  where a date would be more guess than estimate, beyond about ten days either
+  way or half a cycle.
 - **Past cycles**, if you want them, up to twelve. None by default.
 - **The fertile window** of the next cycle, offered only when your goal is
   trying to conceive. It is an estimate, not a contraceptive method.
 
-Titles are discreet by default. Each event is a dot (●) and the calendar is
-called "HealthLog". Under **Event titles** you can switch to descriptive
-titles, which say "Period (estimate)" or "Period (logged)". Events never carry
+A forecast is never certain, and the uncertainty grows with every cycle
+further out. Under **How forecasts look** you choose how the feed shows that:
+
+- **Expected days with margin** (the default for a new subscription). The
+  period as calculated, with the days it may start earlier or run on later as
+  separate entries titled "Period possible".
+- **Expected days.** Only the period as calculated, without the margin.
+- **One range.** One entry over every day the period may fall on. It gets
+  longer the further out it is. A subscription made with 1.47.1 keeps this
+  until you change it.
+
+Titles are discreet by default. Each event is a dot (●), the possible days
+around a forecast an open one (○), and the calendar is called "HealthLog".
+Under **Event titles** you can switch to descriptive titles, which say
+"Period (estimate)", "Period possible" or "Period (logged)". Events never carry
 symptoms, notes, flow, temperatures, test results or anything else from your
 log.
 
