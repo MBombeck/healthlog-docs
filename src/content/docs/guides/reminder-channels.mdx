@@ -222,7 +222,17 @@ when both are present.
 A browser registers via `POST /api/notifications/web-push` after the user
 grants notification permission; `GET /api/notifications/vapid` hands the
 client the public key. Test a registration with
-`POST /api/notifications/web-push/test`.
+`POST /api/notifications/web-push/test`, which sends to every browser the
+person subscribed, in their language, and answers with a reason when it fails.
+
+Subscribing turns the channel back on when failed sends had switched it off,
+and the push card sends this browser's subscription again whenever it opens,
+so a subscription the server lost repairs itself. Signing out removes this
+browser's subscription once the server confirmed the sign-out, and a browser
+only carries the reminders of the account that subscribed it last. A channel
+with nobody to send to (no subscribed browser, no paired iPhone, no mail
+server) pauses for an hour and says why under **Settings → Integrations →
+Delivery channels** instead of counting failures. (Since 1.47.4.)
 
 On an iPhone, Safari supports Web Push only from **iOS 16.4** and only for a
 site installed to the Home Screen as a PWA — a regular Safari tab cannot
