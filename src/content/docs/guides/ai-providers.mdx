@@ -72,6 +72,15 @@ Entries the user has no credential for are silently skipped. The first to return
 a non-error completion wins; a 422 fires only when every entry errored. Edit the
 order — or disable an entry without removing it — in `/settings/ai`.
 
+An entry you switched off stays off. When none of the entries you left on can
+answer, every AI feature says no provider is available instead of reaching for
+one you turned off, such as the ChatGPT sign-in or the server key, so the cost
+lands where you expect it. The OpenAI-compatible gateway is the one exception:
+it is not part of the default order, so a gateway you picked keeps answering
+when the order comes up empty, unless you switched it off there. The connection
+test then reports "No AI provider configured". (Since 1.47.3; before, several
+features fell back to the ChatGPT sign-in or the server key on their own.)
+
 ## Local endpoints
 
 Any OpenAI-compatible local endpoint plugs in as the **Local** provider. Data
