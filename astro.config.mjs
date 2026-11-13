@@ -45,6 +45,7 @@ export default defineConfig({
 			},
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/MBombeck/HealthLog' },
+				{ icon: 'heart', label: 'Sponsor', href: 'https://github.com/sponsors/MBombeck' },
 			],
 			editLink: {
 				baseUrl: 'https://github.com/MBombeck/healthlog-docs/edit/main/',
