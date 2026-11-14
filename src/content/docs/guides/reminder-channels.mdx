@@ -240,6 +240,13 @@ subscribe. Share → **Add to Home Screen**, launch from the icon, then
 subscribe under **Settings → Integrations → Delivery channels**. Android and desktop browsers need
 no such step.
 
+If turning on push says the browser's push service refused, the browser asked
+its push service for a subscription and was turned away. HealthLog and its
+keys are not involved at that point. Brave does this by default: open
+`brave://settings/privacy`, switch on **Use Google services for push
+messaging**, restart Brave and try again. Other Chromium browsers with
+Google services removed can fail the same way.
+
 ## Tap targets, content and quick answers
 
 Every notification leads somewhere, a setting decides how much
