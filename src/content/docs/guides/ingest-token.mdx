@@ -46,9 +46,11 @@ It can add readings, on your own record, through:
 
 - `POST /api/measurements`: one reading, or an array of up to five
 - `POST /api/measurements/batch`: up to 500 entries per call
+- `POST /api/custom-metrics/{id}/entries`: one value for a [custom metric](/guides/custom-metrics/) you already created
 
 That is the whole list. It **cannot** read a reading back, change or delete
-one, reach the export, or mint another token. The read, edit and delete
+one, list your custom metrics or create one, reach the export, or mint another
+token. The read, edit and delete
 endpoints name no scope, so a request from this token is refused with `403`
 before the handler runs. That is the point of it being a separate credential
 rather than a general one: a container you do not fully trust, a Home
@@ -313,6 +315,30 @@ unknown to `ASLEEP`; leave out time out of bed. When you have more than one
 sleep source, the Sleep page shows one per night, following
 [Source priority](/guides/source-priority/).
 
+## Custom metric values
+
+A measurement token can also log values for your own
+[custom metrics](/guides/custom-metrics/). It cannot create a metric or list
+the ones you have, so first create the metric in the app, then copy its ID:
+open **Measurements**, tap the metric under **Custom metrics**, and take the
+part of the page address after `/custom-metrics/`. In
+`https://healthlog.example.com/custom-metrics/cmabc123xyz` the ID is
+`cmabc123xyz`.
+
+```bash
+curl -X POST https://healthlog.example.com/api/custom-metrics/cmabc123xyz/entries \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "value": 41.5, "measuredAt": "2026-11-14T07:00:00Z" }'
+```
+
+Send the number in the metric's own unit. The unit comes from the metric, not
+from the request, and `note` is optional. An ID that does not exist, belongs to
+a deleted metric or to another account gets `404`. Unlike readings, these
+values are not marked as coming from an external device, but HealthLog's audit
+log records which token wrote them. `Idempotency-Key` works as described below,
+and the endpoint shares the 300-a-minute allowance of the single-reading route.
+
 ## Retries and duplicates
 
 Both endpoints honour an `Idempotency-Key` header. Send a value your automation
@@ -403,7 +429,8 @@ account share that allowance; minting a second token does not double it.
 | Response | What it means                                                                                                                                                 |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `401`    | The token is wrong, revoked, or expired. Mint a new one.                                                                                                       |
-| `403`    | The endpoint is outside the token's scope (check you are calling one of the two above and not a read), or the request named another account's record.       |
+| `403`    | The endpoint is outside the token's scope (check you are calling one of the three above and not a read), or the request named another account's record.       |
+| `404`    | The custom metric ID is unknown, deleted, or not yours (custom metric values only). |
 | `409`    | A reading with this type, timestamp and source already exists (single endpoint only).                                                                          |
 | `422`    | The payload is wrong: an unknown `type` or `sleepStage`, a non-numeric or implausible `value`, an `unavailable` sensor state, a body or entry naming any `source`, or a batch over 500. On the batch endpoint `meta.errorCode` says which: `measurement.batch.invalid`, `measurement.batch.source_not_permitted` or `measurement.batch.too_large`. None of these is worth retrying unchanged. |
 | `429`    | Too many requests. The batch route allows 60 calls per minute per account; the single route shares a 300-a-minute bucket with the other one-row writes and says so with `meta.errorCode: record_write.rate_limited`. The response carries `Retry-After` in whole seconds plus `X-RateLimit-Limit`, `-Remaining` and `-Reset`; wait out `Retry-After` rather than retrying on a timer of your own. |

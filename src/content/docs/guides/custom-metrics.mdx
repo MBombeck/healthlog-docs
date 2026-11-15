@@ -59,3 +59,13 @@ defining a metric is not a delegated action.
 /api/custom-metrics/{id}/entries/{entryId}`; and `POST
 /api/custom-metrics/{id}/entries/restore`. A live name collision on create
 returns 409. No limit on the number of metrics is enforced.
+
+All of these accept a browser session. `POST /api/custom-metrics/{id}/entries`
+also accepts a [measurement token](/guides/ingest-token/#custom-metric-values),
+so a script or a Home Assistant rule can log values. The token cannot list,
+create, change or delete metrics or values.
+
+**Finding a metric's ID.** Open **Measurements**, tap the metric under
+**Custom metrics**, and copy the part of the address after `/custom-metrics/`.
+With a browser session, `GET /api/custom-metrics` also returns every metric
+with its `id`.
