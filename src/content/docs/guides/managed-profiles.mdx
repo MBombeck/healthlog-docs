@@ -148,6 +148,34 @@ Syncing, the connection test and provider credentials stay out of the
 profile's page: once connected, the record syncs on its own schedule. Fitbit,
 Nightscout and Dawarich cannot be connected for a profile.
 
+## Its documents
+
+A profile's paperwork belongs in its own vault, and you file it there from your
+own account. Switch into the profile, open **Documents**, and upload a scan or a
+letter the way you would into your own vault: the same file types, the same size
+limit. Nobody needs to sign in as the profile and nobody needs a login made for
+it.
+
+| In the profile's document vault | A guardian |
+| --- | --- |
+| Upload a file | Yes |
+| List, open and download | Yes |
+| Rename, change the type or date, link to an illness episode, a visit or a vaccination | Yes |
+| Delete, and restore from **Recently deleted** | Yes |
+| **Delete now** in Recently deleted | No; it goes for good when its 30 days are up |
+| Share links, imports from Paperless-ngx or Papra, reading a document with AI | No |
+
+The document belongs to the profile. It counts against the profile's storage,
+not yours, and the profile's activity log says that you added, changed, deleted
+or restored it. Automatic AI reading of an upload follows the profile's own AI
+settings and consent, and never uses your personal AI provider; on a new profile
+it is off, so the file is stored and indexed on the server and nothing leaves
+it.
+
+This belongs to the managed profile, not to the access level. Somebody who
+shares their own record with you at manage keeps their vault to themselves, and
+you can read it but not add to it.
+
 ## Where its reminders go
 
 A record with no login has no phone and no chat of its own. So the reminders it
@@ -181,8 +209,8 @@ the invitation confers nothing, and the roster shows them as invited rather than
 as looking after the record.
 
 A guardian holds manage-level access to that record: they can add, change and
-remove entries in every section except the document vault, which refuses every
-delegated write, and they keep its settings. What they cannot do is change who else
+remove entries in every section, the document vault included (see
+[Its documents](#its-documents)), and they keep its settings. What they cannot do is change who else
 looks after it beyond the controls described here, and a managed profile can
 never be invited as a guardian of another record, because a record with no self
 cannot look after anybody.
