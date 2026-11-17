@@ -82,6 +82,12 @@ Still under **Settings → MCP connector**, in **Connector tokens**:
 
 </Steps>
 
+Because a connector token outlives the sign-in that creates it, creating one
+asks you to confirm it is you: in the browser, a sign-in or re-proof within the
+last five minutes; in the iPhone app, your second factor or passkey when your
+account has one. An account with neither, such as one that only signs in
+through single sign-on, creates tokens in the app without a further step.
+
 The MCP token never carries the `*` wildcard and never the per-medication
 ingest grants the medication API-endpoint toggle mints — it is the
 least-privilege MCP scope and nothing more. The same list shows the

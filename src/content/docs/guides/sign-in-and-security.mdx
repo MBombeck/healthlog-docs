@@ -229,6 +229,14 @@ belongs to an account pinned to a different identity is refused and audited.
 There is no unlink or relink flow; moving an account to a new identity is an
 operator's manual database edit.
 
+The iPhone app signs in through the same provider. By default it returns
+through the `healthlog://` scheme. On an instance served over https, an app
+build set up for that instance's address can instead come back on
+`https://<your instance>/auth/native-return`; the server offers this on its
+own, there is nothing to configure, and the provider's redirect URI stays the
+one above. If that address ever opens in a browser without the app, it shows a
+short "Back to the app" page.
+
 An SSO session never satisfies a step-up gate, because the app did not see
 whatever the provider checked. Accounts with their own second factor keep it:
 after the provider round-trip they land in the same second-factor step
