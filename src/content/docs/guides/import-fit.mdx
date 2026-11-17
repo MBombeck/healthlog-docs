@@ -1,0 +1,110 @@
+---
+title: Import activity files (FIT)
+description: Upload the FIT file a watch or bike computer records, from Garmin, Wahoo, Coros, Polar, Suunto, Zwift and others. What a file becomes, how a workout you already have gets its heart-rate curve instead of a duplicate, and why a file is refused.
+sidebar:
+  order: 6
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Almost every watch and bike computer records a workout as a FIT file: Garmin,
+Wahoo, Coros, Polar, Suunto, Zwift and most others. HealthLog reads that file
+and stores the workout together with the curve the watch recorded: heart rate,
+and speed, power and cadence where the device had them. It is the way to get a
+workout from a device HealthLog has no connection for, and the way to add the
+heart-rate curve to a workout that arrived without one.
+
+## Get the file
+
+- **Garmin Connect:** open the activity on the website, choose the gear menu,
+  then **Export original**. You get a ZIP file with one `.fit` inside. Upload
+  the ZIP as it is.
+- **Strava:** on the activity page, the **⋯** menu, **Export original**. For an
+  activity recorded on a watch this is the FIT file, sometimes as `.fit.gz`.
+- **Wahoo, Coros, Polar, Suunto:** export the activity from the app or the web
+  service as a FIT file.
+- **Zwift:** the files are in the `Zwift/Activities` folder in your documents.
+- **The watch itself:** connected by cable, Garmin watches keep their
+  activities as `.fit` files in `GARMIN/Activity`.
+
+## Upload to HealthLog
+
+<Steps>
+
+1. Open **Settings → Export & import** and drop the file onto the **Activity
+   file (FIT)** card, or click to choose it. A `.fit`, a `.fit.gz` and a ZIP
+   with one `.fit` inside are accepted, up to 10 MB.
+
+2. The card shows the progress and then what happened: new workouts, workouts
+   that already existed and got the curve, and whether a heart-rate curve and
+   a GPS track came with it.
+
+3. The workout appears in the workout list. Its page shows the heart-rate chart
+   from the file.
+
+</Steps>
+
+Upload one file at a time. One import runs per account at a time, whatever
+kind it is. The uploaded file is deleted from the server as soon as the import
+ends, and the job keeps only counts.
+
+## What a file becomes
+
+| In the FIT file | In HealthLog |
+| --- | --- |
+| Each session (a triathlon has one per sport) | One workout: sport, start, end, distance, calories, average and peak heart rate, climb, pause time |
+| The records, usually one per second | The workout's curve: heart rate, speed, power and cadence |
+| The positions in the records | The GPS track, only when **Workout routes** is switched on in the privacy settings |
+| Laps, power and cadence averages, the device | Shown as the workout's details |
+
+The curve keeps at most 30 000 points. A longer recording, a day-long race at
+one point per second, is averaged down evenly so its shape stays.
+
+Not stored: beat-to-beat (R-R) intervals, data from Connect IQ apps (developer
+fields), and the device's serial number. A virtual ride or run from Zwift or
+another trainer app never keeps a track, since its coordinates are made up.
+
+## Nothing arrives twice
+
+A workout you already have, from Garmin, Apple Health, Health Connect, Strava
+or an earlier file of the same ride, is not stored a second time. HealthLog
+recognises it the same way the workout list does: same sport, start within a
+few minutes. Instead of a duplicate, the existing workout gets the heart-rate
+curve from the file if it had none, and the GPS track if you keep tracks and it
+had none.
+
+So for a run that came in through the Garmin connection or the iPhone without
+a curve, upload its file and the curve appears on that same workout.
+
+Importing the same file again changes nothing, whether you upload it bare,
+gzipped or zipped. Workouts that are new carry **Import** as their source.
+
+## Why a file is refused
+
+The card says what was wrong:
+
+- **Not an activity file.** Only `.fit`, `.fit.gz` and `.zip` are read. GPX and
+  TCX files are not supported.
+- **The ZIP must contain exactly one `.fit` file.** Upload one activity per
+  file.
+- **The file is damaged.** Every FIT file carries a checksum. When it does not
+  match, the file was cut off or changed on the way: export it again.
+- **Not an activity.** A course, a planned workout or a daily monitoring file
+  is a FIT file too, but holds no workout.
+- **Far more data than an activity.** Before a file is read, HealthLog counts
+  its messages and refuses one that is far beyond any real recording.
+
+## Privacy
+
+The file is read by the background worker on your server and nowhere else. It
+is checked before it is decoded and deleted when the import ends. A GPS track
+is stored only when you have switched on **Workout routes**, and then
+encrypted like every track.
+
+## Related
+
+- [Connect Garmin](/guides/connect-garmin/): new Garmin activities get their
+  heart-rate curve automatically
+- [Import Apple Health](/guides/import-apple-health/)
+- [Import Health Connect](/guides/import-health-connect/)
+- [Source priority](/guides/source-priority/)
