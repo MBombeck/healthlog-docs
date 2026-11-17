@@ -46,7 +46,7 @@
 
     <rect x="30" y="444" width="180" height="56" rx="10" fill="#44475a" stroke="#8be9fd" stroke-width="1.5" />
     <text x="120" y="469" text-anchor="middle" font-weight="600">OAuth wearable syncs</text>
-    <text x="120" y="487" text-anchor="middle" fill="#bd93f9" font-size="11">WHOOP · Oura · Polar · Fitbit</text>
+    <text x="120" y="487" text-anchor="middle" fill="#bd93f9" font-size="11">WHOOP · Oura · Polar · Strava</text>
   </g>
 
   <!-- INGEST (orange #ffb86c) -->

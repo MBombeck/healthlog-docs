@@ -7,12 +7,18 @@ sidebar:
 
 import { Steps } from '@astrojs/starlight/components';
 
+:::note[Coming from the Fitbit integration?]
+Google switched the classic Fitbit Web API off on 30 October 2026, and
+HealthLog no longer has a separate Fitbit connection. Everything it imported
+stays in your record, still marked as coming from Fitbit. This guide reads the
+same Fitbit and Pixel Watch devices; the old Fitbit grant cannot be carried
+over, so connecting asks for one fresh Google consent. On Android you can also
+[import a Health Connect export](/guides/import-health-connect/), since the
+Fitbit app writes to Health Connect.
+:::
+
 HealthLog reads Fitbit and Pixel data through the **Google Health API**
-(`health.googleapis.com`), the successor to the classic Fitbit Web API. Google
-switched that older API off on **30 October 2026**, so this connection is the
-path forward for Fitbit and Pixel Watch accounts. A Fitbit connection cannot be
-carried over: connect Google Health and consent once more. Data the Fitbit
-connection already imported stays. See [Connect Fitbit](/guides/connect-fitbit/).
+(`health.googleapis.com`), the successor to the classic Fitbit Web API.
 
 The OAuth app is therefore a **Google Cloud** OAuth client — not a Fitbit
 developer-console app. Credentials are brought **per user**: Google's
