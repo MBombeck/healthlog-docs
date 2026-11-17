@@ -27,7 +27,8 @@ SHA-256, so re-uploading the same archive merges instead of duplicating.
    Export All Health Data**. iOS packages the archive in a few minutes; share it
    somewhere you can reach from your instance (AirDrop, iCloud Drive, email).
    The archive contains `apple_health_export/export.xml` (the canonical record
-   stream) plus auxiliary files the importer ignores.
+   stream) plus auxiliary folders: electrocardiograms, workout routes and,
+   when the Health app holds records from a provider, `clinical-records`.
 
 2. **Upload to HealthLog.** Open **Settings → Export & import** and drop the
    `export.zip` onto the Apple Health control. The browser streams the body
@@ -44,18 +45,34 @@ SHA-256, so re-uploading the same archive merges instead of duplicating.
 
 ## What gets imported
 
-The parser folds three XML element types into the schema:
+The parser folds these XML element types into the schema:
 
 | XML element | Maps to | Notes |
 | --- | --- | --- |
 | `<Record>` | `Measurement` rows | One row per spot sample. Keyed by `HKMetadataKeyExternalUUID` when present, otherwise a deterministic `sample:<sha256>` fallback so re-imports stay idempotent. The record's own `unit` attribute is converted before storage. |
 | `<Workout>` | `Workout` rows | Activity type + duration + energy + distance. |
 | `<Correlation>` | `Measurement` rows | Compound samples like blood pressure explode into per-metric children; the child Records import individually. |
+| `<ClinicalRecord>` (lab results) | Lab readings | Lab results from Health Records. The FHIR file each one names under `clinical-records` becomes a reading in [Labs](/guides/labs/#from-apple-health-health-records). |
 
-Anything outside the mapped set (`<ClinicalRecord>` elements, workout routes,
-ECG entries in `export.xml`) is counted in the skip tally but not stored. ECG
-recordings come in through the export's `electrocardiograms` folder instead:
-each CSV file there is stored as a recording when you upload the ZIP.
+Other clinical records (conditions, medications, immunisations, vital signs
+from a provider) and ECG entries in `export.xml` are counted in the skip tally
+but not stored. ECG recordings come in through the export's
+`electrocardiograms` folder instead: each CSV file there is stored as a
+recording when you upload the ZIP. Workout routes are attached when you keep
+them.
+
+### Lab results from Health Records
+
+If you connected a hospital or lab to the Health app (Health Records), the
+export carries its lab results, and the import puts them in Labs. Each result
+is matched to the marker you already have for it, by name, by an alias, or by
+its LOINC code, so "Cholesterol in LDL by calculation" lands on your "LDL"
+marker. A result in another unit is converted into the marker's unit, with the
+printed value kept beside it. Panels such as a full blood count keep their
+name. Preliminary and withdrawn results are left out. The import result shows
+a line with how many lab results were found, imported, already in your record,
+skipped and failed. A failed lab result never discards anything else from the
+archive.
 
 ### Values HealthLog wrote itself are left out
 
@@ -115,6 +132,18 @@ Two axes keep re-imports clean:
 
 The job result reports `recordsInserted` and `recordsUpdated` separately, so a
 monthly re-import shows fresh data merged without duplicates.
+
+Lab results have their own rule. Each one keeps the identity its provider gave
+it, so importing it again writes nothing, and a lab result you delete in
+HealthLog stays deleted when the next archive brings it again. A reading you
+already typed, scanned or imported from a CSV on the same day with the same
+value is not written a second time. A result the provider corrected later
+keeps the value it first arrived with; edit the reading if it changed.
+
+The file-level check only returns an earlier job that was read the way the
+current release reads an archive. An archive imported before HealthLog read
+lab results is therefore read again when you upload it once more: the
+measurements merge as usual and the lab results are added.
 
 A day on which your phone or watch installed an update counts in full. An
 archive imported before 1.39.3 may have counted only part of such a day's
@@ -177,6 +206,11 @@ themselves.
 | Unsupported compression | `Unsupported ZIP compression method <n> for export.xml` | Same recovery — re-export from iOS, which always emits method 0 (stored) or 8 (deflate). |
 | Worker down | `503 Background worker is not running` | Check the `app-worker` (or `all`-mode `app`) container and restart. |
 | Rate-limited | `429 Too many import uploads` | The limit is three uploads per minute per user. The response says how long to wait in `Retry-After`, in whole seconds. |
+
+Large exports, which the Health app writes in the ZIP64 format, are read in
+full, ECGs, workout routes and lab results included. Earlier releases
+skipped the ECGs and workout routes of such an archive and counted them as
+failed; uploading the archive again on a current release brings them in.
 
 ## Garmin owners
 

@@ -122,6 +122,47 @@ therefore filed under the document's report date, or under the day the
 document was filed when it names no report date. An impossible date, such as
 30 February, counts as no date. A value that states its own date keeps it.
 
+## From Apple Health Health Records
+
+If your hospital or lab is connected to the Health app on your iPhone
+(Health Records), its lab results can come into HealthLog in two ways: in an
+[Apple Health export](/guides/import-apple-health/#lab-results-from-health-records),
+and from a client that reads them from HealthKit and sends them to
+`POST /api/labs/fhir-batch` (see
+[native clients](/reference/native-clients/#lab-results-from-health-records)).
+Both ways treat a result the same.
+
+- **Name and marker.** The reading takes the name the result carries. It goes
+  to your marker of that name, to a marker that has the name as an alias, or,
+  when the result carries a LOINC code HealthLog knows, to your marker for that
+  analyte: "Cholesterol in LDL by calculation" lands on "LDL". A result nothing
+  matches gets a new marker, named as the result names it.
+- **Units.** A result in another unit than its marker is converted, and the
+  value as printed is kept beside it, as for a scan. A unit that does not
+  convert is refused, see below. Lab notations such as `10*3/uL` or `m[IU]/L`
+  are read as `10^3/µL` and `mIU/L`.
+- **Values that are not a number.** A result printed with a comparator, such as
+  `<0.5 mg/L`, is kept as text exactly as printed, because a limit is not a
+  value. Text and coded results ("Positive", "Blood group A") are kept as
+  text. A result that only says positive or negative in its interpretation is
+  kept as that word.
+- **Reference range.** The range the report printed comes with the reading,
+  in the reading's own unit, and is shown like a scanned report's range.
+- **Panels.** A panel such as a full blood count is not a reading itself; its
+  results carry its name as their panel.
+- **Left out.** Preliminary results (taken once they are final), withdrawn
+  results, and results that are not lab tests (vital signs from a provider,
+  for instance).
+- **Duplicates and deletions.** Each result keeps the identity its provider
+  gave it. Importing it again writes nothing, and a result you delete stays
+  deleted when it arrives again. A reading you already entered, scanned or
+  imported from a CSV, same marker, same day, same value, is not written a
+  second time. A result the provider corrected after it first arrived keeps
+  its first value; edit the reading if it changed.
+
+This works whether the Labs module is shown or hidden: the module switch
+hides the surface, and the lab rows are kept either way.
+
 ## One unit per marker
 
 A marker is tracked in one unit, and every reading is stored in that unit.
@@ -228,6 +269,14 @@ such as a ratio printed without a unit or a unit that disagrees with the
 marker, offers the same **Check** control as a low-confidence value, so it can
 be corrected instead of only discarded. The API answers `422`
 `labs.unit.mismatch` with a reason.
+
+A lab result from Health Records whose unit does not convert into its
+marker's unit is counted as failed in the import result (`unit_mismatch` from
+`POST /api/labs/fhir-batch`), and the rest of the import goes ahead. If the
+result belongs to a different analyte than the marker it matched, rename one
+of the two markers or give the result's name to the right marker as an alias,
+then import again. If it is the same analyte, the reading can be entered by
+hand in the marker's unit.
 
 A marker's unit cannot be changed while it has readings, because the stored
 values would be shown in the new unit without being converted. Values that

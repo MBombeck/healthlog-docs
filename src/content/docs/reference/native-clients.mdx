@@ -74,6 +74,31 @@ A stable `errorCode` on the refresh response lets a client tell a **revoked fami
 
 A native client keeps its local copy current through the delta feed in the [offline sync contract](/reference/sync/): domains, identity keys, the opaque cursor, tombstones and conflict rules are there. Retries are made safe by the `Idempotency-Key` header, and a `429` says how long to wait; both are described once, in [Idempotency](/reference/api-overview/#idempotency) and [Rate limits](/reference/api-overview/#rate-limits). In short: one key per write, and an offline queue that meets `record_write.rate_limited` drains slower instead of retrying the same request.
 
+## Lab results from Health Records
+
+`POST /api/labs/fhir-batch` takes lab results a client reads from HealthKit's
+Health Records (`HKClinicalTypeIdentifierLabResultRecord`). Each record in
+`records` carries the FHIR resource as JSON (`HKFHIRResource.data`, DSTU2 or
+R4) and the fields its identity is built from: `identifier`, `sourceURL`,
+`fhirVersion` and the institution's `sourceName`. Up to 200 records and 1 MiB
+per request; a resource over 256 KiB is skipped.
+
+The server maps and writes them exactly as the
+[Apple Health export import](/guides/import-apple-health/#lab-results-from-health-records)
+does, so a result already imported from an export answers `duplicate` here and
+the other way round. Sending a batch again is safe, a result deleted on the
+server stays deleted, and the first arrival of a result wins over a later
+correction. Send a panel and its members in the same batch, so the members
+carry the panel's name.
+
+The answer lists one result per record (`inserted`, `duplicate`, `skipped`
+or `failed`, with a closed `reason`) and the counts. Only `write_failed` is
+worth sending again; that answer is `Cache-Control: no-store` and is not
+replayed for its `Idempotency-Key`. The route takes a cookie session or a
+full-scope login token, has its own limit of 60 batches a minute, and is not
+behind the Labs module switch. The schema is in the
+[OpenAPI document](/reference/api-overview/).
+
 ## Background document reads
 
 `POST /api/documents/inbound/{id}/index`, `/summary`, `/suggest`
