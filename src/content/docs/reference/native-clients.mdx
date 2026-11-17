@@ -61,7 +61,10 @@ Any other `return` value, `return=https` without `client=native`, or
 verifier and is single-use, so it is worthless to anyone else. In a browser
 without the app, `/auth/native-return` shows a short "Back to the app" page
 that never reads the query, removes it from the address bar, and is served
-`no-store`, `noindex` and `Referrer-Policy: no-referrer`.
+`no-store`, `noindex` and `Referrer-Policy: no-referrer`. A browser that lands
+there does request the address from the server, so a reverse proxy's access
+log records it; HealthLog's own logs redact `code` and `mfa_ticket`. The app
+should discard a return it did not start.
 
 The instance's `apple-app-site-association` lists only the paths the app
 handles: `/auth/register*`, `/invite*` and `/auth/native-return`. The web
