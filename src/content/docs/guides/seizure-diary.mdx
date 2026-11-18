@@ -202,9 +202,10 @@ See [FHIR export](/features/fhir-export/).
 
 ## Sharing, backups and the assistant
 
-- **Sharing**: the diary belongs to the **Illness** section of a shared record.
+- **Sharing**: the diary belongs to the **Illness** section of a
+  [shared record](/guides/shared-access/#sharing-only-part-of-the-record).
   A read grant sees it; a write grant can log seizures and rescue doses; a
-  manage grant (and the guardian of a managed profile) can also edit, delete,
+  manage grant (and the guardian of a [managed profile](/guides/managed-profiles/)) can also edit, delete,
   set up types and the cluster rule.
 - **Backups** carry the types, every seizure with its doses, and the rule.
 - **MCP**: the `get_seizures` tool reads the diary for an assistant you

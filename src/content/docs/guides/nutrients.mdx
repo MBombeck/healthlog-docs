@@ -1,6 +1,6 @@
 ---
 title: Track hydration and nutrients
-description: Enable the nutrients module for fluid intake, energy, macronutrients, alcohol, vitamins and minerals — how it flows in from your device or a food tracker, how a day's total is counted, your own targets, and how it's read as context, never a verdict.
+description: Enable the nutrients module for fluid intake, energy, macronutrients, alcohol, vitamins and minerals, how it flows in from your device or a food tracker, how a day's total is counted, your own targets, and how it's read as context, never a verdict.
 sidebar:
   order: 16
 ---
@@ -9,7 +9,7 @@ import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 Fluid intake, dietary energy, the macronutrients, alcohol and the vitamins and
 minerals your device or food tracker records have a home in the **Nutrients**
-module. It is the supported path for hydration and nutrition — there is no
+module. It is the supported path for hydration and nutrition; there is no
 separate "water" or "calories" measurement type.
 
 ## What it surfaces
@@ -20,7 +20,7 @@ separate "water" or "calories" measurement type.
   an **energy and macronutrients** card (energy in kcal; protein,
   carbohydrates, fat, sugar and fiber in g) with a 30-day chart per nutrient,
   caffeine and alcohol when you record them, and the vitamins and minerals
-  (sodium and potassium among them) you actually have data for — each against
+  (sodium and potassium among them) you actually have data for, each against
   its reference daily intake where that applies, shown as context, never as a
   verdict.
 
@@ -154,6 +154,7 @@ surface like every other.
 ## Related
 
 <CardGrid>
+  <LinkCard title="Push daily nutrient totals with a token" href="/guides/ingest-token/#push-daily-nutrient-totals" />
   <LinkCard title="Import Apple Health" href="/guides/import-apple-health/" />
   <LinkCard title="The metric catalog" href="/insights/metric-catalog/" />
   <LinkCard title="Source priority across devices" href="/guides/source-priority/" />

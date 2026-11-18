@@ -105,6 +105,7 @@ export default defineConfig({
 						{ slug: 'guides/import-apple-health' },
 						{ slug: 'guides/import-health-connect' },
 						{ slug: 'guides/import-csv' },
+						{ slug: 'guides/import-fit' },
 						{ slug: 'guides/ingest-token' },
 						{ slug: 'guides/import-documents' },
 						{ slug: 'guides/source-priority' },
