@@ -120,9 +120,10 @@ analytics is computed at the wire.
 | `get_integration_status` | Sync health of connected devices/services — connected, last sync, reauth-required/failing — to answer "why is my data stale?". No secrets or tokens. |
 | `get_preventive_care` | The user's own configured preventive-care (Vorsorge) reminders — upcoming/overdue checkups with next-due dates. Surfaces configured reminders, invents nothing. |
 | `get_visits` | Past doctor visits over a bounded window (default 12 months): date, lifecycle status, kind, practitioner name + specialty, reason, outcome, linked conditions. Optionally narrowed to one practitioner. |
-| `get_nutrients` | Synced micronutrient intake (water, caffeine, 24 vitamins/minerals) as day totals, with the EFSA dietary reference resolved against the user's profile. Gated on the nutrients module. |
+| `get_nutrients` | Nutrient intake (water, caffeine, energy, macronutrients, alcohol, vitamins and minerals) as day totals, with the dietary reference and its authority resolved against the user's profile and the user's own target, if set. Gated on the nutrients module. |
 | `get_intraday_pulse` | The 10-minute heart-rate shape for one local day, with a cautious descriptive elevated-at-rest window when every confidence gate holds. Gated on the insights module. |
 | `get_ecg_recordings` | Metadata for stored ECG recordings — time, duration, average HR, lead, and the device's own rhythm classification. Never the waveform. Gated on the insights module. |
+| `get_seizures` | The seizure diary over a bounded window (default 90 days): the person's seizure types with their ILAE 2025 code, each recorded seizure with duration, sleep state, rescue doses and their effect, and the server's summary (recorded seizures, seizure days, days since the last, clusters under the record's rule and NICE's). Gated on the seizure diary module; the family's names, plan text and notes are fenced as user text. |
 | `get_day` | One local calendar day (`date`, `YYYY-MM-DD` in the user's time zone): what ran through it (medications and courses with dose and day number, pauses, an illness, a cycle phase), the readings with the usual range of the 30 days before, what happened on it (intakes, dose changes, symptoms, labs, visits, vaccinations, check-ups, documents by kind, mood, workouts) and notable observations decided by fixed rules. Notes, document names and life events are never included, and the person's Coach exclusions apply. Each result carries `url`, the day in the app. |
 | `get_environment` | The stored days of the environment module: weather, and while air quality is on, PM2.5, PM10, NO2, the ozone 8-hour high, the European AQI peak, UV, dust and six pollen kinds, plus coverage and a short summary. Modelled outdoor conditions, not personal exposure. No coordinates and no place names. Every result lists its attribution lines. Answers `module_disabled` when the environment module is off. |
 | `search` | Free-text search over the user's record: metric domains, medications, lab analytes, and the clinical records (visits including procedures, conditions, documents, vaccinations). Ranked and deterministic; record results capped at 50. Returns `{ results: [{ id, title, url }], nextCursor? }`. |
@@ -221,10 +222,12 @@ catalogue.
 
 Three surfaces the connector reaches directly:
 
-- **Nutrition and vitamins** (`get_nutrients`). Fluid intake, macros, and the
-  vitamins and minerals synced from the device's dietary data are readable by
-  name, each against its reference daily intake as context (never a deficiency
-  verdict). Gated on the [nutrients module](/guides/nutrients/) being on.
+- **Nutrition and vitamins** (`get_nutrients`). Fluid intake, energy, the
+  macronutrients, alcohol, and the vitamins and minerals synced from the
+  device or pushed by a food tracker are readable by name, each against its
+  reference daily intake or the user's own target as context (never a
+  deficiency verdict). A day counts the largest of the device and tracker
+  totals, plus manual water and supplements. Gated on the [nutrients module](/guides/nutrients/) being on.
 - **The intraday pulse curve** (`get_intraday_pulse`). The within-day
   heart-rate shape — the same 10-minute-mean series the
   [intraday view](/insights/intraday-pulse/) draws, read
@@ -287,7 +290,7 @@ discovery.
 | `healthlog://metric/{type}/{window}` | One metric's series over a chosen trailing window. |
 | `healthlog://lab/{analyte}` | One lab analyte's recent readings (value, unit, reference range, status). |
 | `healthlog://medication/{id}` | One medication by id, with its schedules. User-scoped (`{present:false}` if not yours). |
-| `healthlog://nutrient/{code}` | One nutrient's per-day intake series (e.g. `healthlog://nutrient/water`). Gated on the nutrients module. |
+| `healthlog://nutrient/{code}` | One nutrient's per-day intake series (e.g. `healthlog://nutrient/water`, `healthlog://nutrient/protein`). Gated on the nutrients module. |
 | `healthlog://report/doctor-visit/{window}` | The doctor-visit summary over a chosen window. |
 
 ## Prompts (skills)

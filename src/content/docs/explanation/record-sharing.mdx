@@ -290,7 +290,7 @@ than by hiding menu items.
 | Password, passkeys, second factor, recovery codes | Silent takeover, surviving any revocation |
 | Sessions, trusted devices, sign-out-everywhere | Ending or enumerating the owner's logins |
 | API tokens, the MCP connector | A durable credential that outlives the access |
-| Connected services (Withings, Fitbit, WHOOP, Google Health, Polar, Oura, Strava, Nightscout) | Re-pointing a sync, or feeding somebody else's wearable into this record |
+| Connected services (Withings, WHOOP, Google Health, Polar, Oura, Strava, Nightscout) | Re-pointing a sync, or feeding somebody else's wearable into this record |
 | Notification channels and push devices | The owner's health alerts redirected to another phone or chat |
 | Full exports, the encrypted archive, clinician share links | A one-click copy of everything, or a new door that outlives the access |
 | Generating an insight, and the Coach | AI processing of the owner's data, under the owner's own consent |
@@ -325,6 +325,20 @@ health data belonging to the record and much of the reason to hand somebody the
 record at all. Uploading, retyping, discarding, linking a document to an illness
 episode and every AI action stay with the owner, so the vault behaves the same
 whether the grant is read, write or manage.
+
+A managed profile is the exception, and the exception hangs on the profile
+rather than on the level. A record with no login has nobody to file its
+paperwork, so its guardians upload, retype, link, delete and restore documents
+there, read them with AI and confirm the values they find, and the document
+stays the record's: it counts against the record's storage, confirmed values
+become the record's lab results, and the activity log names the guardian. The
+AI reads answer to the record's own settings and consent, on the instance's
+provider, the same footing a guardian's other AI work on a managed profile
+stands on: the profile has no owner who could start it instead.
+The server decides it from the same marker that lets a guardian keep the
+record's settings, so an adult who grants manage over their own record never
+opens their vault this way. Deleting for good, share links and imports stay with
+an owner who signs in.
 
 Every route in the product refuses by default while a browser is acting on
 another account. A route becomes reachable only by declaring which mode it

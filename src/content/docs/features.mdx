@@ -52,6 +52,10 @@ doctor report and the clinician share, where it needs both ketones and glucose
 in the selection. Ketones and the index are shown as recorded, with no band and
 no verdict: what they should be follows the plan a clinician sets.
 
+A glucose reading's context (fasting, after a meal, random, before bed) can be
+changed after saving, also on readings from a sensor that sent none. See
+[the glucose context column](/guides/import-csv/#the-glucose-context-column).
+
 The sleep field takes a duration the way you say it: `7.5`,
 `7,5`, `7:30`, `7h30m`, `7 h 30 min` or `45 min`, and shows how it read your
 entry ("Read as 7 h 30 min") before you save. One entry is at most 24 hours.
@@ -99,10 +103,12 @@ conservatively, never as a verdict.
 
 ## Nutrients
 
-A [nutrients module](/guides/nutrients/) for fluid intake, caffeine, macros, and
-the vitamins and minerals your device records — a dashboard water tile with
-quick-add and a Nutrients page charting hydration and micronutrients against
-their reference daily intake as context. Opt-in: the module ships off, and
+A [nutrients module](/guides/nutrients/) for fluid intake, caffeine, energy,
+macronutrients, alcohol, and the vitamins and minerals your device or food
+tracker records: a dashboard water tile with quick-add and a Nutrients page
+charting hydration, energy and macros, and micronutrients against their
+reference daily intake or your own target as context. A food tracker can push
+its daily totals with a [measurement token](/guides/ingest-token/#push-daily-nutrient-totals). Opt-in: the module ships off, and
 ingest refuses while it is off. Once you enable it, device-synced dietary data
 flows as your client sends it. A supplement with its composition
 counts every taken dose toward the day's micronutrients, the page shows each
@@ -218,12 +224,11 @@ appears in the doctor-report PDF as a visit list you can leave out.
 [Oura](/guides/connect-oura/), [Polar](/guides/connect-polar/) and
 [Strava](/guides/connect-strava/) sync over OAuth2; [Garmin](/guides/connect-garmin/) syncs
 hourly with a Personal API key from your own Garmin account; [Fitbit and Pixel](/guides/connect-google-health/) connect through
-Google Health (the [classic Fitbit API](/guides/connect-fitbit/) was switched
-off on 30 October 2026); a
+Google Health; a
 [Nightscout](/guides/connect-nightscout/) instance streams
 continuous glucose; a [Dawarich](/guides/connect-dawarich/) instance adds daily
 movement (distance, time away from home, travel days) without any coordinate; an [Apple Health `export.zip`](/guides/import-apple-health/)
-folds your full history in, and so does an Android
+folds your full history in, lab results from Health Records included, and so does an Android
 [Health Connect export](/guides/import-health-connect/); the native iOS app streams HealthKit live.
 Lab results and medications come in from a
 [spreadsheet](/guides/import-csv/), and a scale, a Home Assistant sensor or

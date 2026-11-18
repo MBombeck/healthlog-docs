@@ -1,24 +1,28 @@
 ---
 title: Track hydration and nutrients
-description: Enable the nutrients module for fluid intake, vitamins, minerals, and macros — how it flows in from your device's dietary data, and how it's read as context, never a verdict.
+description: Enable the nutrients module for fluid intake, energy, macronutrients, alcohol, vitamins and minerals, how it flows in from your device or a food tracker, how a day's total is counted, your own targets, and how it's read as context, never a verdict.
 sidebar:
   order: 16
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Fluid intake and the vitamins and minerals your device records have a home in
-the **Nutrients** module. It is the supported path for hydration and
-micronutrients — there is no separate "water" measurement type.
+Fluid intake, dietary energy, the macronutrients, alcohol and the vitamins and
+minerals your device or food tracker records have a home in the **Nutrients**
+module. It is the supported path for hydration and nutrition; there is no
+separate "water" or "calories" measurement type.
 
 ## What it surfaces
 
 - **A water tile** on the dashboard shows the day's total fluid intake with
   quick-add amounts.
-- **A Nutrients page** under Insights shows hydration over the last month,
-  caffeine when you record it, and the vitamins and minerals you actually have
-  data for — each against its reference daily intake where that applies, shown as
-  context, never as a verdict.
+- **A Nutrients page** under Insights shows hydration over the last month, then
+  an **energy and macronutrients** card (energy in kcal; protein,
+  carbohydrates, fat, sugar and fiber in g) with a 30-day chart per nutrient,
+  caffeine and alcohol when you record them, and the vitamins and minerals
+  (sodium and potassium among them) you actually have data for, each against
+  its reference daily intake where that applies, shown as context, never as a
+  verdict.
 
 Manual water entries and device-synced totals **coexist** instead of overwriting
 each other. Sparse logging is never read as a deficiency.
@@ -36,9 +40,16 @@ just a surface toggle.
 
 ## Where the data comes from
 
-Dietary intake flows in from your client's health store, and from the supplements you take (see [below](#supplements-as-a-source)). Apple Health records
-water, caffeine, macros, and a full set of vitamins and minerals under its
-dietary identifiers; those flow into the module **once your client sends them**.
+Dietary intake flows in from your client's health store, from a food tracker
+you connect with a token, and from the supplements you take (see
+[below](#supplements-as-a-source)). Apple Health records water, caffeine,
+energy, macros, and a full set of vitamins and minerals under its dietary
+identifiers; those flow into the module **once your client sends them**. The
+iPhone app sends energy and the macros from the release that asks for them.
+
+A food tracker or a script can push its own daily totals, including alcohol in
+grams of ethanol, with a measurement token; see
+[Push daily nutrient totals](/guides/ingest-token/#push-daily-nutrient-totals).
 Manual water entry works with no device at all.
 
 :::note[The iOS client must send the dietary data]
@@ -56,8 +67,46 @@ capsule, typed in or read from a label photo; see
 [What a supplement contains](/guides/track-medications/#what-a-supplement-contains).
 
 The Nutrients page then shows where each amount comes from: **Synced** (from
-Apple Health), **Entered** (by hand) and **Supplements**. The parts add up to
+Apple Health), **Health Connect**, **External** (a food tracker or script with
+a token), **Entered** (by hand) and **Supplements**. The parts shown add up to
 the day's total.
+
+## How a day's total is counted
+
+Apple Health, Health Connect and a food tracker each report the whole day, and
+usually the same meals: a tracker that writes into Apple Health and also posts
+to HealthLog would otherwise count every meal twice. So for each nutrient and
+day only the **largest** of those totals counts; the others are stored but
+left out. Water you enter by hand and supplement doses are things no tracker
+saw, so they **add on top**. The source split on the Nutrients page lists only
+the parts that counted.
+
+## Your own targets
+
+On the energy and macronutrients card, **Set target** stores a daily amount
+for the nutrient you are looking at: either an amount to reach (protein, for
+instance) or a limit to stay under (sugar). The chart then draws your number
+instead of the reference value. Clear it with **Remove target**. Targets are
+part of the full backup, and clients can read and set them through
+`GET` and `PATCH /api/nutrients/targets`.
+
+## Reference values
+
+Each reference names who set it. Where EFSA sets a value per day, HealthLog
+uses EFSA's; for the codes added with the energy card:
+
+| Nutrient | Reference a day | Kind | Source |
+| --- | --- | --- | --- |
+| Protein | 56 g men, 46 g women | recommended intake | IOM 2005 (EFSA gives 0.83 g per kg body weight only) |
+| Carbohydrates | 130 g | recommended intake | IOM 2005 (EFSA gives a share of energy only) |
+| Fiber | 25 g | adequate intake | EFSA 2010 |
+| Sodium | 2000 mg | safe and adequate intake, shown as a ceiling | EFSA 2019 |
+| Potassium | 3500 mg | adequate intake | EFSA 2016 |
+
+Energy, fat, sugar and alcohol have no reference: energy needs depend on age,
+sex and activity, fat is set as a share of energy, and there is no amount of
+sugar or alcohol to aim for. A reference that differs by sex is shown only
+when your profile has one.
 
 ## Upper limits
 
@@ -105,6 +154,7 @@ surface like every other.
 ## Related
 
 <CardGrid>
+  <LinkCard title="Push daily nutrient totals with a token" href="/guides/ingest-token/#push-daily-nutrient-totals" />
   <LinkCard title="Import Apple Health" href="/guides/import-apple-health/" />
   <LinkCard title="The metric catalog" href="/insights/metric-catalog/" />
   <LinkCard title="Source priority across devices" href="/guides/source-priority/" />

@@ -38,6 +38,38 @@ when the account carries a second factor), and the app exchanges that code at
 token pair never rides a URL; only the opaque code does. An instance running
 `OIDC_ONLY=true` offers this flow alone.
 
+#### Returning over https instead of the scheme
+
+An app build that carries an associated domain for the instance can ask to
+come back on the instance's own address instead of the custom scheme, which
+saves the "open in app?" prompt. It is opt-in on both sides:
+
+- `GET /api/auth/oidc/status` answers `nativeReturnPath`
+  (`/auth/native-return`, a fixed path) when SSO is on and
+  `NEXT_PUBLIC_APP_URL` is https; otherwise it is `null`.
+- The app then adds `return=https` to the native start:
+  `GET /api/auth/oidc/login?client=native&code_challenge=<S256>&return=https`.
+- Every redirect of that sign-in, including errors, goes to
+  `https://<NEXT_PUBLIC_APP_URL host>/auth/native-return` with exactly the
+  parameters the scheme would carry (`code`, `mfa_ticket` and `methods`,
+  `error`, `purgeAt`). The host comes from the configured app URL, never from
+  the request.
+
+Any other `return` value, `return=https` without `client=native`, or
+`return=https` on an instance not served over https answers `422`. Without
+`return=https` nothing changes. The code stays bound to the app's PKCE
+verifier and is single-use, so it is worthless to anyone else. In a browser
+without the app, `/auth/native-return` shows a short "Back to the app" page
+that never reads the query, removes it from the address bar, and is served
+`no-store`, `noindex` and `Referrer-Policy: no-referrer`. A browser that lands
+there does request the address from the server, so a reverse proxy's access
+log records it; HealthLog's own logs redact `code` and `mfa_ticket`. The app
+should discard a return it did not start.
+
+The instance's `apple-app-site-association` lists only the paths the app
+handles: `/auth/register*`, `/invite*` and `/auth/native-return`. The web
+sign-in's own SSO return stays in the browser.
+
 ### Response shape (native)
 
 ```json
@@ -73,6 +105,67 @@ A stable `errorCode` on the refresh response lets a client tell a **revoked fami
 ## Sync, idempotency and rate limits
 
 A native client keeps its local copy current through the delta feed in the [offline sync contract](/reference/sync/): domains, identity keys, the opaque cursor, tombstones and conflict rules are there. Retries are made safe by the `Idempotency-Key` header, and a `429` says how long to wait; both are described once, in [Idempotency](/reference/api-overview/#idempotency) and [Rate limits](/reference/api-overview/#rate-limits). In short: one key per write, and an offline queue that meets `record_write.rate_limited` drains slower instead of retrying the same request.
+
+## Lab results from Health Records
+
+`POST /api/labs/fhir-batch` takes lab results a client reads from HealthKit's
+Health Records (`HKClinicalTypeIdentifierLabResultRecord`). Each record in
+`records` carries the FHIR resource as JSON (`HKFHIRResource.data`, DSTU2 or
+R4) and the fields its identity is built from: `identifier`, `sourceURL`,
+`fhirVersion` and the institution's `sourceName`. Up to 200 records and 1 MiB
+per request; a resource over 256 KiB is skipped.
+
+The server maps and writes them exactly as the
+[Apple Health export import](/guides/import-apple-health/#lab-results-from-health-records)
+does, so a result already imported from an export answers `duplicate` here and
+the other way round. Sending a batch again is safe, a result deleted on the
+server stays deleted, and the first arrival of a result wins over a later
+correction. Send a panel and its members in the same batch, so the members
+carry the panel's name.
+
+The answer lists one result per record (`inserted`, `duplicate`, `skipped`
+or `failed`, with a closed `reason`) and the counts. Only `write_failed` is
+worth sending again; that answer is `Cache-Control: no-store` and is not
+replayed for its `Idempotency-Key`. The route takes a cookie session or a
+full-scope login token, has its own limit of 60 batches a minute, and is not
+behind the Labs module switch. The schema is in the
+[OpenAPI document](/reference/api-overview/).
+
+## Deletions from Apple Health
+
+When a record is deleted in Apple Health, the app sends its external ids to
+the matching endpoint, shaped like the measurements one:
+
+- `DELETE /api/workouts/by-external-ids`
+- `DELETE /api/insights/ecg/by-external-ids`
+- `DELETE /api/cycle/day-logs/by-external-ids`
+- `DELETE /api/mood-entries/by-external-ids` (mood entries take
+  `APPLE_HEALTH` as their source here)
+- `DELETE /api/medications/intake/by-external-ids`
+
+Before 1.48.0 only measurements followed, so an entry edited in Apple Health
+left its old copy beside the new one.
+
+## Medication corrections
+
+- `PATCH` and `DELETE /api/medications/{id}/glp1/dose-changes/{doseChangeId}`
+  change or remove one GLP-1 titration step. A step may carry a `clientId`;
+  the same id uploaded twice is stored once, and an upload under the id of a
+  removed step answers `410` `glp1.doseChange.deleted`.
+- `PUT /api/medications/{id}/intake/{eventId}` takes `injectionSite` (or
+  `null` to clear it) on a dose already logged. Only sites allowed for that
+  medication are accepted.
+
+## Fitbit on older app builds
+
+The Fitbit integration was removed in 1.48.0. For builds that still show a
+Fitbit card, `GET /api/fitbit/status` answers "not connected" with
+`retired: true`, and the integration's other routes answer `410`
+`route.retired`. `GET /api/integrations/status` carries
+`fitbitRemovalNotice`, true while an account that had Fitbit connected has not
+dismissed the note about the removal;
+`POST /api/integrations/fitbit-removal-notice/dismiss` (no body, idempotent)
+hides it on the web and in the app alike.
 
 ## Background document reads
 
@@ -111,6 +204,10 @@ curl -X POST https://your-instance.example.com/api/devices \
 ```
 
 If the same APNs / FCM token is already registered to a **different** account, the request is rejected with `409 Conflict` instead of silently transferring ownership. APNs / FCM tokens aren't a secret, so trusting wire input would let anyone who learns a token redirect another user's pushes. The denial is audit-logged.
+
+A device's `lastSeenAt` (in `GET /api/auth/me/devices`) moves when the app registers it and on any request made with the app's sign-in token for that device, at most once an hour. The device is the one the token's refresh family names (the `X-Device-Id` the app sent at sign-in), never one a request header claims; a token without that link moves it only through registration.
+
+`medicationDelivery` on a device (`PATCH /api/auth/me/devices/{id}`) decides where the medication reminder that announces a dose goes on APNs: `client` keeps the server's push off that device because the app reminds locally, `server` pushes to it whatever the account says, and `null` follows the account-wide `notificationPrefs.medication.clientManaged` / `deliveryDefault`. Follow-ups for a dose still open, other pushes and the non-APNs channels are not affected.
 
 ## Token Storage (Server-Side)
 

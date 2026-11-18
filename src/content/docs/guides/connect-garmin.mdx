@@ -49,6 +49,7 @@ Garmin keys expire and cannot be extended. Garmin does not report when a key end
 | Overnight HRV | HRV (RMSSD) |
 | Weigh-ins | Weight, BMI, body fat, body water, muscle and bone mass, visceral fat |
 | Activities | Workouts |
+| Heart rate over each new activity | The workout's heart-rate curve |
 | Logged period days | [Cycle tracking](/guides/cycle-tracking/) |
 
 A few details:
@@ -61,6 +62,14 @@ A few details:
 - A night you delete in Garmin Connect, or that Garmin turns into a nap, is removed on the next sync.
 - If Garmin has no data of a kind for your account, for example no cycle summary because you do not track one there, HealthLog skips it without counting an error. The card lists it under **Details for a bug report**.
 - When the same data also arrives through Apple Health or Health Connect, [source priority](/guides/source-priority/) decides which one a chart shows. Garmin ranks with the other watches.
+
+## Heart rate over an activity
+
+The activity list Garmin sends gives a summary per workout: duration, distance, calories, average and peak heart rate. The curve over the session is only in the activity's original file, which the Personal API also serves. After each hourly sync, HealthLog downloads the files of activities that arrived in the last day, at most five per run, and adds the heart-rate curve (and speed, power and cadence where recorded) to the Garmin workout. The workout's figures stay the ones Garmin sent. The GPS track in the file is kept only when **Workout routes** is switched on.
+
+A file Garmin does not serve, or one that cannot be read, is skipped without counting as a sync error.
+
+Activities from before you connected keep their summary. To add the curve to one of them, choose **Export original** for it in Garmin Connect and drop the ZIP onto the **Activity file (FIT)** card: it finds the Garmin workout and adds the curve there instead of creating a second one. See [Import activity files](/guides/import-fit/).
 
 ## Training Readiness and training load
 
@@ -83,5 +92,6 @@ Garmin Connect also writes to Apple Health on iOS and to Health Connect on Andro
 ## Related
 
 - [Integrations overview](/guides/integrations/)
+- [Import activity files (FIT)](/guides/import-fit/)
 - [Push readings from your own hardware](/guides/ingest-token/)
 - [Source priority](/explanation/source-priority/)

@@ -80,7 +80,10 @@ The history switches between **Last 90 days** and **Full history**, and a
 recent dose shows in both straight away. A dose logged with an injection site
 carries a chip with the site next to its status, in the table and on the
 mobile cards, so the rotation can be read back from the history. A dose
-without a site shows no chip.
+without a site shows no chip. A site you forgot to pick can be added to a dose
+you already logged by correcting that dose
+(`PUT /api/medications/{id}/intake/{eventId}` takes `injectionSite`, or `null`
+to clear it); only the sites allowed for that medication are accepted.
 
 A dose you record for earlier on the day you added the
 medication counts for its own slot. Add a medication at 4 pm, log the 2 pm dose,
@@ -326,6 +329,17 @@ A container in that tab can also carry the **manufacturer** and the **strength
 printed on the carton**. Both are optional; they matter for pens, where the
 iPhone app's pen list uses them as headline and subhead.
 
+### Correct a GLP-1 dose step
+
+A titration step with a typo does not have to stay. The iPhone app can change
+or remove one step through
+`PATCH` and `DELETE /api/medications/{id}/glp1/dose-changes/{doseChangeId}`,
+with the same access rules and audit trail as adding one. A step can carry the
+app's own id (`clientId`), so the same step uploaded from an iPhone and an iPad
+is stored once, and a removed step stays removed: a later upload under its id
+answers `410` with `glp1.doseChange.deleted`. The id travels with backups and
+restores.
+
 ## What a supplement contains
 
 A medication can carry its **composition**: what one tablet or
@@ -378,6 +392,12 @@ It draws:
   the metric sat when the medication began.
 - **The full intake history.** The history tab reaches your complete intake
   record, not just the last 90 days.
+
+The chart follows your unit settings. With glucose set to mmol/L, the glucose
+chart, its before and after means, the change at the start and the shaded band
+are all in mmol/L, and on an imperial account weight and temperature are in
+pounds and Fahrenheit. The band is your own target where you set one, or the
+diabetes goal band when you turned that on.
 
 The chart is descriptive: it shows what your own data did, and never claims the
 medication caused the change. Interpreting an effect is a conversation for your

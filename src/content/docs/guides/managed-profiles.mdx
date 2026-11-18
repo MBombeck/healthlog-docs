@@ -97,6 +97,9 @@ The module map belongs to the record, so it is edited from inside the record.
    `PATCH /api/record-settings/modules`, and the change is recorded under your
    own name in the record's activity.
 
+Modules that ship off, such as the [seizure diary](/guides/seizure-diary/), are
+switched on here for the profile, and the guardian then logs inside it.
+
 The cycle switch is sent only when you moved it. A profile created with no
 recorded gender derives cycle off, and writing that off as an explicit answer
 on every save would freeze the derivation, so a gender recorded later could no
@@ -145,8 +148,50 @@ integrations first. A guardian can also disconnect a service; what was already
 imported stays.
 
 Syncing, the connection test and provider credentials stay out of the
-profile's page: once connected, the record syncs on its own schedule. Fitbit,
+profile's page: once connected, the record syncs on its own schedule.
 Nightscout and Dawarich cannot be connected for a profile.
+
+## Its documents
+
+A profile's paperwork belongs in its own vault, and you file it there from your
+own account. Switch into the profile, open **Documents**, and upload a scan or a
+letter the way you would into your own vault: the same file types, the same size
+limit. Nobody needs to sign in as the profile and nobody needs a login made for
+it.
+
+| In the profile's document vault | A guardian |
+| --- | --- |
+| Upload a file | Yes |
+| List, open and download | Yes |
+| Rename, change the type or date, link to an illness episode, a visit or a vaccination | Yes |
+| Delete, and restore from **Recently deleted** | Yes |
+| Read it with AI: suggest details, summarise, read the lab values, make it searchable, ask about it | Yes, under the profile's AI settings |
+| Correct the values read from it and confirm them into the profile's lab results | Yes |
+| **Delete now** in Recently deleted | No; it goes for good when its 30 days are up |
+| Share links, imports from Paperless-ngx or Papra | No |
+
+The document belongs to the profile. It counts against the profile's storage,
+not yours, and the profile's activity log says that you added, changed, deleted,
+restored, read or confirmed it. The values you confirm become the profile's lab
+results, not yours.
+
+Every AI read, automatic or on request, follows the profile's own AI settings
+and consent. If the instance's AI provider leaves the server, the profile needs
+its own consent to reading documents; yours does not stand in for it. The read
+runs on the instance's provider and never on your personal AI key. Automatic
+reading is off on a new profile, so an upload alone is stored and indexed on the
+server and nothing leaves it until you ask.
+
+To have the profile's new documents read automatically, switch into the
+profile and open **Settings → AI** (see [AI providers](/guides/ai-providers/)). The switch there is the profile's, not
+yours: turning it on records the profile's consent to having its documents read,
+and the activity log names you. Asking about a document from its detail opens a
+chat about that document alone, the same conversation an owner has through the
+Coach.
+
+This belongs to the managed profile, not to the access level. Somebody who
+shares their own record with you at manage keeps their vault to themselves, and
+you can read it but not add to it.
 
 ## Where its reminders go
 
@@ -181,8 +226,8 @@ the invitation confers nothing, and the roster shows them as invited rather than
 as looking after the record.
 
 A guardian holds manage-level access to that record: they can add, change and
-remove entries in every section except the document vault, which refuses every
-delegated write, and they keep its settings. What they cannot do is change who else
+remove entries in every section, the document vault included (see
+[Its documents](#its-documents)), and they keep its settings. What they cannot do is change who else
 looks after it beyond the controls described here, and a managed profile can
 never be invited as a guardian of another record, because a record with no self
 cannot look after anybody.

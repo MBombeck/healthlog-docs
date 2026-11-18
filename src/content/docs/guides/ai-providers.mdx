@@ -81,6 +81,36 @@ when the order comes up empty, unless you switched it off there. The connection
 test then reports "No AI provider configured". (Since 1.47.3; before, several
 features fell back to the ChatGPT sign-in or the server key on their own.)
 
+## Chains per task
+
+The fallback chain is one order for every AI task. When one task should use
+something else, give it its own chain under **Settings → AI → Chains per
+task**. A chain is a named, ordered list of the providers you already set up;
+each entry is that provider with the key and model you saved for it.
+
+- **Tasks left on Default don't change.** They follow the default chain with
+  the rules they always had: reading a document still tries a local model
+  first, a lab scan still keeps the chain's order. The default chain is the
+  fallback chain unless you mark one of your chains as the default.
+- **A task with its own chain uses exactly that chain**, in the order you set,
+  and nothing else. The server's shared ChatGPT is only used where you add it
+  to the chain.
+- **One provider is a binding.** Put only your local model in the chain for
+  documents and no document leaves the house: if the local model is missing or
+  down, reading stops with a clear message instead of trying a cloud provider.
+- **Two or more** give the task an order with a fallback behind it, for
+  example local first and a cloud model second for lab scans.
+
+Each entry shows whether what it reads **stays on this machine** or **leaves
+this machine**. Consent works per chain exactly as it does for the fallback
+chain: a task whose chain can reach the server's key or send a document to a
+cloud provider still asks for consent first. Deleting a chain moves its tasks
+back to Default. Chains are included in your settings backup; keys are not.
+
+For a [managed profile](/guides/managed-profiles/#its-documents) the chains of that profile apply, and its guardian can
+only ever use the server key; a task bound to a local model therefore stays
+off rather than reach the server key.
+
 ## Local endpoints
 
 Any OpenAI-compatible local endpoint plugs in as the **Local** provider. Data

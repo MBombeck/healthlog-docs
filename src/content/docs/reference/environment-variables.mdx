@@ -98,7 +98,7 @@ password/passkey login is locked out of sign-in entirely.
 
 ## Device integrations (optional)
 
-Withings, WHOOP, Fitbit (classic) and Google Health credentials are
+Withings, WHOOP and Google Health credentials are
 **per-user, pasted in Settings and encrypted in the database**; they have no
 env-var path. Oura, Polar and Strava accept a shared instance-wide app via
 env, with a per-user override in Settings (for Strava the per-user pair is the
@@ -112,7 +112,6 @@ from `NEXT_PUBLIC_APP_URL`.
 | `WITHINGS_REDIRECT_URI` | Callback override for [Withings](/guides/connect-withings/). |
 | `WHOOP_REDIRECT_URI` | Callback override for [WHOOP](/guides/connect-whoop/). |
 | `WHOOP_WEBHOOK_SECRET` | Path segment + HMAC body-signature key for the WHOOP webhook. |
-| `FITBIT_REDIRECT_URI` | Callback override for [classic Fitbit](/guides/connect-fitbit/), whose API was switched off on 30 October 2026. |
 | `GOOGLE_HEALTH_REDIRECT_URI` | Callback override for [Google Health](/guides/connect-google-health/). |
 | `GOOGLE_HEALTH_BACKFILL_HORIZON_YEARS` | How many years back a Google Health history import reads, a whole number from 1 to 100. Default `20`. A data type whose history goes further back ends there, and the integration card names the date. |
 | `OURA_CLIENT_ID` / `OURA_CLIENT_SECRET` | Shared [Oura](/guides/connect-oura/) app; per-user Settings values win. |
@@ -381,5 +380,5 @@ effect.
 Telegram bot tokens and ntfy settings are configured **per user** in
 notification settings; error-tracking URLs live in the **admin panel**. All
 are stored encrypted in the database, not as environment variables.
-Device-integration credentials (Withings, WHOOP, Fitbit, Google Health,
+Device-integration credentials (Withings, WHOOP, Google Health,
 Strava) are per-user in Settings, likewise encrypted.
