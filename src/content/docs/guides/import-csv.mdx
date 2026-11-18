@@ -126,6 +126,13 @@ target card judged against the random-reading band, and reaches the doctor
 report and the FHIR export. A meter synced through Apple Health writes no
 meal-time metadata, so for many accounts this is every reading they have.
 
+A context can be set or changed after the reading is saved, also on a reading
+that came from a sensor or another app without one. The edit sheet offers the
+same choice as the add form, and "Not specified" stays a valid answer.
+Per-context targets and the Coach use the corrected context straight away. For
+API clients, `PUT /api/measurements/{id}` takes `glucoseContext`, where `null`
+clears it.
+
 Two ways to get it wrong. A value that is not one of the four is skipped with
 `glucose context is not one of the allowed values`. A non-empty context on a
 row that is not blood glucose is skipped with `glucose context set on a row

@@ -60,6 +60,26 @@ On iOS and watchOS 27 the app can also read the newer RMSSD heart-rate
 variability. The server stores it as HRV RMSSD, next to SDNN and never
 averaged with it, and the HRV page charts each measure on its own.
 
+### Watch notifications, check-ins and deletions
+
+These arrive once the app sends them; the server side is in place since 1.48.0.
+
+- **Hypertension notifications.** Apple Watch hypertension notifications are
+  kept beside the irregular rhythm and heart rate notifications, in the heart
+  and circulation group: under device notifications in insights, on the
+  timeline and in the measurement list, and selectable for the doctor report.
+  They are shown as the watch flagged them and never count as a blood pressure
+  reading.
+- **PHQ-9 and GAD-7.** Check-ins taken in Apple Health land in the mental
+  wellbeing history beside the ones taken in HealthLog, count once on the
+  score trend and in the doctor report, and keep their answers when Apple
+  Health shares them. One that shares only its score says so. With the mental
+  health module off, none of them is stored.
+- **Deletions.** Deleting a workout, an ECG, a cycle day, a State of Mind
+  entry or a medication dose in Apple Health removes it in HealthLog too, as
+  it already did for measurements. See
+  [Deletions from Apple Health](/reference/native-clients/#deletions-from-apple-health).
+
 The other direction: readings you type into HealthLog, Withings readings and
 imported readings are written to Apple Health by the app. Readings from a
 [measurement token](/guides/ingest-token/#write-readings-to-apple-health) (a

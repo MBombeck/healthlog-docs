@@ -131,6 +131,42 @@ full-scope login token, has its own limit of 60 batches a minute, and is not
 behind the Labs module switch. The schema is in the
 [OpenAPI document](/reference/api-overview/).
 
+## Deletions from Apple Health
+
+When a record is deleted in Apple Health, the app sends its external ids to
+the matching endpoint, shaped like the measurements one:
+
+- `DELETE /api/workouts/by-external-ids`
+- `DELETE /api/insights/ecg/by-external-ids`
+- `DELETE /api/cycle/day-logs/by-external-ids`
+- `DELETE /api/mood-entries/by-external-ids` (mood entries take
+  `APPLE_HEALTH` as their source here)
+- `DELETE /api/medications/intake/by-external-ids`
+
+Before 1.48.0 only measurements followed, so an entry edited in Apple Health
+left its old copy beside the new one.
+
+## Medication corrections
+
+- `PATCH` and `DELETE /api/medications/{id}/glp1/dose-changes/{doseChangeId}`
+  change or remove one GLP-1 titration step. A step may carry a `clientId`;
+  the same id uploaded twice is stored once, and an upload under the id of a
+  removed step answers `410` `glp1.doseChange.deleted`.
+- `PUT /api/medications/{id}/intake/{eventId}` takes `injectionSite` (or
+  `null` to clear it) on a dose already logged. Only sites allowed for that
+  medication are accepted.
+
+## Fitbit on older app builds
+
+The Fitbit integration was removed in 1.48.0. For builds that still show a
+Fitbit card, `GET /api/fitbit/status` answers "not connected" with
+`retired: true`, and the integration's other routes answer `410`
+`route.retired`. `GET /api/integrations/status` carries
+`fitbitRemovalNotice`, true while an account that had Fitbit connected has not
+dismissed the note about the removal;
+`POST /api/integrations/fitbit-removal-notice/dismiss` (no body, idempotent)
+hides it on the web and in the app alike.
+
 ## Background document reads
 
 `POST /api/documents/inbound/{id}/index`, `/summary`, `/suggest`
