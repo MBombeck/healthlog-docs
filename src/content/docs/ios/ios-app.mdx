@@ -50,6 +50,12 @@ On first sync the app requests HealthKit read permission for the metric types it
 
 Grant only the types you want synced — denied types simply never leave the phone.
 
+Lab results from Health Records (a hospital or lab connected to the Health
+app) have a server endpoint of their own,
+[`POST /api/labs/fhir-batch`](/reference/native-clients/#lab-results-from-health-records),
+which files them in [Labs](/guides/labs/#from-apple-health-health-records) the
+same way an `export.zip` import does.
+
 On iOS and watchOS 27 the app can also read the newer RMSSD heart-rate
 variability. The server stores it as HRV RMSSD, next to SDNN and never
 averaged with it, and the HRV page charts each measure on its own.
