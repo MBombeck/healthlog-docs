@@ -18,6 +18,8 @@ export default defineConfig({
 		'/integrations/data-import/': '/guides/import-csv/',
 		'/integrations/fitbit/': '/guides/connect-google-health/',
 		'/integrations/google-health-fitbit/': '/guides/connect-google-health/',
+		// The classic Fitbit guide was removed with the integration.
+		'/guides/connect-fitbit/': '/guides/connect-google-health/',
 		'/integrations/ai-providers/': '/guides/ai-providers/',
 		'/concepts/source-priority/': '/explanation/source-priority/',
 		'/concepts/derived-metrics/': '/explanation/health-scores/',
@@ -98,7 +100,6 @@ export default defineConfig({
 						{ slug: 'guides/connect-polar' },
 						{ slug: 'guides/connect-strava' },
 						{ slug: 'guides/connect-google-health' },
-						{ slug: 'guides/connect-fitbit' },
 						{ slug: 'guides/connect-nightscout' },
 						{ slug: 'guides/connect-dawarich' },
 						{ slug: 'guides/import-apple-health' },

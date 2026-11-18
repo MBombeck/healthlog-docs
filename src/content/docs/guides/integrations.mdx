@@ -7,7 +7,7 @@ sidebar:
 
 Every connection under **Settings, Integrations** uses the same card:
 Withings, WHOOP, Oura, Polar, [Garmin](/guides/connect-garmin/), Strava, Google
-Health, Fitbit, Nightscout, Apple Health and
+Health, Nightscout, Apple Health and
 [Dawarich](/guides/connect-dawarich/). The card answers whether the connection works,
 what that means in one sentence, and what you can do about it. The server
 decides the state and the sentence; the web app and the iOS app only show
@@ -52,14 +52,15 @@ failing, HealthLog retries on its own; if no new data has arrived from Apple
 Health, the sentence asks you to open HealthLog on the iPhone once, because
 iOS only delivers in the background when it chooses to.
 
-### Fitbit: Shutting down and Retired
+### Fitbit
 
-Google switched the Fitbit Web API off on 30 October 2026. Until then the
-Fitbit card carried a **Shutting down** badge; since that day it reads
-**Retired** and the connection no longer syncs. The card explains the move and links to the
-Google Health card (**Go to Google Health**). Everything already imported
-stays, and the watchdog does not report a retired Fitbit connection. See
-[Connect Fitbit](/guides/connect-fitbit/).
+Google switched the classic Fitbit Web API off on 30 October 2026, and
+HealthLog no longer has a Fitbit card. If you had Fitbit connected, a one-time
+notice under **Settings, Integrations** explains the change. Readings and
+workouts already imported from Fitbit stay, with Fitbit still shown as their
+source. To keep Fitbit and Pixel Watch data coming, connect
+[Google Health](/guides/connect-google-health/), or on Android
+[import a Health Connect export](/guides/import-health-connect/).
 
 ## The three-dot menu
 
@@ -139,7 +140,7 @@ It watches for three things:
 
 - **A source that goes silent.** This applies only to sources that deliver
   around the clock and have delivered on most days of the last two weeks.
-  Silence counts after 24 hours for Fitbit, Google Health, Polar and
+  Silence counts after 24 hours for Google Health, Polar and
   Nightscout, and after 48 hours for Apple Health, Garmin, Oura and WHOOP. Oura and
   WHOOP upload only when their phone app is opened, and iOS sometimes holds
   background delivery back for a day, so a single quiet day is ordinary for
