@@ -1,6 +1,6 @@
 ---
 title: Push readings from your own hardware
-description: Mint a measurement or workout ingest token and post readings or workouts from a scale, a watch bridge, or a Home Assistant rule to your own record, with a worked rest_command, room climate, Apple Health write-back and the error responses explained.
+description: Mint a measurement or workout ingest token and post readings, custom-metric values, daily nutrient totals or workouts from a scale, a watch bridge, a food tracker or a Home Assistant rule to your own record, with a worked rest_command, room climate, Apple Health write-back and the error responses explained.
 sidebar:
   order: 21
 ---
@@ -8,7 +8,7 @@ sidebar:
 HealthLog pulls from Withings, WHOOP, Fitbit, Oura, Polar and Strava over
 OAuth, and from [Garmin](/guides/connect-garmin/) with a key you create. A local sensor has no such door: a Bluetooth scale, a Garmin bridge or a
 Zigbee thermometer lives in your own automation platform and has to push. This
-page covers that path, a token you mint yourself and the two endpoints it
+page covers that path, a token you mint yourself and the endpoints it
 reaches.
 
 Nothing here is specific to Home Assistant. Node-RED, a cron job with `curl`,
@@ -47,10 +47,13 @@ It can add readings, on your own record, through:
 - `POST /api/measurements`: one reading, or an array of up to five
 - `POST /api/measurements/batch`: up to 500 entries per call
 - `POST /api/custom-metrics/{id}/entries`: one value for a [custom metric](/guides/custom-metrics/) you already created
+- `POST /api/nutrients/batch`: daily nutrient totals, such as calories and
+  macronutrients from a food tracker, while the [nutrients module](/guides/nutrients/)
+  is on (see [Push daily nutrient totals](#push-daily-nutrient-totals))
 
 That is the whole list. It **cannot** read a reading back, change or delete
-one, list your custom metrics or create one, reach the export, or mint another
-token. The read, edit and delete
+one, list your custom metrics or create one, read your nutrient totals, reach
+the export, or mint another token. The read, edit and delete
 endpoints name no scope, so a request from this token is refused with `403`
 before the handler runs. That is the point of it being a separate credential
 rather than a general one: a container you do not fully trust, a Home
@@ -339,6 +342,74 @@ values are not marked as coming from an external device, but HealthLog's audit
 log records which token wrote them. `Idempotency-Key` works as described below,
 and the endpoint shares the 300-a-minute allowance of the single-reading route.
 
+## Push daily nutrient totals
+
+A food tracker knows what you ate each day. With the same measurement token it
+can send those day totals to the [nutrients module](/guides/nutrients/), which
+has to be switched on (**Settings → Modules → Nutrient intake**); while it is
+off, every call is refused with `403` and `meta.errorCode: module.disabled`.
+
+Post one entry per nutrient and day, up to 500 per call:
+
+```bash
+curl -X POST https://healthlog.example.com/api/nutrients/batch \
+  -H "Authorization: Bearer hlk_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "entries": [
+        { "day": "2026-11-16", "nutrient": "energy",        "unit": "kcal", "amount": 2140 },
+        { "day": "2026-11-16", "nutrient": "protein",       "unit": "g",    "amount": 96 },
+        { "day": "2026-11-16", "nutrient": "carbohydrates", "unit": "g",    "amount": 231 },
+        { "day": "2026-11-16", "nutrient": "fat",           "unit": "g",    "amount": 78 },
+        { "day": "2026-11-16", "nutrient": "fiber",         "unit": "g",    "amount": 29 },
+        { "day": "2026-11-16", "nutrient": "alcohol",       "unit": "g",    "amount": 24 }
+      ] }'
+```
+
+`day` is the calendar day in your own time zone, as `YYYY-MM-DD`. `unit` must
+be exactly the unit the nutrient is stored in; any other unit skips the entry
+as `unit_mismatch` instead of converting it:
+
+| Nutrient                                         | `nutrient`                                                        | `unit` |
+| ------------------------------------------------ | ----------------------------------------------------------------- | ------ |
+| Energy                                           | `energy`                                                          | `kcal` |
+| Protein, carbohydrates, fat, sugar, fiber        | `protein`, `carbohydrates`, `fat`, `sugar`, `fiber`               | `g`    |
+| Alcohol (grams of ethanol, not drinks)           | `alcohol`                                                         | `g`    |
+| Sodium, potassium                                | `sodium`, `potassium`                                             | `mg`   |
+| Water                                            | `water`                                                           | `ml`   |
+| Caffeine                                         | `caffeine`                                                        | `mg`   |
+
+Vitamins and the other minerals are accepted too, in the units the
+[nutrients guide](/guides/nutrients/) lists.
+
+:::caution[Kilojoules]
+Energy is kcal only. A tracker set to kilojoules sends numbers 4.184 times
+too large that still look plausible, so check the setting before the first
+push. An entry sent with `"unit": "kJ"` is skipped, never converted.
+:::
+
+How the totals are kept:
+
+- **A re-post replaces the day.** Send today's running total as often as you
+  like; each call overwrites the stored number for that nutrient and day
+  (`"status": "updated"`). To correct a day, send it again, or send `0`.
+- **Any past day is accepted**, so a first run can backfill your history.
+- **They show as External.** The rows are stored under the source `EXTERNAL`,
+  decided by the token; the body has no `source` field. They cannot be edited
+  in the app, only replaced by the next post.
+- **The larger day total counts.** If your tracker also writes into Apple
+  Health and the iPhone app syncs the same day, both totals are stored, but a
+  day counts only the larger of the two, so a meal is never counted twice.
+  Water you enter by hand and supplement doses still add on top.
+- **Nothing goes to Apple Health.** Unlike readings, nutrient totals from a
+  token are not written back to the Health app.
+- **One external source per account.** Two bridges posting the same nutrient
+  for the same day share the `EXTERNAL` row, and whichever posts last wins.
+
+The endpoint allows 60 calls a minute. Calls with a measurement token count in
+an allowance of their own, apart from the iPhone app's sync. Per-entry
+problems come back in `skipped` (`unit_mismatch`, `value_out_of_range`,
+`day_invalid`) and are not worth retrying unchanged.
+
 ## Retries and duplicates
 
 Both endpoints honour an `Idempotency-Key` header. Send a value your automation
@@ -429,7 +500,7 @@ account share that allowance; minting a second token does not double it.
 | Response | What it means                                                                                                                                                 |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `401`    | The token is wrong, revoked, or expired. Mint a new one.                                                                                                       |
-| `403`    | The endpoint is outside the token's scope (check you are calling one of the three above and not a read), or the request named another account's record.       |
+| `403`    | The endpoint is outside the token's scope (check you are calling one of the four above and not a read), the request named another account's record, or (nutrient totals only) the nutrients module is off: `meta.errorCode: module.disabled`. |
 | `404`    | The custom metric ID is unknown, deleted, or not yours (custom metric values only). |
 | `409`    | A reading with this type, timestamp and source already exists (single endpoint only).                                                                          |
 | `422`    | The payload is wrong: an unknown `type` or `sleepStage`, a non-numeric or implausible `value`, an `unavailable` sensor state, a body or entry naming any `source`, or a batch over 500. On the batch endpoint `meta.errorCode` says which: `measurement.batch.invalid`, `measurement.batch.source_not_permitted` or `measurement.batch.too_large`. None of these is worth retrying unchanged. |
