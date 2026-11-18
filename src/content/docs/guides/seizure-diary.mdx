@@ -1,0 +1,231 @@
+---
+title: Keep a seizure diary
+description: Record seizures with their type, duration and rescue medication, time one on a phone with the person's own emergency plan at hand, and take a seizure section to the neurologist.
+sidebar:
+  order: 34
+---
+
+You look after someone with epilepsy, or you have it yourself, and you want a
+record a neurologist can read: which seizures, how often, how long, what was
+given and whether it worked. The seizure diary keeps that record. It is off by
+default; switch it on under Settings, Modules ("Seizure diary"). In a managed
+profile, the guardian switches it on for the child's record and logs there.
+
+:::caution[What the diary is not]
+The diary records what you observe so you can share it with the care team. It
+does not diagnose or assess seizures, it never estimates a risk, and it never
+tells you it is safe to wait. HealthLog is not a seizure alarm or a medical
+device. Follow the emergency plan agreed with your doctor.
+:::
+
+## Set up the seizure types once
+
+Open `/seizures` and add the person's seizure types under **Seizure types**,
+ideally together with the care team. Each type has:
+
+- **Your name for it**, the word your family uses ("the big one"). Encrypted at
+  rest.
+- **The classification**, in two steps: the onset (focal, generalized, unknown
+  whether focal or generalized, unclassified), then the type. "Not sure" at the
+  second step records the onset class itself, which is what the ILAE 2025
+  paper advises when the next level is not known. HealthLog never suggests a
+  classification.
+- **Usual duration**, used for the "more than 2 minutes longer than usual"
+  threshold below.
+- **Emergency plan**: the steps agreed with the care team, in your own words.
+  Encrypted at rest. This text is what the quick log shows when the timer
+  passes the threshold.
+- **Rescue medication**: one of the person's **as-needed** medications (add it
+  under Medications first, marked as needed), with its dose and route.
+
+A type you no longer use can be archived; it leaves the quick log and every
+seizure recorded under it keeps it. A type no seizure names can be deleted.
+
+### Classification: ILAE 2025, with the 2017 names beside it
+
+The diary stores the ILAE 2025 seizure type (Beniczky, Trinka et al.,
+Epilepsia 2025) and shows the ILAE 2017 name next to it, because most letters
+and many clinicians still use it. The mapping is one to one for every common
+type, for example:
+
+| ILAE 2025 | ILAE 2017 |
+| --- | --- |
+| Focal preserved consciousness seizure | Focal aware seizure |
+| Focal impaired consciousness seizure | Focal impaired awareness seizure |
+| Focal to bilateral tonic-clonic seizure | Focal to bilateral tonic-clonic seizure |
+| Typical absence seizure | Generalized non-motor (absence) seizure, typical |
+
+Generalized negative myoclonus is new in 2025 and has no 2017 name.
+
+## Log a seizure with the quick log
+
+The quick log is one screen made for a phone held in one hand. **Log seizure**
+in the add menu (the bottom bar's Log button, or the dashboard's add menu) opens
+it:
+
+1. Tap the type (the last one used is already picked).
+2. Tap **Seizure started**. The large timer runs.
+3. If you give the rescue medication, tap **Rescue given**; the time, drug and
+   dose from the plan are stamped.
+4. Tap **Seizure stopped**. The seizure is saved with its timed duration.
+5. Tap **Add details** to fill in the rest now or later.
+
+The timer stores the moment it started, not a running count, so reloading the
+page or locking the phone does not lose it. If nothing could be timed, use
+**Record a seizure that was not timed** and enter the start and an estimate.
+
+### When the plan appears
+
+The person's own plan and a call button for the local emergency number appear
+when the timer passes the type's threshold:
+
+| Type | Threshold | Source |
+| --- | --- | --- |
+| Bilateral tonic-clonic (focal to bilateral, generalized, unknown onset) | 5 minutes, or the usual duration plus 2 minutes when that comes first | ILAE t1 (Trinka et al., Epilepsia 2015); NICE NG217 §7.3 |
+| Focal with impaired consciousness, absences | 10 minutes | ILAE t1 (Trinka et al., Epilepsia 2015) |
+| Every other type, and no type | 5 minutes | CDC seizure first aid |
+
+Before the threshold the timer says nothing about waiting. The emergency
+guidance below the timer stays visible the whole time: call emergency services
+if a seizure with jerking or stiffening lasts 5 minutes or longer, if another
+seizure follows before the person recovers, if breathing is difficult, if they
+are injured, if the seizure happened in water, or if it is their first
+seizure. Your own emergency plan comes first.
+
+The call button uses the emergency number HealthLog has for the language you
+use it in: 112 for most languages (it works across the EU and is routed on most
+mobile networks elsewhere), 119 in Korean. If your local number differs, write
+it into the plan text.
+
+## The details
+
+Everything except the start is optional:
+
+- **Certainty**: a seizure, or suspected. Suspected events are listed and never
+  counted in the figures.
+- **How many**: more than one for a tally, such as the absences of a day.
+- **Awake or asleep**, responsiveness and recall (asked separately, because a
+  carer can often answer one but not the other), what happened in order, a
+  description, a warning beforehand.
+- **Afterwards**: minutes until back to usual, sleep, confusion, headache,
+  weakness on one side (Todd's paresis), injuries, emergency care.
+- **Suspected triggers**: your own suspicion, shown as suspected in the report.
+- **Witness**, and who logged it. A seizure logged by a guardian or a carer
+  names them in the list, the way the record switcher does.
+
+Each rescue dose can be given an effect (stopped, eased, no effect) once you
+know it.
+
+### Rescue doses and the medication record
+
+A rescue dose that names an as-needed medication is also recorded as a dose on
+that medication, so its history and stock include it. As-needed medication is
+never counted in adherence, so a rescue dose changes no compliance figure.
+Deleting the dose or the seizure takes the dose off the medication again.
+
+## Clusters
+
+A cluster is a number of seizures within a number of hours. The rule belongs in
+the person's emergency plan and is set under **Cluster rule**; until you set
+one, the diary uses 2 within 24 hours. NICE (NG217 §7.2.1) uses 3 within 24
+hours, and that count is shown beside yours. There is no single agreed
+definition (Haut et al., Epilepsia 2022), which is why the rule is yours.
+
+Clusters are derived each time from the recorded seizures: a window starting at
+each seizure qualifies when it holds enough seizures (a tally counts with its
+number), and overlapping qualifying windows are one episode. Changing the rule
+re-derives every past cluster.
+
+### The cluster notification
+
+Under **Notifications**, **Seizure cluster** can be switched on per channel. It
+is off until you turn it on. It is sent once, when a seizure logged by somebody
+else (a carer, a guardian) forms a cluster under the rule; the seizures that
+follow inside the same cluster send nothing, and neither does a seizure entered
+after the fact. On a child's managed profile it reaches the guardians. The text
+carries the count, the window and who logged it, nothing else.
+
+## On the timeline
+
+With the timeline on, days with seizures sit on their own lane below the
+conditions, named by the day's seizure types and counted. Tapping one opens the
+diary.
+
+## The figures
+
+The diary shows, for the last 90 days: recorded seizures, days with a seizure,
+days since the last recorded seizure, the longest run without one, clusters
+under your rule and under NICE's, and seizures per type and month. These are
+recorded seizures: diaries miss many, especially seizures from sleep (Hoppe et
+al., Arch Neurol 2007), so the diary never calls a period "seizure-free".
+
+## The doctor report
+
+Choose **Seizure diary** in the report selection (it is on the standard
+template). The section holds:
+
+1. A summary: recorded seizures, seizure days, seizure-free days, seizures per
+   28 days, the longest run and days since the last seizure, bilateral
+   tonic-clonic and from-sleep counts, clusters under your rule and NICE's,
+   rescue doses, and paramedic, emergency department and admission counts.
+2. Seizures by type and month, with seizure days.
+3. A monthly chart with the starts, stops and dose changes of regularly
+   scheduled medications as numbered markers.
+4. Durations per type: median, longest, how many reached t1, how many were 2
+   minutes over the usual duration.
+5. Rescue medication: date, drug, dose, route, minutes after onset, effect.
+6. Suspected triggers.
+7. Things recorded alongside, each only when the data exists and its own
+   section is in the report: seizures that followed a missed or skipped
+   scheduled dose within 48 hours; seizures by cycle day, with the rate around
+   the period and around ovulation compared with other days after three
+   complete tracked cycles (Herzog's twofold criterion is named as a
+   reference, never as a finding; Herzog et al., Epilepsia 1997); sleep the
+   night before seizure days; seizures during an illness.
+8. Every recorded seizure.
+
+The footer says what the record is: a patient or carer recorded diary,
+recorded seizures, likely an undercount.
+
+## FHIR export
+
+In the FHIR document export each seizure is an `Observation` coded SNOMED CT
+313307000 "Epileptic seizure" (91175000 "Seizure" when suspected or
+unclassified, status `preliminary` when suspected), with the type as a SNOMED
+value; each rescue dose is a `MedicationAdministration` that points at its
+seizure; an emergency department visit or admission is an `Encounter`; each
+cluster is an `Observation` with its seizures as members; and three summaries
+use LOINC 99312-1 (seizure frequency), 99313-9 (time since last seizure) and
+99311-3 (seizure type, 2017 categories). No `Condition` is ever created from
+the diary, and a duration over t1 is a note, never a status epilepticus code.
+See [FHIR export](/features/fhir-export/).
+
+## Sharing, backups and the assistant
+
+- **Sharing**: the diary belongs to the **Illness** section of a shared record.
+  A read grant sees it; a write grant can log seizures and rescue doses; a
+  manage grant (and the guardian of a managed profile) can also edit, delete,
+  set up types and the cluster rule.
+- **Backups** carry the types, every seizure with its doses, and the rule.
+- **MCP**: the `get_seizures` tool reads the diary for an assistant you
+  connected, with your own words fenced as user text.
+
+## Sources
+
+- Beniczky S, Trinka E, et al. Updated classification of epileptic seizures:
+  position paper of the ILAE. Epilepsia 2025. doi:10.1111/epi.18338
+- Fisher RS, et al. Operational classification of seizure types by the ILAE.
+  Epilepsia 2017. PubMed 28276060
+- Trinka E, et al. A definition and classification of status epilepticus.
+  Epilepsia 2015. PubMed 26336950
+- NICE guideline NG217, Epilepsies in children, young people and adults,
+  chapter 7.
+- Pina-Garza JE, et al. Outpatient management of prolonged seizures and
+  seizure clusters. Epileptic Disorders 2024. PubMed 38813941
+- Haut SR, et al. Recognizing seizure clusters in the community. Epilepsia 2022.
+  doi:10.1111/epi.17346
+- Herzog AG, et al. Three patterns of catamenial epilepsy. Epilepsia 1997.
+  PubMed 9579954
+- Hoppe C, et al. Epilepsy: accuracy of patient seizure counts. Arch Neurol
+  2007. PubMed 17998441
+- CDC, First aid for seizures.

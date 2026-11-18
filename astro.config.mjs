@@ -112,6 +112,7 @@ export default defineConfig({
 						{ slug: 'guides/labs' },
 						{ slug: 'guides/vaccinations' },
 						{ slug: 'guides/illness' },
+						{ slug: 'guides/seizure-diary' },
 						{ slug: 'guides/cycle-tracking' },
 						{ slug: 'guides/cycle-calendar-feed' },
 						{ slug: 'guides/custom-metrics' },
