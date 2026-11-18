@@ -38,6 +38,38 @@ when the account carries a second factor), and the app exchanges that code at
 token pair never rides a URL; only the opaque code does. An instance running
 `OIDC_ONLY=true` offers this flow alone.
 
+#### Returning over https instead of the scheme
+
+An app build that carries an associated domain for the instance can ask to
+come back on the instance's own address instead of the custom scheme, which
+saves the "open in app?" prompt. It is opt-in on both sides:
+
+- `GET /api/auth/oidc/status` answers `nativeReturnPath`
+  (`/auth/native-return`, a fixed path) when SSO is on and
+  `NEXT_PUBLIC_APP_URL` is https; otherwise it is `null`.
+- The app then adds `return=https` to the native start:
+  `GET /api/auth/oidc/login?client=native&code_challenge=<S256>&return=https`.
+- Every redirect of that sign-in, including errors, goes to
+  `https://<NEXT_PUBLIC_APP_URL host>/auth/native-return` with exactly the
+  parameters the scheme would carry (`code`, `mfa_ticket` and `methods`,
+  `error`, `purgeAt`). The host comes from the configured app URL, never from
+  the request.
+
+Any other `return` value, `return=https` without `client=native`, or
+`return=https` on an instance not served over https answers `422`. Without
+`return=https` nothing changes. The code stays bound to the app's PKCE
+verifier and is single-use, so it is worthless to anyone else. In a browser
+without the app, `/auth/native-return` shows a short "Back to the app" page
+that never reads the query, removes it from the address bar, and is served
+`no-store`, `noindex` and `Referrer-Policy: no-referrer`. A browser that lands
+there does request the address from the server, so a reverse proxy's access
+log records it; HealthLog's own logs redact `code` and `mfa_ticket`. The app
+should discard a return it did not start.
+
+The instance's `apple-app-site-association` lists only the paths the app
+handles: `/auth/register*`, `/invite*` and `/auth/native-return`. The web
+sign-in's own SSO return stays in the browser.
+
 ### Response shape (native)
 
 ```json
@@ -136,6 +168,10 @@ curl -X POST https://your-instance.example.com/api/devices \
 ```
 
 If the same APNs / FCM token is already registered to a **different** account, the request is rejected with `409 Conflict` instead of silently transferring ownership. APNs / FCM tokens aren't a secret, so trusting wire input would let anyone who learns a token redirect another user's pushes. The denial is audit-logged.
+
+A device's `lastSeenAt` (in `GET /api/auth/me/devices`) moves when the app registers it and on any request made with the app's sign-in token for that device, at most once an hour. The device is the one the token's refresh family names (the `X-Device-Id` the app sent at sign-in), never one a request header claims; a token without that link moves it only through registration.
+
+`medicationDelivery` on a device (`PATCH /api/auth/me/devices/{id}`) decides where the medication reminder that announces a dose goes on APNs: `client` keeps the server's push off that device because the app reminds locally, `server` pushes to it whatever the account says, and `null` follows the account-wide `notificationPrefs.medication.clientManaged` / `deliveryDefault`. Follow-ups for a dose still open, other pushes and the non-APNs channels are not affected.
 
 ## Token Storage (Server-Side)
 
