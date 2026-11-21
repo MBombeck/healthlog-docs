@@ -100,6 +100,39 @@ convention. The external ID format is `stats:<HKType>:<YYYY-MM-DD>` (e.g.
 your [timezone preference](/explanation/timezone-model/), defaulting to
 `Europe/Berlin` when none is set.
 
+### Sport types and workout effort
+
+These come in as types of their own, through the export and through the
+iPhone app:
+
+| Apple Health type | HealthLog type | Unit | Day value |
+| --- | --- | --- | --- |
+| `DistanceCycling` | `CYCLING_DISTANCE` | m | sum |
+| `DistanceRowing` | `ROWING_DISTANCE` | m | sum |
+| `RowingSpeed` | `ROWING_SPEED` | m/s | mean |
+| `RunningSpeed` | `RUNNING_SPEED` | m/s | mean |
+| `RunningPower` | `RUNNING_POWER` | W | mean |
+| `RunningGroundContactTime` | `RUNNING_GROUND_CONTACT_TIME` | ms | mean |
+| `RunningVerticalOscillation` | `RUNNING_VERTICAL_OSCILLATION` | cm | mean |
+| `RunningStrideLength` | `RUNNING_STRIDE_LENGTH` | m | mean |
+| `WorkoutEffortScore` | `WORKOUT_EFFORT_SCORE` | 0 to 10 | mean |
+| `EstimatedWorkoutEffortScore` | `ESTIMATED_WORKOUT_EFFORT_SCORE` | 0 to 10 | mean |
+| `PhysicalEffort` | `PHYSICAL_EFFORT` | kcal per hour per kg | mean |
+
+The two distances are summed per day like walking and running distance, so an
+export with hundreds of thousands of cycling records lands as day totals. The
+others are readings taken during a workout, so their day value is the mean. A
+record in another unit, such as kilometres in an export from a metric account,
+is converted on the way in, and a value that only makes sense in the wrong unit
+(millimetres sent as centimetres, a running speed above 15 m/s) is refused.
+
+The effort score you logged and the watch's estimate of it are stored apart,
+so a day's mean never blends the two, and none of the three effort types is
+added to active or resting energy. The eight cycling, rowing and running types
+show on charts and to the MCP connector; they have no detail page of their own
+and do not feed the Coach, the correlations or personal records. Cycling speed,
+power and cadence, swimming, paddling, skiing and skating are not imported yet.
+
 ### Units come from the archive, not from the type
 
 Apple stamps every quantity `<Record>` with the account's own display unit, so

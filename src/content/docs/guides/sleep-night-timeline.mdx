@@ -1,0 +1,48 @@
+---
+title: The night timeline
+description: The night timeline on the sleep page draws one night's sleep stages in the order they happened. How to step between nights, what the header shows, why some nights have no timeline, and which clock it uses after travel.
+sidebar:
+  order: 33
+---
+
+The **Night timeline** card sits at the top of the sleep page
+(**Insights**, **Sleep**). It draws one night's sleep stages in the order they
+happened, one lane per stage the night holds, with **Awake** at the top and
+**Deep** at the base, so depth increases downward. The stage totals stay in the
+stacked bar below, so nothing is shown twice.
+
+## Moving between nights
+
+The card opens on the latest night. **Previous night** and **Next night** step
+by wake day; forward stops at the latest night. The header shows the day you
+woke, the time asleep, the number of awakenings, the source of the night, and
+the marker that appears elsewhere when two sources disagree about it.
+
+The axis is marked in whole hours of local time, every one, two or three hours
+depending on the length of the night, also in time zones that sit half an hour
+off and on the nights the clocks change. A day with no night
+recorded says "No night recorded for this day."
+
+## Nights without a timeline
+
+Some sources report only how long you spent in each stage, not when. For such
+a night the card says "This source reports stage totals without times, so there
+is no timeline for this night." instead of inventing an order. A night that has
+stage totals but no stage times at all says so too. The totals are still in the
+stacked bar and in the night's figures.
+
+## After travel
+
+When the iPhone app sends the time zone a reading was taken in, a night slept
+in another zone is filed under the wake day in that zone, and the timeline
+draws its clock in that zone. A night slept in New York on a Berlin profile
+therefore reads 23:00 to 07:00, not 05:00 to 13:00. See
+[Time zones per reading](/explanation/timezone-model/#readings-taken-in-another-time-zone).
+
+The night view behind the card is `GET /api/sleep/night`, which also carries
+the `timeZone` of each session.
+
+## Related
+
+- [Sleep](/knowledge/sleep/): what the stages and durations mean
+- [Open a day](/guides/day-view/)

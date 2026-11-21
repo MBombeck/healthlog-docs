@@ -140,6 +140,18 @@ The `.p8` must be scoped **"Sandbox & Production"**; a Sandbox-only key fails
 with `BadEnvironmentKeyInToken` on production builds. See
 [troubleshooting](/self-hosting/troubleshooting/).
 
+## Push relay (optional)
+
+The opt-in [push relay](/guides/push-relay/) for the App Store iPhone app. All
+three are optional and on the compose whitelist; an admin still has to turn
+the relay on under **Admin**, **Services**.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PUSH_RELAY_MODE` | `allowed` | `off` hides the relay entirely, the admin notice included. |
+| `PUSH_RELAY_URL` | `https://push.healthlog.dev` | The relay origin; `https` only. Set it only for a relay you run yourself. |
+| `PUSH_RELAY_KEYS` | the hosted relay's keys | The relay's identity public keys (Ed25519, unpadded base64url, comma separated). Every relay answer must be signed by one of them; without pinned keys the relay cannot be used. |
+
 ## Email (SMTP) notification channel
 
 Setting host + port + from enables the email channel; user/pass are optional.

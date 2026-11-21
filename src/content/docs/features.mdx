@@ -113,7 +113,10 @@ ingest refuses while it is off. Once you enable it, device-synced dietary data
 flows as your client sends it. A supplement with its composition
 counts every taken dose toward the day's micronutrients, the page shows each
 amount by source, and a day above an EFSA tolerable upper intake level says so
-with its source; see [Upper limits](/guides/nutrients/#upper-limits).
+with its source; see [Upper limits](/guides/nutrients/#upper-limits). The
+[energy balance](/guides/nutrients/#energy-balance) sets what you ate against
+resting and active energy, day by day, and leaves out a day it would have to
+guess.
 
 ## Metric catalog
 
@@ -149,7 +152,12 @@ you can file medications under
 [categories of your own](/guides/track-medications/#your-own-categories). A
 medication you take reliably can
 [record its doses by itself](/guides/track-medications/#record-doses-automatically),
-without reminders and never over a dose you logged by hand. See
+without reminders and never over a dose you logged by hand. A dose recorded
+on the web, the iPhone, in Telegram or by a pill box
+[counts once on every device](/guides/track-medications/#doses-recorded-somewhere-else),
+every surface uses the same
+[words for a dose's state](/guides/track-medications/#dose-states-and-the-words-for-them),
+and takes, skips and deletes have an Undo. See
 [Track medications](/guides/track-medications/).
 
 ## Clinical signals and records
@@ -295,7 +303,9 @@ revoke after the visit. The health-record export ships PDF, FHIR R4, or both.
 The doctor report embeds an open Unicode font family covering Latin, Greek,
 Cyrillic and, when the report needs it, Korean, so it prints in every app
 language and a medication name or note in another of those scripts prints as
-written. Chinese, Japanese and Arabic text are not covered yet.
+written. Chinese, Japanese and Arabic text are not covered yet. The report can
+also [file itself into your documents](/guides/scheduled-doctor-report/) every
+month, quarter or year.
 
 ## Shared access between accounts
 

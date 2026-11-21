@@ -56,9 +56,14 @@ ends, and the job keeps only counts.
 | The records, usually one per second | The workout's curve: heart rate, speed, power and cadence |
 | The positions in the records | The GPS track, only when **Workout routes** is switched on in the privacy settings |
 | Laps, power and cadence averages, the device | Shown as the workout's details |
+| The session's own figures: training effect (aerobic and anaerobic), training load, recovery time, estimated sweat loss, average power, vertical oscillation, ground contact time and its balance | One tile each on the workout's page, under its statistics |
 
 The curve keeps at most 30 000 points. A longer recording, a day-long race at
 one point per second, is averaged down evenly so its shape stays.
+
+Recovery time is read only from a file with a single session, and a zero counts
+as not reported. Running dynamics are kept as the session's averages; there is
+no curve for them, and step length and vertical ratio are not read.
 
 Not stored: beat-to-beat (R-R) intervals, data from Connect IQ apps (developer
 fields), and the device's serial number. A virtual ride or run from Zwift or
@@ -70,8 +75,10 @@ A workout you already have, from Garmin, Apple Health, Health Connect, Strava
 or an earlier file of the same ride, is not stored a second time. HealthLog
 recognises it the same way the workout list does: same sport, start within a
 few minutes. Instead of a duplicate, the existing workout gets the heart-rate
-curve from the file if it had none, and the GPS track if you keep tracks and it
-had none.
+curve from the file if it had none, the GPS track if you keep tracks and it
+had none, and the session figures it does not have yet. A figure the workout
+already carries keeps its value, so the training effect Garmin's summary sent
+stays Garmin's.
 
 So for a run that came in through the Garmin connection or the iPhone without
 a curve, upload its file and the curve appears on that same workout.

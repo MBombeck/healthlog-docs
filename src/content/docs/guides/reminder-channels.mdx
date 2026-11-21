@@ -44,13 +44,21 @@ literal newlines; `APNS_KEY` / `APNS_KEY_FILE` remain accepted). See
 [APNs in the environment reference](/reference/environment-variables/#apns-ios-push-all-or-none).
 
 One thing worth stating plainly: APNs binds a push to a specific Apple
-Developer team + bundle ID + signing key, and the published iOS app is signed
-under the maintainer's team. A self-hosted server has no way to mint that
-team's key, so it **cannot** send APNs pushes to the published app — native
-push on your own infrastructure means building and signing your own copy of
-the open iOS client under your own Apple identity. Everyone else gets the
-same reminders through Web Push (install the PWA), Telegram, ntfy, webhook,
-or email; only the lock-screen Live Activity is APNs-exclusive.
+Developer team, bundle ID and signing key, and the published iOS app is signed
+under the maintainer's team. A self-hosted server cannot mint that team's key,
+so it cannot send APNs pushes to the App Store app by itself. There are two
+ways to reach it anyway:
+
+- the opt-in [push relay](/guides/push-relay/) run by the HealthLog project,
+  which the admin turns on and each person opts into in the app. Your server
+  encrypts every notification for one device and the relay passes it to Apple
+  without being able to read it;
+- your own copy of the open iOS client, built and signed under your own Apple
+  identity, with the `APNS_*` variables set.
+
+Everyone else gets the same reminders through Web Push (install the PWA),
+Telegram, ntfy, webhook, or email. The iPhone app schedules its own
+medication, mood and measurement reminders locally in any case.
 
 ## Telegram
 
@@ -62,7 +70,10 @@ you, read your chat ID from **@userinfobot**, and fill both into the Telegram
 card under **Settings → Integrations → Delivery channels**. One bot can serve every user on the
 instance; each user pairs their own chat ID. Telegram reminders carry inline
 action buttons (taken / snooze / skip); the button callback lands on
-`POST /api/telegram/webhook`, which is secret-authenticated.
+`POST /api/telegram/webhook`, which is secret-authenticated. The snooze button
+reads **Remind me later** with the length set under **Settings**,
+**Notifications** (30 minutes by default); buttons on older messages that
+still offer 1 h or 3 h keep working.
 
 ## ntfy
 
@@ -269,6 +280,7 @@ the same one:
 | New sign-in | Settings, Security |
 | Integration sync failing | Settings, Integrations (an admin alert about another account opens the admin page) |
 | Illness red flag | the illness episode |
+| Lasting change in a vital | Insights (see [The lasting change notification](/guides/lasting-change-notification/)) |
 | Background job failing (admins) | the admin status page |
 | Other system alerts | the dashboard, or the admin status page for operator alerts |
 

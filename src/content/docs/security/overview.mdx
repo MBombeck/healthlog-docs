@@ -78,9 +78,11 @@ than promised, and there are no CORS headers anywhere outside the documented
 webhook routes, which authenticate by header secret rather than by cookie.
 
 Most outbound traffic exists only because someone configured it: an AI
-provider, a device vendor, a notification channel, a document archive, an
-off-host backup bucket, or the error reporting, page analytics and log shipping
-an operator can point at services of their own.
+provider, a device vendor, a notification channel, the
+[push relay](/guides/push-relay/) for the App Store iPhone app (sealed
+envelopes it cannot read, off until an admin turns it on), a document archive,
+an off-host backup bucket, or the error reporting, page analytics and log
+shipping an operator can point at services of their own.
 [Privacy architecture](/explanation/privacy-architecture/) walks each of those
 flows.
 
