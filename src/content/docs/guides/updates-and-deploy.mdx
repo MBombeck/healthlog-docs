@@ -5,11 +5,42 @@ sidebar:
   order: 13
 ---
 
-HealthLog ships releases roughly weekly. Each release's notes, including its
-upgrade notes, are in the
+Each release's notes, including its upgrade notes, are in the
 [CHANGELOG](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md).
 Read them before you pull, and pin a tag if you want to choose when an update
 happens.
+
+## Release schedule
+
+HealthLog ships on a calendar. A feature release comes out on the first
+Saturday of every month. On the other Saturdays there is a patch release with
+fixes, if there is anything to fix; a week with nothing worth shipping has no
+release. Nothing else ships in between, with one exception: a security
+problem, lost data or an install that does not start gets a fix as soon as it
+is ready, and the release notes say why in their first sentence.
+
+For a self-hoster that means one update a month to read about, a small one on
+some Saturdays, at the weekend when there is time for it, and no reason to pull
+images every day. 1.49.0 is the last release before the calendar; the first
+scheduled feature release is 1.50.0.
+
+| Release | When | What it may contain |
+| --- | --- | --- |
+| Minor, `X.Y.0` | first Saturday of the month | features, new settings, API additions, compose and environment changes, removals announced one minor ahead |
+| Patch, `X.Y.Z` | other Saturdays, when needed | fixes and security fixes only, and a migration only when a fix needs it |
+| Out of schedule | as soon as the fix is ready | one fix for a security problem, lost data or a broken install |
+
+Minor releases are the ones that can drop a column or retire a route, always
+announced in the notes of the minor before; read their notes first. A patch
+never needs more than the update sequence below, unless its notes say a fix
+needed an additive migration.
+
+The `:edge` image is built from every push to `main` and carries fixes that are
+merged but not yet released. It is amd64 only and there to check a fix before
+its Saturday, not to run on: take a backup first, because migrations do not run
+backwards. Production installs track a release tag or `:latest`. The full rule
+is in the repository's
+[release policy](https://github.com/MBombeck/HealthLog/blob/main/docs/contributing/release-policy.md).
 
 ## The update sequence
 
@@ -68,6 +99,7 @@ Most releases need nothing beyond the sequence above. These do:
 
 | Release | What to do |
 | --- | --- |
+| v1.49.0 | Eleven migrations run on the first start (0514 to 0526; the numbers 0516 and 0523 are unused): Apple Health effort and sport types, dose-state integrity, case-blind e-mail and username keys with retention indexes and day-key checks, an index for the external-id match on readings (built without locking the table), the reading time zone, Coach budgets, the care calendar feed, the push relay, dismissed admin notices and the report schedule. Take a backup before you update, and on a large instance give the first start a few minutes. If two accounts share an e-mail address or a username that differs only in case, migration 0517 stops the start until you resolve it; see [Accounts that differ only in case](#accounts-that-differ-only-in-case). The [push relay](/guides/push-relay/) is new and off until an admin turns it on; `PUSH_RELAY_MODE`, `PUSH_RELAY_URL` and `PUSH_RELAY_KEYS` are optional and on the compose whitelist, so pull the new compose file. |
 | v1.48.0 | Eleven migrations run on the first start (0499 to 0509: nutrient targets, lab result identities, provider chains, the Fitbit cleanup, the seizure diary, an index for deleted readings, GLP-1 step ids and the hypertension event type); on a large instance give the first start a minute or two. The index is built without locking the table. The Fitbit integration is gone, so `FITBIT_REDIRECT_URI` is no longer read and can be removed from your environment. Upload an Apple Health export once more to pick up lab results from Health Records. The Fitbit tables stay in the database for this release, so going back to v1.47.6 works; the steps are in `docs/ops/deploy.md` in the app repository. |
 | v1.47.0 | The image is built on the official Node 22 image (Debian slim) instead of Alpine; see [The v1.47.0 image](#the-v1470-image) for what that changes inside the container. The app and the worker now connect to Postgres as a restricted role of their own on Postgres 17 or later when the `DATABASE_URL` user may create roles (the bundled compose file's user may). Nothing needs setting; on Postgres 16, without `CREATEROLE` or with `DB_APP_ROLE=off` the app runs as before and says why at start. See [The app's database role](/self-hosting/database-role/). One migration (Garmin). With a [web/worker split](/self-hosting/scaling/), stop the old web and worker containers before the new ones start. |
 | v1.46.6 | Nothing required, no migration. A Google Health connection whose account id the v1.46.4 update cleared reads its real id back on its next clean sync. |
@@ -100,6 +132,64 @@ container:
   template, that still health-checks with `wget` keeps working: the image
   carries a small `wget` that answers health checks and nothing else. Switch
   to the probe in the current compose file when you next update yours.
+
+### Accounts that differ only in case
+
+From 1.49.0 an e-mail address and a username are unique regardless of case,
+because sign-in already treats `Name@host` and `name@host` as the same
+address. Migration `0517_case_insensitive_identity_and_retention_indexes`
+first counts the addresses and names that two accounts on the instance share
+when case is ignored. When there are any, it stops with
+
+```text
+HealthLog 0517: 1 e-mail address(es) and 0 username(s) belong to more than one account when case is ignored; no account was changed.
+```
+
+and the container does not start. Nothing is merged or renamed for you. List
+the accounts:
+
+```bash
+docker compose exec -T db psql -U healthlog healthlog -c "
+  SELECT id, username, email, created_at FROM users
+   WHERE lower(email) IN (SELECT lower(email) FROM users WHERE email IS NOT NULL
+                           GROUP BY 1 HAVING count(*) > 1)
+      OR lower(username) IN (SELECT lower(username) FROM users
+                              GROUP BY 1 HAVING count(*) > 1)
+   ORDER BY lower(email), lower(username), created_at"
+```
+
+Decide which account of each pair keeps the address or name, and give the
+other one a different one
+(`UPDATE users SET email = '…' WHERE id = '…'`, or `username`). The migration
+runs as one transaction, so the failed attempt changed nothing, but Prisma
+keeps it on record as failed. Mark it rolled back, then start the container
+again:
+
+```bash
+docker compose run --rm --entrypoint sh app -c \
+  'NODE_PATH=/opt/prisma-cli/node_modules node /opt/prisma-cli/node_modules/prisma/build/index.js migrate resolve --rolled-back 0517_case_insensitive_identity_and_retention_indexes'
+docker compose up -d
+```
+
+The same migration drops six indexes that only repeated another one in
+descending order, adds the indexes the retention clean-ups need, and checks
+the shape of the dates stored as text (`YYYY-MM-DD`). A column that already
+holds a row in another shape gets the check for new writes only, and the
+count is logged.
+
+### How a migration runs
+
+Every start runs `prisma migrate deploy` before the server starts. A
+migration file with a `DO` block, which is almost all of them, runs as one
+transaction: it applies whole or not at all. A file that bounds its wait for
+a table lock is marked for retry, and when it times out waiting for a lock that
+another session holds, the start retries it after 15, 30, 60, 120 and 240
+seconds and goes on as soon as an attempt gets the lock. A file that builds an
+index without locking the table (such as 0518) is retried the same way, after
+the half-built index is dropped. Any other failure stops the start. The retries fit inside the container's ten-minute start period. The
+details for operators are in the app repository's
+[`docs/ops/migrations/README.md`](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/migrations/README.md)
+and [`docs/ops/deploy.md`](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/deploy.md).
 
 ### Migration 0409 stops the upgrade
 

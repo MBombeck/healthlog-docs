@@ -18,7 +18,7 @@ Coolify gives you Docker-Compose-shaped self-hosting with a UI in front. For Hea
 ## Initial setup
 
 1. **Create the application** in Coolify as a Docker Compose app. Point it at the public repo (`MBombeck/HealthLog`) or a clone you maintain.
-2. **Pick the branch.** `main` is the single release trunk and is always deployable. Production should track `main`, or a pinned release tag to be more conservative.
+2. **Pick the branch.** Use `main` as the source of the compose file. `main` always builds, but between releases it carries fixes that are merged and not yet released, so the image should still be a release: leave `HEALTHLOG_IMAGE_REF` unset for `:latest`, or pin a release tag or digest (how to set it is under [the host-side retag fallback](#when-a-deploy-refuses-to-pull-the-host-side-retag-fallback)). Compose changes reach `main` only with a monthly feature release. Do not point production at the `:edge` image.
 3. **Compose file.** Use the repo's `docker-compose.yml` unchanged. The entrypoint already waits for Postgres, runs migrations, and starts the server.
 4. **Environment variables.** Paste the required three secrets (`POSTGRES_PASSWORD`, `ENCRYPTION_KEY`, `API_TOKEN_HMAC_KEY`) plus any integrations you plan to enable. `DATABASE_URL` is derived from `POSTGRES_PASSWORD` inside the compose file's `environment:` block, so there is no connection string to manage. Every variable is described in the repo's `.env.production.example` and in the [environment reference](/reference/environment-variables/).
 5. **Domain and TLS.** Coolify ships [Traefik](https://doc.traefik.io/traefik/) by default; set your domain and toggle the auto-TLS switch.
