@@ -7,7 +7,7 @@ sidebar:
 
 import pushRelay from "../../../assets/diagrams/10-push-relay.svg";
 
-<img src={pushRelay.src} alt="The path of a push from left to right: your HealthLog server seals it with HPKE, the push relay checks only the outer frame, Apple APNs delivers a fixed template, and the iPhone's Notification Service Extension opens it with a device key kept in the keychain. Only public keys and a binding statement signed on the phone go back to the server. The relay signs its answers, and the phone can revoke its binding directly at the relay. The relay and Apple still see when a push was sent, its class and its fixed size." />
+<img src={pushRelay.src} alt="Four boxes in a row: your server seals the message, the push relay forwards it and cannot read it, Apple delivers it and cannot read it, and the iPhone opens it with its own key. The message is encrypted end to end. The relay and Apple only see that a message went to a device, and when." />
 
 A self-hosted server cannot push to the App Store app on its own, so the
 [push relay](/guides/push-relay/) carries notifications to Apple for it. This

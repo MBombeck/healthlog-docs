@@ -35,7 +35,7 @@ association) use their own Apple push key, run their own relay, or write to
 `relay@healthlog.dev`.
 :::
 
-<img src={pushRelay.src} alt="The path of a push from your HealthLog server through the push relay and Apple APNs to the iPhone. The server seals it with HPKE, the relay and Apple carry the sealed envelope without reading it, and the iPhone opens it with a device key kept in the keychain." />
+<img src={pushRelay.src} alt="Four boxes in a row: your server seals the message, the push relay forwards it and cannot read it, Apple delivers it and cannot read it, and the iPhone opens it with its own key. The message is encrypted end to end. The relay and Apple only see that a message went to a device, and when." />
 
 Why the relay and Apple cannot read a notification is explained in
 [How the push relay keeps notifications private](/explanation/push-relay-security/).
