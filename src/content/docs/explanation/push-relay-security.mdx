@@ -5,7 +5,7 @@ sidebar:
   order: 21
 ---
 
-import pushRelay from "../../../assets/diagrams/06-push-relay.svg";
+import pushRelay from "../../../assets/diagrams/10-push-relay.svg";
 
 <img src={pushRelay.src} alt="The path of a push from left to right: your HealthLog server seals it with HPKE, the push relay checks only the outer frame, Apple APNs delivers a fixed template, and the iPhone's Notification Service Extension opens it with a device key kept in the keychain. Only public keys and a binding statement signed on the phone go back to the server. The relay signs its answers, and the phone can revoke its binding directly at the relay. The relay and Apple still see when a push was sent, its class and its fixed size." />
 
