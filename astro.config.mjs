@@ -174,6 +174,7 @@ export default defineConfig({
 						{ slug: 'explanation/privacy-architecture' },
 						{ slug: 'explanation/record-sharing' },
 						{ slug: 'explanation/mcp-security' },
+						{ slug: 'explanation/push-relay-security' },
 						{ slug: 'explanation/timezone-model' },
 					],
 				},

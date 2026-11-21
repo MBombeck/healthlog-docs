@@ -5,6 +5,8 @@ sidebar:
   order: 38
 ---
 
+import pushRelay from "../../../assets/diagrams/06-push-relay.svg";
+
 Apple delivers a push to the HealthLog app from the App Store only when it is
 signed with the key of the Apple developer account that publishes the app. A
 self-hosted server does not have that key. On its own it cannot reach the App
@@ -32,6 +34,11 @@ stay the ones to rely on. Organisations (a practice, a care service, an
 association) use their own Apple push key, run their own relay, or write to
 `relay@healthlog.dev`.
 :::
+
+<img src={pushRelay.src} alt="The path of a push from your HealthLog server through the push relay and Apple APNs to the iPhone. The server seals it with HPKE, the relay and Apple carry the sealed envelope without reading it, and the iPhone opens it with a device key kept in the keychain." />
+
+Why the relay and Apple cannot read a notification is explained in
+[How the push relay keeps notifications private](/explanation/push-relay-security/).
 
 ## What the relay sees, and what it does not
 
