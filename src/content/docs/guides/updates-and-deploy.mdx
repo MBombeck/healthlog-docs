@@ -5,6 +5,8 @@ sidebar:
   order: 13
 ---
 
+import { Steps } from '@astrojs/starlight/components';
+
 Each release's notes, including its upgrade notes, are in the
 [CHANGELOG](https://github.com/MBombeck/HealthLog/blob/main/CHANGELOG.md).
 Read them before you pull, and pin a tag if you want to choose when an update
@@ -77,8 +79,9 @@ always stays, an older one until it is older than every nightly dump kept) and l
 DB_BACKUP_BEFORE_MIGRATE=false, a pg_dump of the database is written ...`, or
 `HealthLog: Database schema is up to date.` A dump that fails on a writable
 directory, usually a full disk, stops the start before anything is migrated.
-Without a volume at `DB_BACKUP_DIR` the dump lands inside the container and is
-lost when the container is next recreated; take one by hand first then.
+Without the `backups` volume no dump is kept: the log says so and the
+migrations run anyway, so run `pg_dump` yourself before step 1 (see
+[Dumps taken by hand](/guides/backups/#dumps-taken-by-hand)).
 Restoring it is under
 [Going back to before a migration](/guides/backups/#going-back-to-before-a-migration).
 Keep the encryption key with your dumps: a dump without the key cannot be
@@ -99,7 +102,7 @@ Most releases need nothing beyond the sequence above. These do:
 
 | Release | What to do |
 | --- | --- |
-| v1.49.0 | Eleven migrations run on the first start (0514 to 0526; the numbers 0516 and 0523 are unused): Apple Health effort and sport types, dose-state integrity, case-blind e-mail and username keys with retention indexes and day-key checks, an index for the external-id match on readings (built without locking the table), the reading time zone, Coach budgets, the care calendar feed, the push relay, dismissed admin notices and the report schedule. Take a backup before you update, and on a large instance give the first start a few minutes. If two accounts share an e-mail address or a username that differs only in case, migration 0517 stops the start until you resolve it; see [Accounts that differ only in case](#accounts-that-differ-only-in-case). The [push relay](/guides/push-relay/) is new and off until an admin turns it on; `PUSH_RELAY_MODE`, `PUSH_RELAY_URL` and `PUSH_RELAY_KEYS` are optional and on the compose whitelist, so pull the new compose file. |
+| v1.49.0 | Twenty-one migrations run on the first start, 0514 to 0538 (0516, 0523, 0527 and 0528 are unused); three of them change data you already have, and going back means restoring the pre-migration dump. Check for accounts that differ only in case first, or migration 0517 stops the start. The push relay is new and off until an admin turns it on; `PUSH_RELAY_MODE`, `PUSH_RELAY_URL`, `PUSH_RELAY_KEYS`, `PUSH_RELAY_LIVE_ACTIVITY` and `HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS` are optional and on the compose whitelist, so pull the new compose file. See [The v1.49.0 update](#the-v1490-update). |
 | v1.48.0 | Eleven migrations run on the first start (0499 to 0509: nutrient targets, lab result identities, provider chains, the Fitbit cleanup, the seizure diary, an index for deleted readings, GLP-1 step ids and the hypertension event type); on a large instance give the first start a minute or two. The index is built without locking the table. The Fitbit integration is gone, so `FITBIT_REDIRECT_URI` is no longer read and can be removed from your environment. Upload an Apple Health export once more to pick up lab results from Health Records. The Fitbit tables stay in the database for this release, so going back to v1.47.6 works; the steps are in `docs/ops/deploy.md` in the app repository. |
 | v1.47.0 | The image is built on the official Node 22 image (Debian slim) instead of Alpine; see [The v1.47.0 image](#the-v1470-image) for what that changes inside the container. The app and the worker now connect to Postgres as a restricted role of their own on Postgres 17 or later when the `DATABASE_URL` user may create roles (the bundled compose file's user may). Nothing needs setting; on Postgres 16, without `CREATEROLE` or with `DB_APP_ROLE=off` the app runs as before and says why at start. See [The app's database role](/self-hosting/database-role/). One migration (Garmin). With a [web/worker split](/self-hosting/scaling/), stop the old web and worker containers before the new ones start. |
 | v1.46.6 | Nothing required, no migration. A Google Health connection whose account id the v1.46.4 update cleared reads its real id back on its next clean sync. |
@@ -111,6 +114,55 @@ Most releases need nothing beyond the sequence above. These do:
 | v1.45.0 | With a web/worker split, start the new worker first and the web containers after its log shows `"reminder_worker": "started"`. Add `stop_grace_period: 45s` to a forked compose file. |
 | v1.43.0 | Run v1.42.x first and let it finish its location backfill. A host that skips it stops at migration 0409; see [below](#migration-0409-stops-the-upgrade). |
 | v1.42.0 | The database container restarts once (it now loads `pg_stat_statements`). Background jobs repair and clean up folded Apple Health data; afterwards start the maintenance run (see [Database maintenance](/self-hosting/database-maintenance/)). Behind PgBouncer set `DATABASE_SESSION_OPTIONS_DISABLED=1` first. |
+
+### The v1.49.0 update
+
+v1.49.0 brings twenty-one migrations, `0514` to `0538` (the numbers `0516`,
+`0523`, `0527` and `0528` do not exist), so the boot log says
+`21 database migrations pending`. Most add tables and columns. Three change
+data you already have:
+
+- `0515` merges doses that two sources recorded for the same slot (a take wins
+  over a skip), clears the missed mark on doses that were taken or skipped, and
+  stores the dose window of older single-time schedules.
+- `0517` makes e-mail addresses and usernames unique regardless of case. If two
+  accounts share one, it stops and the container does not start; see
+  [Accounts that differ only in case](#accounts-that-differ-only-in-case).
+- `0529` stores Apple push tokens in lower case. Where two devices held the same
+  token in different case, the one seen most recently keeps it, and the other
+  registers again on its next launch.
+
+`0518` builds an index on `measurements` without locking the table while the
+container starts. On a large instance the first start takes longer than usual;
+let it finish rather than restarting the container.
+
+Before you update:
+
+<Steps>
+
+1. Make sure the `backups` volume is mounted (it is in the published compose
+   file), or take a dump by hand. Copy the pre-migration dump off the host once
+   it is written: it is the way back.
+
+2. Run the query under
+   [Accounts that differ only in case](#accounts-that-differ-only-in-case) and
+   resolve any pair it lists.
+
+3. Follow [the update sequence](#the-update-sequence).
+
+</Steps>
+
+**Going back to 1.48.5.** Switching the image back alone does not work: after
+`0515` and `0529` the old image writes rows the new indexes refuse. Restore the
+pre-migration dump with the 1.48.5 image instead, as described in
+[Going back to before a migration](/guides/backups/#going-back-to-before-a-migration),
+with `HEALTHLOG_IMAGE_REF=:v1.48.5` in the `.env` next to the compose file (the
+leading colon is part of the value; `@sha256:<digest>` pins the digest
+instead). Anything written since the update is lost, so decide early. If the
+dump is gone, the operator notes for
+[v1.49.0](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/deploy.md#v1490-notes)
+list the three statements that let the old image run on the migrated database,
+and what stays changed.
 
 ### The v1.47.0 image
 
