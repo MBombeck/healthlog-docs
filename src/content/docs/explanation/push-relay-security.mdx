@@ -39,7 +39,9 @@ as a network error.
 ## What the relay and Apple can still see
 
 The relay and Apple see delivery metadata, the device's push token and the
-kind, size and time of each push, never what a notification says; Apple can
+class, lifetime, size and time of each push, never what a notification says.
+Every push of a class looks alike to them: over the relay every alert lives
+15 minutes and every silent push an hour, whatever it is; Apple can
 link the token to an Apple account. The full list for the relay, and how long
 it keeps each item, is its [privacy notice](https://push.healthlog.dev/privacy).
 With the separate Live Activity consent, the content state of a Live Activity
@@ -49,14 +51,17 @@ readable by both; see
 
 Timing is the honest limit. If you record a dose on one device and another
 device of yours gets a confirmation, the moment of that push can hint at when
-you take your medication. That is true of every iOS push service, and it is
-why reminders are planned on the iPhone and not sent through the relay.
+you take your medication, and a medication reminder over the relay shows when a
+dose is due. That is true of every iOS push service. A device that plans its
+own reminders keeps them off the relay; one that gets its reminders from the
+server gets them over the relay, sealed like everything else.
 
 ## If something goes wrong
 
 **The relay is down.** Reminders the app has scheduled on the iPhone keep
-working. Confirmations between devices and the silent sync pause, and
-the app says so.
+working; reminders from the server wait and are dropped once they are 15
+minutes old. Confirmations between devices and the silent sync pause, and the
+app says so.
 
 **The relay is compromised.** An attacker still cannot open an envelope,
 because the relay never holds a key that does. They could put a notification
