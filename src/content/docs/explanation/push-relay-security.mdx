@@ -38,10 +38,14 @@ as a network error.
 
 ## What the relay and Apple can still see
 
-They see that your server sent a device something, when, of which class, and
-the fixed size of the envelope. They see the device's push token, and Apple
-can link that token to an Apple account. They never see medication names,
-doses, readings or any other content.
+The relay and Apple see delivery metadata, the device's push token and the
+kind, size and time of each push, never what a notification says; Apple can
+link the token to an Apple account. The full list for the relay, and how long
+it keeps each item, is its [privacy notice](https://push.healthlog.dev/privacy).
+With the separate Live Activity consent, the content state of a Live Activity
+start or update (the dose state and its countdown, never a medication name) is
+readable by both; see
+[Live Activity over the relay](/guides/push-relay/#live-activity-over-the-relay).
 
 Timing is the honest limit. If you record a dose on one device and another
 device of yours gets a confirmation, the moment of that push can hint at when

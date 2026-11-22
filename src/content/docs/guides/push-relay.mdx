@@ -1,6 +1,6 @@
 ---
 title: Push relay for the iPhone app
-description: The opt-in HealthLog push relay lets the App Store iPhone app receive notifications from a self-hosted server. What it is, what it sees and never sees, how an admin turns it on, how each person opts in on the iPhone, the privacy notice in short, the security and hosting of the relay, and running your own.
+description: The opt-in HealthLog push relay lets the App Store iPhone app receive notifications from a self-hosted server. What it is and what it sees, how an admin turns it on with an invite code, how each person opts in on the iPhone, Live Activity over the relay, the security and hosting of the relay, and running your own.
 sidebar:
   order: 38
 ---
@@ -42,21 +42,16 @@ Why the relay and Apple cannot read a notification is explained in
 
 ## What the relay sees, and what it does not
 
-The relay sees:
+The relay sees delivery metadata (the device's push token while it forwards,
+kept at rest only as a keyed hash; your server's instance id; the kind, size and
+time of each push; the version of the person's consent), never what a
+notification says. The full list, and how long each item is kept, is the relay's
+own [privacy notice](https://push.healthlog.dev/privacy), which is the
+authoritative text. With the separate Live Activity consent, the content state
+of a Live Activity start or update passes the relay and Apple in the clear; see
+[Live Activity over the relay](#live-activity-over-the-relay).
 
-- that your server sends a device something, when, and of which class: an
-  alert, a silent push, or the end of a Live Activity;
-- the device's Apple push token while a request is in flight, and at rest only
-  a keyed hash of it;
-- your server's instance id and public key, and the server version it reports;
-- your server's address while it is connected, held in memory only, never
-  stored or logged;
-- a hash of the device's binding key, and the version and day of the person's
-  consent.
-
-It never sees medication names, doses, readings, notes, account names, your
-server's host name, the device's encryption key, or anything else inside a
-notification. Every alert and every silent push carries an envelope sealed with
+Every alert and every silent push carries an envelope sealed with
 HPKE (RFC 9180, auth mode, X25519, HKDF-SHA256, ChaCha20-Poly1305) for that one
 device. The envelope has a fixed size per class and its header names no key,
 so envelopes do not tell devices or servers apart either.
@@ -83,7 +78,28 @@ from your server.
 - the end of a medication Live Activity, sent with a statement the device
   signed when the Activity started, so the relay never learns when an Activity
   starts;
-- other server notifications, such as low stock or a seizure cluster.
+- other server notifications, such as low stock or a seizure cluster;
+- security alerts: a sign-in from a new device, a passkey added or removed, an
+  access token revoked, a device signed out because its sign-in token was used
+  twice. They break through a Focus;
+- a silent wake when a server-side sync stored new readings (Withings, Garmin,
+  Oura, WHOOP, Polar, Strava, Google Health, Nightscout, or a food tracker
+  posting with a token), so the app, its widgets and the Watch are current
+  without opening the app. It names only the kind of data that changed
+  (measurements, sleep, workouts, nutrition), never a value;
+- a silent wake asking the app to run its Apple Health upload when the server
+  has heard nothing from it for six hours while the app is still in use.
+
+The wakes are rationed, because Apple stops waking an app that gets too many of
+them. The data wake goes out at most once every five minutes and three times an
+hour per account, with changes in between merged into the next one. The Apple
+Health wake goes to a device at most three times a day, at least four hours
+apart, only while the app was opened in the last three days, and stops after two
+weeks without any upload. No device gets more than four wakes an hour. Both
+wakes go only to app versions that registered a push key.
+
+Starting and updating a Live Activity is a separate choice, described
+[below](#live-activity-over-the-relay).
 
 Mood, measurement and cycle reminders do not go over the relay: the app plans
 them itself. Medication reminders stay on the iPhone unless a device is set to
@@ -99,6 +115,8 @@ features) do not go over the relay.
    this server's users**. The dialog asks for two confirmations: that you
    accept the relay terms and have read its privacy notice, and that you run
    this server privately for yourself or your household.
+   If the relay asks for an invite code, enter it in the same dialog, under
+   **Invite code (optional)**; see [Invite codes](#invite-codes).
 3. Your server creates its instance key, stores it encrypted, and registers
    with the relay. The card then shows the relay's state (Connected,
    Disrupted, Not reachable or Off) and how many devices are bound.
@@ -106,6 +124,36 @@ features) do not go over the relay.
 Turning the switch off deletes your instance at the relay, which removes every
 device binding with it, and deletes the instance key on your server. The apps
 notice on their next sync and go back to local reminders by themselves.
+
+### Invite codes
+
+A relay can accept new servers by invitation only, and the hosted relay may run
+that way while it is new. Then a server that registers for the first time needs
+a one-time invite code:
+
+- **Where to get one.** Write to `relay@healthlog.dev` and ask for a code for
+  your server. If you run your own relay, `healthlog-push admin invite` prints
+  one.
+- **What it looks like.** 24 characters (letters, digits, `-` and `_`), valid for
+  7 days, for exactly one server.
+- **Where to enter it.** In the dialog that turns the relay on, in **Invite code
+  (optional)**. If you already turned the switch on without a code, the card
+  shows **Enter invite code**; use it and the server registers again.
+
+The code is sent with that one registration and never stored or logged on your
+server. The relay spends it only when the registration succeeds, so a refused
+attempt keeps it. If the relay refuses, the card says why:
+
+- **This relay accepts new servers by invitation only. Enter an invite code.**
+  No code was entered.
+- **The relay did not accept this invite code.** The code is unknown, expired or
+  already used. Ask for a new one.
+- **The relay is not taking new servers right now.** Registration is paused at
+  the relay; your server asks again on its own later.
+
+After an invite refusal your server does not keep asking the relay; it waits
+until you enter a code. A server that is already registered never needs a code
+again, also not after an update or a relay restore.
 
 ### Check that it works
 
@@ -141,8 +189,33 @@ unreachable. "My data at the relay" in the same place shows what the relay
 holds about the device, and turning the relay off erases it there. Up to five
 devices per account can use the relay.
 
-This needs an app build that has the relay card. An older build keeps working
-as before, with its local reminders.
+This needs the iPhone app 1.7 or later. An older build keeps working as before,
+with its local reminders.
+
+## Live Activity over the relay
+
+Without it, the server can only end a medication Live Activity over the relay.
+Starting it from the server, and updating it as the dose turns due, overdue or is
+snoozed, is a separate choice, off by default, and needs two things:
+
+1. The operator sets `PUSH_RELAY_LIVE_ACTIVITY=on` in the server's environment
+   (on the compose whitelist; restart after the change). Leave it off until the
+   1.7 app has been tested on your devices.
+2. Each person turns on the second switch for Live Activities over the relay in
+   the app, beside the relay switch. It is off by default, the device signs that
+   consent with its binding key, and turning the relay off turns it off too. It
+   can be switched off again at any time; the app then tells the relay directly.
+
+The content a Live Activity shows cannot be sealed, because Apple's Live
+Activities cannot decrypt anything. With the switch on, the relay and Apple can
+read the content state of each start and update: the dose state (pending, due,
+overdue, snoozed, taken or skipped), whether it is confirmed, the countdown and
+the time format.
+It never carries a medication name, a dose or any free text; the relay refuses
+anything else. Each dose starts at most one Activity, it follows the
+medication's own dose windows so the lock screen says due when the app does,
+and the relay limits starts and updates per device and day. A server with its
+own Apple push key is not affected by the variable.
 
 ## When the relay is down
 
@@ -167,22 +240,17 @@ on a confirmation that did not come.
 
 The full texts are the relay's own
 [privacy notice](https://push.healthlog.dev/privacy) and
-[terms](https://push.healthlog.dev/terms). In short:
+[terms](https://push.healthlog.dev/terms); what the relay keeps, and for how
+long, is stated there and nowhere else. In short:
 
 - The relay is run by the maintainer of the HealthLog project, as an
   independent controller for the relay's metadata. Contact:
   `privacy@healthlog.dev` for data protection, `abuse@healthlog.dev` for abuse
   and appeals, `relay@healthlog.dev` for operation.
 - Delivery rests on each person's consent, given on the app's card and
-  withdrawable at any time. Without it nothing goes over the relay and
-  everything else works as before.
-- A device binding is deleted when the person opts out, when your server
-  removes it or leaves the relay, when Apple reports the token as no longer
-  valid, or after about 13 weeks without a push. Per-server day counts are kept
-  for 7 days, relay-wide totals without any server or device for 400 days, and
-  the relay writes no access log and no addresses or tokens to its logs.
-- After a person opts out directly in the app, the relay blocks that server
-  from binding the device again for 365 days.
+  withdrawable there at any time. Without it nothing goes over the relay and
+  everything else works as before. "My data at the relay" in the app shows
+  what the relay holds about the device.
 - The relay is free, run on a best-effort basis with a target of 99.5 percent
   availability over 30 days and no service-level agreement, and a shutdown
   would be announced at least 90 days in advance.
@@ -236,13 +304,14 @@ certification of the relay.
 
 ## Configuration
 
-All three variables are optional and on the compose whitelist.
+All four variables are optional and on the compose whitelist.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `PUSH_RELAY_MODE` | `allowed` | `off` hides the relay entirely, the admin notice included |
 | `PUSH_RELAY_URL` | `https://push.healthlog.dev` | The relay origin; `https` only |
 | `PUSH_RELAY_KEYS` | the hosted relay's keys | The relay's identity public keys, Ed25519, unpadded base64url, comma separated |
+| `PUSH_RELAY_LIVE_ACTIVITY` | off | `on` lets Live Activity start and update go over the relay to devices whose owner gave the separate consent; see [Live Activity over the relay](#live-activity-over-the-relay) |
 
 A relay without pinned keys cannot be used at all: the card says why and the
 switch stays off.
