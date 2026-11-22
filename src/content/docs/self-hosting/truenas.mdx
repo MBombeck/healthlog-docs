@@ -19,7 +19,7 @@ one value you must keep yourself: the encryption key.
 | User | runs as uid `1001`; no extra capabilities, `no-new-privileges` is fine |
 | Health check | `GET /api/health`, `200` when ready |
 | Start period | the image uses 10 minutes, then 5 failed probes 30 seconds apart; keep a long start period, because migrations run at every boot |
-| Database | PostgreSQL 16 or 18, no extensions. Moving an existing database from 16 to 18 is a dump and restore ([Moving to Postgres 18](/self-hosting/postgres-upgrade/#by-hand)) |
+| Database | PostgreSQL 16, 18 or 19, no extensions. Moving an existing database from 16 to 18 is a dump and restore ([Moving to Postgres 18](/self-hosting/postgres-upgrade/#by-hand)) |
 | Volumes | none for the app; the database gets its own dataset |
 | Memory | the app is not deployed from the compose file, so `APP_MEMORY_LIMIT` does not apply. If you give the app a memory limit, keep it at 1536 MB or more, the supported floor ([Requirements](/getting-started/self-host-in-10-minutes/#requirements)) |
 

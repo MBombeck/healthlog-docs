@@ -70,7 +70,7 @@ Every state an import sets is written to your audit log.
 
 ## Storage and backups
 
-The state and its dates are stored with your cycle settings, in plaintext like
-the cycle dates, because the predictions read them on every request. They travel
+The state and its dates are stored with your cycle settings, encrypted at rest:
+they are sealed together into one AES-256-GCM value that no query reads. They travel
 in the backup with the rest of your cycle settings. A backup made before 1.49.0
 restores the ordinary cycle.

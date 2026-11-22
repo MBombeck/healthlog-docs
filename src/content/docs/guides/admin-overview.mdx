@@ -10,7 +10,8 @@ import adminBackups from '../../../assets/screenshots/admin-backups.png';
 
 You are the admin of an instance and want to know which console section
 controls a given thing. This page walks the Admin navigation top to bottom, in
-its five groups — System, Connectivity, AI, Account, Your data. Each entry says
+its six groups: System, Notifications, AI, Connectivity, Account and Server
+data. Each entry says
 what the section does, what it needs, and which environment variable or stored
 setting stands behind it.
 
@@ -114,12 +115,21 @@ factor to enrolment; it does not block API or native access for an account
 that has not enrolled yet. Registration can be closed and reopened here; with
 registration closed, an invite still admits a signup.
 
-## Services
+## Push and channels
 
-Four global kill-switches: Telegram, ntfy, Web Push, and the API. Each is a
-stored setting. Turning a channel off here hides its card for every user;
-turning the API off refuses ingest and every MCP route regardless of the
-tokens users hold.
+Everything about push sits in this one section of the Notifications group.
+
+- **Channels and API**: four global kill-switches, Telegram, ntfy, Web Push and
+  the API. Each is a stored setting. Turning a channel off here hides its card
+  for every user; turning the API off refuses ingest and every MCP route
+  regardless of the tokens users hold.
+- **Web Push VAPID keys**, which you can generate here or supply through
+  `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`.
+- **Push relay** for the App Store app, off until you switch it on. See
+  [Push relay](/guides/push-relay/).
+- **Notification health**: the last 24 hours of push attempts by channel and
+  result, the count of channels the dispatcher has auto-disabled, and a
+  send-test-notification action that pushes to your own channels.
 
 ## About
 
@@ -127,12 +137,10 @@ The same version card users see under Settings, About this app: running
 version, an update check, and links to the repository, changelog, docs and
 credits.
 
-## Integrations
+## Monitoring
 
-Three cards. Umami analytics (enable, script URL, website id, test action),
-GlitchTip error reporting (enable, DSN, environment, test action), and Web
-Push VAPID keys, which you can generate here or supply through
-`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`. Umami and
+Two cards. Umami analytics (enable, script URL, website id, test action) and
+GlitchTip error reporting (enable, DSN, environment, test action). Umami and
 GlitchTip are stored settings, not environment variables. The GlitchTip badge
 tracks delivery, not intent: it is green only while a report has actually left
 this host inside the last fourteen days, amber while a target is set and
@@ -240,10 +248,9 @@ shows that switch's state, cannot be flipped, and links to the Assistant card.
 
 ## Reminders
 
-The two medication-reminder thresholds, late and missed, in minutes (defaults
-120 and 240), a send-test-notification action, a manual reminder check, and a
-notification health panel showing the last 24 hours of push attempts by
-channel and result plus the count of channels the dispatcher has auto-disabled.
+The reminder rules: the two medication-reminder thresholds, late and missed,
+in minutes (defaults 120 and 240), and a manual reminder check. Delivery health
+and the test push are under [Push and channels](#push-and-channels).
 The console button sweeps the whole instance and dispatches into every account
 with an overdue dose and a configured channel, which is what you want when the
 worker has been down. Debugging one account is a different job: send `userId` on

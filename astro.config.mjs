@@ -112,6 +112,7 @@ export default defineConfig({
 						{ slug: 'guides/import-documents' },
 						{ slug: 'guides/source-priority' },
 						{ slug: 'guides/track-medications' },
+						{ slug: 'guides/medication-leaflets' },
 						{ slug: 'guides/labs' },
 						{ slug: 'guides/vaccinations' },
 						{ slug: 'guides/illness' },

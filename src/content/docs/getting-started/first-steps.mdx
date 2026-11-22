@@ -218,36 +218,47 @@ dismissals live in the browser, not in the account.
 
 ## Tour the admin panel
 
-The first user is an admin. Open `/admin` to find the admin console, split
-into sections in this order:
+The first user is an admin. Open `/admin` to find the admin console. Its
+sections sit in six groups:
 
-- **System Status** (`/admin/system-status`): database connection, user and
-  measurement counts, active sessions and API tokens, host load, and the job
-  worker (running or stopped, and when it last ran a reminder pass).
-- **General**: the registration toggle, default language, and default timezone
-  for new accounts.
-- **Services**: the global switches for Telegram, ntfy, and the API. These
-  settings are stored encrypted in the database, not in `.env`. See
-  [Reminder channels](/guides/reminder-channels/).
-- **Integrations**: Umami analytics, GlitchTip error reporting and the Web Push
-  VAPID keys, beside the instance-wide settings for the device integrations.
-- **Coach**: the assistant switches (a master switch plus Coach, daily
-  briefing, status notes and reading documents; each one stops the AI work it
-  covers), an optional shared AI key or ChatGPT connection for every user, AI
-  provider health, and the feedback quality tables for the Coach and AI
-  Insights. See [Admin overview](/guides/admin-overview/#coach).
-- **Modules**: which optional modules are available on this instance.
-- **Reminders**: reminder dispatch and notification health.
-- **Users**: the account list, roles, passkeys, and per-user password reset.
-- **Invites**: mint expiring invite links when you close open registration.
-  See [Invites](/guides/invites/).
-- **API Tokens**: every issued token across accounts.
-- **Login Overview**: the sign-in history and audit viewer, with IP addresses
-  and, when geo data is configured, locations.
-- **App Logs**, **Backups**, **Encryption**, **Danger Zone**, and **About**:
-  logs, [off-host backups](/guides/backups/), encryption coverage and
-  [key rotation](/guides/encryption-key-rotation/), destructive operations,
-  and the version and update check.
+- **System**
+  - **System status** (`/admin/system-status`): database connection, user and
+    measurement counts, active sessions and API tokens, host load, the job
+    worker (running or stopped, and when it last ran a reminder pass), and the
+    running version with its applied and pending migrations.
+  - **General**: the registration toggle, default language, and default
+    timezone for new accounts.
+  - **Modules**: which optional modules are available on this instance.
+  - **About**: the version and update check.
+- **Notifications**
+  - **Push and channels**: everything about push in one place. The global
+    switches for Telegram, ntfy, Web Push and the API, the Web Push VAPID keys,
+    the [push relay](/guides/push-relay/) for the App Store app, and the
+    delivery health of every channel with a test push. These settings are
+    stored encrypted in the database, not in `.env`. See
+    [Reminder channels](/guides/reminder-channels/).
+  - **Reminders**: the reminder rules (when a dose counts as late and as
+    missed) and a manual reminder check.
+- **AI**
+  - **Coach**: the assistant switches (a master switch plus Coach, daily
+    briefing, status notes and reading documents; each one stops the AI work it
+    covers), an optional shared AI key or ChatGPT connection for every user, AI
+    provider health, and the feedback quality tables for the Coach and AI
+    Insights. See [Admin overview](/guides/admin-overview/#coach).
+- **Connectivity**
+  - **Monitoring**: Umami analytics and GlitchTip error reporting.
+  - **API tokens**: every issued token across accounts.
+- **Account**
+  - **Users**: the account list, roles, passkeys, and per-user password reset.
+  - **Invites**: mint expiring invite links when you close open registration.
+    See [Invites](/guides/invites/).
+  - **Login overview**: the sign-in history and audit viewer, with IP
+    addresses and, when geo data is configured, locations.
+- **Server data**
+  - **App logs**, **Backups**, **Encryption** and **Danger zone**: logs,
+    [off-host backups](/guides/backups/), encryption coverage and
+    [key rotation](/guides/encryption-key-rotation/), and destructive
+    operations.
 
 `requireAdmin()` is **cookie-only** by construction. A Bearer API token, even
 with `["*"]` scope, cannot reach any `/api/admin/*` endpoint: admin is a
