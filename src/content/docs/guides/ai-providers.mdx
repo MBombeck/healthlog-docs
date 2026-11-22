@@ -226,6 +226,42 @@ gateway that refuses `max_tokens` the same way is handled the same way. GPT-4
 deployments and other gateways keep the request shape they had (since
 v1.46.5).
 
+### Google Gemini
+
+Google serves Gemini through an OpenAI-compatible layer
+([Google's guide](https://ai.google.dev/gemini-api/docs/openai)), so it runs as
+an **OpenAI-compatible gateway**. There is no separate Gemini provider.
+
+| Field | Value |
+| --- | --- |
+| Base URL | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| API key | created in [Google AI Studio](https://aistudio.google.com/apikey) |
+| Model | the bare model name, such as `gemini-3.8-flash` or `gemini-flash-latest` |
+
+The endpoint's model listing spells names as `models/gemini-3.8-flash`; both
+spellings name the same model, and the provider health check treats them
+alike.
+
+The endpoint accepts chat, `max_tokens` and `temperature`, JSON mode
+(`response_format`), `reasoning_effort` (the Reasoning setting on the gateway
+entry), tool calls for the Coach, and lab photos as images. It refuses the
+`seed` field that the briefing, status and summary calls send; HealthLog asks
+once more without it and remembers that for the endpoint until the container
+restarts (since v1.49.0).
+
+**Data use.** Under the
+[Gemini API terms](https://ai.google.dev/gemini-api/terms), prompts and replies
+on a paid, billing-enabled project are not used to improve Google's products.
+On the free tier they may be, and may be read by human reviewers, except for
+users in the EEA, Switzerland and the UK, where the paid-tier rules apply. For
+health data a key from a project with billing turned on is the safer choice.
+
+**Cost.** Google bills per input and output token, and thinking tokens count
+as output, so a higher Reasoning setting costs more per call. Current prices
+are on [Google's pricing page](https://ai.google.dev/gemini-api/docs/pricing).
+A prepaid project that runs out of credit answers HTTP 402, and the provider
+health card shows that status.
+
 ## Coach budget for self-hosted models
 
 The Coach's limits are sized for a hosted model with a large context window: a
