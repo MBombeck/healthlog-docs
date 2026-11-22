@@ -102,7 +102,7 @@ Most releases need nothing beyond the sequence above. These do:
 
 | Release | What to do |
 | --- | --- |
-| v1.49.0 | Twenty-one migrations run on the first start, 0514 to 0538 (0516, 0523, 0527 and 0528 are unused); three of them change data you already have, and going back means restoring the pre-migration dump. Check for accounts that differ only in case first, or migration 0517 stops the start. The push relay is new and off until an admin turns it on; `PUSH_RELAY_MODE`, `PUSH_RELAY_URL`, `PUSH_RELAY_KEYS`, `PUSH_RELAY_LIVE_ACTIVITY` and `HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS` are optional and on the compose whitelist, so pull the new compose file. See [The v1.49.0 update](#the-v1490-update). |
+| v1.49.0 | Twenty-seven migrations run on the first start, 0514 to 0545 (0516, 0523, 0527, 0528 and 0541 are unused); four of them touch data you already have, and going back means restoring the pre-migration dump. Check for accounts that differ only in case first, or migration 0517 stops the start. The push relay is new and off until an admin turns it on; `PUSH_RELAY_MODE`, `PUSH_RELAY_URL`, `PUSH_RELAY_KEYS`, `PUSH_RELAY_LIVE_ACTIVITY` and `HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS` are optional and on the compose whitelist, so pull the new compose file. See [The v1.49.0 update](#the-v1490-update). |
 | v1.48.0 | Eleven migrations run on the first start (0499 to 0509: nutrient targets, lab result identities, provider chains, the Fitbit cleanup, the seizure diary, an index for deleted readings, GLP-1 step ids and the hypertension event type); on a large instance give the first start a minute or two. The index is built without locking the table. The Fitbit integration is gone, so `FITBIT_REDIRECT_URI` is no longer read and can be removed from your environment. Upload an Apple Health export once more to pick up lab results from Health Records. The Fitbit tables stay in the database for this release, so going back to v1.47.6 works; the steps are in `docs/ops/deploy.md` in the app repository. |
 | v1.47.0 | The image is built on the official Node 22 image (Debian slim) instead of Alpine; see [The v1.47.0 image](#the-v1470-image) for what that changes inside the container. The app and the worker now connect to Postgres as a restricted role of their own on Postgres 17 or later when the `DATABASE_URL` user may create roles (the bundled compose file's user may). Nothing needs setting; on Postgres 16, without `CREATEROLE` or with `DB_APP_ROLE=off` the app runs as before and says why at start. See [The app's database role](/self-hosting/database-role/). One migration (Garmin). With a [web/worker split](/self-hosting/scaling/), stop the old web and worker containers before the new ones start. |
 | v1.46.6 | Nothing required, no migration. A Google Health connection whose account id the v1.46.4 update cleared reads its real id back on its next clean sync. |
@@ -117,21 +117,40 @@ Most releases need nothing beyond the sequence above. These do:
 
 ### The v1.49.0 update
 
-v1.49.0 brings twenty-one migrations, `0514` to `0538` (the numbers `0516`,
-`0523`, `0527` and `0528` do not exist), so the boot log says
-`21 database migrations pending`. Most add tables and columns. Three change
+v1.49.0 brings twenty-seven migrations, `0514` to `0545` (the numbers `0516`,
+`0523`, `0527`, `0528` and `0541` do not exist), so the boot log says
+`27 database migrations pending`. Most add tables and columns. Four touch
 data you already have:
 
 - `0515` merges doses that two sources recorded for the same slot (a take wins
-  over a skip), clears the missed mark on doses that were taken or skipped, and
-  stores the dose window of older single-time schedules.
+  over a skip, and a merged take gives its units back to the pack), clears the
+  missed mark on doses that were taken or skipped, and stores the dose window
+  of older single-time schedules.
 - `0517` makes e-mail addresses and usernames unique regardless of case. If two
   accounts share one, it stops and the container does not start; see
   [Accounts that differ only in case](#accounts-that-differ-only-in-case).
+  While it runs, writes to the accounts table wait, so an old container that
+  still serves cannot add a clashing account halfway through.
 - `0529` stores Apple push tokens in lower case. Where two devices held the same
   token in different case, the one seen most recently keeps it, and the other
-  registers again on its next launch.
+  registers again on its next launch. Device writes wait while it runs.
+- `0543` records where each symptom on a cycle day came from: a symptom on a
+  day imported from Apple Health or another import takes that day's source,
+  every other one counts as entered by hand. An Apple Health import then
+  replaces only the symptoms it wrote, and the ones you logged yourself on the
+  same day stay.
 
+Two more change data only on an instance that ran a 1.49 pre-release; coming
+from 1.48 they find nothing to change:
+
+- `0539` stores the pregnancy state encrypted. It drops the plaintext columns
+  `0533` added (the state, the start, due and delivery dates) and their enum.
+  A state set under a pre-release is cleared and has to be set again.
+- `0540` records who made a care calendar feed or an emergency card link, so a
+  link a guardian made for a managed profile ends with the guardian's access.
+  Existing links count as made by their owner.
+
+`0542`, `0544` and `0545` add one column each with no effect on existing rows.
 `0518` builds an index on `measurements` without locking the table while the
 container starts. On a large instance the first start takes longer than usual;
 let it finish rather than restarting the container.
@@ -152,14 +171,31 @@ Before you update:
 
 </Steps>
 
+If `0517` stops the start anyway, that is not a reason to go back: nothing was
+changed. Resolve the pairs as described in
+[Accounts that differ only in case](#accounts-that-differ-only-in-case) and
+start again.
+
 **Going back to 1.48.5.** Switching the image back alone does not work: after
-`0515` and `0529` the old image writes rows the new indexes refuse. Restore the
-pre-migration dump with the 1.48.5 image instead, as described in
+`0515`, `0517` and `0529` the old image writes rows the new indexes refuse
+(after `0517`, an address or username that differs from another account's only
+in case). Restore the pre-migration dump with the 1.48.5 image instead, as
+described in
 [Going back to before a migration](/guides/backups/#going-back-to-before-a-migration),
 with `HEALTHLOG_IMAGE_REF=:v1.48.5` in the `.env` next to the compose file (the
 leading colon is part of the value; `@sha256:<digest>` pins the digest
-instead). Anything written since the update is lost, so decide early. If the
-dump is gone, the operator notes for
+instead). Anything written since the update is lost, so decide early.
+
+Only the dump undoes these:
+
+- `0515`: merged doses, refunded packs, cleared missed marks and rewritten
+  schedules stay as they are; the previous values are not kept.
+- `0529`: tokens stay in lower case, and the device that lost a clash keeps no
+  token.
+- `0514` and `0519`: the new measurement types cannot be removed from the
+  database, and the old image fails on a reading of one of them.
+
+No other migration needs the dump. If the dump is gone, the operator notes for
 [v1.49.0](https://github.com/MBombeck/HealthLog/blob/main/docs/ops/deploy.md#v1490-notes)
 list the three statements that let the old image run on the migrated database,
 and what stays changed.
