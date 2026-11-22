@@ -1,6 +1,6 @@
 ---
 title: First steps
-description: After your first user lands, answer the five setup questions, get a first result on the dashboard, tour the admin panel, and point the instance at a public hostname.
+description: After your first user lands, run the short server setup, answer the setup questions, get a first result on the dashboard, tour the admin panel, and point the instance at a public hostname.
 sidebar:
   order: 3
 ---
@@ -10,13 +10,59 @@ import { Steps } from '@astrojs/starlight/components';
 Once you have a running instance and a first (admin) user, these are the things
 worth doing before you invite anyone or connect a device.
 
+## Set up the server
+
+The first admin is offered a short server setup at `/onboarding/server`: on
+the welcome screen of their own setup, on its last screen, and as a notice on
+the admin start page. It can run before your own setup or after it. Nothing in
+it is forced: every step can be skipped, and every step is the same admin
+cards you find under `/admin`, put in an order, so a later change is made in
+the usual place.
+
+<Steps>
+
+1. **Accounts.** Whether people may sign up on their own (an invite link
+   works either way), whether every account needs a second factor, and
+   whether single sign-on is configured. Single sign-on is set in the
+   environment; the step says what it finds and links to
+   [Sign-in and security](/guides/sign-in-and-security/).
+
+2. **Notifications.** Which channels people may use, whether email is
+   configured (and which SMTP variables are missing), whether Telegram
+   replies work, and the [push relay](/guides/push-relay/) for the App Store
+   app. The relay stays off unless you switch it on, with its terms and
+   privacy notice linked and an invite code field for an invite-only relay.
+
+3. **AI.** Off, people's own keys, this server's key, or a local model. The
+   step says what leaves the server in each case: nothing when it is off; a
+   person's question and the readings it needs go to their own provider, or
+   to the provider you set here after each person consents, or stay with a
+   model on your own network.
+
+4. **Privacy.** How sign-in locations are worked out: on this server with the
+   [GeoLite2 databases](/self-hosting/geolite2/), through an online service
+   without them, or not at all. The analytics and error reporting switches
+   sit here too.
+
+5. **Setup check.** A read-only list: encryption keys loaded, the
+   `SESSION_COOKIE_SECURE` setting against how you reached the page, the
+   nightly database dump, and `NEXT_PUBLIC_APP_URL` against the address you
+   used. Keep a copy of your encryption keys somewhere other than the server;
+   the recovery kit on the same step walks you through it. The list stays
+   under **Admin > System status**, where the setup can be opened again.
+
+</Steps>
+
+A server that already had accounts when it was updated to 1.49 counts the
+setup as done and never offers it. A demo deploy never offers it either.
+
 ## Answer the setup questions
 
 The first sign-in lands on `/onboarding`. The first run is a
 short set of questions that decide what the record shows first, not a
-walkthrough: five questions, a sixth about units when one is needed, a
-confirm screen, one first result, and a done screen. It takes about two
-minutes, and nothing in it is final.
+walkthrough: five questions, a sixth about region and units when it concerns
+you, a confirm screen, up to two optional follow-ups, one first result, and a
+done screen. It takes about two minutes, and nothing in it is final.
 
 The welcome screen offers **Set up** and **Skip for now**. Both sit behind the
 one-time medical disclaimer, which you acknowledge once per version. **Skip
@@ -39,10 +85,15 @@ The questions, in order:
    Strava, Nightscout, or a file you already have. Fitbit is offered through
    [Google Health](/guides/connect-google-health/) now.
 5. **Is there a doctor's visit coming up?** Within a month, later, or no.
-6. **Which units do you use?** Asked only when an area needs one (blood
-   glucose in mg/dL or mmol/L; weight and height in metric or imperial) and
-   the account does not hold that preference yet. An account that already
-   holds both is never asked.
+6. **Region & units.** Asked when an area needs a unit or you take medication
+   on a schedule, and the account does not hold its unit preferences yet. The
+   time zone arrives filled in from the account (your day and your reminder
+   times follow it); the units are asked only for the areas that need them
+   (blood glucose in mg/dL or mmol/L; weight and height in metric or
+   imperial); and with medication, the [medicine
+   registry](/guides/medication-leaflets/) the "Find leaflet" link opens,
+   filled in from your language and time zone. An account that already holds
+   both unit preferences is never asked.
 
 Every answer is saved the moment it is given, so leaving and coming back
 resumes at the same step, and every question but the first can be skipped. The
@@ -89,6 +140,26 @@ the profile** is allowed: nothing is derived onto your record either, and a
 profile you create later under **Settings > Shared access** starts from the
 defaults. See [Records with no login of their own](/guides/managed-profiles/).
 
+### The follow-ups
+
+Two optional screens after the confirm screen, each shown only to people it
+concerns, each with **Skip**:
+
+- **Reminders**, for a medication schedule or mood or cycle tracking: the
+  [delivery channels](/guides/reminder-channels/) this server offers
+  (Telegram, ntfy, Web Push, email when it is configured), the same cards as
+  in Settings. Nothing asks the browser for permission until you tap a card's
+  own button. The iPhone app brings its own reminders, so you can skip this
+  there. The "Remind me later" length stays in **Settings > Notifications**.
+- **Coach**, only when the server offers AI: a plain yes or no, with what
+  would be sent where (the services this server's key reaches, your own key,
+  or your own model) and that nothing is sent before you ask. **Yes** gives
+  the consent the server's key needs, **No** switches the Coach off, and
+  **Skip** changes nothing. Entering a key of your own happens under
+  **Settings > AI**.
+
+A setup finished before these screens existed is not reopened by them.
+
 ### The first result
 
 After confirming, the flow ends on one task, chosen by a fixed priority:
@@ -123,7 +194,19 @@ The checklist has six rows for every record (profile, first reading, first
 medication, a data source, a notification channel, insights), a **prepare the
 visit** row when you said a visit is within a month, and a **create the
 profile** row after **someone I look after** or **both**. Once the answers are
-confirmed the rows are ordered from them; nothing is removed.
+confirmed the rows are ordered from them; nothing is removed. With a
+medication schedule the notification row comes right after the medication
+row.
+
+Below the rows, a collapsed **More you can set up** group offers the optional
+extras: the [emergency card](/guides/emergency-card/), the [care calendar
+subscription](/guides/care-calendar-feed/), sharing, imports (Gadgetbridge,
+Health Connect, FHIR), a [regular doctor
+report](/guides/scheduled-doctor-report/) and the
+[iPhone app](/getting-started/connect-ios-app/). None of them counts towards
+the checklist's progress, each can be hidden, and nothing is read until you
+open the group. Inside a profile you look after, only the emergency card, the
+care calendar and the doctor report are offered.
 
 ### Coming back to it
 
