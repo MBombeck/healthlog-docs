@@ -9,8 +9,10 @@ import { Steps } from '@astrojs/starlight/components';
 
 HealthLog reads the export file of Health Connect, the health
 data store built into Android. There is no Android app and no live sync: you
-export on the phone, upload the file, and a background job imports it. Values
-from this path show **Health Connect** as their source.
+export on the phone, then either upload the file or let HealthLog
+[fetch the scheduled export from a WebDAV or Nextcloud folder](#fetch-it-from-a-webdav-or-nextcloud-folder),
+and a background job imports it. Values from this path show **Health Connect**
+as their source.
 
 ## What you need
 
@@ -111,6 +113,71 @@ Heart rate imported per minute ages like Apple Health heart rate: once a
 minute is older than 90 days, the nightly pass folds its hour into one hourly
 mean. A later export that still holds those minutes does not put them back.
 
+## Fetch it from a WebDAV or Nextcloud folder
+
+Health Connect can export on a schedule into a cloud app. When that cloud is a
+WebDAV server or Nextcloud, HealthLog fetches the file itself, so nothing has to
+be downloaded and uploaded by hand.
+
+<Steps>
+
+1. On the phone, set up a **Scheduled export** into the Nextcloud app, or any
+   app that writes to a WebDAV folder, for example daily.
+
+2. In Nextcloud, create an **app password** under your personal security
+   settings. Use it instead of your account password.
+
+3. In HealthLog open **Settings > Export & import > Health Connect from a
+   folder** and enter the **Folder address (WebDAV)**, for Nextcloud
+   `https://cloud.example/remote.php/dav/files/<user>/<folder>` with no user
+   name or password inside it; the **File name in the folder**, `Health
+   Connect.zip` unless the phone names it differently; the **User name**; and
+   the **Password or app password**.
+
+</Steps>
+
+HealthLog then reads the file about every six hours, and at once on **Fetch
+now**. A file it has already imported is skipped, an unchanged one is not even
+downloaded, and every other file goes through the same import as an upload. The
+card shows the last attempt and its outcome. After a failure (file not found,
+password refused, server down) HealthLog waits thirty minutes, then doubles the
+wait up to a day.
+
+What to know about the password and the address:
+
+- The password is stored encrypted and never shown again. Saving it asks you to
+  confirm it is you when your sign-in is older than five minutes.
+- It only goes to the server it was entered for. A folder that moves to another
+  server needs the password entered again.
+- A public folder address must start with `https://`, because the password
+  travels with every fetch. HealthLog follows no redirect, so the password
+  cannot be bounced to another host.
+- A file over 1 GB is not read.
+- **Remove folder** stops the fetching and forgets the password; what was
+  already imported stays.
+- The folder is not part of a backup, like the other connections to servers of
+  your own. After a restore, enter it once more; a file imported before the
+  restore is not imported twice.
+
+### A folder on your own network
+
+A public address works without any setting. A Nextcloud that is reachable only
+on your home network or a VPN needs its exact origin listed by whoever runs the
+HealthLog server, in
+[`HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS`](/reference/environment-variables/#device-integrations-optional),
+for example `https://cloud.lan`. Until then the card says the address is on a
+private network the server does not allow. The grammar is the one for
+[notification targets on a private network](/reference/environment-variables/#notification-targets-on-a-private-network-optional):
+one `scheme://host[:port]` per entry, comma separated, never a suffix or a
+range, and link-local and cloud metadata addresses stay refused even when
+listed. A listed origin may be `http://` for a home Nextcloud without a
+certificate; the password then crosses your home network unencrypted.
+
+The fetch reports an outcome (not found, password refused, server error) for any
+path on an allowed server. It returns no content, but it does tell an account
+whether a path exists on a server the operator listed, which is worth knowing
+before you list a shared server.
+
 ## Source priority
 
 Health Connect has its own place in [source priority](/guides/source-priority/).
@@ -120,7 +187,11 @@ thing.
 
 ## For operators
 
-Nothing to configure. The importer reads the database with Node's built-in
+Nothing to configure for uploads, and nothing for a folder on a public address;
+a folder on a private network needs `HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS`
+(above, on the compose whitelist, restart after a change). The background pass
+is the `health-connect-remote-fetch` queue, hourly, reading only the folders
+that are due. The importer reads the database with Node's built-in
 SQLite module, opened read-only, and memory stays bounded however long the
 history is. A web and worker split needs the same shared staging directory as
 the [Apple Health import](/guides/import-apple-health/).

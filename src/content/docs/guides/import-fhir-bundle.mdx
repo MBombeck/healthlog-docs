@@ -1,0 +1,63 @@
+---
+title: Import a patient record (FHIR)
+description: Upload the FHIR R4 Bundle a patient portal exports. Lab results go to Labs, vital signs to your measurements, and conditions, vaccinations, medications and visits to their own sections, without duplicates on a second import.
+sidebar:
+  order: 6
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Many patient portals let you download your record as a **FHIR R4 Bundle**, one
+JSON file. HealthLog reads that file and puts each part where it belongs.
+
+## Export and upload
+
+<Steps>
+
+1. In your patient portal, look for an export that names **FHIR**, **FHIR R4**
+   or **JSON**. The file's top level reads `"resourceType": "Bundle"`.
+
+2. In HealthLog open **Settings > Export & import** and choose the file on the
+   **Patient record (FHIR)** card. Up to 32 MB and 50,000 entries.
+
+3. The card shows what arrived, and counts what it did not read by type.
+
+</Steps>
+
+A C-CDA or CCD document (XML) is a different format and is not read. A portal
+that offers both should be exported as FHIR.
+
+## What becomes what
+
+| In the Bundle | In HealthLog |
+| --- | --- |
+| Laboratory observations | [Lab results](/guides/labs/), matched to markers by LOINC code and name, with units, panels and reference ranges. Preliminary, cancelled and entered-in-error results are skipped. |
+| Vital-sign observations | Measurements: weight, heart rate, resting heart rate, oxygen saturation, respiratory rate, body temperature, BMI, body fat and blood pressure. A unit HealthLog does not know is refused, not guessed. |
+| Conditions | [Illness](/guides/illness/) entries with their onset and, when stated, their end. Refuted and entered-in-error conditions are skipped. |
+| Immunizations | [Vaccinations](/guides/vaccinations/), as the portal names the vaccine, with lot and dose number. Completed doses only. |
+| Medication statements | [Medications](/guides/track-medications/), active or ended per their status and period. |
+| Encounters | Visits with their date, status, kind and reason. The reason is encrypted like every visit reason. |
+
+Imported medications get **no schedule and no reminders**: the record says what
+was taken, it does not start reminding anybody. Give a medication a schedule
+yourself if you want reminders.
+
+Everything else (the patient, practitioners, diagnostic reports, procedures and
+so on) is counted under **Not imported**.
+
+## Importing again
+
+Every resource is matched by the server it came from and its own id. Importing
+the same Bundle again, or a newer export from the same portal, writes nothing
+twice. A record you deleted in HealthLog is not brought back by a later import.
+The list of what was already imported travels in both kinds of backup, so the
+same holds after a restore.
+
+## For operators
+
+One import per account runs at a time, and the same bytes return the earlier job.
+A run has a ten-minute budget; one that reaches it keeps what it wrote, and
+uploading the same file again continues. The file is parsed as untrusted JSON and
+deleted when the job ends; the audit log records only its size and hash. The
+resource mapping and the endpoint are in
+[`docs/integrations/fhir-bundle-import.md`](https://github.com/MBombeck/HealthLog/blob/main/docs/integrations/fhir-bundle-import.md).
