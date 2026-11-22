@@ -107,9 +107,10 @@ chain: a task whose chain can reach the server's key or send a document to a
 cloud provider still asks for consent first. Deleting a chain moves its tasks
 back to Default. Chains are included in your settings backup; keys are not.
 
-For a [managed profile](/guides/managed-profiles/#its-documents) the chains of that profile apply, and its guardian can
-only ever use the server key; a task bound to a local model therefore stays
-off rather than reach the server key.
+A [managed profile](/guides/managed-profiles/#its-ai-provider) has no chains
+of its own: its guardian picks the server key, no provider, or one of the
+guardian's own chains for it, and that choice counts as the guardian's consent
+for the profile. Picking no provider switches AI off for the profile.
 
 ## Local endpoints
 

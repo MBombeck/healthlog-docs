@@ -176,9 +176,10 @@ restored, read or confirmed it. The values you confirm become the profile's lab
 results, not yours.
 
 Every AI read, automatic or on request, follows the profile's own AI settings
-and consent. If the instance's AI provider leaves the server, the profile needs
-its own consent to reading documents; yours does not stand in for it. The read
-runs on the instance's provider and never on your personal AI key. Automatic
+and consent and runs on the AI provider you chose for the profile (see
+[Its AI provider](#its-ai-provider)). If that provider leaves the server, the
+profile needs its own consent to reading documents; yours does not stand in for
+it. Automatic
 reading is off on a new profile, so an upload alone is stored and indexed on the
 server and nothing leaves it until you ask.
 
@@ -192,6 +193,27 @@ Coach.
 This belongs to the managed profile, not to the access level. Somebody who
 shares their own record with you at manage keeps their vault to themselves, and
 you can read it but not add to it.
+
+## Its AI provider
+
+A profile has no AI keys of its own, so you choose where its AI work goes:
+switch into the profile and open **Settings > AI**. There are three choices:
+
+- **The server's AI key**, if the operator set one up;
+- **No AI provider**, which switches AI off for the profile;
+- **Your default chain**, or one of your named chains, served with your own
+  keys, sign-ins and local model, exactly in that chain's order. What the
+  profile sends counts against your provider accounts.
+
+The profile uses the chain you chose, and choosing it counts as your consent
+for the profile: your own chain serves its Coach, briefing and summaries with
+no separate consent for the profile, the same way it serves you. The server's
+AI key still asks for the profile's consent before anything leaves the server,
+and so does reading documents. A chain that cannot serve refuses rather than
+falling back to the server key. If you stop managing the profile, or delete the
+named chain, the profile has no AI until somebody picks again. Another guardian
+sees "a chain of another guardian" and can pick again, which replaces it, and
+the profile's activity log names who changed the choice.
 
 ## Where its reminders go
 
