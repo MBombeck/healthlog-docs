@@ -122,6 +122,7 @@ from `NEXT_PUBLIC_APP_URL`.
 | `STRAVA_REDIRECT_URI` | Callback override for Strava; defaults to `${NEXT_PUBLIC_APP_URL}/api/strava/callback`. |
 | `NIGHTSCOUT_PRIVATE_ORIGINS` | Nightscout origins on your own network the per-user connection form should accept, comma-separated (e.g. `http://nightscout.lan:1337`). Without it a private address is refused as an SSRF target. Same grammar as `NOTIFICATION_PRIVATE_ORIGINS` below. See [Connect Nightscout](/guides/connect-nightscout/). |
 | `DAWARICH_PRIVATE_ORIGINS` | Dawarich instances on your own network the per-user connection may reach, comma-separated exact origins (e.g. `http://dawarich.lan:3000`). Same grammar as `NIGHTSCOUT_PRIVATE_ORIGINS`: one `scheme://host[:port]` per entry, no path, wildcard or range; a listed host does not open its subdomains or another port. Link-local, metadata and unspecified addresses are never granted. A public Dawarich instance needs nothing here. On the compose whitelist; needs a restart. See [Connect Dawarich](/guides/connect-dawarich/#an-instance-on-your-own-network). |
+| `HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS` | WebDAV or Nextcloud servers on your own network that the scheduled [Health Connect fetch](/guides/import-health-connect/#fetch-it-from-a-webdav-or-nextcloud-folder) may reach, comma-separated exact origins (e.g. `https://cloud.lan`). Same grammar as `NIGHTSCOUT_PRIVATE_ORIGINS`. A listed `http://` origin allows only that plain-http origin, and the folder's password then crosses the network unencrypted. A public server needs nothing here. On the compose whitelist; needs a restart. New in 1.49.0. |
 | `INTEGRATION_FAILURE_ALERT_THRESHOLD` | Consecutive failures before an integration is reported as persistently failing and notified about. Default `3`, minimum `1`. |
 
 ## APNs: iOS push (all-or-none)
@@ -142,15 +143,16 @@ with `BadEnvironmentKeyInToken` on production builds. See
 
 ## Push relay (optional)
 
-The opt-in [push relay](/guides/push-relay/) for the App Store iPhone app. All
-three are optional and on the compose whitelist; an admin still has to turn
-the relay on under **Admin > Services**.
+The opt-in [push relay](/guides/push-relay/) for the App Store iPhone app, new
+in 1.49.0. All four are optional and on the compose whitelist; an admin still
+has to turn the relay on under **Admin > Services**.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PUSH_RELAY_MODE` | `allowed` | `off` hides the relay entirely, the admin notice included. |
 | `PUSH_RELAY_URL` | `https://push.healthlog.dev` | The relay origin; `https` only. Set it only for a relay you run yourself. |
 | `PUSH_RELAY_KEYS` | the hosted relay's keys | The relay's identity public keys (Ed25519, unpadded base64url, comma separated). Every relay answer must be signed by one of them; without pinned keys the relay cannot be used. |
+| `PUSH_RELAY_LIVE_ACTIVITY` | off | `on` lets the server start and update a medication Live Activity over the relay, for devices whose owner turned on the separate Live Activity switch in the app. Their content state is then readable by the relay and Apple; see [Live Activity over the relay](/guides/push-relay/#live-activity-over-the-relay). Off, only the end of a Live Activity goes over the relay. A server with its own APNs key is not affected. |
 
 ## Email (SMTP) notification channel
 
@@ -376,7 +378,7 @@ not environment variables; see [the document vault](/guides/document-vault/#limi
 | Variable | Purpose |
 | --- | --- |
 | `DEMO_MODE` | `true` makes the proxy refuse every mutation except login and paints the demo banner. It is the switch behind a public try-it-out deployment, not a safety belt for a real one; leave it unset on an instance holding real data. |
-| `DASHBOARD_SSR_PREFETCH` | The dashboard, insights, coach and checkups pages prefetch their data on the server. `false` falls back to pure client fetching, a diagnostics escape hatch, not a tuning knob. |
+| `DASHBOARD_SSR_PREFETCH` | The dashboard, insights, coach and checkups pages prefetch their data on the server, and since 1.49.0 every signed-in page its account. `false` falls back to pure client fetching for both, a diagnostics escape hatch, not a tuning knob. |
 
 ## Build-time only (not runtime)
 

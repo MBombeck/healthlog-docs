@@ -281,6 +281,33 @@ A route that checks a credential of its own, meaning sign-in, the MFA challenge
 exchange or a password confirmation, answers `401` with the generic
 `http.unauthenticated`: the route refused the credential it was handed.
 
+### Codes new in 1.49.0
+
+A client built against an earlier release meets these for the first time. The
+OpenAPI document lists each with its route.
+
+| Code | Status | Means |
+| --- | --- | --- |
+| `auth.refresh.superseded` | `409` | A concurrent refresh with the same token won. Nothing is revoked; read the newest stored credentials and do not retry with this token. See [the sync contract](/reference/sync/#authentication-and-token-lifetimes) |
+| `devices.push.<reason>` | `422` | `POST /api/devices` refused a push field (push key, relay binding, consent) and changed nothing. Reasons: `apns_token_required`, `bad_signature`, `consent_required`, `instance_mismatch`, `invalid_push_key`, `push_key_required`, `relay_consent_required`, `relay_device_limit`, `relay_not_offered`, `statement_stale`, `token_mismatch`, `unsupported_suite` |
+| `devices.push.relay_daily_limit` | `429` | More than 10 new relay bindings for one account in 24 hours |
+| `medications.intake.changedSinceSeen` | `409` | The dose changed since the client read it. Read it again before acting |
+| `medications.intake.invalidPrecondition` | `422` | The precondition sent with a dose change is not usable |
+| `ingest.medication.notFound` | `404` | The medication hook found no active medication of that name that the token may record |
+| `ingest.idempotencyKey.reused` | `409` | The medication hook got an idempotency key it already used for a take more than a day ago. Send one key per take |
+| `emergency-card.api_disabled`, `care.feed.api_disabled` | `403` | The operator turned off the API switch, which the emergency card link and the care calendar feed depend on |
+| `emergency-card.exists`, `care.feed.exists` | `409` | A live link already exists; revoke it first |
+| `emergency-card.none`, `care.feed.none` | `404` | There is no live link to act on |
+| `emergency-card.cookie_only`, `care.feed.cookie_only` | `403` | Making or changing the link needs a browser session, not a Bearer token |
+| `emergency-card.rateLimited`, `care.feed.rateLimited` | `429` | Too many attempts |
+| `care.feed.notFound` | `404` | The same flat answer for every unknown, revoked or expired feed link |
+| `import.health_connect.remote.<reason>` | `404` or `422` | The Health Connect folder: `not_configured` (`404`), `invalid_url`, `https_required`, `private_origin_not_approved`, `password_required`, `origin_config_invalid` |
+| `import.file.too_large` | `413` | The uploaded import file is over its limit |
+| `cycle-prefs.pregnancy.<reason>` | `422` | The pregnancy dates do not fit: `start_in_future`, `delivery_in_future`, `due_before_start`, `delivery_required` |
+| `record_settings.ai_source.chain_missing` | `422` | A managed profile was pointed at a provider chain that does not exist |
+| `nutrient.energyBalance.invalid` | `422` | The energy balance query is out of bounds |
+| `admin.pushRelay.<reason>` | `409` or `422` | The admin relay card: `confirmationsRequired` (`422`), `unavailable`, `notRegistered`, `noSenderKey` (`409`) |
+
 ## Retired and deprecated routes
 
 A route that was published and then removed answers every method with `410`
