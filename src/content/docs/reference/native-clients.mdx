@@ -216,5 +216,5 @@ Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256
 :::tip[Long-lived tokens are minted per medication]
 For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens: same auth header, no refresh dance. The token is scoped to intake for that medication, and every route that does not declare that scope refuses it.
 
-**Settings → API & tokens** has no generic token button; it lists and revokes the tokens the account holds and mints the narrow [measurement, document and workout tokens](/guides/ingest-token/).
+**Settings > API & tokens** has no generic token button; it lists and revokes the tokens the account holds and mints the narrow [measurement, document and workout tokens](/guides/ingest-token/).
 :::

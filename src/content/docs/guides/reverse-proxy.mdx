@@ -183,7 +183,7 @@ The 300-second read timeout matters for long-running insight generations:
 anything shorter cuts streamed responses mid-flight.
 
 It also sets the ceiling for a slow model. An AI call waits as long as the
-response timeout set under Settings → AI provider (60 seconds by default, up
+response timeout set under Settings > AI provider (60 seconds by default, up
 to 600), and the page waits with it. A proxy that ends requests sooner wins:
 reading a long document with a local model can take several model calls in one
 request. Raise the proxy's read timeout to match the setting you use. Cloudflare

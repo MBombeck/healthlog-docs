@@ -43,7 +43,7 @@ Oura enforces these per data type: a grant without one of them is refused on exa
 
 ### Existing connections: reconnect once
 
-A connection made before HealthLog asked for a scope holds a grant without it. HealthLog notices when Oura refuses only those data types, keeps syncing everything else and does not count it as a broken connection. The Oura card in **Settings → Integrations** then shows a short hint naming what is missing (for example resilience, workouts or heart rate) with a **Reconnect Oura** button. Reconnect once and approve the new permissions; the hint goes away with the new grant.
+A connection made before HealthLog asked for a scope holds a grant without it. HealthLog notices when Oura refuses only those data types, keeps syncing everything else and does not count it as a broken connection. The Oura card in **Settings > Integrations** then shows a short hint naming what is missing (for example resilience, workouts or heart rate) with a **Reconnect Oura** button. Reconnect once and approve the new permissions; the hint goes away with the new grant.
 
 If authorization fails after you approve, or Oura's consent screen does not offer the new permissions, open your application in Oura's developer portal and check that every scope above is enabled for it, then connect again.
 
@@ -65,7 +65,7 @@ OURA_REDIRECT_URI="https://your-instance.example.com/api/oura/callback"
 
 ## 3. Connect from Settings
 
-1. Sign in as the target user and open **Settings → Integrations → Oura**.
+1. Sign in as the target user and open **Settings > Integrations > Oura**.
 2. Click **Connect Oura** and grant the requested scopes.
 3. Oura redirects back to `/api/oura/callback`; HealthLog exchanges the code, stores the token encrypted, and runs an initial sync.
 

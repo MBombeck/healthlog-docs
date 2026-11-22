@@ -39,7 +39,7 @@ decoding into garbage. Each value gets a random 12-byte IV and is stored as
 
 The key id indexes into an `ENCRYPTION_KEYS` JSON map, which is what makes
 zero-downtime rotation possible. Several keys coexist, new writes use the active
-one, and a rotation (**Admin → Encryption → Rotate now**, or the script) re-wraps
+one, and a rotation (**Admin > Encryption > Rotate now**, or the script) re-wraps
 old rows on its own schedule while the app keeps serving. The operator procedure is
 [Rotate the encryption key](/guides/encryption-key-rotation/).
 
@@ -64,7 +64,7 @@ this once" and nobody notices for a year. A misconfigured key here takes the
 feature down loudly instead, which is the trade the project wants.
 
 The practical corollary during a rotation: keep the old key in the map until
-**Admin → Encryption** reports zero remaining rows on it and no backup you may
+**Admin > Encryption** reports zero remaining rows on it and no backup you may
 still restore needs it. Drop it early and those rows
 become undecryptable, and the app will tell you so rather than paper over it.
 

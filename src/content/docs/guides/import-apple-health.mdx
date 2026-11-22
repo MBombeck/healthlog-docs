@@ -23,14 +23,14 @@ SHA-256, so re-uploading the same archive merges instead of duplicating.
 
 <Steps>
 
-1. **Generate `export.zip` on the iPhone.** Open **Health → profile picture →
+1. **Generate `export.zip` on the iPhone.** Open **Health > profile picture >
    Export All Health Data**. iOS packages the archive in a few minutes; share it
    somewhere you can reach from your instance (AirDrop, iCloud Drive, email).
    The archive contains `apple_health_export/export.xml` (the canonical record
    stream) plus auxiliary folders: electrocardiograms, workout routes and,
    when the Health app holds records from a provider, `clinical-records`.
 
-2. **Upload to HealthLog.** Open **Settings → Export & import** and drop the
+2. **Upload to HealthLog.** Open **Settings > Export & import** and drop the
    `export.zip` onto the Apple Health control. The browser streams the body
    directly to the server; nothing is buffered into memory on either side. A
    progress indicator polls the job until it reports imported / skipped counts.

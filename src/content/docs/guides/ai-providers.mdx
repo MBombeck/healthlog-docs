@@ -49,7 +49,7 @@ Two key-provisioning modes coexist:
 - **BYOK (bring your own key)**: each user pastes a personal API key into
   `/settings/ai`. It is AES-256-GCM-encrypted at rest and only decrypted
   in-process. Cost falls to the user.
-- **Admin-shared**: the operator sets one server key under **Admin → Coach**.
+- **Admin-shared**: the operator sets one server key under **Admin > Coach**.
   It drives OpenAI by default (`gpt-4o`), or Anthropic when its base URL is
   Anthropic's (`claude-sonnet-4-6`). Users without their own key fall back to
   it. It is the last entry in the chain, so it acts as a safety net rather
@@ -84,7 +84,7 @@ features fell back to the ChatGPT sign-in or the server key on their own.)
 ## Chains per task
 
 The fallback chain is one order for every AI task. When one task should use
-something else, give it its own chain under **Settings → AI → Chains per
+something else, give it its own chain under **Settings > AI > Chains per
 task**. A chain is a named, ordered list of the providers you already set up;
 each entry is that provider with the key and model you saved for it.
 
@@ -161,7 +161,7 @@ the container, `localhost` is the container, not the host.
 
    With `host.docker.internal`, list `http://host.docker.internal:11434`
    instead; that name resolves to a private address too.
-4. Under **Settings → AI provider**, choose **Local**, set the base URL to
+4. Under **Settings > AI provider**, choose **Local**, set the base URL to
    `http://192.168.1.20:11434/v1` (or `http://host.docker.internal:11434/v1`),
    the model name exactly as `ollama list` shows it, and leave the key empty.
 5. For a thinking model, set **Reasoning** to **Off** so the answer budget goes
@@ -175,7 +175,7 @@ Rough model sizing: 7-8B for an 8 GB GPU / Apple Silicon base, 14-24B for
 
 ### Response timeout
 
-**Settings → AI provider → Response timeout** sets how long each AI call waits
+**Settings > AI provider > Response timeout** sets how long each AI call waits
 for an answer, 10 to 600 seconds. Left empty, a call waits 60 seconds; the
 daily briefing and the Coach wait 180. The setting applies to every AI job:
 each call of the daily briefing, status cards, document and lab reading,
@@ -232,7 +232,7 @@ The Coach's limits are sized for a hosted model with a large context window: a
 data snapshot of 14,000 characters in the prompt, and 165,000 tokens, 16 tool
 rounds and 200 seconds for one answer. A small local model cannot read a
 snapshot that large; a 64k-context model on its own GPU can read far more.
-**Settings**, **AI**, **Coach budget for self-hosted models** sets each of the
+**Settings > AI > Coach budget for self-hosted models** sets each of the
 four values separately for the Local provider and for the OpenAI-compatible
 gateway. An empty field keeps the built-in value.
 
@@ -307,7 +307,7 @@ Besides the shared API key, the operator can connect a single
 subscription-based AI account for the whole instance and let users opt into
 it:
 
-- **Admin side.** Under **Admin → Coach** the operator runs the same device-code
+- **Admin side.** Under **Admin > Coach** the operator runs the same device-code
   OAuth flow as the per-user ChatGPT connection. The tokens are stored
   AES-256-GCM-encrypted in the instance settings and are never returned by
   any endpoint; the admin routes sit behind the cookie-only admin boundary.
@@ -474,7 +474,7 @@ model-written period summaries, the lines written after a new reading, and
 workout notes. Your Coach conversations, what the Coach remembers, and the
 summaries of your documents are your records and stay; you can read and delete
 them yourself. Nothing you recorded is deleted by a withdrawal; that is the
-erase path under **Settings → Advanced**. A withdrawn consent stays withdrawn
+erase path under **Settings > Advanced**. A withdrawn consent stays withdrawn
 until you give it again.
 
 ## Connection test
@@ -542,7 +542,7 @@ you would see, but opening your record never starts AI work on it.
   refresh tokens lapse after extended idle periods. Reconnect via **Connect
   ChatGPT** — the device-code flow re-runs and the new tokens land in the same
   encrypted columns.
-- **A shared provider is failing for everyone.** **Admin → Coach** has a
+- **A shared provider is failing for everyone.** **Admin > Coach** has a
   provider-health card: one row per provider type with how many users' chains
   recorded an outcome for it, how many are failing, the longest failure run,
   the last success and failure, and whether it is paused and until when. It

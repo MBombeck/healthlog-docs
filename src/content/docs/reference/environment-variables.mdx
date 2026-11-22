@@ -73,7 +73,7 @@ The modern multi-key path; see [key rotation](/guides/encryption-key-rotation/).
 | `DB_APP_ROLE` | unset | Since v1.47.0 the app and the worker connect as `healthlog_app_<database>_<hash>`, a role the container creates for this database on every start: it reads and writes rows but cannot change or drop tables, own anything or create roles. The migrations, the dump before them and restores keep the `DATABASE_URL` user. Where the role cannot be set up (Postgres 16, a user without `CREATEROLE`), the start log says why and the app uses `DATABASE_URL` as given. Set `off` if you manage database roles yourself. On the compose whitelist. See [The app's database role](/self-hosting/database-role/). |
 | `HEALTHLOG_PROCESS_TYPE` | `all` | `all` / `web` / `worker` process split. |
 | `HEALTHLOG_IMAGE_REF` | `:latest` | **Compose-level substitution only**: the suffix of the `app` image reference. `:v1.46.0` pins a tag, `@sha256:<digest>` pins the immutable digest. See [pin the image by digest](/guides/updates-and-deploy/#pin-the-image-by-digest). |
-| `APP_MEMORY_LIMIT` | `1536m` | **Compose-level substitution only**: the app container's `mem_limit`. Node sizes its heap from it: `1536m` gives about 792 MB. This is the supported floor: below it a long-used account fills the heap, and the boot log, the support report and Admin → System status say so. Raise it on a busy instance; never lower it (see [Requirements](/getting-started/self-host-in-10-minutes/#requirements)). The worker example in the compose file carries `WORKER_MEMORY_LIMIT` with the same default. The Unraid Community Applications template and the TrueNAS app set no memory limit, so it does not apply there. See [Scaling](/self-hosting/scaling/#memory). |
+| `APP_MEMORY_LIMIT` | `1536m` | **Compose-level substitution only**: the app container's `mem_limit`. Node sizes its heap from it: `1536m` gives about 792 MB. This is the supported floor: below it a long-used account fills the heap, and the boot log, the support report and Admin > System status say so. Raise it on a busy instance; never lower it (see [Requirements](/getting-started/self-host-in-10-minutes/#requirements)). The worker example in the compose file carries `WORKER_MEMORY_LIMIT` with the same default. The Unraid Community Applications template and the TrueNAS app set no memory limit, so it does not apply there. See [Scaling](/self-hosting/scaling/#memory). |
 
 ## OIDC SSO (optional)
 
@@ -144,7 +144,7 @@ with `BadEnvironmentKeyInToken` on production builds. See
 
 The opt-in [push relay](/guides/push-relay/) for the App Store iPhone app. All
 three are optional and on the compose whitelist; an admin still has to turn
-the relay on under **Admin**, **Services**.
+the relay on under **Admin > Services**.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -280,7 +280,7 @@ a fresh table.
 
 :::note[This number is published, not only enforced]
 Two surfaces state it back to the user rather than printing a constant.
-**Settings → Shared access** captions the activity list with the window it can
+**Settings > Shared access** captions the activity list with the window it can
 see, and the dialog that ends somebody else's access says how long "who entered
 what" stays answerable. Both take the value the server resolved from this
 variable, so an instance running 90 says 90 in both places. The API carries it
@@ -296,7 +296,7 @@ to it lives only in the audit trail. See
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `COACH_MESSAGE_RETENTION_DAYS` | `365` | How long Coach conversations survive, in days. Floor 30. Like the audit window, this number is stated back to the user under Settings → Data & privacy. |
+| `COACH_MESSAGE_RETENTION_DAYS` | `365` | How long Coach conversations survive, in days. Floor 30. Like the audit window, this number is stated back to the user under Settings > Data & privacy. |
 | `ACCOUNT_DELETION_GRACE_DAYS` | `14` | How long deleting an account, a managed profile or all data stays undoable, in days. At most 30; `0` erases immediately. The account is locked at once. Stated back to the user in the deletion dialogs and on the Data & Privacy page. See [The grace window](/account/data-deletion/#the-grace-window). |
 | `HOST_METRIC_RETENTION_DAYS` | `7` | How long the host CPU / memory samples behind the admin monitoring charts are kept, in days. |
 | `DENSE_INTRADAY_RETENTION_ENABLED` | on | Thinning of dense intraday samples (heart rate, glucose) once they age out of the detail window. `false` keeps every raw sample forever, at the cost of unbounded table growth. |

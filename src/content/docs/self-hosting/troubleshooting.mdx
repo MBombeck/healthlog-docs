@@ -97,7 +97,7 @@ under it still existed. HealthLog fails closed on an unknown key id: it will
 never silently return plaintext or garbage.
 
 **Fix.** Restore the legacy key entry to the map (its id is embedded in each
-encrypted value), then rotate again (**Admin → Encryption → Rotate now**, or
+encrypted value), then rotate again (**Admin > Encryption > Rotate now**, or
 the rotation script) until it reports **zero remaining rows** on the old key
 and **Keys the backups still need** no longer lists it. Only then remove the
 entry. The full playbook
@@ -133,7 +133,7 @@ registered at the provider matches the app's callback path **exactly**, for exam
 [Withings](/guides/connect-withings/). A single trailing slash or an `http`
 scheme mismatch is enough for the provider to refuse the flow.
 
-The integration cards under **Settings → Integrations** warn when the origin
+The integration cards under **Settings > Integrations** warn when the origin
 of the callback address differs from the address in the browser, and each
 setup guide on those cards shows the full callback address the server
 registers with the provider.
@@ -148,14 +148,14 @@ unset.
 The daily briefing and the comprehensive insight are **pre-generated
 overnight** by a budget-gated job, never on page visit. On a brand-new account
 (or before the first nightly run) the page shows a *preparing* state; that is
-by design, not a failure. Configure a provider under **Settings → AI provider** and give
+by design, not a failure. Configure a provider under **Settings > AI provider** and give
 the nightly job one cycle, or use the explicit generate button where offered.
 See [how AI insights work](/insights/how-it-works/).
 
 ## The app shows the wrong language
 
 The display language resolves in a fixed order: an explicit choice you made
-(**Settings → Account → Language**) wins everywhere and sticks permanently:
+(**Settings > Account > Language**) wins everywhere and sticks permanently:
 it is saved on your profile and in a year-long cookie. If you
 never chose, the app is in **automatic** mode and follows the browser/system
 language.
@@ -163,7 +163,7 @@ language.
 ## Sharing does not show what I expect
 
 An invitation confers nothing until the person named on it accepts it under
-**Settings → Shared access** on their own account. Inside somebody else's
+**Settings > Shared access** on their own account. Inside somebody else's
 record, account surfaces (credentials, connected services, notification
 channels, exports, clinician share links, grant management) are refused by
 design, and controls the access level does not allow are not drawn at all.

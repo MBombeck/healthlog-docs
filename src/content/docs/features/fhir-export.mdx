@@ -9,13 +9,13 @@ HealthLog speaks [HL7 FHIR R4](https://hl7.org/fhir/R4/), the wire format clinic
 
 ## The health-record export
 
-Open **Settings → Health record**, pick a date range and exactly which metrics and record types to include, and download one of three files: a clinical PDF for a doctor handover, a FHIR R4 document Bundle (`application/fhir+json`) for a system that reads FHIR, or a zip package with both and a short README. The PDF and the Bundle read the same aggregator, so they carry identical numbers. If you fill in your name, insurer, and insurance number under **Settings → Account**, they appear on the PDF cover and in the Bundle's `Patient` resource.
+Open **Settings > Health record**, pick a date range and exactly which metrics and record types to include, and download one of three files: a clinical PDF for a doctor handover, a FHIR R4 document Bundle (`application/fhir+json`) for a system that reads FHIR, or a zip package with both and a short README. The PDF and the Bundle read the same aggregator, so they carry identical numbers. If you fill in your name, insurer, and insurance number under **Settings > Account**, they appear on the PDF cover and in the Bundle's `Patient` resource.
 
 <img src={exportFlow.src} alt="One export request with a format, a date range, and a leaf-level selection list reads the shared aggregator once and produces two artefacts: an enriched PDF for a doctor handover, and an HL7 FHIR R4 document Bundle holding a Patient resource, LOINC-coded Observations with a blood-pressure panel, MedicationStatements, and, when the window holds vital signs, a DiagnosticReport that ties them together" />
 
 If you keep a [seizure diary](/guides/seizure-diary/) and include it, the Bundle carries each seizure as an `Observation`, each rescue dose as a `MedicationAdministration`, clusters, and three LOINC seizure summaries; the guide lists the codes.
 
-The export is [scoped by selection](/reference/fhir-api/#health-record-export): what you did not tick is not in the file. It honours the doctor-report module switch under **Settings → Modules**; with the module off, the export and the FHIR API both answer 403 rather than the record, and nothing is deleted.
+The export is [scoped by selection](/reference/fhir-api/#health-record-export): what you did not tick is not in the file. It honours the doctor-report module switch under **Settings > Modules**; with the module off, the export and the FHIR API both answer 403 rather than the record, and nothing is deleted.
 
 ## The read-only FHIR API
 
@@ -23,9 +23,9 @@ A clinical system, or a script of your own, can pull your record as FHIR resourc
 
 ## The clinician share link
 
-For a person with no account and no software, the **Sharing** card under **Settings → Health record** mints a time-limited, passphrase-protected link to a read-only view of a frozen selection of your record. The same link offers the PDF and the FHIR Bundle of that selection for download, and you revoke it when the visit is over. A share link never opens the FHIR API. The steps are in [Share your record with a clinician](/guides/document-vault/#clinician-share-links).
+For a person with no account and no software, the **Sharing** card under **Settings > Health record** mints a time-limited, passphrase-protected link to a read-only view of a frozen selection of your record. The same link offers the PDF and the FHIR Bundle of that selection for download, and you revoke it when the visit is over. A share link never opens the FHIR API. The steps are in [Share your record with a clinician](/guides/document-vault/#clinician-share-links).
 
-Every statistic in the shared view carries its unit, so a doctor reads "latest 5.8 mmol/L" rather than a bare number. Glucose is shown in the unit you chose under **Settings → Account** (mg/dL or mmol/L), in the view and in the PDF alike. The glucose-ketone index beside the ketones is a ratio of two mmol/L values and has no unit; the FHIR Bundle carries the ketone readings but not the index. Weight, length and temperature stay in metric units even when you use imperial ones, because the view is written for a clinician. The FHIR Bundle keeps its standard UCUM units either way.
+Every statistic in the shared view carries its unit, so a doctor reads "latest 5.8 mmol/L" rather than a bare number. Glucose is shown in the unit you chose under **Settings > Account** (mg/dL or mmol/L), in the view and in the PDF alike. The glucose-ketone index beside the ketones is a ratio of two mmol/L values and has no unit; the FHIR Bundle carries the ketone readings but not the index. Weight, length and temperature stay in metric units even when you use imperial ones, because the view is written for a clinician. The FHIR Bundle keeps its standard UCUM units either way.
 
 ## What another account on your instance gets
 

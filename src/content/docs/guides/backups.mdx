@@ -14,19 +14,19 @@ first one can bring back a server that is gone.
 | --- | --- | --- | --- |
 | **Database dump** (nightly and before every update, automatic) | The whole database: every account, sign-ins, passkeys, tokens, sharing grants, managed profiles, documents and the instance settings | Rebuild a lost server; go back to the state before an update | Bring back one account without the others |
 | **Account copies** (weekly in the database, before **Delete all data**, uploaded, and nightly in the off-host bucket) | One account's record and settings, without its credentials | Roll one account back on the same server, after a bad import or a mistaken delete; put the record of an erased account into a new or empty account | Rebuild a server |
-| **Personal export** (Settings → Export & import → **Full backup**) | One account's record as readable values; documents as metadata only | Give the person a portable copy of their own data | Restore documents: a restore refuses an export that lists documents, because it carries none of their content |
+| **Personal export** (Settings > Export & import > **Full backup**) | One account's record as readable values; documents as metadata only | Give the person a portable copy of their own data | Restore documents: a restore refuses an export that lists documents, because it carries none of their content |
 
 Every copy is unreadable without its keys. Keep `ENCRYPTION_KEY` (or
 `ENCRYPTION_KEYS` with `ENCRYPTION_ACTIVE_KEY_ID`), `API_TOKEN_HMAC_KEY` and,
 for the off-host bucket, `BACKUP_ENCRYPTION_KEY` with any
 `BACKUP_ENCRYPTION_PREVIOUS_KEYS` somewhere other than the server. The
 [recovery kit](/explanation/encryption-at-rest/#the-recovery-kit) under
-**Admin → Encryption** lists each one by fingerprint.
+**Admin > Encryption** lists each one by fingerprint.
 
 ## Recovery readiness
 
 The **Recovery readiness** card on the admin overview and at the top of
-**Admin → Backups** judges every copy in one place. Each signal reads **Ready**,
+**Admin > Backups** judges every copy in one place. Each signal reads **Ready**,
 **Needs attention** or **At risk**, and the worst one sets the card:
 
 | Signal | Needs attention | At risk |
@@ -62,7 +62,7 @@ migration, the Postgres version, the archive's size and SHA-256, the row count
 of every table, and the fingerprints (never the values) of the keys the
 database needs. The archive is written as `.partial`, read back with
 `pg_restore --list`, and renamed only after its manifest, so a failed run
-leaves nothing that looks good. **Admin → Backups** shows the newest good dump,
+leaves nothing that looks good. **Admin > Backups** shows the newest good dump,
 where it is kept, and the newest failed run.
 
 Local dumps are not encrypted. They sit beside the database volume, where
@@ -101,7 +101,7 @@ every nightly dump kept, except the one taken before the latest update, which
 stays as the way back until the next update replaces it; on an install that
 rarely updates, delete it by hand once you no longer need it. Give that rule a prefix that covers `database/`
 too, or the dumps there, and the deleted accounts inside them, are kept
-forever; **Admin → Backups** says when no rule covers it. The deletion dialogs
+forever; **Admin > Backups** says when no rule covers it. The deletion dialogs
 name this, and it is the retention period to state wherever you tell people
 that deleting their account deletes their data (see
 [GDPR for operators](/self-hosting/gdpr/#the-deletion-concept)).
@@ -310,7 +310,7 @@ In every case the account's previous copy is still there and can be restored.
 
 ## Restore from the console
 
-Under **Admin → Backups**, pick a row, choose **Restore**, and type `RESTORE`.
+Under **Admin > Backups**, pick a row, choose **Restore**, and type `RESTORE`.
 Before you confirm, the dialog shows what the copy contains: how many
 readings, medications, mood entries, lab results, documents, workouts and so
 on.
@@ -363,13 +363,13 @@ Once an account is erased, after its [grace window](/account/data-deletion/#the-
 ended and the hourly purge ran, its copies on this server and in the bucket are
 gone. A file you kept may still hold the record: a copy fetched from the bucket
 before it expired, or the person's own full backup. Since v1.46.3, uploading
-such a file in **Admin → Backups** no longer ends in a refusal. The page offers
+such a file in **Admin > Backups** no longer ends in a refusal. The page offers
 two places for it:
 
 - **A new account.** Type a username. The account is created as an ordinary
   account with the user role, without a password or email, so nobody can sign
   into it yet. Before handing it over, set its first password with **Reset
-  password** under **Admin → Users**. The person can then change it, add an
+  password** under **Admin > Users**. The person can then change it, add an
   email and enrol a passkey. If the file is refused, the new account is
   removed again.
 - **An existing account**, for someone who has signed up again. Pick the
@@ -507,7 +507,7 @@ never deletes a database dump in the bucket. The admin's global wipe deletes not
 the bucket: those copies are how you get back from a wipe pressed by mistake.
 
 **Lifecycle.** The app does not expire copies by age. Set a lifecycle rule on
-the bucket (on R2 under the bucket's **Settings → Lifecycle**) that covers
+the bucket (on R2 under the bucket's **Settings > Lifecycle**) that covers
 both the account objects and `database/`, for example one rule for the whole
 bucket, and set `BACKUP_RETENTION_DAYS` to the same number. Without a rule
 every nightly copy is kept forever, and so is every deleted account inside
@@ -515,7 +515,7 @@ the dumps.
 
 ### Which account has no copy
 
-**Admin → Backups → Off-host copies** shows per account when this host last
+**Admin > Backups > Off-host copies** shows per account when this host last
 wrote its copy and how big it was: **fresh** is inside one run, **due** means
 one run produced nothing for that account, **stale** means two did not,
 **never** means no object has ever landed for it, and **no record yet** means
@@ -546,7 +546,7 @@ pnpm dlx tsx scripts/restore-backup.ts \
 
 The file is decrypted health data, written with owner-only permissions; an
 output name ending in `.gz` writes it compressed. Upload it under
-**Admin → Backups** and restore it from its row as described
+**Admin > Backups** and restore it from its row as described
 [above](#restore-from-the-console).
 
 ### Rotating the off-host key
