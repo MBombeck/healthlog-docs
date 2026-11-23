@@ -1,6 +1,6 @@
 ---
 title: Push relay for the iPhone app
-description: The opt-in HealthLog push relay lets the App Store iPhone app receive notifications from a self-hosted server. What it is and what it sees, how an admin turns it on with an invite code, how each person opts in on the iPhone, Live Activity over the relay, the security and hosting of the relay, and running your own.
+description: The opt-in HealthLog push relay lets the App Store iPhone app receive notifications from a self-hosted server. What it is and what it sees, how an admin turns it on, how each person opts in on the iPhone, Live Activity over the relay, the security and hosting of the relay, and running your own.
 sidebar:
   order: 38
 ---
@@ -144,8 +144,8 @@ refreshes a managed profile when it opens.
    relay to this server's users**. The dialog has three boxes to tick: that you
    accept the relay terms, that you have read its privacy notice, and that you
    run this server privately for yourself or your household.
-   If the relay asks for an invite code, enter it in the same dialog, under
-   **Invite code (optional)**; see [Invite codes](#invite-codes).
+   There is no sign-up and no code: the hosted relay accepts every server
+   whose admin says yes here. Leave **Invite code (optional)** empty.
 3. Your server creates its instance key, stores it encrypted, and registers
    with the relay. The card then shows the relay's state (Connected,
    Disrupted, Not reachable or Off) and how many devices are bound.
@@ -163,9 +163,11 @@ notice on their next sync and go back to local reminders by themselves.
 
 ### Invite codes
 
-A relay can accept new servers by invitation only, and the hosted relay may run
-that way while it is new. Then a server that registers for the first time needs
-a one-time invite code:
+The hosted relay accepts new servers without a code. A relay can also be set to
+accept new servers by invitation only: someone who runs their own relay may want
+that, and the hosted relay would only switch to it to stop abuse, with servers
+already registered staying in. In that mode a server that registers for the
+first time needs a one-time invite code:
 
 - **Where to get one.** Write to `relay@healthlog.dev` and ask for a code for
   your server. If you run your own relay, `healthlog-push admin invite` prints
