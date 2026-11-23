@@ -28,7 +28,7 @@ Open `/vaccinations` and add a dose. One row is one dose. Fields:
 - **Lot number**, kept as plain text so it can be searched.
 - **Site**: left or right arm, left or right thigh, oral, nasal, other.
 - **Practitioner** and **visit**, both optional links to your own records
-  (see [Checkups and practitioners](/guides/checkups-and-practitioners/)).
+  (see [Care, visits and practitioners](/guides/checkups-and-practitioners/)).
 - **Note**, the one free-text field, encrypted at rest. Reactions belong here.
 
 You can also attach scanned pass pages from the
@@ -75,7 +75,7 @@ backups along with the doses that use them.
 
 After a dose, the app can prefill a booster reminder from the catalog's
 interval. Nothing is written until you confirm or edit it. The confirmed
-reminder is a normal preventive-care reminder that appears on `/checkups`,
+reminder is a normal preventive-care reminder that appears on the Care page (`/care`),
 in the daily digest and through the MCP preventive-care tool, on a rolling
 interval capped at ten years, notifying at 09:00 unless you change it. Once
 due, it stays due after its notification until you log the dose, mark it done,

@@ -102,7 +102,7 @@ Most releases need nothing beyond the sequence above. These do:
 
 | Release | What to do |
 | --- | --- |
-| v1.49.0 | Thirty-six migrations run on the first start, 0514 to 0558 (0516, 0523, 0527, 0528, 0541, 0548, 0550, 0552 and 0555 are unused); seven of them touch data you already have, and going back means restoring the pre-migration dump. Check for accounts that differ only in case first, or migration 0517 stops the start. The push relay is new and off until an admin turns it on; `PUSH_RELAY_MODE`, `PUSH_RELAY_URL`, `PUSH_RELAY_KEYS`, `PUSH_RELAY_LIVE_ACTIVITY` and `HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS` are optional and on the compose whitelist, so pull the new compose file. See [The v1.49.0 update](#the-v1490-update). |
+| v1.49.0 | Thirty-nine migrations run on the first start, 0514 to 0561 (0516, 0523, 0527, 0528, 0541, 0548, 0550, 0552 and 0555 are unused); seven of them touch data you already have, and going back means restoring the pre-migration dump. Check for accounts that differ only in case first, or migration 0517 stops the start. The push relay is new and off until an admin turns it on; `PUSH_RELAY_MODE`, `PUSH_RELAY_URL`, `PUSH_RELAY_KEYS`, `PUSH_RELAY_LIVE_ACTIVITY` and `HEALTH_CONNECT_WEBDAV_PRIVATE_ORIGINS` are optional and on the compose whitelist, so pull the new compose file. See [The v1.49.0 update](#the-v1490-update). |
 | v1.48.0 | Eleven migrations run on the first start (0499 to 0509: nutrient targets, lab result identities, provider chains, the Fitbit cleanup, the seizure diary, an index for deleted readings, GLP-1 step ids and the hypertension event type); on a large instance give the first start a minute or two. The index is built without locking the table. The Fitbit integration is gone, so `FITBIT_REDIRECT_URI` is no longer read and can be removed from your environment. Upload an Apple Health export once more to pick up lab results from Health Records. The Fitbit tables stay in the database for this release, so going back to v1.47.6 works; the steps are in `docs/ops/deploy.md` in the app repository. |
 | v1.47.0 | The image is built on the official Node 22 image (Debian slim) instead of Alpine; see [The v1.47.0 image](#the-v1470-image) for what that changes inside the container. The app and the worker now connect to Postgres as a restricted role of their own on Postgres 17 or later when the `DATABASE_URL` user may create roles (the bundled compose file's user may). Nothing needs setting; on Postgres 16, without `CREATEROLE` or with `DB_APP_ROLE=off` the app runs as before and says why at start. See [The app's database role](/self-hosting/database-role/). One migration (Garmin). With a [web/worker split](/self-hosting/scaling/), stop the old web and worker containers before the new ones start. |
 | v1.46.6 | Nothing required, no migration. A Google Health connection whose account id the v1.46.4 update cleared reads its real id back on its next clean sync. |
@@ -117,9 +117,9 @@ Most releases need nothing beyond the sequence above. These do:
 
 ### The v1.49.0 update
 
-v1.49.0 brings thirty-six migrations, `0514` to `0558` (the numbers `0516`,
+v1.49.0 brings thirty-nine migrations, `0514` to `0561` (the numbers `0516`,
 `0523`, `0527`, `0528`, `0541`, `0548`, `0550`, `0552` and `0555` do not
-exist), so the boot log says `36 database migrations pending`. Most add tables
+exist), so the boot log says `39 database migrations pending`. Most add tables
 and columns. Seven touch data you already have:
 
 - `0515` merges doses that two sources recorded for the same slot (a take wins
@@ -170,6 +170,10 @@ from 1.48 they find nothing to change:
   minutes before the server asks it for a fresh binding.
 
 `0542`, `0544`, `0545` and `0547` add one column each, and `0549` two (the medicine registry setting and the saved leaflet link), with no effect on existing rows.
+`0559` adds the setting for counts in the navigation, on for every account.
+`0560` adds the dose of a Live Activity start to the relay delivery log, and
+`0561` lets the server keep a Live Activity of the app's without its dose; both
+change only tables that are new in this release.
 `0518` builds an index on `measurements` without locking the table while the
 container starts. On a large instance the first start takes longer than usual;
 let it finish rather than restarting the container.

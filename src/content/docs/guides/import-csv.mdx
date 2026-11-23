@@ -279,11 +279,27 @@ conversion is known, by the same rules as a scan (see
 track yet becomes a new marker. A reading counts as a duplicate when the same
 marker already has the same value on the same day. Up to 20,000 rows per file.
 
-**Medications** map name, dose, daily times (`08:00 20:00`), as needed (yes or
-no), start and end. Other rhythms, such as weekly doses, you set up in the app
-afterwards. A medication with the same name and dose as one you already have
-is skipped. Reminders for imported medications stay off unless you tick **Turn
-reminders on for imported medications**. Up to 500 rows per file.
+**Medications** map name, dose, daily times, as needed (yes or no), start and
+end. Two rules to know before you fill the file:
+
+- **Every row needs either a time or as needed set to `yes`.** A scheduled
+  medication without a time is refused (`missing_times`), and so is a row with
+  both. Several times go in one cell, separated by a space, comma, semicolon
+  or `|` (`08:00 20:00`).
+- **Everything else starts at its default.** After the import, open each
+  medication where these matter and set them by hand: type (Other), route
+  (Oral), pack size (empty), tablets or units per dose (1), and how often you
+  take it (every day). Other rhythms, such as weekly doses, are set up there
+  too.
+
+A medication whose end date has already passed lands as an ended course, the
+same as one ended with **End medication**: nothing falls due, nothing is
+reminded and nothing counts against adherence. Intake tracking stays on, so
+doses from that course can still be recorded. Intake history is not part of
+this import; the dose history card adds it (see below). A medication with the
+same name and dose as one you already have is skipped. Reminders for imported
+medications stay off unless you tick **Turn reminders on for imported
+medications**. Up to 500 rows per file.
 
 Times without a time zone are read in your account's time zone, and a date
 without a time stays that calendar date. The file may be up to 16 MB. A check

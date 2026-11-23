@@ -255,9 +255,17 @@ read the content state of each start and update: the dose state (pending, due,
 overdue, snoozed, taken or skipped), whether it is confirmed, the countdown and
 the time format.
 It never carries a medication name, a dose or any free text; the relay refuses
-anything else. Each dose starts at most one Activity, it follows the
-medication's own dose windows so the lock screen says due when the app does,
-and the relay limits starts and updates per device and day. A server with its
+anything else. It follows the medication's own dose windows so the lock screen
+says due when the app does, and the relay limits starts and updates per device
+and day.
+
+There is one Activity per dose. The server starts one at most once for a dose,
+and not for a dose the app already shows in an Activity of its own. When the
+app starts its own Activity for a dose the server already started one for, the
+server ends its own, so the lock screen never shows the same dose twice. The
+server also runs at most one Activity of its own per device: before it starts
+one for the next dose, it ends the one still running. It sends updates only to
+the Activities it started; an Activity the app started gets only the end. A server with its
 own Apple push key is not affected by the variable.
 
 ## When the relay is down
