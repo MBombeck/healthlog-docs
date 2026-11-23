@@ -13,7 +13,7 @@ reports, imaging findings, prescriptions, referrals, insurance letters,
 vaccination records and sick notes. One timeline, filtered by type, condition,
 procedure, year, and text search. No folders to maintain.
 
-It is **available by default**. Each user can turn it off under Settings →
+It is **available by default**. Each user can turn it off under Settings >
 Modules ("Documents"), and an operator can withhold it instance-wide through
 the module availability settings. AI reading of stored documents remains a
 separate opt-in.
@@ -133,7 +133,7 @@ should travel. See [which backup covers what](/guides/backups/#which-backup-cove
 
 The archive shows each month as a grid of preview tiles, two across on a phone
 and three or four on a wider screen. The wrench beside Upload opens
-**Settings → Arrangement → Documents**, where you choose preview cards or a
+**Settings > Arrangement > Documents**, where you choose preview cards or a
 compact list, and months stacked as blocks or flowing across the full width.
 The choice is saved per account and travels in the account-settings backup.
 
@@ -245,7 +245,7 @@ to your AI settings instead.
   encrypted at rest. The summary block says when one is being prepared, was
   held back by the safety check, or could not be made, and offers to try again.
 
-With **Read scans on this device** turned on (Settings → Modules → Labs), an
+With **Read scans on this device** turned on (Settings > Modules > Labs), an
 image can be read in your browser and only the text goes to the server. PDFs
 cannot be read that way.
 
@@ -307,7 +307,7 @@ Limits:
   documents whose AI reading was held back.
 
 The encrypted index text and its blind tokens both follow your active
-encryption key. A key rotation (**Admin → Encryption → Rotate now**, or
+encryption key. A key rotation (**Admin > Encryption > Rotate now**, or
 `scripts/rotate-encryption-key.ts` from a source checkout) re-encrypts the text
 and re-derives the tokens in the same pass, so content search keeps matching.
 Keep the old key in `ENCRYPTION_KEYS` until the rotation reports zero
@@ -321,8 +321,8 @@ can also carry a hand-picked set of your stored documents, so a clinician can
 open your MRI report or discharge letter on the spot.
 
 :::note[Two settings pages, two different things]
-**Settings → Health record → Sharing** is this section's subject: a public link for somebody with no
-account on your instance. **Settings → Shared access** is
+**Settings > Health record > Sharing** is this section's subject: a public link for somebody with no
+account on your instance. **Settings > Shared access** is
 [a grant to another account](/guides/shared-access/) on the same instance. A
 delegate whose grant covers the vault can read it along with the rest of the
 record: the list, a document and its file, the preview tiles and the filter bar
@@ -338,7 +338,7 @@ why that choice deserves care: a document can contain anything at all.
 
 ### How to share
 
-1. Open **Settings → Health record → Sharing** and start a new link. Give it a label (e.g. the
+1. Open **Settings > Health record > Sharing** and start a new link. Give it a label (e.g. the
    clinic's name), a reporting window, and an expiry (up to 90 days — no link
    lives forever).
 2. Under **Attach documents**, choose the files to include. Search your vault
@@ -360,7 +360,7 @@ share them by hand.
 ### Expiry and revocation
 
 Every link expires on the date you set and can be revoked at any time from the
-active list in **Settings → Health record → Sharing**. Revoking or letting a link expire cuts
+active list in **Settings > Health record > Sharing**. Revoking or letting a link expire cuts
 off access immediately — including to the attached documents. A recipient who
 already opened the record cannot pull any file afterward; each document fetch
 re-checks the link's live state before anything is read.

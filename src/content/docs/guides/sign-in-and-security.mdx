@@ -23,6 +23,15 @@ stored as Argon2id hashes. Sign-in accepts email or username, case-insensitive,
 and is limited to five attempts per 15 minutes per address. Failed attempts are
 audited without the typed identifier.
 
+Since 1.49.0 an email address and a username are also unique regardless of
+case, so `Name@example.com` and `name@example.com` can no longer belong to two
+accounts. Registration, claiming a profile, single sign-on and the admin's
+account editor store an email address trimmed and in lower case; a username
+keeps the spelling its owner chose, and a name that differs from a taken one
+only in case is refused as taken. An instance that already holds two such
+accounts stops at the update until the admin resolves them; see
+[Accounts that differ only in case](/guides/updates-and-deploy/#accounts-that-differ-only-in-case).
+
 There is also a limit per account: after ten wrong passwords for
 one account within fifteen minutes, password sign-in for that account pauses
 until the fifteen minutes are over, whichever networks the attempts came from.

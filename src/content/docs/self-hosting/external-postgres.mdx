@@ -14,8 +14,10 @@ operation once the database is no longer part of the stack.
 
 ## What the database has to provide
 
-**PostgreSQL 16 or 18.** The bundled service runs Postgres 18, and every
-release is tested against both majors. An external instance on 16 keeps
+**PostgreSQL 16, 18 or 19.** The bundled service runs Postgres 18, and every
+release is tested against 16 and 18. The image's `pg_dump` is major 19, so a
+server of 19 works too, and one above 19 does not: the dump the app takes
+before every migration fails. An external instance on 16 keeps
 working; moving it to 18 is a dump and restore you schedule yourself (see
 [Moving to Postgres 18](/self-hosting/postgres-upgrade/#by-hand)).
 

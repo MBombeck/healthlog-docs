@@ -296,7 +296,9 @@ the winning row.
 Sync clients authenticate with the bearer-token flow in
 [Native API clients](/reference/native-clients/). Refresh tokens rotate **per device**
 and are one-time-use: presenting a consumed refresh token revokes the whole
-refresh family for that device. The refresh response carries a stable
+refresh family for that device, with one exception: a second refresh that
+races the first with the same token gets `409 auth.refresh.superseded` and
+revokes nothing. The refresh response carries a stable
 `errorCode` so the client can tell a terminal re-auth from a transient blip
 without string-matching the human-readable message:
 
@@ -305,6 +307,7 @@ without string-matching the human-readable message:
 | `auth.refresh.reuse` | A consumed token was presented again — the family is now revoked (stolen-token signal). | Terminal — re-pair. |
 | `auth.refresh.revoked` | The family was revoked out of band (explicit logout, or reuse detected on another device). | Terminal — re-pair. |
 | `auth.refresh.invalid` | Token not found or expired. | Drop the token and re-authenticate. |
+| `auth.refresh.superseded` (`409`, since 1.49.0) | Two refreshes with the same token raced and the other one won. Nothing is revoked; the winner's pair is live. Before 1.49.0 this case answered `401 auth.refresh.reuse`. | Not terminal. Read the credentials the winning request stored and continue. Never present this refresh token again: that is a replay and revokes the device family. |
 
 The native access token defaults to a 24-hour lifetime; the native refresh
 token lives 60 days (`incrementalWindowDays` on `/api/sync/state`). A device

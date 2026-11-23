@@ -132,7 +132,7 @@ supported floor ([Requirements](/getting-started/self-host-in-10-minutes/#requir
 at `1g` (about 524 MB of heap) a long-used account fills the heap in normal
 operation, garbage collection stalls requests for seconds and a large import
 can restart the app. Below the floor the boot log, the support report and
-**Admin → System status** say so.
+**Admin > System status** say so.
 
 On a busy instance, raise it. Never lower it to fit a small host; give the host
 more memory instead. A split worker has its own `WORKER_MEMORY_LIMIT` in the
@@ -161,7 +161,7 @@ seconds, from [`DATABASE_STATEMENT_TIMEOUT_MS`](/reference/environment-variables
 - The log shows `job.run.failed` for `rollup-full-backfill` with
   `consecutiveFailures` counting up, and Postgres error `57014`:
   `canceling statement due to statement timeout`.
-- **Admin → System status** lists `rollup-full-backfill` under failing
+- **Admin > System status** lists `rollup-full-backfill` under failing
   background jobs, and every admin gets a
   [push about it](/guides/admin-overview/#failing-background-jobs).
 
@@ -184,7 +184,7 @@ seconds, from [`DATABASE_STATEMENT_TIMEOUT_MS`](/reference/environment-variables
   being rebuilt. Postgres reuses the freed table pages for new rows; to give
   the index space back to the disk, run the
   [index rebuild](/self-hosting/database-maintenance/#rebuild-the-table-afterwards)
-  from **Admin → System status** once the backlog is through.
+  from **Admin > System status** once the backlog is through.
 
 ### When to raise the limit
 

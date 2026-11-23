@@ -86,7 +86,7 @@ imported readings are written to Apple Health by the app. Readings from a
 scale or Home Assistant) are written only when that token's **Write readings
 to Apple Health** switch is on, which needs an app build that reads it.
 
-The Apple Health card under **Settings → Integrations** lists, per type
+The Apple Health card under **Settings > Integrations** lists, per type
 (**By data type**, in the card's collapsed
 [details](/guides/integrations/#details-for-a-bug-report)), when the server
 last received it and how: in the background, when the app came to the front,
@@ -122,7 +122,11 @@ The app schedules **local notifications** for medication doses, with action butt
 
 The **pen list** shows a container's manufacturer and printed strength, which you fill in on the medication's **Supply** tab.
 
-A self-hosted server cannot send [APNs](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) push to the App Store or TestFlight build. Apple binds a push to the developer team, bundle id and signing key of the app, and only the publisher holds that key. For reminders and alerts from the server itself, use [Web Push](/guides/reminder-channels/) (install the web app on the home screen), ntfy or Telegram; the app's own local reminders work regardless. Server-side APNs works only for a copy of the open iOS client that you build and sign under your own Apple identity, with the `APNS_*` [environment variables](/reference/environment-variables/) set.
+A self-hosted server cannot send [APNs](https://en.wikipedia.org/wiki/Apple_Push_Notification_service) push to the App Store or TestFlight build by itself. Apple binds a push to the developer team, bundle id and signing key of the app, and only the publisher holds that key. Since 1.49.0 there is a way around it: the opt-in [push relay](/guides/push-relay/) run by the HealthLog project. An admin turns it on for the server, each person opts in on the iPhone, and the server then encrypts every notification for one device before the relay passes it to Apple, so the relay cannot read it. It carries the quiet confirmation that a dose was recorded on another device, the silent sync, the end of a medication Live Activity, security alerts, other server notifications, and the medication reminder for a device that gets its reminders from the server; a device that plans its own reminders keeps them on the iPhone. Starting and updating a Live Activity over the relay is a [separate choice](/guides/push-relay/#live-activity-over-the-relay). This needs the app 1.7 or later.
+
+Without the relay, use [Web Push](/guides/reminder-channels/) (install the web app on the home screen), ntfy or Telegram for alerts from the server itself; the app's own local reminders work regardless. Server-side APNs without the relay works only for a copy of the open iOS client that you build and sign under your own Apple identity, with the `APNS_*` [environment variables](/reference/environment-variables/) set.
+
+When a dose is recorded on the web, in Telegram or by a pill box, the app withdraws the reminder it had scheduled for that dose once it hears about it; see [Doses recorded somewhere else](/guides/track-medications/#doses-recorded-somewhere-else). An app build that sends the time zone of each reading lets the server file a night or a reading taken while travelling on its own local day; see [Readings taken in another time zone](/explanation/timezone-model/#readings-taken-in-another-time-zone).
 
 ## On-device AI coach
 
@@ -144,7 +148,7 @@ The iPhone can generate a doctor-report PDF from the device, mirroring the [heal
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | Sign-in fails immediately | The instance is not served over HTTPS, or the certificate is not trusted by the device | Serve over valid TLS; see [TLS certificates](/self-hosting/tls-certificates/). For a private CA, configure a [pin](/security/certificate-pinning/). |
-| No HealthKit data appears | Read permission was denied for those types | Re-grant in iOS **Settings → Privacy & Security → Health → HealthLog**. |
+| No HealthKit data appears | Read permission was denied for those types | Re-grant in iOS **Settings > Privacy & Security > Health > HealthLog**. |
 | Duplicate steps after an `export.zip` import | None — the external-ID convention dedupes phone syncs against the importer | If you still see duplicates, check [Source priority](/explanation/source-priority/). |
 | Older ECG recordings are missing | A server before 1.39.8 refused some recordings | Update the server; recordings refused earlier arrive once the app sends them again, or right away by uploading the Apple Health `export.zip` under Import. See [ECG recordings](/insights/ecg-recordings/#how-recordings-arrive). |
 | Every request fails although the server is up | A server whose encryption key does not match its data answers every request with `503` `encryption.key_mismatch` | The operator restores the original key; see [the start-up key check](/explanation/encryption-at-rest/#the-start-up-key-check). |

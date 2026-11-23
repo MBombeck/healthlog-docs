@@ -20,7 +20,7 @@ For workouts, a bridge needs a token of its own; see
 
 ## Mint a token
 
-**Settings → API & tokens → Measurement tokens.** Name it after the thing you
+**Settings > API & tokens > Measurement tokens.** Name it after the thing you
 are pasting it into, because that name is what you will be reading later when
 you decide whether to revoke it.
 
@@ -248,8 +248,8 @@ rest_command:
 
 Then import the
 [room climate blueprint](https://github.com/MBombeck/HealthLog/blob/v1.46.0/docs/integrations/blueprints/healthlog-room-climate.yaml)
-(Home Assistant 2024.10 or newer) under **Settings → Automations & scenes →
-Blueprints → Import blueprint** and create one automation from it. It asks for
+(Home Assistant 2024.10 or newer) under **Settings > Automations & scenes >
+Blueprints > Import blueprint** and create one automation from it. It asks for
 a CO₂, a temperature and a humidity sensor (each optional) and an interval of
 5 to 60 minutes. It leaves out a sensor that reports `unknown`, `unavailable`
 or no number, converts °F to °C, and stamps every reading with the current
@@ -346,7 +346,7 @@ and the endpoint shares the 300-a-minute allowance of the single-reading route.
 
 A food tracker knows what you ate each day. With the same measurement token it
 can send those day totals to the [nutrients module](/guides/nutrients/), which
-has to be switched on (**Settings → Modules → Nutrient intake**); while it is
+has to be switched on (**Settings > Modules > Nutrient intake**); while it is
 off, every call is refused with `403` and `meta.errorCode: module.disabled`.
 
 Post one entry per nutrient and day, up to 500 per call:
@@ -439,7 +439,7 @@ body-fat percentage sent as a fraction is easy to spot.
 
 A measurement token does not cover workouts. A bridge that forwards sessions
 from a watch, or a script that replays an exported history, needs a workout
-token: **Settings → API & tokens → Workout tokens**. Minting works like the
+token: **Settings > API & tokens > Workout tokens**. Minting works like the
 measurement token above. The token is shown once, lives a year unless you
 pick a shorter lifetime (1 to 365 days), needs a browser session and a recent
 confirmation that it is you, and appears in the same token list, where you

@@ -11,7 +11,7 @@ The compose file therefore carries a one-time step, `db-upgrade`, that moves
 the database across on the first start after the update. On a stack that runs
 the project's `docker-compose.yml` there is nothing to do by hand.
 
-HealthLog runs on Postgres 16 and 18 alike. An install that brings its own
+HealthLog runs on Postgres 16, 18 and 19 alike. An install that brings its own
 database (the Unraid template, TrueNAS, an
 [external Postgres](/self-hosting/external-postgres/)) is not touched and
 keeps working on 16; the move there is yours to schedule, see

@@ -38,7 +38,7 @@ edits or deletions in the source.
   address in `DOCUMENT_SOURCE_ORIGINS` (see
   [environment variables](/reference/environment-variables/#documents-optional)).
   Without it the Document archives card does not appear.
-- The **Documents** module turned on under **Settings → Modules**. Uploads are
+- The **Documents** module turned on under **Settings > Modules**. Uploads are
   refused while it is off.
 - For the workflow: Paperless-ngx 3.0 or later, the first release with the
   `{{doc_id}}` placeholder.
@@ -51,7 +51,7 @@ Needs Paperless-ngx 2.16 or later, or a current Papra.
 
 ### Connect your archive
 
-Open **Settings → Integrations** and find the **Document archives** card.
+Open **Settings > Integrations** and find the **Document archives** card.
 Choose **Paperless-ngx** or **Papra**, then fill in:
 
 - **Address**: where your archive runs, for example
@@ -61,7 +61,7 @@ Choose **Paperless-ngx** or **Papra**, then fill in:
   refused.
 - **Organization id** (Papra only): the part after `/organizations/` in the
   Papra address bar. It looks like `org_` followed by 24 letters and digits.
-- **API token**: in Paperless-ngx under **My Profile → API token**; in Papra an
+- **API token**: in Paperless-ngx under **My Profile > API token**; in Papra an
   API key with `documents:read` and `tags:read`. Saving checks both
   permissions.
 
@@ -145,7 +145,7 @@ Paperless-ngx's own search.
 
 ## Create a document token
 
-Open **Settings → API & tokens → Document tokens**, name the token after
+Open **Settings > API & tokens > Document tokens**, name the token after
 where it will live (for example "Paperless workflow" or "Import script") and
 select **Create**. Copy the token straight away: it starts with `hlk_`, is shown
 **once**, and is stored only as a hash, so no page can show it again. If you
@@ -249,7 +249,7 @@ they would end up in your shell history:
 
 ```sh
 export HEALTHLOG_TOKEN=hlk_…   # the document token
-export PAPERLESS_TOKEN=…       # Paperless-ngx: My Profile → API Auth Token
+export PAPERLESS_TOKEN=…       # Paperless-ngx: My Profile > API Auth Token
 export PAPRA_TOKEN=…           # Papra: an API key with documents:read (and tags:read for --tag)
 ```
 
@@ -405,7 +405,7 @@ picks up where it stopped.
   already there, or as deleted, whichever instance you import from.
 
 A backup taken on 1.46 or later carries which imports you deleted, so a
-restore keeps them deleted. **Delete all data** under **Settings → Data →
+restore keeps them deleted. **Delete all data** under **Settings > Data >
 Advanced** starts the record over and
 forgets them. A file you uploaded by hand and deleted before any import met it
 has no source id to remember, so an import stores it again.
@@ -515,7 +515,7 @@ but does not look up or download anything older.
 
 | What the script prints                                                                  | What to do                                                                                                                                                                              |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `The document vault is switched off in HealthLog.`                                      | Turn on **Documents** under **Settings → Modules** and run it again.                                                                                                                    |
+| `The document vault is switched off in HealthLog.`                                      | Turn on **Documents** under **Settings > Modules** and run it again.                                                                                                                    |
 | `HealthLog refused the request (403). Use a document token …`                           | The token is not a document token (a measurement token, for instance). Create a document token.                                                                                          |
 | `HealthLog refused the token (401).`                                                    | The token is mistyped, revoked or expired. Create a new one.                                                                                                                            |
 | `Your HealthLog storage is full.`                                                       | HealthLog answered `413`: the storage limit is reached. Delete documents (the space returns after the 30-day undo window) or have an admin raise the limit, then run again.              |

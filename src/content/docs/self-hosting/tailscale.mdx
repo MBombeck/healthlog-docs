@@ -54,7 +54,7 @@ example, your tailnet now reaches that instead. Running Tailscale as its own
 container in the compose stack avoids this: the tailnet share starts and stops
 with HealthLog, and nothing else on the host is exposed.
 
-1. In the Tailscale admin console, under **Settings → Keys**, generate an auth
+1. In the Tailscale admin console, under **Settings > Keys**, generate an auth
    key. The container needs it only for its first sign-in; after that the
    state volume below keeps the node's identity.
 

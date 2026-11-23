@@ -32,9 +32,9 @@ ordinary grant instead. See
 Creating a managed profile asks you to confirm a second factor or a passkey
 within the last five minutes, so it happens in a browser rather than in the
 phone app. An account with neither is refused rather than waved through; add
-one under **Settings → Security** first.
+one under **Settings > Security** first.
 
-1. Open **Settings → Shared access**.
+1. Open **Settings > Shared access**.
 2. Under **Records you look after**, choose **Create profile**.
 3. Give it a **name**, up to 80 characters. This is what you will recognise the
    record by, and it appears wherever the record does.
@@ -90,7 +90,7 @@ the answers asked for it and otherwise left to the derivation above.
 The module map belongs to the record, so it is edited from inside the record.
 
 1. Open the account menu and choose the profile under **Open a record**.
-2. Open **Settings → Modules**. While you are switched in, the page is that
+2. Open **Settings > Modules**. While you are switched in, the page is that
    record's form, not yours.
 3. Move the switches you want to change.
 4. Choose **Save**. The whole map is written in one request to
@@ -139,7 +139,7 @@ doors that record has open rather than the ones yours does.
 
 ## Connected services
 
-While you are switched into the profile, **Settings → Integrations** lists its
+While you are switched into the profile, **Settings > Integrations** lists its
 connections. A guardian can connect Withings, WHOOP, Oura, Polar, Strava and
 Google Health there: each card says **Connect for** and the profile's name, and
 the data lands in the profile's record, not in yours. If the profile has no
@@ -176,14 +176,15 @@ restored, read or confirmed it. The values you confirm become the profile's lab
 results, not yours.
 
 Every AI read, automatic or on request, follows the profile's own AI settings
-and consent. If the instance's AI provider leaves the server, the profile needs
-its own consent to reading documents; yours does not stand in for it. The read
-runs on the instance's provider and never on your personal AI key. Automatic
+and consent and runs on the AI provider you chose for the profile (see
+[Its AI provider](#its-ai-provider)). If that provider leaves the server, the
+profile needs its own consent to reading documents; yours does not stand in for
+it. Automatic
 reading is off on a new profile, so an upload alone is stored and indexed on the
 server and nothing leaves it until you ask.
 
 To have the profile's new documents read automatically, switch into the
-profile and open **Settings → AI** (see [AI providers](/guides/ai-providers/)). The switch there is the profile's, not
+profile and open **Settings > AI** (see [AI providers](/guides/ai-providers/)). The switch there is the profile's, not
 yours: turning it on records the profile's consent to having its documents read,
 and the activity log names you. Asking about a document from its detail opens a
 chat about that document alone, the same conversation an owner has through the
@@ -192,6 +193,27 @@ Coach.
 This belongs to the managed profile, not to the access level. Somebody who
 shares their own record with you at manage keeps their vault to themselves, and
 you can read it but not add to it.
+
+## Its AI provider
+
+A profile has no AI keys of its own, so you choose where its AI work goes:
+switch into the profile and open **Settings > AI**. There are three choices:
+
+- **The server's AI key**, if the operator set one up;
+- **No AI provider**, which switches AI off for the profile;
+- **Your default chain**, or one of your named chains, served with your own
+  keys, sign-ins and local model, exactly in that chain's order. What the
+  profile sends counts against your provider accounts.
+
+The profile uses the chain you chose, and choosing it counts as your consent
+for the profile: your own chain serves its Coach, briefing and summaries with
+no separate consent for the profile, the same way it serves you. The server's
+AI key still asks for the profile's consent before anything leaves the server,
+and so does reading documents. A chain that cannot serve refuses rather than
+falling back to the server key. If you stop managing the profile, or delete the
+named chain, the profile has no AI until somebody picks again. Another guardian
+sees "a chain of another guardian" and can pick again, which replaces it, and
+the profile's activity log names who changed the choice.
 
 ## Where its reminders go
 
@@ -220,8 +242,8 @@ of being the only one.
 3. Optionally give a date the access ends on.
 4. Choose **Send invitation**.
 
-They accept it the way any other invitation is accepted, under **Settings →
-Shared access → Records I can open** on their own account. Until they accept,
+They accept it the way any other invitation is accepted, under **Settings >
+Shared access > Records I can open** on their own account. Until they accept,
 the invitation confers nothing, and the roster shows them as invited rather than
 as looking after the record.
 

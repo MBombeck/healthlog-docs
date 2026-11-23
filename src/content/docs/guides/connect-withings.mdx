@@ -83,7 +83,7 @@ HealthLog handles the plan on its own:
   over it is released on the next hourly sync, and that sync imports
   everything since the last successful one, so the gap since 12 October
   fills in by itself.
-- **Settings → Integrations → Withings** shows a short note naming the
+- **Settings > Integrations > Withings** shows a short note naming the
   readings your plan withholds, with a link to the Withings plans page.
 
 Nothing needs to be configured. If you move your developer app to the
@@ -120,7 +120,7 @@ account, not of your instance.
    of any log; it grants read access to every linked account's full history.
 
 2. **Paste the credentials in Settings.** Withings credentials are
-   **per user**: sign in as the target user, open **Settings → Integrations →
+   **per user**: sign in as the target user, open **Settings > Integrations >
    Withings**, and paste the client ID and secret there. They are stored
    AES-256-GCM-encrypted on your user record — there is no server-wide
    `WITHINGS_CLIENT_ID` / `WITHINGS_CLIENT_SECRET` env path. On a shared
@@ -140,7 +140,7 @@ account, not of your instance.
    compose `environment:` whitelist — set them in `.env` and restart the `app`
    container.
 
-3. **Link from the Settings page.** On **Settings → Integrations**, click
+3. **Link from the Settings page.** On **Settings > Integrations**, click
    **Connect Withings**. The flow redirects to Withings, exchanges the
    returned code for an access + refresh token (stored
    AES-256-GCM-encrypted), and subscribes the webhook URL. The first sync
@@ -174,12 +174,12 @@ Apple Health for **point** measurements where the Withings device is the primary
 sensor (weight, BP, SpO₂, body fat); Apple Health outranks Withings for
 **cumulative** metrics (steps, energy, distance, sleep) because HealthKit folds
 multiple sensors into one canonical daily stream. Losing rows stay in the
-database as an audit trail. Override per user under **Settings → Source priority**.
+database as an audit trail. Override per user under **Settings > Source priority**.
 
 ## Troubleshooting
 
 - **`Withings credentials not configured`** — the signed-in user has no
-  client ID / secret saved yet. Paste both under **Settings → Integrations →
+  client ID / secret saved yet. Paste both under **Settings > Integrations >
   Withings**; credentials are per user, not server env vars.
 - **`Callback URI mismatch`** — the redirect URL must exactly match an entry in
   the developer-portal app's callback list, including the `https://` scheme.

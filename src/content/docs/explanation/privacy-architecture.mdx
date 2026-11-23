@@ -124,7 +124,7 @@ The operator decides which archives can be contacted at all with
 The [environmental module](/explanation/environmental-module/) fetches weather
 from Open-Meteo once you set a home location, sending coordinates rounded to
 one decimal of a degree, about 11 km, the size of a town or a city district.
-The same rounded values are all that is stored, for home, travel periods and
+The same rounded values, encrypted, are all that is stored, for home, travel periods and
 each day's weather. The weather data comes in cells of 9 to 25 km, so the
 coarse value changes the weather very little. Without a home location it makes no request. The operator
 can point it at a self-hosted Open-Meteo with `OPENMETEO_BASE_URL` and
@@ -143,13 +143,13 @@ destination the operator chooses:
   deleting an account, deleting a managed profile or **Delete all
   data** also deletes that account's copies from the bucket. See
   [Backups](/guides/backups/).
-- **Error reporting.** With GlitchTip configured under Admin, Integrations,
+- **Error reporting.** With GlitchTip configured under Admin, Monitoring,
   server errors are sent to that GlitchTip, with secrets and sensitive fields
   redacted first (see [Redaction at the boundary](#redaction-at-the-boundary)).
   Errors in the browser go through the server's relay, which accepts them only
   from a signed-in caller, 20 a minute per account, so an error on a page
   before sign-in is not reported.
-- **Page analytics.** With Umami configured under Admin, Integrations, page
+- **Page analytics.** With Umami configured under Admin, Monitoring, page
   views are sent to that Umami through the server. Off by default.
 - **Log shipping.** With `LOKI_ENDPOINT` set, the server's structured logs go to
   that Loki.
@@ -275,7 +275,7 @@ holding manage grants on it. The reasoning is in
 | Document picker | Only to your own archive, while you search or import | `DOCUMENT_SOURCE_ORIGINS`, your stored token |
 | Weather | Rounded coordinates, once a home location is set | Home location; `OPENMETEO_BASE_URL` |
 | Off-host backups | Encrypted on the server, to the operator's bucket | The `BACKUP_*` variables |
-| Error reporting, page analytics, log shipping | Only to services the operator set up | Admin, Integrations; `LOKI_ENDPOINT` |
+| Error reporting, page analytics, log shipping | Only to services the operator set up | Admin, Monitoring; `LOKI_ENDPOINT` |
 | Usage telemetry | No | None exists |
 | Breach check, update check, sign-in location | Yes, small and without health data | `PASSWORD_BREACH_CHECK_DISABLED`, `UPDATE_CHECK_DISABLED`, `IP_GEO_LOOKUP_DISABLED` |
 | Clinician share | Only via a link you create and revoke | Scoped, time-limited |

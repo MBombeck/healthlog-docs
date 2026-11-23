@@ -122,7 +122,7 @@ summaries are the person's records and stay until they delete them. See
 [Art. 15](https://gdpr-info.eu/art-15-gdpr/) gives a person a copy of their data
 and [Art. 20](https://gdpr-info.eu/art-20-gdpr/) gives them a machine-readable,
 portable version of what they provided. Both are answered by the export surface
-at **Settings → Data → Export & import**, which runs under the person's own session. You do
+at **Settings > Data > Export & import**, which runs under the person's own session. You do
 not have to assemble anything on their behalf; they hold the account, so they
 run it themselves.
 
@@ -152,8 +152,8 @@ are erasure.
 
 | Path | Where | Scope |
 | --- | --- | --- |
-| Delete all data | Settings → Data → Advanced | Every row the account owns, across every user-scoped table, keeping only what the account needs to sign in again |
-| Delete account | Settings → Data → Advanced | The account itself and everything the schema cascades from it |
+| Delete all data | Settings > Data > Advanced | Every row the account owns, across every user-scoped table, keeping only what the account needs to sign in again |
+| Delete account | Settings > Data > Advanced | The account itself and everything the schema cascades from it |
 | Wipe all data | Admin, then Danger zone | Instance-wide: every account's health data, derived from the same wipe plan. See the note below. |
 
 **Delete all data** runs as one transaction. The list of tables is declared in
@@ -200,7 +200,7 @@ account, and deleting an account, deleting a managed profile or
 **Delete all data** also deletes every copy of that account from the off-host
 bucket once the window has ended, and again on the next nightly pass if the
 bucket was unreachable. The worker's credential needs `DeleteObject` for that; without it
-the deletion stays pending, is retried nightly, and **Admin → Backups →
+the deletion stays pending, is retried nightly, and **Admin > Backups >
 Off-host copies** says so. Copies kept elsewhere, such as a backup file an
 operator downloaded, are outside the app's reach and are yours to delete. The
 admin **Wipe all data** deletes nothing in the bucket, because it is the
@@ -260,7 +260,7 @@ stored encrypted, since its first and last points usually give away a home
 address, and so are the phone numbers and addresses of the practitioners a
 person records. The weather module keeps its home and travel places rounded
 to one decimal of a degree, about 11 km: enough for regional weather, not
-enough to find a street.
+enough to find a street. They are stored encrypted as well.
 
 What it cannot bring is the deployment. Serve the instance over TLS, keep
 `ENCRYPTION_KEYS` somewhere other than the disk holding the database, restrict

@@ -1,0 +1,72 @@
+---
+title: Import a Gadgetbridge database
+description: Bring steps, heart rate, SpO2, resting heart rate, sleep and weight from the bands and watches Gadgetbridge runs on Android. How to export the database, what HealthLog reads from it, and why a second import changes nothing.
+sidebar:
+  order: 6
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+[Gadgetbridge](https://gadgetbridge.org) runs fitness bands and watches on
+Android without the vendor's cloud. HealthLog reads the database Gadgetbridge
+exports and puts its values on the same timeline as every other source. Values
+from this path show **Import** as their source.
+
+## Export and upload
+
+<Steps>
+
+1. In Gadgetbridge open **Settings**, then **Data management**, then **Export
+   database**. Gadgetbridge writes one file named `Gadgetbridge` (a SQLite
+   database, no extension) into its export folder.
+
+2. Move the file to the computer or phone you use HealthLog on. It is not
+   encrypted, so treat it like any other export of your health data, and delete
+   it when you no longer need it.
+
+3. In HealthLog open **Settings > Export & import** and choose the file on the
+   **Gadgetbridge database** card. Up to 512 MB.
+
+4. The card shows the progress and then what arrived, and lists the tables it
+   did not read with their row counts.
+
+</Steps>
+
+A ZIP export ("Export data" with files) is not read. Upload the database file on
+its own.
+
+## What is read
+
+| From Gadgetbridge | Becomes |
+| --- | --- |
+| Activity samples, steps | Steps, one total per day. With two devices on one day the device with the most steps counts. |
+| Activity samples, heart rate | Pulse, one average per hour, from readings between 30 and 220 bpm |
+| SpO2 samples | Oxygen saturation, one reading each |
+| Resting heart rate | Resting heart rate |
+| Manual heart-rate readings | Pulse, one reading each |
+| Sleep | Sleep duration, one value per night at wake-up |
+| Weight | Weight |
+
+Gadgetbridge keeps one table per device family and adds tables with its
+releases, so HealthLog finds them by the shape of their names rather than a fixed
+list. Stress, PAI, workouts, battery and the device's own bookkeeping are listed
+under **Not imported**. A value outside HealthLog's plausible range for its type
+is refused and counted.
+
+## Importing again
+
+Each value is written under a stable identity: the day or hour for a total, the
+device and instant for a single reading. Importing the same file again writes
+nothing new. A later export from the same phone replaces a day's step total or
+an hour's average when it holds a different value, because it has seen more of
+that day. A reading you deleted in HealthLog stays deleted.
+
+## For operators
+
+One import per account runs at a time, any kind, and an upload of the same bytes
+returns the earlier job. A run has a ten-minute budget; one that reaches it keeps
+what it wrote and fails with "time limit", and uploading the same file again
+continues where it stopped. The file is opened read-only as untrusted input and
+deleted when the job ends; the audit log records only its size and hash. The
+table mapping, the endpoint and the safety settings are in
+[`docs/integrations/gadgetbridge.md`](https://github.com/MBombeck/HealthLog/blob/main/docs/integrations/gadgetbridge.md).

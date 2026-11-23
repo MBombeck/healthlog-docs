@@ -1,0 +1,84 @@
+---
+title: Subscribe to your care dates in a calendar
+description: Publish booked visits, check-ups coming due and vaccination boosters as a calendar subscription for Google, Apple or Outlook. What the feed shows and leaves out, discreet titles, turning the link off, and what a self-hoster should do about access logs.
+sidebar:
+  order: 35
+---
+
+HealthLog can publish your booked visits, the check-ups coming due and your
+vaccination boosters as a calendar subscription, so they show up in the
+calendar app you already use, next to everything else. The feed is built fresh
+each time your calendar app asks for it; HealthLog stays the only place the
+data is kept.
+
+Your calendar provider stores what it fetches on its own servers, and turning
+the subscription off later does not delete copies it already has. That is the
+trade, and the reason the subscription is off until you turn it on.
+
+## Turn it on
+
+1. Open **Settings**, then **Health record**, and find **Care calendar
+   subscription** under **Calendar**.
+2. Read the note on the card, then turn the subscription on.
+3. Confirm it is you with your password or a passkey.
+4. Copy the link, or select **Open in calendar app**.
+
+The link is shown only this once. If you lose it, turn the subscription off
+and on again for a new one.
+
+Only you can turn it on, and only for your own record. Someone you have shared
+your record with, or the guardian of a managed profile, gets a feed of their
+own dates, never yours. The subscription is managed on the web.
+
+Adding the link to Google Calendar, Apple Calendar or Outlook works the same
+way as for the cycle feed; see
+[Add it to your calendar](/guides/cycle-calendar-feed/#add-it-to-your-calendar).
+
+## What the feed shows
+
+- **Booked visits**: every visit you booked for the future, at its time, as a
+  one-hour event. A visit stores a start and no end, so the hour is a
+  placeholder.
+- **Check-ups coming due**: every check-up you set up on the
+  [Care](/guides/checkups-and-practitioners/) page, as an all-day event on the
+  day it comes due. This is the same due day the Care page shows, so a
+  skip, a snooze or a "done" moves it in your calendar too.
+- **Vaccination boosters coming due**, the same way. They follow the
+  [vaccinations module](/guides/vaccinations/): with it switched off, they are
+  left out.
+
+The feed reaches 30 days back, so a date does not vanish the moment it passes,
+and about 13 months ahead. Each of the three kinds can be switched off on the
+card.
+
+Titles are discreet by default: every event is a dot (●), and the calendar is
+called "HealthLog". Descriptive titles name the practitioner of a visit
+("Appointment: Practice Lindenhof"), the label of a check-up ("Due: Skin
+check") and the booster ("Booster due: Tetanus"). Events never carry a visit's
+reason, outcome or body site, a check-up's location, a note, or anything else
+from your record.
+
+## Turn it off
+
+**Turn off** ends the link. Also remove the subscribed calendar in your
+calendar app: what it already fetched stays there until you do.
+
+## For self-hosters
+
+The link is the credential, so it sits in the URL path
+(`/api/care/feed/hlf_…`). HealthLog keeps it out of its own logs, but your
+reverse proxy's access log records every path by default. Skip or redact those
+requests as described in
+[Credentials in the URL path](/guides/reverse-proxy/#credentials-in-the-url-path).
+If a forward-auth gateway guards the instance, let `GET /api/care/feed/*`
+through, because calendar apps cannot sign in.
+
+The feed is for calendar apps. A Bearer token, such as the iPhone app's, is
+refused with `403` and `care.feed.cookie_only` when it tries to manage the
+subscription.
+
+## Related
+
+- [Care, visits and practitioners](/guides/checkups-and-practitioners/)
+- [Keep a vaccination record](/guides/vaccinations/)
+- [Subscribe to your cycle in a calendar](/guides/cycle-calendar-feed/)

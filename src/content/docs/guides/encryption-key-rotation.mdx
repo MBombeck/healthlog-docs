@@ -54,7 +54,7 @@ refuses to silently fall back to the active key and throws a clear error instead
    Restart. New writes encrypt under `v2`; existing `v1`-keyed and legacy rows
    still decrypt.
 
-3. **Re-encrypt the stored data under the new key.** Open **Admin →
+3. **Re-encrypt the stored data under the new key.** Open **Admin >
    Encryption** and press **Rotate now**. The button needs an admin account
    with a second factor, confirmed within the last five minutes. It queues one
    background run on the app's own worker, so it works on the published image
@@ -82,14 +82,14 @@ refuses to silently fall back to the active key and throws a clear error instead
    `scanned` / `rotated` / `errors` per table and field; treat `errors > 0` as a
    hard failure and re-run after fixing the cause.
 
-4. **Drop the old key (optional, recommended)** once **Admin → Encryption**
+4. **Drop the old key (optional, recommended)** once **Admin > Encryption**
    reports zero rows outside the active key (or a full script run reports
    `rotated=0`, `errors=0` and every column walked) **and no backup you may
    still restore needs it**. Rotation re-encrypts every row, and every stored
    backup's outer layer, but not the content inside a backup: a restore writes
    that content back as it was stored, so a copy taken before the rotation
    still needs the old key. The same goes for every copy in the off-host bucket
-   and every backup file you downloaded. **Admin → Encryption →
+   and every backup file you downloaded. **Admin > Encryption >
    Keys the backups still need** lists, per key id, the stored copies that need
    it with the oldest date, and when the last off-host copy that needs it
    expires under your bucket's lifecycle rule. The weekly copy replaces itself

@@ -1,5 +1,5 @@
 ---
-title: Checkups, visits and practitioners
+title: Care, visits and practitioners
 description: Set up recurring preventive-care reminders, keep a list of your practitioners, record past and upcoming visits with their reminders, keep a history of procedures and surgeries, see everything filed at one body site, and link documents, labs and conditions to a visit.
 sidebar:
   order: 36
@@ -8,8 +8,9 @@ sidebar:
 You want the app to remind you of a recurring check (a blood panel, a skin
 check, a blood-pressure reading), to keep your doctors in one place, and to
 record visits, past and upcoming, including procedures and surgeries. All of
-this lives under `/checkups`, which has four tabs: **Checkups** (preventive
-care), **Visits**, **Procedures** and **Body sites**. None of it is a module.
+this lives on the **Care** page (`/care`, **Vorsorge** in German), which has
+four tabs: **Care** (preventive-care reminders), **Visits**, **Procedures** and
+**Body sites**. The older address `/checkups` redirects to it. None of it is a module.
 Preventive-care reminders can target core vitals and free-text exams that
 belong to no module, so they are available to every account and cannot
 be switched off, by users or by the admin. The only module influence is on
@@ -63,7 +64,7 @@ after that depends on how it repeats:
 - **An interval** (a preset, or a custom "every N days"), a rule that repeats
   less often than once a week (`FREQ=YEARLY`, a fortnightly questionnaire),
   and a rule on its last date: it stays due after the notification, and from
-  the next day reads as overdue, on the checkups page, the dashboard card and
+  the next day reads as overdue, on the Care page, the dashboard card and
   the [start page](/insights/today/#the-worth-a-look-rail). It stays there
   until you log the reading, fill in the questionnaire or mark it done (a lab
   result also completes a free-text reminder), skip it, or snooze it to
@@ -104,7 +105,7 @@ repeats within a week is scheduled from that moment.
 
 ## Practitioners
 
-`/checkups/practitioners` is your own list of doctors and practices. Each has
+`/care/practitioners` is your own list of doctors and practices. Each has
 a name (a person or a practice, whichever you think of first), a free-text
 specialty and practice, and an address, a phone number and a note (parking,
 which entrance, who to ask for). The address, phone number and note are stored

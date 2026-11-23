@@ -98,7 +98,7 @@ curl -s -X POST https://your-instance.example.com/api/auth/refresh \
   -d '{"refreshToken": "hlr_z9y8x7w6..."}'
 ```
 
-**Reuse-detection**: presenting the same refresh token a second time revokes every refresh token for that device. Only a token issued before per-device families existed, or one presented with a device id that does not match the stored row, escalates to a user-wide revoke. The affected device gets a forced re-login; the attacker holding a stolen token is now locked out. Send `revoke: true` on a normal logout to mark both the refresh row and its paired access token as revoked.
+**Reuse-detection**: presenting the same refresh token a second time revokes every refresh token for that device. Only a token issued before per-device families existed, or one presented with a device id that does not match the stored row, escalates to a user-wide revoke. The affected device gets a forced re-login; the attacker holding a stolen token is now locked out. Two refreshes that race with the same token, as a client that refreshes from two places at once can send, are not a reuse: since 1.49.0 the second one gets `409` with `meta.errorCode` `auth.refresh.superseded`, nothing is revoked, and the client continues with the pair the first request stored. Do not retry with the old token, which would count as a replay. Send `revoke: true` on a normal logout to mark both the refresh row and its paired access token as revoked.
 
 A stable `errorCode` on the refresh response lets a client tell a **revoked family** (the device must re-authenticate) apart from a **transient failure** (retry is safe), so the app doesn't bounce a user to login on a network blip; the codes are listed in [the sync contract](/reference/sync/#authentication-and-token-lifetimes). Every code the server can answer with is enumerated in the `ErrorEnvelope` description of the OpenAPI document; generate the client's enum from there rather than from the codes a test run happened to trigger.
 
@@ -216,5 +216,5 @@ Bearer tokens are stored as **[HMAC](https://en.wikipedia.org/wiki/HMAC)-SHA-256
 :::tip[Long-lived tokens are minted per medication]
 For long-running automation (n8n, Home Assistant, Health Connect bridges) that logs a medication intake, mint the token from **that medication's own external-integration row** on `/medications` rather than the 24-hour access tokens: same auth header, no refresh dance. The token is scoped to intake for that medication, and every route that does not declare that scope refuses it.
 
-**Settings → API & tokens** has no generic token button; it lists and revokes the tokens the account holds and mints the narrow [measurement, document and workout tokens](/guides/ingest-token/).
+**Settings > API & tokens** has no generic token button; it lists and revokes the tokens the account holds and mints the narrow [measurement, document and workout tokens](/guides/ingest-token/).
 :::

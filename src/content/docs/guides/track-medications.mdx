@@ -9,8 +9,9 @@ import { Steps } from '@astrojs/starlight/components';
 import medicationHistory from '../../../assets/screenshots/medication-history.png';
 
 HealthLog's medication tracking is built on a single recurrence engine and a
-**dose ledger**: every expected dose becomes a slot with an explicit status —
-taken on time, taken late, skipped, or missed. The
+**dose ledger**: every expected dose becomes a slot with an explicit state
+(pending, due, overdue, taken, taken late, skipped or missed; see
+[Dose states and the words for them](#dose-states-and-the-words-for-them)). The
 [compliance rate](/explanation/medication-compliance/) reads from the same
 ledger, so the percentage can never disagree with the timeline beneath it.
 
@@ -203,20 +204,59 @@ inside its multi-day catch-up window reads as late, not missed.
 
 ## Log an intake
 
-Mark a dose taken, skipped, or snoozed from the card, the detail page, or a
-reminder action button. A snooze holds the doses whose reminder had already
-come due when you snoozed, not the medication's later doses that day: those are
-still reminded. The write path attributes the intake to the slot whose
-window it falls in. A take outside every window records as **ad-hoc** rather than
-snapping to a far-off slot. A taken, skipped or auto-missed row resolves
-exactly one occurrence, the one nearest its anchor, so on a schedule whose
-doses sit closer than twelve hours (19:49 and 23:59, say, or 08:00 and 12:00)
-logging the first dose leaves the second one due on the card rather than
-skipping to tomorrow; the compliance cycle on the card follows the same rule.
-Marking taken or skipped recomputes the history and
-rate immediately. A skip is a pause and not a miss: it leaves the denominator on
-every surface that shows a rate, the dashboard tile included, so deciding
-against a dose does not read as forgetting one.
+Mark a dose taken, skipped, or snoozed from the card, from the medication's
+**Overview** tab, or from a reminder's action buttons. To record a dose with
+its details, or one you took earlier, use **Log intake**. It is the same form
+on the medications page, in the medication's **History** tab and in the quick
+capture menu: the medication, **Taken** or **Skipped**, the **Time**, and the
+**Dose**, pre-filled with the planned one.
+
+Before you save, the form says in words which scheduled dose the entry will
+count for:
+
+- **Counts for the 08:00 dose.** The time is inside that dose's on-time
+  window.
+- **Counts for the 08:00 dose, as late.** The time is further off, up to four
+  hours, so it is most likely that dose taken late. A switch, **Count it for
+  the 08:00 dose**, lets you record it as an extra dose instead.
+- **Recorded as an extra dose, outside the schedule.** Anything further away,
+  and every dose of a medication without dose times.
+- **Skips the 08:00 dose.** A skip always names the dose it skips, the nearest
+  one on that day.
+
+A take that arrives without a slot, from the card, a reminder button or an
+[integration](#pill-boxes-scripts-and-integrations), is placed the same way the
+server always places it: on the dose whose window holds its time, or else on
+the nearest dose of that day within six hours either side, if that dose is
+still open. When the nearest dose already holds a take, the new one does not
+reach past it to a later dose: a second morning tablet never answers the
+evening slot.
+
+Marking taken or skipped recomputes the history and rate immediately. A skip
+is a pause and not a miss: it leaves the denominator on every surface that
+shows a rate, the dashboard tile included, so deciding against a dose does not
+read as forgetting one. **Taken** on a past dose in the **History** tab records
+the moment you press it, not the slot time; to record an earlier time, use
+**Log intake**.
+
+### Undo
+
+Every take and skip shows a short note, for example "Ramipril: taken, 08:12",
+with **Undo**. **Take all due** shows one note for all the doses it recorded,
+with one Undo for all of them. Deleting a dose from the history is immediate
+and shows **Undo** as well, which puts the dose back with its time, slot and
+amount. An undone take reopens its slot, so the dose is open again.
+
+### Remind me later
+
+**Remind me later** pushes the dose's reminder back by the length you choose
+under **Settings > Notifications > Remind me later**: 10, 15, 30, 45,
+60, 90 or 120 minutes, 30 by default. The same length is used on the
+medication card, by the Telegram reminder's snooze button and by the iPhone
+app. While a dose is snoozed, its card says "Reminder snoozed until 10:30".
+
+A snooze holds the one dose it answers. The medication's other doses that day
+are still reminded at their own times.
 
 Editing a dose's time re-attributes it and is guarded: the picker caps at now,
 rejects timestamps before the medication existed, and warns when the new time
@@ -253,6 +293,86 @@ For API clients, the medication list and detail reads carry `courseStatus`
 (`UPCOMING`, `CURRENT` or `ENDED`) and `intakeActionable`. Show Taken and Skip
 when `intakeActionable` is true rather than working it out from `active` and
 the dates.
+
+## Dose states and the words for them
+
+Every surface uses the same words for a dose, and the server works out the
+state once, so the card, the history, the dashboard, Telegram, the iPhone app
+and the doctor report agree.
+
+| State | What it means |
+| --- | --- |
+| **Pending** | The dose time has not come yet. |
+| **Due** | Its reminder window is open. |
+| **Overdue** | The window has passed and the dose is not recorded yet. |
+| **Missed** | Too long past the window; it counts as missed. Taking it now still counts, as late. |
+| **Taken** | Recorded as taken inside its on-time window. |
+| **Taken late** | Recorded as taken, outside its on-time window. |
+| **Skipped** | You decided against this dose. |
+
+Actions are verbs (**Take**, **Skip**, **Remind me later**, **Undo**), states
+are participles. A clock marks a dose still to come or due, a check only a
+dose that is taken (amber when late), so a dose you still have to take never
+carries a check.
+
+A missed day breaks the miss-free streak; a day whose doses are all still
+pending does not count either way.
+
+## Doses recorded somewhere else
+
+A dose can be recorded in many places: the web app, the iPhone app, a
+reminder's button in Telegram, the medication's ingest link used by a pill box
+or a script, or Apple Health. They all write to the same dose record on your
+server, and they all follow the same rules:
+
+- **One decision per dose.** A take of a dose that already holds a take is
+  the same dose reported twice, a sensor and a tap or a tap on two devices.
+  Nothing is written. The web app says "Ramipril was already recorded as taken.
+  Nothing new was saved."
+- **The other devices are told.** Every change to a dose tells your other
+  devices to refresh, by a silent push where push reaches them and otherwise
+  on their next sync. Where push reaches the iPhone, a medication Live
+  Activity ends once its dose is taken or skipped.
+- **The iPhone withdraws its reminder.** When a dose is recorded on the web, in
+  Telegram or through an integration, your iPhones
+  other than the one that recorded it get a quiet notification, "Dose
+  recorded". The app uses it to withdraw the reminder it had scheduled for
+  that dose, and shows the neutral text or nothing. It names no medication.
+
+The quiet confirmation is **Confirm doses taken on other devices** under
+**Settings > Notifications**. It is on by default when your phone keeps its
+own medication reminders, and needs push to reach the app: a server with its
+own Apple push key, or the [push relay](/guides/push-relay/) for the App Store
+app. Without push the app learns about the dose on its next sync.
+
+Dose records from Apple Health are the one exception to "first one wins": an
+edit you make to a dose in the Health app moves the dose in HealthLog too.
+
+### Pill boxes, scripts and integrations
+
+A connected pill box, a dispenser or a home automation script records a dose
+through the medication's ingest link (the **API** tab of the medication):
+`POST /api/ingest/medication` with a token scoped to that medication.
+
+- The body names the medication by `medicationName`, matched regardless of
+  case and repeated spaces, so `"Ramipril "` and `"ramipril"` both find
+  Ramipril. A name that matches no active medication the token may record
+  answers `404` with `ingest.medication.notFound`.
+- `takenAt` is optional and defaults to now. The dose is placed by the rules
+  in [Log an intake](#log-an-intake).
+- `idempotencyKey` must be new for every take. A retry of the same take within
+  a day answers `200` with the recorded row. The same key used again a day
+  later is refused with `409` and `ingest.idempotencyKey.reused`, because a
+  fixed key would otherwise answer every later dose as a replay of the first.
+  The examples on the **API** tab derive the key from the time of the run.
+- The answer carries `alreadyTaken`. `false` means the take was recorded
+  (`201`, or `200` for a retry). `true` means the dose already held a take, so
+  nothing was written and the answer is the dose as recorded, with its
+  `takenAt` and `takenVia`. A pill box can show "already taken" on that answer
+  instead of a second green light.
+
+`takenVia` says where a take came from: `WEB`, `APP`, `INTEGRATION`,
+`TELEGRAM`, `APPLE_HEALTH`, `IMPORT` or `AUTO`.
 
 ## Attribute an off-schedule dose to its slot
 
@@ -302,10 +422,25 @@ recorded next.
 ## Reminders
 
 Set reminder times and channels on the reminder card inside the **Schedule**
-tab, under the times editor. The dispatcher fans
-each reminder out to whichever channels the user enabled, with late/missed
-escalation. See [Reminder channels](/guides/reminder-channels/) for the channel
-cascade and the per-channel setup.
+tab, under the times editor. The card says in words what will happen for the
+next dose, for example: "Next dose Today, 08:00: reminders while it is due, and
+once more when it is overdue after 09:00. After 12:00 it counts as missed." A
+medication that records its doses automatically says that no reminders are
+sent instead. Times follow your 12 or 24 hour setting.
+
+**Reminder timing** (**Adjust** on the card) sets the four steps, named after
+the state they announce, for every scheduled medication:
+
+- **Due**: the first reminder, this long before the reminder window ends.
+- **Still due**: another reminder, this long before the window ends.
+- **Overdue**: a reminder that the dose is overdue, this long after the window
+  ended.
+- **Missed**: after this long past the window, the dose counts as missed.
+
+The reminder window itself starts at the dose time and runs for the length you
+set; after it, the dose is overdue. The dispatcher sends each reminder to
+whichever channels you enabled. See [Reminder channels](/guides/reminder-channels/)
+for the channel cascade and the per-channel setup.
 
 A medication with **Track intake** switched off never reminds. See
 [Keep a medication as a record](#keep-a-medication-as-a-record). Neither does
@@ -402,3 +537,10 @@ diabetes goal band when you turned that on.
 The chart is descriptive: it shows what your own data did, and never claims the
 medication caused the change. Interpreting an effect is a conversation for your
 clinician.
+
+## The official leaflet
+
+**Find leaflet** on a medication opens the official medicine registry of your
+country with the medication already searched for, and the leaflet's link can be
+saved with the medication. See
+[Find a medication's official leaflet](/guides/medication-leaflets/).

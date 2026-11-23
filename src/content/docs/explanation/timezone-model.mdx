@@ -65,6 +65,41 @@ timezone, so the answer does not shift when you cross daylight-saving boundaries
 or travel. A weekly dose's multi-day catch-up reach is likewise computed in local
 days.
 
+## Readings taken in another time zone
+
+The profile time zone answers "which day" for almost everything. A reading can
+also carry the time zone it was taken in: an iPhone app build that supports
+it sends HealthKit's `HKMetadataKeyTimeZone` with each sample, as `timeZone` on
+`POST /api/measurements/batch` (an IANA name such as `America/New_York`).
+
+The rule is simple: **a reading with its own zone is placed on the local day of
+that zone; a reading without one is placed on the day of your profile zone**,
+which is what every older reading keeps meaning. A night slept in New York on a
+Berlin profile is filed under the New York wake day, and the
+[night timeline](/guides/sleep-night-timeline/) reads its clock in New York
+time.
+
+These follow the reading's own zone:
+
+- the sleep list and the night view, including the wake day, the nap rule and
+  the sleep score's midpoint;
+- the [day view](/guides/day-view/);
+- the day groups of the measurement list;
+- the daily charts and the day cells.
+
+These still read the profile zone, for now:
+
+- the cached long-range totals, which are kept per UTC day and are not moved by
+  a reading's zone;
+- the pulse day mean, the intraday heart-rate chart and the Coach's context.
+
+A zone name the server cannot read, or an abbreviation or offset such as `CET`
+or `+02:00`, is dropped and the reading is kept as if it had none. The zone is
+not part of a reading's identity: a sample sent twice stays the first one, and a
+re-sent day total (`stats:`) updates it. Measurement rows carry `timeZone`
+(or `null`) in the API, and so do the sessions of `GET /api/sleep/night`. The
+zone travels with backups and restores.
+
 ## Why a stored preference, not the browser's guess
 
 HealthLog uses your **stored** timezone preference rather than inferring from the

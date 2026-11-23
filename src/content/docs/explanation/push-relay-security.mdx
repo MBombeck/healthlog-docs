@@ -1,0 +1,79 @@
+---
+title: How the push relay keeps notifications private
+description: Why the push relay and Apple can deliver a notification from a self-hosted server to the iPhone without reading it, what they can still see, and what happens when something goes wrong.
+sidebar:
+  order: 21
+---
+
+import pushRelay from "../../../assets/diagrams/10-push-relay.svg";
+
+<img src={pushRelay.src} alt="Four boxes in a row: your server seals the message, the push relay forwards it and cannot read it, Apple delivers it and cannot read it, and the iPhone opens it with its own key. The message is encrypted end to end. The relay and Apple only see that a message went to a device, and when." />
+
+A self-hosted server cannot push to the App Store app on its own, so the
+[push relay](/guides/push-relay/) carries notifications to Apple for it. This
+page explains why the relay cannot read what it carries.
+
+## What is protected and how
+
+**Keys made on the phone.** When you turn the relay on, the iPhone creates its
+keys with Apple CryptoKit: an X25519 device key for opening notifications and
+an Ed25519 binding key. The private halves stay in the iPhone keychain,
+reachable only by the app and its notification extension. Only the public keys
+go to your server.
+
+**Sealed on your server.** Your server seals every notification for that one
+device with HPKE (RFC 9180), using X25519, HKDF-SHA256 and ChaCha20-Poly1305.
+It uses auth mode, which means the server's own sender key goes into the seal.
+The phone pins that key, so an envelope opens only if it came from your
+server. Each envelope has a fixed size per class and its own expiry.
+
+**A binding only the phone can make.** The relay links a device to a server
+only with a statement signed by the phone's binding key. Another server that
+once saw the device's push token cannot take it over, and the phone can
+revoke the binding at the relay directly, without asking your server.
+
+**Signed answers.** Every answer from the relay is signed with the relay's
+Ed25519 key, which your server and the app pin. A forged answer is treated
+as a network error.
+
+## What the relay and Apple can still see
+
+The relay and Apple see delivery metadata, the device's push token and the
+class, lifetime, size and time of each push, never what a notification says.
+Every push of a class looks alike to them: over the relay every alert lives
+15 minutes and every silent push an hour, whatever it is; Apple can
+link the token to an Apple account. The full list for the relay, and how long
+it keeps each item, is its [privacy notice](https://push.healthlog.dev/privacy).
+With the separate Live Activity consent, the content state of a Live Activity
+start or update (the dose state and its countdown, never a medication name) is
+readable by both; see
+[Live Activity over the relay](/guides/push-relay/#live-activity-over-the-relay).
+
+Timing is the honest limit. If you record a dose on one device and another
+device of yours gets a confirmation, the moment of that push can hint at when
+you take your medication, and a medication reminder over the relay shows when a
+dose is due. That is true of every iOS push service. A device that plans its
+own reminders keeps them off the relay; one that gets its reminders from the
+server gets them over the relay, sealed like everything else.
+
+## If something goes wrong
+
+**The relay is down.** Reminders the app has scheduled on the iPhone keep
+working; reminders from the server wait and are dropped once they are 15
+minutes old. Confirmations between devices and the silent sync pause, and the
+app says so.
+
+**The relay is compromised.** An attacker still cannot open an envelope,
+because the relay never holds a key that does. They could put a notification
+on a device whose token they have seen, but the app acts only on envelopes
+sealed with a sender key it pinned. The response is to revoke the Apple push
+key and switch the relay to its next identity key, which your server and the
+app already pin. You can also revoke the device's binding from the app at any
+time, even while your server is unreachable.
+
+## Read further
+
+- The relay's source, protocol and test vectors:
+  [MBombeck/healthlog-push on GitHub](https://github.com/MBombeck/healthlog-push)
+- How to turn the relay on, opt in on the iPhone, and run your own:
+  [Push relay for the iPhone app](/guides/push-relay/)

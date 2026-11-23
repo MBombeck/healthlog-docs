@@ -9,9 +9,9 @@ HealthLog fans medication reminders and proactive coach nudges out to whichever
 channels a user has enabled. One dispatcher drives the cascade and keeps a
 record of every delivery attempt per channel for 90 days.
 
-Each user sets up their channels under **Settings → Integrations → Delivery
+Each user sets up their channels under **Settings > Integrations > Delivery
 channels** (`/settings/integrations#channels`). Which reminders exist is set
-under **Settings → Notifications**.
+under **Settings > Notifications**.
 
 The single message to take away: **you do not need an Apple Developer account
 or APNs to get push.** Five of the six channels are free and cover every
@@ -44,13 +44,21 @@ literal newlines; `APNS_KEY` / `APNS_KEY_FILE` remain accepted). See
 [APNs in the environment reference](/reference/environment-variables/#apns-ios-push-all-or-none).
 
 One thing worth stating plainly: APNs binds a push to a specific Apple
-Developer team + bundle ID + signing key, and the published iOS app is signed
-under the maintainer's team. A self-hosted server has no way to mint that
-team's key, so it **cannot** send APNs pushes to the published app — native
-push on your own infrastructure means building and signing your own copy of
-the open iOS client under your own Apple identity. Everyone else gets the
-same reminders through Web Push (install the PWA), Telegram, ntfy, webhook,
-or email; only the lock-screen Live Activity is APNs-exclusive.
+Developer team, bundle ID and signing key, and the published iOS app is signed
+under the maintainer's team. A self-hosted server cannot mint that team's key,
+so it cannot send APNs pushes to the App Store app by itself. There are two
+ways to reach it anyway:
+
+- the opt-in [push relay](/guides/push-relay/) run by the HealthLog project,
+  which the admin turns on and each person opts into in the app. Your server
+  encrypts every notification for one device and the relay passes it to Apple
+  without being able to read it;
+- your own copy of the open iOS client, built and signed under your own Apple
+  identity, with the `APNS_*` variables set.
+
+Everyone else gets the same reminders through Web Push (install the PWA),
+Telegram, ntfy, webhook, or email. The iPhone app schedules its own
+medication, mood and measurement reminders locally in any case.
 
 ## Telegram
 
@@ -59,10 +67,12 @@ bot token and chat id via `PUT /api/settings/telegram` (the token is stored
 encrypted in the database, not in `.env`). Setup: create a bot with
 **@BotFather** and copy the token, send `/start` to the bot so it can message
 you, read your chat ID from **@userinfobot**, and fill both into the Telegram
-card under **Settings → Integrations → Delivery channels**. One bot can serve every user on the
+card under **Settings > Integrations > Delivery channels**. One bot can serve every user on the
 instance; each user pairs their own chat ID. Telegram reminders carry inline
 action buttons (taken / snooze / skip); the button callback lands on
-`POST /api/telegram/webhook`, which is secret-authenticated.
+`POST /api/telegram/webhook`, which is secret-authenticated. The snooze button
+reads **Remind me later** with the length set under **Settings > Notifications** (30 minutes by default); buttons on older messages that
+still offer 1 h or 3 h keep working.
 
 ## ntfy
 
@@ -231,13 +241,13 @@ so a subscription the server lost repairs itself. Signing out removes this
 browser's subscription once the server confirmed the sign-out, and a browser
 only carries the reminders of the account that subscribed it last. A channel
 with nobody to send to (no subscribed browser, no paired iPhone, no mail
-server) pauses for an hour and says why under **Settings → Integrations →
+server) pauses for an hour and says why under **Settings > Integrations >
 Delivery channels** instead of counting failures. (Since 1.47.4.)
 
 On an iPhone, Safari supports Web Push only from **iOS 16.4** and only for a
 site installed to the Home Screen as a PWA — a regular Safari tab cannot
 subscribe. Share → **Add to Home Screen**, launch from the icon, then
-subscribe under **Settings → Integrations → Delivery channels**. Android and desktop browsers need
+subscribe under **Settings > Integrations > Delivery channels**. Android and desktop browsers need
 no such step.
 
 If turning on push says the browser's push service refused, the browser asked
@@ -263,12 +273,13 @@ the same one:
 | Mood reminder | `/mood`, with the mood entry sheet already open |
 | Morning briefing | the dashboard |
 | Medication reminder, low supply, shared dose | `/medications` (low supply opens the medication) |
-| Check-up and measurement reminders | `/checkups` |
+| Check-up and measurement reminders | `/care` |
 | Proactive Coach nudge | the Coach conversation it started |
 | Cycle reminders | `/cycle` (the dashboard with discreet notifications on) |
 | New sign-in | Settings, Security |
 | Integration sync failing | Settings, Integrations (an admin alert about another account opens the admin page) |
 | Illness red flag | the illness episode |
+| Lasting change in a vital | Insights (see [The lasting change notification](/guides/lasting-change-notification/)) |
 | Background job failing (admins) | the admin status page |
 | Other system alerts | the dashboard, or the admin status page for operator alerts |
 

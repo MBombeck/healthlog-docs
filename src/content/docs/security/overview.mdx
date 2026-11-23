@@ -39,7 +39,7 @@ decoding into garbage. Each value gets a random 12-byte IV and is stored as
 
 The key id indexes into an `ENCRYPTION_KEYS` JSON map, which is what makes
 zero-downtime rotation possible. Several keys coexist, new writes use the active
-one, and a rotation (**Admin → Encryption → Rotate now**, or the script) re-wraps
+one, and a rotation (**Admin > Encryption > Rotate now**, or the script) re-wraps
 old rows on its own schedule while the app keeps serving. The operator procedure is
 [Rotate the encryption key](/guides/encryption-key-rotation/).
 
@@ -64,7 +64,7 @@ this once" and nobody notices for a year. A misconfigured key here takes the
 feature down loudly instead, which is the trade the project wants.
 
 The practical corollary during a rotation: keep the old key in the map until
-**Admin → Encryption** reports zero remaining rows on it and no backup you may
+**Admin > Encryption** reports zero remaining rows on it and no backup you may
 still restore needs it. Drop it early and those rows
 become undecryptable, and the app will tell you so rather than paper over it.
 
@@ -78,9 +78,11 @@ than promised, and there are no CORS headers anywhere outside the documented
 webhook routes, which authenticate by header secret rather than by cookie.
 
 Most outbound traffic exists only because someone configured it: an AI
-provider, a device vendor, a notification channel, a document archive, an
-off-host backup bucket, or the error reporting, page analytics and log shipping
-an operator can point at services of their own.
+provider, a device vendor, a notification channel, the
+[push relay](/guides/push-relay/) for the App Store iPhone app (sealed
+envelopes it cannot read, off until an admin turns it on), a document archive,
+an off-host backup bucket, or the error reporting, page analytics and log
+shipping an operator can point at services of their own.
 [Privacy architecture](/explanation/privacy-architecture/) walks each of those
 flows.
 
@@ -278,7 +280,7 @@ branch, the tag is strict SemVer, the tag matches the version in
 ## Reporting something
 
 Do not open a public issue for a vulnerability. Mail
-**security@bombeck.io** with a description, reproduction steps, the impact you
+**security@healthlog.dev** with a description, reproduction steps, the impact you
 see, and a suggested fix if you have one. Acknowledgement inside 72 hours,
 initial assessment inside a week, and disclosure coordinated with you. The full
 policy, including what is in and out of scope, is in

@@ -23,7 +23,7 @@ longer if you also want a TLS-fronted public hostname (see
   792 MB. 1536 MB is the supported floor. Do not lower it to fit a smaller
   host: below it a long-used account or a large import fills the heap, requests
   stall and the app restarts. The app still starts, but the boot log, the
-  support report and **Admin → System status** say it runs below the floor. On
+  support report and **Admin > System status** say it runs below the floor. On
   a busy instance, raise it. Postgres and the system need the rest.
 - **Disk: 10 GB free to start.** The database grows with your history. An Apple
   Health import streams the uploaded `export.zip` (up to 1.5 GB) and the
@@ -136,7 +136,7 @@ accounts, which stays revocable and leaves each person's credentials their own.
 box, so password reset has no self-service path until you set up SMTP (see
 [reminder channels](/guides/reminder-channels/#email)). Two recovery paths
 exist without it. An admin who can still sign in resets any other user from
-the admin panel (**Admin → Users**, backed by
+the admin panel (**Admin > Users**, backed by
 `POST /api/admin/users/{id}/reset-password`), which asks you to confirm it is you, sets a new password and
 signs that user out everywhere. A locked-out solo admin runs the reset script
 that ships in the image, from the host:

@@ -27,7 +27,12 @@ last five minutes); see
 Profile (username, display name, email, avatar, height, date of birth,
 language), the identity block for the doctor report (full name, insurer,
 insurance number), time zone, date and time format, metric or imperial units
-and the glucose unit. The **Setup** card brings the first-run questions and the
+and the glucose unit. The **Display** card also holds the theme: light, dark,
+or **System**, which follows the device and is what a new account starts with,
+and **Counts in the navigation**: the number of doses and checkups due beside
+**Medications** and **Care** in the sidebar and the **More** menu. Switch it
+off to keep the navigation free of numbers.
+The **Setup** card brings the first-run questions and the
 checklist back. See [First steps](/getting-started/first-steps/#coming-back-to-it)
 and [the time zone model](/explanation/timezone-model/).
 
@@ -52,8 +57,9 @@ One switch per optional area (cycle, mood, sleep, glucose, labs, medications,
 Coach, AI analysis, documents and more). Weight, blood pressure and pulse are
 always on. A module switched off disappears from every page and keeps its data.
 The module rows for medications, mood and labs open their own settings page:
-injection sites, mood tags, and the biomarker catalog with on-device text
-recognition for lab reports. **AI analysis** decides only whether a model
+injection sites and the **Medicine registry** for
+[leaflets](/guides/medication-leaflets/), mood tags, and the biomarker catalog
+with on-device text recognition for lab reports. **AI analysis** decides only whether a model
 writes text for you; see
 [When AI is not available](/guides/ai-providers/#when-ai-is-not-available).
 
@@ -67,7 +73,7 @@ writes text for you; see
 ### Arrangement
 
 Order and view, nothing else. One sub-page each for the dashboard, Insights,
-medications, labs, the illness journal, documents and checkups; a module's
+medications, labs, the illness journal, documents and Care; a module's
 sub-page is listed while the module is on. Dashboard tiles are described in
 [Dashboard customization](/features/dashboard-customization/).
 
@@ -79,7 +85,13 @@ Reminders that are not tied to one item: the mood reminder, the low-stock
 warning for medications, Coach nudges and the checkup reminder switches. A
 card names the reminders set elsewhere (doses on each medication, cycle
 reminders on the Notifications page), and **Health figures in notifications**
-decides whether a lock screen may show values such as the morning score. Where reminders are delivered is set
+decides whether a lock screen may show values such as the morning score.
+**Remind me later** sets how long a dose reminder is pushed back
+([Remind me later](/guides/track-medications/#remind-me-later)). The
+**Alerts** group holds account security alerts and the opt-in
+[lasting change notification](/guides/lasting-change-notification/), one
+switch for every delivery channel; each kind can also be set per channel under
+**Notifications per channel** in the account menu. Where reminders are delivered is set
 under [Connections, Integrations](#integrations). See
 [Reminder channels](/guides/reminder-channels/).
 
@@ -120,7 +132,9 @@ weather backfill. Listed while the environment module is on. See
 
 Provider, model and key, the fallback chain, chains per task (which task uses
 which providers, see [Chains per task](/guides/ai-providers/#chains-per-task)),
-the response timeout, the AI usage level and the consent card. See
+the response timeout, the AI usage level, the
+[Coach budget for self-hosted models](/guides/ai-providers/#coach-budget-for-self-hosted-models)
+and the consent card. See
 [AI providers](/guides/ai-providers/);
 the timeout is explained under
 [Response timeout](/guides/ai-providers/#response-timeout).
@@ -139,7 +153,9 @@ conversations, plans and reminders. Coach nudges moved to Notifications. See
 
 The **Connections** list (Withings, WHOOP, Google Health, Apple
 Health, Polar, Oura, Strava, Nightscout, Dawarich), the nutrients intake card,
-the **Document archives** card for Paperless-ngx and Papra, and **Delivery
+the **Document archives** card for Paperless-ngx and Papra, **Health Connect
+from a folder** (the scheduled fetch of a Health Connect export from WebDAV),
+and **Delivery
 channels** (Telegram, ntfy, Web Push, webhook, email) at
 `/settings/integrations#channels`. See [Integrations](/guides/integrations/)
 and [Reminder channels](/guides/reminder-channels/).
@@ -175,7 +191,9 @@ lab results and medications from a spreadsheet. See [Backups](/guides/backups/),
 ### Health record
 
 The health-record export and, below it, clinician share links
-(`/settings/sharing` opens here). See
+(`/settings/sharing` opens here), the
+[scheduled doctor report](/guides/scheduled-doctor-report/) and the
+[care calendar subscription](/guides/care-calendar-feed/). See
 [Clinician share links](/guides/document-vault/#clinician-share-links).
 
 ### Data & privacy

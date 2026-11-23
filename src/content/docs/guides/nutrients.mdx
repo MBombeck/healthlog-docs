@@ -30,7 +30,7 @@ each other. Sparse logging is never read as a deficiency.
 ## Enabling it
 
 The module is **off by default for every account**, fresh install included.
-Enable it under **Settings → Modules** ("Nutrients"), or with the one-tap
+Enable it under **Settings > Modules** ("Nutrients"), or with the one-tap
 prompt on the Nutrients page. The external-AI options and the daily note stay
 off until you turn them on.
 
@@ -140,6 +140,57 @@ cannot state (niacin). EPA and DHA have none either; EFSA found supplemental
 intakes up to 5 g a day of both together raise no concern, which is a
 statement about the pair. A day without a limit to be above is never shown as
 "below the limit".
+
+## Energy balance
+
+Under **Insights**, **Nutrients**, the **Energy balance** card sets what you
+ate against what your body used, day by day:
+
+- **Eaten** is the day's energy total from the nutrient data: whatever your
+  phone or a bridge sends (Apple Health, Health Connect, or a script on
+  `POST /api/nutrients/batch`). HealthLog does not log meals itself.
+- **Used** is resting energy plus active energy, the day sums your watch or
+  tracker sends (`BASAL_ENERGY_BURNED` and `ACTIVE_ENERGY_BURNED`).
+- **Balance** is eaten minus used. A negative number is a deficit, a positive
+  one a surplus. The card shows the number and leaves the judgement to you.
+
+The headline is the average balance of the last seven days, once four of them
+have one. Below it are the window's averages and the last seven days that have
+a balance. Every figure is computed when you open the card, so a corrected or
+late import changes it with nothing to recalculate.
+
+When a number is missing:
+
+- A day with nothing eaten logged has no balance. It is not counted as zero,
+  which would read as a fast.
+- A day without active energy has no balance either: leaving active energy
+  out would make a deficit look larger than it was.
+- A day without a resting reading takes an estimate from the Mifflin-St Jeor
+  equation, using your latest weight, your height, your age that day and your
+  sex. The card says on how many days it did. Without one of them in your
+  profile there is no estimate, and the card says what is missing.
+- Today is still running and stays out of the averages.
+
+The daily balance is also a channel in the
+[correlation scan](/insights/how-it-works/), named **daily energy balance**. It
+pairs a day's balance with the next day's readings under the same evidence bar
+as every other channel: at least 20 days that hold a balance, and only those
+days. It is never paired with energy intake, which it is computed from.
+
+The Coach sees one compact line: the averages of intake, expenditure and
+balance over the last fourteen finished days, how many of them held a balance,
+and on how many resting energy was estimated. It is told to treat the line as a
+description of your record and never to turn it into a calorie target, a diet
+or a weight forecast. The line is left out when active energy is not among the
+Coach's sources, and under a Coach lookback limit of seven days. AI analysis
+has to be on for the Coach at all; the card and the correlations do not depend
+on it.
+
+For scripts and other clients: `GET /api/nutrients/energy-balance?days=30`
+(7 to 90 days), behind the nutrients module, returns the same figures, with
+`null` where a day has no data. Why the figures are softer than they look, and
+how to read them, is the subject of the Learn article
+[Energy balance: what your daily burn can tell you](https://healthlog.dev/learn/energy-balance-and-your-daily-burn).
 
 ## How it's read
 

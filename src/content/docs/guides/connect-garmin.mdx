@@ -11,13 +11,13 @@ The Personal API covers your own data only. Each person on an instance creates a
 
 ## Create a key
 
-1. Open [Garmin Connect → Settings → Personal API](https://connect.garmin.com/app/settings/personalApiToken).
+1. Open [Garmin Connect > Settings > Personal API](https://connect.garmin.com/app/settings/personalApiToken).
 2. Create a key and choose how long it stays valid: 30, 90 or 180 days, or one year.
 3. Copy it right away. Garmin shows the key only once.
 
 ## Connect
 
-1. Open **Settings → Integrations → Garmin**.
+1. Open **Settings > Integrations > Garmin**.
 2. Paste the key.
 3. Pick the service your account lives on. That is **Garmin Connect (global)** for almost everyone, or **Garmin Connect China** for accounts registered there. The key is only ever sent to the service you pick.
 4. Pick the validity you chose in Garmin Connect.
@@ -65,7 +65,7 @@ A few details:
 
 ## Heart rate over an activity
 
-The activity list Garmin sends gives a summary per workout: duration, distance, calories, average and peak heart rate. The curve over the session is only in the activity's original file, which the Personal API also serves. After each hourly sync, HealthLog downloads the files of activities that arrived in the last day, at most five per run, and adds the heart-rate curve (and speed, power and cadence where recorded) to the Garmin workout. The workout's figures stay the ones Garmin sent. The GPS track in the file is kept only when **Workout routes** is switched on.
+The activity list Garmin sends gives a summary per workout: duration, distance, calories, average and peak heart rate. The curve over the session is only in the activity's original file, which the Personal API also serves. After each hourly sync, HealthLog downloads the files of activities that arrived in the last day, at most five per run, and adds the heart-rate curve (and speed, power and cadence where recorded) to the Garmin workout, together with the figures the watch computed for the session: recovery time, sweat loss, training load and the running dynamics. A figure Garmin's summary already carried, such as the training effect, keeps Garmin's value, and the workout's other figures stay the ones Garmin sent. The GPS track in the file is kept only when **Workout routes** is switched on.
 
 A file Garmin does not serve, or one that cannot be read, is skipped without counting as a sync error.
 
