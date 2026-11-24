@@ -10,3 +10,14 @@ import Default from '@astrojs/starlight/components/Footer.astro';
 		Analytics settings
 	</button>
 </p>
+
+<script>
+	// Bundled with a content hash, unlike public/analytics.js, which is served
+	// as immutable under a fixed name. No inline onclick, so the CSP needs no
+	// 'unsafe-inline'.
+	document.addEventListener('click', (e) => {
+		if (e.target instanceof Element && e.target.closest('[data-hl-analytics-settings]')) {
+			(window as unknown as { hlAnalyticsSettings?: () => void }).hlAnalyticsSettings?.();
+		}
+	});
+</script>
