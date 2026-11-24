@@ -12,4 +12,7 @@ RUN pnpm run build
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Inline script hashes for the CSP (scripts/csp-hashes.mjs); conf.d is included
+# in the http context, where the map has to live.
+COPY --from=build /app/csp-hashes.conf /etc/nginx/conf.d/csp-hashes.conf
 EXPOSE 80
