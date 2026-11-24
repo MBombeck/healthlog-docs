@@ -185,11 +185,6 @@
 	function start() {
 		clearLegacy();
 		document.addEventListener('click', onClick, true);
-		// The footer button carries no inline handler, so the CSP needs no 'unsafe-inline'.
-		document.addEventListener('click', function (e) {
-			var button = e.target instanceof Element && e.target.closest('[data-hl-analytics-settings]');
-			if (button) window.hlAnalyticsSettings();
-		});
 		if (state() === 'on') {
 			send({
 				type: 'pageview',
