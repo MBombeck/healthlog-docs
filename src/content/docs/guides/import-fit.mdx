@@ -1,6 +1,6 @@
 ---
 title: Import activity files (FIT)
-description: Upload the FIT file a watch or bike computer records, from Garmin, Wahoo, Coros, Polar, Suunto, Zwift and others. What a file becomes, how a workout you already have gets its heart-rate curve instead of a duplicate, and why a file is refused.
+description: Upload the FIT files a watch or bike computer records, one or a whole folder, from Garmin, Wahoo, Coros, Polar, Suunto, Zwift and others. What a file becomes, how a workout you already have gets its heart-rate curve instead of a duplicate, and why a file is refused.
 sidebar:
   order: 6
 ---
@@ -31,22 +31,25 @@ heart-rate curve to a workout that arrived without one.
 
 <Steps>
 
-1. Open **Settings > Export & import** and drop the file onto the **Activity
-   file (FIT)** card, or click to choose it. A `.fit`, a `.fit.gz` and a ZIP
-   with one `.fit` inside are accepted, up to 10 MB.
+1. Open **Settings > Export & import** and drop the files onto the **Activity
+   file (FIT)** card, or click to choose them. A `.fit`, a `.fit.gz` and a ZIP
+   with one `.fit` inside are accepted, up to 10 MB each and up to 100 files
+   in one selection, so a whole `GARMIN/Activity` folder works.
 
-2. The card shows the progress and then what happened: new workouts, workouts
-   that already existed and got the curve, and whether a heart-rate curve and
-   a GPS track came with it.
+2. The card lists every file with its state: waiting, uploading, imported,
+   already imported, or failed with a short reason. A single file shows what
+   happened in detail: new workouts, workouts that already existed and got the
+   curve, and whether a heart-rate curve and a GPS track came with it.
 
 3. The workout appears in the workout list. Its page shows the heart-rate chart
    from the file.
 
 </Steps>
 
-Upload one file at a time. One import runs per account at a time, whatever
-kind it is. The uploaded file is deleted from the server as soon as the import
-ends, and the job keeps only counts.
+The files are imported one after the other, each through the same import as a
+single file, because one import runs per account at a time, whatever kind it
+is. Keep the page open until the list is through. Each uploaded file is deleted
+from the server as soon as its import ends, and the job keeps only counts.
 
 ## What a file becomes
 
@@ -84,7 +87,8 @@ So for a run that came in through the Garmin connection or the iPhone without
 a curve, upload its file and the curve appears on that same workout.
 
 Importing the same file again changes nothing, whether you upload it bare,
-gzipped or zipped. Workouts that are new carry **Import** as their source.
+gzipped or zipped; in a selection of several files it is listed as **already
+imported**. So selecting a whole folder again is safe. Workouts that are new carry **Import** as their source.
 
 ## Why a file is refused
 

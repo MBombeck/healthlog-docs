@@ -244,6 +244,7 @@ export default defineConfig({
 						{ slug: 'security/certificate-pinning' },
 						{ slug: 'guides/reverse-proxy' },
 						{ slug: 'self-hosting/tailscale' },
+						{ slug: 'self-hosting/google-drive-webdav' },
 						{ slug: 'guides/backups' },
 						{ slug: 'guides/encryption-key-rotation' },
 						{ slug: 'guides/updates-and-deploy' },
